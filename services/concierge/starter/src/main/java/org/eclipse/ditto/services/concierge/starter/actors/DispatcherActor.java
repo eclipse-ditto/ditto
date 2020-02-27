@@ -64,10 +64,9 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     @SuppressWarnings("unused")
     private DispatcherActor(final ActorRef enforcerActor,
             final ActorRef pubSubMediator,
-            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler,
-            final int partitionBufferSize) {
+            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
 
-        super(WithDittoHeaders.class, partitionBufferSize);
+        super(WithDittoHeaders.class);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -102,11 +101,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected int getParallelism() {
-        return enforcementConfig.getParallelism();
-    }
-
-    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         // no-op
     }
@@ -116,13 +110,11 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor address of the enforcer actor.
-     * @param partitionBufferSize the size of buffer per partition.
      * @return the Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef enforcerActor,
-            final int partitionBufferSize) {
+    public static Props props(final ActorRef pubSubMediator, final ActorRef enforcerActor) {
 
-        return props(pubSubMediator, enforcerActor, Flow.create(), partitionBufferSize);
+        return props(pubSubMediator, enforcerActor, Flow.create());
     }
 
     /**
@@ -131,13 +123,11 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor the address of the enforcer actor.
      * @param preEnforcer the pre-enforcer as graph.
-     * @param partitionBufferSize the size of buffer per partition.
      * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
-            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer,
-            final int partitionBufferSize) {
+            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
 
         final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow =
                 createDispatchFlow(pubSubMediator);
@@ -145,7 +135,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler = asContextualFlow(preEnforcer)
                 .via(dispatchFlow);
 
-        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, handler, partitionBufferSize);
+        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, handler);
     }
 
     /**

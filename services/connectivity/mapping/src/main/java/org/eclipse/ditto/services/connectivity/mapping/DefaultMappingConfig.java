@@ -33,14 +33,12 @@ public final class DefaultMappingConfig implements MappingConfig {
 
     private final int bufferSize;
     private final int parallelism;
-    private final int partitionBufferSize;
     private final JavaScriptConfig javaScriptConfig;
     private final MapperLimitsConfig mapperLimitsConfig;
 
     private DefaultMappingConfig(final ScopedConfig config) {
         bufferSize = config.getInt(MappingConfigValue.BUFFER_SIZE.getConfigPath());
         parallelism = config.getInt(MappingConfigValue.PARALLELISM.getConfigPath());
-        partitionBufferSize = config.getInt(MappingConfigValue.PARTITION_BUFFER_SIZE.getConfigPath());
         mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
         javaScriptConfig = DefaultJavaScriptConfig.of(config);
     }
@@ -70,11 +68,6 @@ public final class DefaultMappingConfig implements MappingConfig {
     }
 
     @Override
-    public int getPartitionBufferSize() {
-        return partitionBufferSize;
-    }
-
-    @Override
     public JavaScriptConfig getJavaScriptConfig() {
         return javaScriptConfig;
     }
@@ -95,14 +88,13 @@ public final class DefaultMappingConfig implements MappingConfig {
         final DefaultMappingConfig that = (DefaultMappingConfig) o;
         return bufferSize == that.bufferSize &&
                 parallelism == that.parallelism &&
-                partitionBufferSize == that.partitionBufferSize &&
                 Objects.equals(javaScriptConfig, that.javaScriptConfig) &&
                 Objects.equals(mapperLimitsConfig, that.mapperLimitsConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(bufferSize, parallelism, partitionBufferSize, javaScriptConfig, mapperLimitsConfig);
+        return Objects.hash(bufferSize, parallelism, javaScriptConfig, mapperLimitsConfig);
     }
 
     @Override
@@ -110,7 +102,6 @@ public final class DefaultMappingConfig implements MappingConfig {
         return getClass().getSimpleName() + " [" +
                 "bufferSize=" + bufferSize +
                 ", parallelism=" + parallelism +
-                ", partitionBufferSize=" + partitionBufferSize +
                 ", javaScriptConfig=" + javaScriptConfig +
                 ", mapperLimitsConfig=" + mapperLimitsConfig +
                 "]";

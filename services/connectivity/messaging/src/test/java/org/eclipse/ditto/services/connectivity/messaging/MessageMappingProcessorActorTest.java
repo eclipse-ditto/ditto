@@ -548,7 +548,7 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
-    public void testMessageWithoutCorrelationId(){
+    public void testMessageWithoutCorrelationId() {
 
         final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
                 AuthorizationModelFactory.newAuthSubject("hub-application/json"),
@@ -747,8 +747,7 @@ public final class MessageMappingProcessorActorTest {
     private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID, 99,
-                        TestConstants.CONNECTIVITY_CONFIG.getMappingConfig().getPartitionBufferSize());
+                        CONNECTION_ID, 99);
         return actorSystem.actorOf(props);
     }
 

@@ -143,10 +143,9 @@ public final class MessageMappingProcessorActor
             final ActorRef clientActor,
             final MessageMappingProcessor messageMappingProcessor,
             final ConnectionId connectionId,
-            final int processorPoolSize,
-            final int partitionBufferSize) {
+            final int processorPoolSize) {
 
-        super(OutboundSignal.class, partitionBufferSize);
+        super(OutboundSignal.class);
 
         this.conciergeForwarder = conciergeForwarder;
         this.clientActor = clientActor;
@@ -179,29 +178,22 @@ public final class MessageMappingProcessorActor
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
-     * @param partitionBufferSize the size of the partition buffer.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef conciergeForwarder,
             final ActorRef clientActor,
             final MessageMappingProcessor processor,
             final ConnectionId connectionId,
-            final int processorPoolSize,
-            final int partitionBufferSize) {
+            final int processorPoolSize) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
-                connectionId, processorPoolSize, partitionBufferSize)
+                connectionId, processorPoolSize)
                 .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
-    }
-
-    @Override
-    protected int getParallelism() {
-        return mappingConfig.getParallelism();
     }
 
     @Override

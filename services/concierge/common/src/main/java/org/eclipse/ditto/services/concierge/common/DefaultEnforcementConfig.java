@@ -31,14 +31,10 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
 
     private final Duration askTimeout;
     private final int bufferSize;
-    private final int parallelism;
-    private final int partitionBufferSize;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
         bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
-        parallelism = configWithFallback.getInt(EnforcementConfigValue.PARALLELISM.getConfigPath());
-        partitionBufferSize = configWithFallback.getInt(EnforcementConfigValue.PARTITION_BUFFER_SIZE.getConfigPath());
     }
 
     /**
@@ -64,17 +60,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
-    public int getParallelism() {
-        return parallelism;
-    }
-
-    @Override
-    public int getPartitionBufferSize() {
-        return partitionBufferSize;
-    }
-
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -83,15 +68,12 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
             return false;
         }
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
-        return bufferSize == that.bufferSize &&
-                parallelism == that.parallelism &&
-                askTimeout.equals(that.askTimeout) &&
-                partitionBufferSize == that.partitionBufferSize;
+        return bufferSize == that.bufferSize && askTimeout.equals(that.askTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, bufferSize, parallelism, partitionBufferSize);
+        return Objects.hash(askTimeout, bufferSize);
     }
 
     @Override
@@ -99,8 +81,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
                 ", bufferSize=" + bufferSize +
-                ", parallelism=" + parallelism +
-                ", partitionBufferSize=" + partitionBufferSize +
                 "]";
     }
 

@@ -69,19 +69,17 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      *
      * @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
-     * @param partitionBufferSize the size of the partition buffer.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final int partitionBufferSize,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(WithDittoHeaders.class, partitionBufferSize);
+        super(WithDittoHeaders.class);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -153,11 +151,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected int getBufferSize() {
         return enforcementConfig.getBufferSize();
-    }
-
-    @Override
-    protected int getParallelism() {
-        return enforcementConfig.getParallelism();
     }
 
     @Override

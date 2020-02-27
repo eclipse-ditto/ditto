@@ -40,13 +40,6 @@ public interface MappingConfig {
     int getParallelism();
 
     /**
-     * Returns the buffer size used for partitions in the enforcer actor.
-     *
-     * @return the buffer size.
-     */
-    int getPartitionBufferSize();
-
-    /**
      * Returns the config of the JavaScript message mapping.
      *
      * @return the config.
@@ -70,11 +63,6 @@ public interface MappingConfig {
          * The buffer size used for the queue in the message mapping processor actor.
          */
         BUFFER_SIZE("buffer-size", 500),
-
-        /**
-         * The buffer size used for the partitions in the enforcer actor.
-         */
-        PARTITION_BUFFER_SIZE("partition-buffer-size", 100),
 
         /**
          * The parallelism used for processing messages in parallel in message mapping processor actor.

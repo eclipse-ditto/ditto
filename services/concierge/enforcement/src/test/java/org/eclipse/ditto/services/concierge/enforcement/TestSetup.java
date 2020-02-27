@@ -127,7 +127,7 @@ public final class TestSetup {
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache,
                         new DummyLiveSignalPub(testActorRef)));
 
-        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, 100,
+        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder,
                 preEnforcer, null, null, null);
         return system.actorOf(props, EnforcerActor.ACTOR_NAME);
     }
