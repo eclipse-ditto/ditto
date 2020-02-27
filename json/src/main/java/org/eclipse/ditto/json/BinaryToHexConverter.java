@@ -53,7 +53,7 @@ public final class BinaryToHexConverter {
      * @param array the byte array to convert.
      * @return the converted uppercase hexadecimal string.
      */
-    static String toHexString(final byte[] array) throws IOException {
+    public static String toHexString(final byte[] array) throws IOException {
         return toHexString(new ByteArrayInputStream(array));
     }
 
@@ -63,7 +63,7 @@ public final class BinaryToHexConverter {
      * @param byteBuffer the byte buffer to convert.
      * @return the converted uppercase hexadecimal string.
      */
-    static String toHexString(final ByteBuffer byteBuffer) throws IOException {
+    public static String toHexString(final ByteBuffer byteBuffer) throws IOException {
         return toHexString(ByteBufferInputStream.of(byteBuffer));
     }
 
@@ -73,7 +73,7 @@ public final class BinaryToHexConverter {
      * @param inputStream the input stream to convert.
      * @return the converted uppercase hexadecimal string.
      */
-    static String toHexString(final InputStream inputStream) throws IOException {
+    public static String toHexString(final InputStream inputStream) throws IOException {
         final StringBuilder stringBuilder = new StringBuilder(inputStream.available());
         int currentByte = inputStream.read();
         while (currentByte >= 0) {
