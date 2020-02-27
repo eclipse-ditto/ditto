@@ -66,7 +66,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
         super(pubSubMediator, conciergeForwarder, partitionBufferSize, thingIdCache, aclEnforcerCache,
                 policyEnforcerCache);
 
-        handler = assembleHandler(enforcementProviders, preEnforcer, partitionBufferSize);
+        handler = assembleHandler(enforcementProviders, preEnforcer);
         sink = assembleSink();
     }
 
@@ -142,8 +142,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     @SuppressWarnings("unchecked") // due to GraphDSL usage
     private Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> assembleHandler(
             final Set<EnforcementProvider<?>> enforcementProviders,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            final int partitionBufferSize) {
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
         final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> preEnforcerFlow =
                 Optional.ofNullable(preEnforcer)
