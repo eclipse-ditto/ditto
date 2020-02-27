@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -107,39 +106,60 @@ public final class MongoReadJournalIT {
     }
 
     @Test
-    public void getEmptyStream() {
-        final List<PidWithSeqNr> pids =
-                readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now())
+    public void streamLatestSnapshotsWithBatchCutOffWithinSamePid() {
+        // GIVEN
+        insert("test_snaps", new Document()
+                .append("pid", "pid1")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "2020-02-29T23:59:59.999Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 2L)
+                .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 3L)
+                .append("s2", new Document().append("_modified", "2020-01-31T19:57:48.571Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid4")
+                .append("sn", 4L)
+                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.000Z"))
+        );
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", new Document()
+                .append("pid", "pid5")
+                .append("sn", 4L)
+                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.001Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid5")
+                .append("sn", 5L)
+                .append("s2", new Document()
+                        .append("_modified", "1970-01-01T00:00:00.002Z")
+                        .append("__lifecycle", "DELETED")
+                )
+        );
+
+        // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove("pid2", 2, materializer, "_modified")
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture()
                         .join();
-        assertThat(pids).isEmpty();
-    }
 
-    @Test
-    public void streamJournals() {
-        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid2").append("to", 2L));
-        final List<PidWithSeqNr> pids =
-                readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now().plusSeconds(500L))
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture()
-                        .join();
-
-        assertThat(pids).containsExactlyInAnyOrder(new PidWithSeqNr("pid1", 1L), new PidWithSeqNr("pid2", 2L));
-    }
-
-    @Test
-    public void streamSnapshotStores() {
-        insert("test_snaps", new Document().append("pid", "pid3").append("sn", 3L));
-        insert("test_snaps", new Document().append("pid", "pid4").append("sn", 4L));
-        final List<PidWithSeqNr> pids =
-                readJournal.getPidWithSeqNrsByInterval(Instant.EPOCH, Instant.now().plusSeconds(500L))
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture()
-                        .join();
-
-        assertThat(pids).containsExactlyInAnyOrder(new PidWithSeqNr("pid3", 3L), new PidWithSeqNr("pid4", 4L));
+        // THEN: snapshots of the highest sequence number for each pid are returned
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "pid3").append("_modified", "2020-01-31T19:57:48.571Z"),
+                new Document().append("_id", "pid4").append("_modified", "1970-01-01T00:00:00.000Z")
+        );
     }
 
     @Test
@@ -167,7 +187,7 @@ public final class MongoReadJournalIT {
         insert("test_journal", new Document().append("pid", "pid4").append("to", 2L));
 
         final List<String> pids =
-                readJournal.getJournalPidsAbove("pid2", 2, Duration.ZERO, materializer)
+                readJournal.getJournalPidsAbove("pid2", 2, materializer)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 

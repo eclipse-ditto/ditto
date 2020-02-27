@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
@@ -30,7 +31,7 @@ public final class MetadataTest {
     public void assertImmutability() {
         assertInstancesOf(Metadata.class,
                 areImmutable(),
-                provided(ThingId.class).isAlsoImmutable());
+                provided(ThingId.class, PolicyId.class).isAlsoImmutable());
     }
 
     @Test

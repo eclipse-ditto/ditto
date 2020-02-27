@@ -49,7 +49,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static final String ACTOR_NAME = "enforcer";
 
-    private final ActorRef enforcementScheduler;
     private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
 
     @SuppressWarnings("unused")
@@ -65,7 +64,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
         super(pubSubMediator, conciergeForwarder, partitionBufferSize, thingIdCache, aclEnforcerCache,
                 policyEnforcerCache);
 
-        enforcementScheduler = getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
+        final ActorRef enforcementScheduler =
+                getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
         sink = assembleSink(enforcementProviders, preEnforcer, enforcementScheduler);
     }
 

@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.thingsearch.common.config.StreamStageConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 
-import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
@@ -56,18 +55,21 @@ public final class SearchUpdaterStream {
     private final SearchConfig searchConfig;
     private final EnforcementFlow enforcementFlow;
     private final MongoSearchUpdaterFlow mongoSearchUpdaterFlow;
+    private final BulkWriteResultAckFlow bulkWriteResultAckFlow;
     private final ActorRef changeQueueActor;
     private final BlockedNamespaces blockedNamespaces;
 
     private SearchUpdaterStream(final SearchConfig searchConfig,
             final EnforcementFlow enforcementFlow,
             final MongoSearchUpdaterFlow mongoSearchUpdaterFlow,
+            final BulkWriteResultAckFlow bulkWriteResultAckFlow,
             final ActorRef changeQueueActor,
             final BlockedNamespaces blockedNamespaces) {
 
         this.searchConfig = searchConfig;
         this.enforcementFlow = enforcementFlow;
         this.mongoSearchUpdaterFlow = mongoSearchUpdaterFlow;
+        this.bulkWriteResultAckFlow = bulkWriteResultAckFlow;
         this.changeQueueActor = changeQueueActor;
         this.blockedNamespaces = blockedNamespaces;
     }
@@ -75,11 +77,11 @@ public final class SearchUpdaterStream {
     /**
      * Create a restart-able SearchUpdaterStream object.
      *
-     *
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param actorSystem actor system to run the stream in.
      * @param thingsShard shard region proxy of things.
      * @param policiesShard shard region proxy of policies.
+     * @param updaterShard shard region of search updaters.
      * @param changeQueueActor reference of the change queue actor.
      * @param database MongoDB database.
      * @return a SearchUpdaterStream object.
@@ -88,6 +90,7 @@ public final class SearchUpdaterStream {
             final ActorSystem actorSystem,
             final ActorRef thingsShard,
             final ActorRef policiesShard,
+            final ActorRef updaterShard,
             final ActorRef changeQueueActor,
             final MongoDatabase database,
             final BlockedNamespaces blockedNamespaces) {
@@ -107,8 +110,10 @@ public final class SearchUpdaterStream {
 
         final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database);
 
-        return new SearchUpdaterStream(searchConfig, enforcementFlow, mongoSearchUpdaterFlow, changeQueueActor,
-                blockedNamespaces);
+        final BulkWriteResultAckFlow bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
+
+        return new SearchUpdaterStream(searchConfig, enforcementFlow, mongoSearchUpdaterFlow, bulkWriteResultAckFlow,
+                changeQueueActor, blockedNamespaces);
     }
 
     /**
@@ -152,7 +157,7 @@ public final class SearchUpdaterStream {
         final Duration writeInterval = streamConfig.getWriteInterval();
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> sink =
                 mongoSearchUpdaterFlow.start(parallelism, maxBulkSize, writeInterval)
-                        .map(SearchUpdaterStream::logResult)
+                        .via(bulkWriteResultAckFlow.start())
                         .log("SearchUpdaterStream/BulkWriteResult")
                         .withAttributes(Attributes.logLevels(
                                 Attributes.logLevelInfo(),
@@ -194,13 +199,5 @@ public final class SearchUpdaterStream {
         return writeModel.getMetadata().getThingId().getNamespace();
     }
 
-    private static String logResult(final BulkWriteResult bulkWriteResult) {
-        return String.format("BulkWriteResult[matched=%d,upserts=%d,inserted=%d,modified=%d,deleted=%d]",
-                bulkWriteResult.getMatchedCount(),
-                bulkWriteResult.getUpserts().size(),
-                bulkWriteResult.getInsertedCount(),
-                bulkWriteResult.getModifiedCount(),
-                bulkWriteResult.getDeletedCount());
-    }
 
 }

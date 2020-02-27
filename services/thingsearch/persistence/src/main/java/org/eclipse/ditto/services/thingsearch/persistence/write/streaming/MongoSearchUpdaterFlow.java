@@ -16,15 +16,17 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoBulkWriteException;
-import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -45,8 +47,6 @@ import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.Zip;
 import kamon.Kamon;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -85,57 +85,59 @@ final class MongoSearchUpdaterFlow {
      * @param writeInterval Delay between bulk operation requests. MongoDB backpressure is insufficient.
      * @return the sink.
      */
-    public Flow<Source<AbstractWriteModel, NotUsed>, BulkWriteResult, NotUsed> start(final int parallelism,
+    public Flow<Source<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
+            final int parallelism,
             final int maxBulkSize,
             final Duration writeInterval) {
 
-        final Flow<Source<AbstractWriteModel, NotUsed>, List<WriteModel<Document>>, NotUsed> batchFlow =
-                Flow.<Source<AbstractWriteModel, NotUsed>>create()
-                        .flatMapConcat(source -> source.map(AbstractWriteModel::toMongo).grouped(maxBulkSize));
-
-        final Flow<List<WriteModel<Document>>, List<WriteModel<Document>>, NotUsed> throttleFlow;
+        final Flow<List<AbstractWriteModel>, List<AbstractWriteModel>, NotUsed> throttleFlow;
         if (Duration.ZERO.minus(writeInterval).isNegative()) {
-            throttleFlow = Flow.<List<WriteModel<Document>>>create()
+            throttleFlow = Flow.<List<AbstractWriteModel>>create()
                     .delay(writeInterval, DelayOverflowStrategy.backpressure());
         } else {
             throttleFlow = Flow.create();
         }
 
-        final Flow<List<WriteModel<Document>>, BulkWriteResult, NotUsed> writeFlow =
-                throttleFlow.flatMapMerge(parallelism, this::executeBulkWrite)
+        final Flow<Source<AbstractWriteModel, NotUsed>, List<AbstractWriteModel>, NotUsed> batchFlow =
+                Flow.<Source<AbstractWriteModel, NotUsed>>create()
+                        .flatMapConcat(source -> source.grouped(maxBulkSize))
+                        .via(throttleFlow);
+
+        final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
+                Flow.<List<AbstractWriteModel>>create()
+                        .flatMapMerge(parallelism, this::executeBulkWrite)
                         // never initiate more than "parallelism" writes against the persistence
                         .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
 
-        final Flow<List<WriteModel<Document>>, StartedTimer, NotUsed> startTimerFlow = createStartTimerFlow();
-        final Flow<Pair<BulkWriteResult, StartedTimer>, BulkWriteResult, NotUsed> stopTimerFlow = createStopTimerFlow();
-
-        return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, startTimerFlow, stopTimerFlow));
+        return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, createStartTimerFlow(), createStopTimerFlow()));
     }
 
-    private Source<BulkWriteResult, NotUsed> executeBulkWrite(final List<WriteModel<Document>> writeModel) {
-        return Source.fromPublisher(collection.bulkWrite(writeModel, new BulkWriteOptions().ordered(false)))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<BulkWriteResult, NotUsed>>()
-                        .match(MongoBulkWriteException.class, bulkWriteException -> {
-                            log.info("Got MongoBulkWriteException; may ignore if all are duplicate key errors:",
-                                    bulkWriteException);
-                            return Source.single(bulkWriteException.getWriteResult());
-                        })
-                        .matchAny(error -> {
-                            log.error("Unexpected error", error);
-                            return Source.failed(error);
-                        })
-                        .build());
-
+    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(
+            final List<AbstractWriteModel> abstractWriteModels) {
+        final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
+                .map(AbstractWriteModel::toMongo)
+                .collect(Collectors.toList());
+        return Source.fromPublisher(collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
+                .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
+                        .match(MongoBulkWriteException.class, bulkWriteException ->
+                                Source.single(WriteResultAndErrors.failure(abstractWriteModels, bulkWriteException))
+                        )
+                        .matchAny(error ->
+                                Source.single(WriteResultAndErrors.unexpectedError(abstractWriteModels, error))
+                        )
+                        .build()
+                );
     }
 
-    private static Flow<List<WriteModel<Document>>, StartedTimer, NotUsed> createStartTimerFlow() {
+    private static <T> Flow<List<T>, StartedTimer, NotUsed> createStartTimerFlow() {
         return Flow.fromFunction(writeModels -> {
             Kamon.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record(writeModels.size());
             return DittoMetrics.expiringTimer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").build();
         });
     }
 
-    private static Flow<Pair<BulkWriteResult, StartedTimer>, BulkWriteResult, NotUsed> createStopTimerFlow() {
+    private static <T> Flow<Pair<T, StartedTimer>, T, NotUsed> createStopTimerFlow() {
         return Flow.fromFunction(pair -> {
             try {
                 pair.second().stop();
