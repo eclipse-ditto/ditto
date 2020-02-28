@@ -22,6 +22,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -72,12 +73,13 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
         this.policyId = policyId;
         this.policyEntries = policyEntries;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() ->
-                        StreamSupport.stream(policyEntries.spliterator(), false)
-                                .map(PolicyEntry::toJson)
-                                .collect(JsonCollectors.valuesToArray())
-                                .toString()
-                                .length(),
+        final JsonArray policyEntriesJsonArray = StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(PolicyEntry::toJson)
+                .collect(JsonCollectors.valuesToArray());
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                policyEntriesJsonArray::getUpperBoundForStringSize,
+                () -> policyEntriesJsonArray.toString().length(),
                 () -> dittoHeaders);
     }
 

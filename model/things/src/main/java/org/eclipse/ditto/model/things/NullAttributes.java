@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -291,4 +293,13 @@ final class NullAttributes implements Attributes {
         return wrapped.toString();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        JsonFactory.nullLiteral().writeValue(serializationContext);
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return JsonFactory.nullLiteral().getUpperBoundForStringSize();
+    }
 }

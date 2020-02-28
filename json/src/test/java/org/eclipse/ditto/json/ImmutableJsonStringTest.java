@@ -18,6 +18,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
 import com.eclipsesource.json.Json;
@@ -83,6 +85,20 @@ public final class ImmutableJsonStringTest {
         final com.eclipsesource.json.JsonValue underTest = Json.value(KNOWN_STRING_VALUE);
 
         assertThat(underTest.toString()).isEqualTo(expected);
+    }
+
+    @Test
+    public void writeValueWritesExpectedSimple() throws IOException {
+        final String expectedString = "63666F6F"; // "foo"
+        final ImmutableJsonString underTest = ImmutableJsonString.of(KNOWN_STRING_VALUE);
+        assertThat(CborTestUtils.serializeToHexString(underTest)).isEqualToIgnoringCase(expectedString);
+    }
+
+    @Test
+    public void writeValueWritesExpectedComplex() throws IOException {
+        final String expectedString = "75666F6F212F373840E282AC225CC384C2A77B7D5B5D"; // "foo!/78@€\"\\Ä§{}[]"
+        final ImmutableJsonString underTest = ImmutableJsonString.of("foo!/78@€\"\\Ä§{}[]");
+        assertThat(CborTestUtils.serializeToHexString(underTest)).isEqualToIgnoringCase(expectedString);
     }
 
     @Test
