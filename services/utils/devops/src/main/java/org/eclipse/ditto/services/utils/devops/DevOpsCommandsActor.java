@@ -24,8 +24,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -413,8 +411,6 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      */
     private static final class DevOpsCommandResponseCorrelationActor extends AbstractActor {
 
-        private static final String TIMEOUT_HEADER = "timeout";
-
         private static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.ofMillis(5000);
         private static final boolean DEFAULT_AGGREGATE = true;
 
@@ -454,15 +450,8 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         private static Duration getReceiveTimeout(final DittoHeaders dittoHeaders) {
-            Duration result = DEFAULT_RECEIVE_TIMEOUT;
-            final long defaultTimeout = DEFAULT_RECEIVE_TIMEOUT.toMillis();
-            @Nullable final String timeoutHeaderValue = dittoHeaders.get(TIMEOUT_HEADER);
-            if (null != timeoutHeaderValue) {
-                final long parsedTimeout = Long.parseLong(timeoutHeaderValue);
-                final long timeout = Math.max(parsedTimeout, defaultTimeout);
-                result = Duration.ofMillis(timeout);
-            }
-            return result;
+            final Duration timeout = dittoHeaders.getTimeout().orElse(DEFAULT_RECEIVE_TIMEOUT);
+            return timeout.compareTo(DEFAULT_RECEIVE_TIMEOUT) > 0 ? timeout : DEFAULT_RECEIVE_TIMEOUT;
         }
 
         @Override
