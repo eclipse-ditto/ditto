@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -136,9 +137,11 @@ public final class ImmutableMessageHeadersTest {
 
         final MessageHeadersBuilder underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("<%s> is not a HTTP status code!", value, key)
+                .withMessageContaining(key)
+                .withMessageContaining(value)
+                .withMessageEndingWith("is not a valid HTTP status code.")
                 .withNoCause();
     }
 

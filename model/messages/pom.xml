@@ -62,6 +62,9 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <!-- MessageHeaderDefinition was reported to be incompatible because it is final now.
+                                 However it is an enum which is always final. //-->
+                            <exclude>org.eclipse.ditto.model.messages.MessageHeaderDefinition</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>

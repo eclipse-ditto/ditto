@@ -68,6 +68,7 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <!-- Widened interfaces to accept CharSequence instead of String. -->
                             <exclude>org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException#newInvalidTypeBuilder(java.lang.String,java.lang.String,java.lang.String)</exclude>
                             <exclude>org.eclipse.ditto.model.base.headers.entitytag.EntityTag#isValid(java.lang.String)</exclude>
                             <exclude>org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher#isValid(java.lang.String)</exclude>

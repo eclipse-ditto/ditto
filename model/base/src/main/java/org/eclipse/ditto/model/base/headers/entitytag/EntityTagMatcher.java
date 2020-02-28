@@ -25,7 +25,11 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class EntityTagMatcher {
 
-    private static final String ASTERISK = "*";
+    /**
+     * String constant that represents an asterisk.
+     */
+    static final String ASTERISK = "*";
+
     private static final EntityTagMatcher ASTERISK_INSTANCE = new EntityTagMatcher(null, true);
 
     @Nullable private final EntityTag entityTag;
@@ -46,6 +50,7 @@ public final class EntityTagMatcher {
      * is not valid according to {@link #isValid(CharSequence)}.
      */
     public static EntityTagMatcher fromString(final String entityTagMatcher) {
+
         // use only one instance of asterisk in the JVM
         if (isAsterisk(entityTagMatcher)) {
             return ASTERISK_INSTANCE;

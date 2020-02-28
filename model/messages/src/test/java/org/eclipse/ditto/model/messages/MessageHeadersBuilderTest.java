@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,10 +84,10 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithInvalidSubject() {
         final String invalidSubject = "{foo}";
 
-        assertThatExceptionOfType(SubjectInvalidException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, invalidSubject))
-                .withMessageStartingWith(
-                        "The subject <" + invalidSubject + "> is invalid because it did not match the pattern")
+                .withMessageContaining(invalidSubject)
+                .withMessageEndingWith("is not a valid message subject.")
                 .withNoCause();
     }
 
@@ -204,10 +203,10 @@ public final class MessageHeadersBuilderTest {
         final String key = MessageHeaderDefinition.TIMESTAMP.getKey();
         final String invalidValue = "foo";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, invalidValue))
-                .withMessage("<foo> is not a valid timestamp!")
-                .withCauseInstanceOf(DateTimeParseException.class);
+                .withMessageContaining(invalidValue)
+                .withMessageEndingWith("is not a valid timestamp.");
     }
 
     @Test
