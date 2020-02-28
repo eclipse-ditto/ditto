@@ -72,6 +72,8 @@
                             <exclude>org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException#newInvalidTypeBuilder(java.lang.String,java.lang.String,java.lang.String)</exclude>
                             <exclude>org.eclipse.ditto.model.base.headers.entitytag.EntityTag#isValid(java.lang.String)</exclude>
                             <exclude>org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher#isValid(java.lang.String)</exclude>
+                            <!-- Made default method of interface a normal abstract interface method. -->
+                            <exclude>org.eclipse.ditto.model.base.headers.HeaderDefinition.validateValue(java.lang.CharSequence)</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                         </excludes>
                     </parameter>
