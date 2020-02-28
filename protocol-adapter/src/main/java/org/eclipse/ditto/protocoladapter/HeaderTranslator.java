@@ -88,8 +88,7 @@ public final class HeaderTranslator {
     public DittoHeaders fromExternalHeaders(final Map<String, String> externalHeaders) {
         checkNotNull(externalHeaders, "externalHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.fromExternalHeadersFilter(headerDefinitions);
-        @SuppressWarnings("rawtypes")
-        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder();
         externalHeaders.forEach((externalKey, value) -> {
             final String key = externalKey.toLowerCase();
             final String filteredValue = headerEntryFilter.apply(key, value);

@@ -24,6 +24,16 @@ import javax.annotation.Nullable;
  */
 interface HeaderEntryFilter {
 
+    /**
+     * Applies a filtering of the header entry identified by the passed {@code key} in a way that the passed
+     * {@code value} might be changed in the return value or even might be completely filtered out if the return value
+     * is {@code null}.
+     *
+     * @param key the header entry key to apply the filtering on.
+     * @param value the value to filter.
+     * @return the original passed in {@code value}, an adjusted (reduced/enhanced) form of the passed in value or
+     * {@code null} if the header entry should completely be filtered out.
+     */
     @Nullable
     String apply(String key, @Nullable String value);
 

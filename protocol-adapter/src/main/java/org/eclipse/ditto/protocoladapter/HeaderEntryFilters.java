@@ -28,6 +28,22 @@ final class HeaderEntryFilters {
         throw new AssertionError();
     }
 
+    /**
+     * Creates a {@code HeaderEntryFilter} which will
+     * <ul>
+     * <li>filter out header entries which should not be written to external headers as specified by
+     * {@link HeaderDefinition#shouldWriteToExternalHeaders()} of the entry</li>
+     * <li>discard {@code AcknowledgementRequest} header entries which are internal to Ditto as defined in
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel}</li>
+     * </ul>
+     *
+     * @param headerDefinitionMap the header definitions for creating the filter used to determining whether a header
+     * entry will be filtered or adjusted accordingly.
+     * @return the created HeaderEntryFilter.
+     * @throws NullPointerException if {@code headerDefinitionMap} is {@code null}.
+     * @see CheckExternalFilter#shouldWriteToExternal(Map)
+     * @see DittoAckRequestsFilter#getInstance()
+     */
     static HeaderEntryFilter toExternalHeadersFilter(final Map<String, HeaderDefinition> headerDefinitionMap) {
         return shouldWriteToExternal(headerDefinitionMap).andThen(discardDittoAckRequests());
     }
@@ -40,6 +56,16 @@ final class HeaderEntryFilters {
         return DittoAckRequestsFilter.getInstance();
     }
 
+    /**
+     * Creates a {@code HeaderEntryFilter} which will filter out header entries which should not be read from external
+     * headers as specified by {@link HeaderDefinition#shouldReadFromExternalHeaders()} of the entry.
+     *
+     * @param headerDefinitionMap the header definitions for determining whether a header entry may be read from
+     * external headers or not.
+     * @return the created HeaderEntryFilter.
+     * @throws NullPointerException if {@code headerDefinitionMap} is {@code null}.
+     * @see HeaderDefinition#shouldReadFromExternalHeaders()
+     */
     static HeaderEntryFilter fromExternalHeadersFilter(final Map<String, HeaderDefinition> headerDefinitionMap) {
         return CheckExternalFilter.shouldReadFromExternal(headerDefinitionMap);
     }

@@ -35,6 +35,13 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
         super();
     }
 
+    /**
+     * Returns an instance of {@code DittoAckRequestsFilter} which adjusts the value of the header entry identified by
+     * {@link DittoHeaderDefinition#REQUESTED_ACKS} by removing
+     * {@link DittoAcknowledgementLabel Ditto-internal acknowledgement requests} from it.
+     *
+     * @return the instance.
+     */
     public static DittoAckRequestsFilter getInstance() {
         return new DittoAckRequestsFilter();
     }
