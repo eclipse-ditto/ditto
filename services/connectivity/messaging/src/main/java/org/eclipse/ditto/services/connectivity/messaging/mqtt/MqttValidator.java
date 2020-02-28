@@ -17,18 +17,24 @@ import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPl
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.text.MessageFormat;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -40,7 +46,12 @@ import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceAddressPlaceholder;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
@@ -160,7 +171,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
             final ThingId dummyThingId = ThingId.of("namespace", "name");
             final Map<String, String> filtersMap =
-                    PlaceholderFilter.applyThingPlaceholderToAddresses(enforcement.getFilters(),
+                    applyEntityPlaceholderToAddresses(enforcement.getFilters(),
                             dummyThingId, filter -> {
                                 throw invalidValueForConfig(filter, "filters", sourceDescription.get())
                                         .description("Placeholder substitution failed. " +
@@ -293,5 +304,55 @@ public final class MqttValidator extends AbstractProtocolValidator {
         final String message = MessageFormat.format("Invalid value ''{0}'' for configuration ''{1}'' in {2}",
                 value, configName, location);
         return ConnectionConfigurationInvalidException.newBuilder(message);
+    }
+
+    /**
+     * Apply {@link ThingPlaceholder}s to addresses and collect the result as a map.
+     *
+     * @param addresses addresses to apply placeholder substitution.
+     * @param entityId the entity ID.
+     * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
+     * @return map from successfully filtered addresses to the result of placeholder substitution.
+     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
+     */
+    private static <T extends EntityId> Map<String, String> applyEntityPlaceholderToAddresses(
+            final Collection<String> addresses,
+            final T entityId,
+            final Consumer<String> unresolvedPlaceholderListener) {
+
+        return addresses.stream()
+                .flatMap(address -> {
+                    final String filteredAddress =
+                            applyEntityPlaceholder(address, entityId, unresolvedPlaceholderListener);
+                    return filteredAddress == null
+                            ? Stream.empty()
+                            : Stream.of(new AbstractMap.SimpleEntry<>(address, filteredAddress));
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    @Nullable
+    private static <T extends EntityId> String applyEntityPlaceholder(final String address, final T entityId,
+            final Consumer<String> unresolvedPlaceholderListener) {
+
+        final List<Placeholder<CharSequence>> placeholders = Arrays.asList(
+                PlaceholderFactory.newThingPlaceholder(),
+                PlaceholderFactory.newPolicyPlaceholder(),
+                PlaceholderFactory.newEntityPlaceholder()
+        );
+
+        for (final Placeholder<CharSequence> placeholder : placeholders) {
+            try {
+                final ExpressionResolver expressionResolver =
+                        PlaceholderFactory.newExpressionResolver(placeholder, entityId);
+                return PlaceholderFilter.apply(address, expressionResolver);
+            } catch (final UnresolvedPlaceholderException e) {
+                // do nothing, next placeholder will be executed, unresolved placeholder will be reported if none of
+                // the placeholders can be applied successfully
+            }
+        }
+
+        unresolvedPlaceholderListener.accept(address);
+        return null;
     }
 }
