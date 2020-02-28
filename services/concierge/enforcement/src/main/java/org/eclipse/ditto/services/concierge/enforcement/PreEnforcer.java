@@ -15,8 +15,6 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -61,7 +59,7 @@ public interface PreEnforcer {
      */
     @SuppressWarnings("unchecked") // due to cast to (S)
     default <S extends WithSender<?>, T> CompletionStage<T> withErrorHandlingAsync(final S withSender,
-            @Nullable final T onError,
+            final T onError,
             final Function<S, CompletionStage<T>> andThen) {
         return apply(withSender.getMessage())
                 // the cast to (S) is safe if the post-condition of this.apply(WithDittoHeaders) holds.

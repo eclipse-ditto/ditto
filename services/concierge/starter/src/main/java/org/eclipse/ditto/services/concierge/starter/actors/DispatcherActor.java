@@ -37,6 +37,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -198,9 +199,9 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     private static void preEnforce(final ImmutableDispatch dispatch,
             final PreEnforcer preEnforcer,
             final Consumer<ImmutableDispatch> andThen) {
-        preEnforcer.withErrorHandlingAsync(dispatch, null, newDispatch -> {
+        preEnforcer.withErrorHandlingAsync(dispatch, Done.done(), newDispatch -> {
             andThen.accept(newDispatch);
-            return null;
+            return CompletableFuture.completedStage(Done.done());
         });
     }
 
