@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -65,4 +66,13 @@ final class ImmutableJsonInt extends AbstractJsonNumber<Integer> {
         return getValue();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeNumber(getValue());
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 11; // 10 digits for the decimal representation of 2^32 plus one character for a potential '-'
+    }
 }

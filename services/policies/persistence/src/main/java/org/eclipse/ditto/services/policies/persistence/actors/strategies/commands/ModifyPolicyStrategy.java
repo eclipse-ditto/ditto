@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -46,9 +47,13 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
         final Policy modifiedPolicy = command.getPolicy().toBuilder().setRevision(nextRevision).build();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final JsonObject modifiedPolicyJsonObject = modifiedPolicy.toJson();
         try {
             PolicyCommandSizeValidator.getInstance()
-                    .ensureValidSize(() -> modifiedPolicy.toJsonString().length(), command::getDittoHeaders);
+                    .ensureValidSize(
+                            modifiedPolicyJsonObject::getUpperBoundForStringSize,
+                            () -> modifiedPolicyJsonObject.toString().length(),
+                            command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
             return ResultFactory.newErrorResult(e);
         }

@@ -16,6 +16,7 @@ package org.eclipse.ditto.model.things;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -304,6 +306,16 @@ final class ImmutableAttributes implements Attributes {
     @Override
     public String toString() {
         return wrapped.toString();
+    }
+
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        wrapped.writeValue(serializationContext);
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return wrapped.getUpperBoundForStringSize();
     }
 
     private Attributes determineResult(final Supplier<JsonObject> newWrappedSupplier) {

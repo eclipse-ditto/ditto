@@ -64,6 +64,7 @@ public final class BaseClientActorTest {
 
     private static final Status.Success CONNECTED_STATUS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_STATUS = new Status.Success(BaseClientState.DISCONNECTED);
+    private static final Duration DEFAULT_MESSAGE_TIMEOUT = Duration.ofSeconds(3);
     private static ActorSystem actorSystem;
     private static DittoConnectivityConfig connectivityConfig;
 
@@ -330,11 +331,12 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectConnectClientCalled() {
-        thenExpectConnectClientCalledAfterTimeout(Duration.ZERO);
+        thenExpectConnectClientCalledAfterTimeout(DEFAULT_MESSAGE_TIMEOUT);
     }
 
     private void thenExpectDisconnectClientCalled() {
-        verify(delegate, timeout(200)).doDisconnectClient(any(Connection.class), nullable(ActorRef.class));
+        verify(delegate, timeout(DEFAULT_MESSAGE_TIMEOUT.toMillis())).doDisconnectClient(any(Connection.class),
+                nullable(ActorRef.class));
     }
 
     private void thenExpectConnectClientCalledAfterTimeout(final Duration connectingTimeout) {

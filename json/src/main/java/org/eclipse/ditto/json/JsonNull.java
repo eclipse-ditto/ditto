@@ -12,8 +12,20 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
+
 /**
  * This is a interface to mark all classes that represent a JSON {@code null} value somehow.
  */
-interface JsonNull {
+interface JsonNull extends JsonValue {
+
+    @Override
+    default void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeNull();
+    }
+
+    @Override
+    default long getUpperBoundForStringSize() {
+        return 4; // "null"
+    }
 }

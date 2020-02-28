@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -75,8 +75,12 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
         this.label = label;
         this.subjects = subjects;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> subjects.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject subjectsJsonObject = subjects.toJson();
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                subjectsJsonObject::getUpperBoundForStringSize,
+                () -> subjectsJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**
