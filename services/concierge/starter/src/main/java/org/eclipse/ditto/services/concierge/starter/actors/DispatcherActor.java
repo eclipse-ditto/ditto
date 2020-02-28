@@ -130,8 +130,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             final ActorRef enforcerActor,
             final PreEnforcer preEnforcer) {
 
-        final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow =
-                createDispatchFlow(pubSubMediator, preEnforcer);
+        final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> dispatchFlow =
+                Flow.fromGraph(createDispatchFlow(pubSubMediator, preEnforcer));
 
         return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, dispatchFlow);
     }
