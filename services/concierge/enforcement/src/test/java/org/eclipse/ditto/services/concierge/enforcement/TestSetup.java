@@ -19,15 +19,12 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
@@ -93,14 +90,14 @@ public final class TestSetup {
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            @Nullable final PreEnforcer preEnforcer) {
 
         return newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor, preEnforcer);
     }
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            @Nullable final PreEnforcer preEnforcer) {
 
         final ActorRef conciergeForwarder =
                 new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();

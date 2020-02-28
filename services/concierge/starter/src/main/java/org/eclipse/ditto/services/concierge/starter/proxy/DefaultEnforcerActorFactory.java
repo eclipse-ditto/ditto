@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
+import org.eclipse.ditto.services.concierge.enforcement.PreEnforcer;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
@@ -114,8 +115,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
+        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context);
 
@@ -177,7 +177,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         }
     }
 
-    private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
+    private static PreEnforcer newPreEnforcer(
             final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders ->

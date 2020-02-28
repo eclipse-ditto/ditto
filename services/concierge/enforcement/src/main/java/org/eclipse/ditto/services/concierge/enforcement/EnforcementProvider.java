@@ -73,10 +73,13 @@ public interface EnforcementProvider<T extends Signal> {
     /**
      * Convert this enforcement provider into a stream of enforcement tasks.
      *
+     * @param preEnforcer failable future to execute before the actual enforcement.
      * @return the stream.
      */
     @SuppressWarnings("unchecked") // due to GraphDSL usage
-    default Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> createEnforcementTask() {
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> createEnforcementTask(
+            final PreEnforcer preEnforcer
+    ) {
 
         final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
                 multiplexer =
@@ -95,15 +98,18 @@ public interface EnforcementProvider<T extends Signal> {
                         final T message = contextual.getMessage();
                         final EntityId entityId = message.getEntityId();
                         final boolean changesAuthorization = changesAuthorization(message);
-                        final AbstractEnforcement<T> enforcement = createEnforcement(contextual);
-                        return EnforcementTask.of(entityId, changesAuthorization, enforcement::enforceSafely);
+                        return EnforcementTask.of(entityId, changesAuthorization, () ->
+                                preEnforcer.withErrorHandlingAsync(contextual,
+                                        contextual.withMessage(null).withReceiver(null),
+                                        converted -> createEnforcement(converted).enforceSafely()
+                                )
+                        );
                     });
 
             // by default, ignore unhandled messages:
             final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
 
-            final FlowShape<Contextual<T>, EnforcementTask> enforcementShape =
-                    builder.add(enforcementFlow);
+            final FlowShape<Contextual<T>, EnforcementTask> enforcementShape = builder.add(enforcementFlow);
 
             builder.from(fanout.out0()).toInlet(enforcementShape.in());
             builder.from(fanout.out1()).to(unhandledSink);

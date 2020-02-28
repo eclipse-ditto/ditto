@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -55,13 +55,12 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     private EnforcerActor(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         super(pubSubMediator, conciergeForwarder, thingIdCache, aclEnforcerCache, policyEnforcerCache);
-
         final ActorRef enforcementScheduler =
                 getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
         sink = assembleSink(enforcementProviders, preEnforcer, enforcementScheduler);
@@ -82,7 +81,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
@@ -135,14 +134,11 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     @SuppressWarnings("unchecked") // due to GraphDSL usage
     private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink(
             final Set<EnforcementProvider<?>> enforcementProviders,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable final PreEnforcer preEnforcer,
             final ActorRef enforcementScheduler) {
 
-        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> preEnforcerFlow =
-                Optional.ofNullable(preEnforcer)
-                        .map(PreEnforcer::fromFunctionWithContext)
-                        .orElseGet(Flow::create);
-
+        final PreEnforcer preEnforcerStep =
+                preEnforcer != null ? preEnforcer : CompletableFuture::completedStage;
         final Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> enforcerFlow =
                 GraphDSL.create(
                         Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
@@ -152,7 +148,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
                             final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
                             for (int i = 0; i < providers.size(); i++) {
                                 builder.from(bcast.out(i))
-                                        .via(builder.add(providers.get(i).createEnforcementTask()))
+                                        .via(builder.add(providers.get(i).createEnforcementTask(preEnforcerStep)))
                                         .toInlet(merge.in(i));
                             }
 
@@ -160,7 +156,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
                         });
 
         return Flow.<Contextual<WithDittoHeaders>>create()
-                .via(preEnforcerFlow)
                 .via(enforcerFlow)
                 .toMat(Sink.foreach(task -> enforcementScheduler.tell(task, ActorRef.noSender())), Keep.right());
     }

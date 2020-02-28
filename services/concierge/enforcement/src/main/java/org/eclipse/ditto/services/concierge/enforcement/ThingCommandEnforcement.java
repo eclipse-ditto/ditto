@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -139,7 +138,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final EnforcerRetriever policyEnforcerRetriever;
     private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
-    private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer;
+    private final PreEnforcer preEnforcer;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
@@ -149,7 +148,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            final PreEnforcer preEnforcer,
             final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
         super(data);
@@ -175,8 +174,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
-                return doEnforce(enforcerKeyEntry, enforcerEntry)
-                        .exceptionally(this::handleExceptionally);
+                return doEnforce(enforcerKeyEntry, enforcerEntry).exceptionally(this::handleExceptionally);
             } catch (final RuntimeException e) {
                 return CompletableFuture.completedFuture(handleExceptionally(e));
             }
@@ -1217,7 +1215,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
-        private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer;
+        private final PreEnforcer preEnforcer;
         private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
 
         /**
@@ -1235,7 +1233,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-                @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+                @Nullable final PreEnforcer preEnforcer) {
             this(thingsShardRegion, policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache,
                     preEnforcer, DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
         }
@@ -1258,7 +1256,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-                @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+                @Nullable final PreEnforcer preEnforcer,
                 final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
