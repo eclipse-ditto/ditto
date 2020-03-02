@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -64,7 +63,7 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
-        return Acknowledgements.newAcknowledgement(label, entityId, statusCode, dittoHeaders, payload);
+        return AcknowledgementFactory.newAcknowledgement(label, entityId, statusCode, dittoHeaders, payload);
     }
 
     /**
@@ -96,7 +95,7 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
      * expected 'Acknowledgement' format.
      */
     static Acknowledgement fromJson(final JsonObject jsonObject) {
-        return Acknowledgements.acknowledgementFromJson(jsonObject);
+        return AcknowledgementFactory.acknowledgementFromJson(jsonObject);
     }
 
     /**
@@ -107,8 +106,27 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
      */
     AcknowledgementLabel getLabel();
 
-    @Override
-    EntityId getEntityId();
+    /**
+     * Indicates whether this Acknowledgement is a successful one.
+     *
+     * @return {@code true} when this Acknowledgement is successful.
+     */
+    boolean isSuccess();
+
+    /**
+     * Indicates whether this Acknowledgement is a failed one.
+     * Does not resolve to {@code true} when this Acknowledgement represents a {@link #isTimeout() Timeout}.
+     *
+     * @return {@code true} when this Acknowledgement is failed.
+     */
+    boolean isFailed();
+
+    /**
+     * Indicates whether this Acknowledgement represents a timeout.
+     *
+     * @return {@code true} when this Acknowledgement is timed out.
+     */
+    boolean isTimeout();
 
     /**
      * Returns the status code of the Acknowledgement specifying whether it was a successful {@code ACK} or a
@@ -125,6 +143,16 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
+
+    /**
+     * Returns all non hidden marked fields of this Acknowledgement.
+     *
+     * @return a JSON object representation of this Acknowledgement including only non hidden marked fields.
+     */
+    @Override
+    default JsonObject toJson() {
+        return toJson(FieldType.notHidden());
+    }
 
     @Override
     default String getManifest() {
@@ -144,16 +172,6 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
     @Override
     default String getResourceType() {
         return getType();
-    }
-
-    /**
-     * Returns all non hidden marked fields of this Acknowledgement.
-     *
-     * @return a JSON object representation of this Acknowledgement including only non hidden marked fields.
-     */
-    @Override
-    default JsonObject toJson() {
-        return toJson(FieldType.notHidden());
     }
 
     /**

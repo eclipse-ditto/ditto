@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
@@ -95,7 +96,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final HttpRequest httpRequest;
     private final HttpConfig httpConfig;
 
-    private final AcknowledgementsPerRequest acknowledgements;
+    private final AcknowledgementAggregator acknowledgements;
     @Nullable private Duration timeout;
     @Nullable private DittoRuntimeException customTimeoutException;
 
@@ -110,7 +111,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         this.httpResponseFuture = httpResponseFuture;
         httpRequest = request;
         this.httpConfig = httpConfig;
-        acknowledgements = AcknowledgementsPerRequest.getInstance();
+        acknowledgements = AcknowledgementAggregator.getInstance();
         timeout = null;
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
@@ -169,7 +170,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final UnaryOperator<Command<?>> ackRequestSetter = ThingModifyCommandAckRequestSetter.getInstance();
             final Command<?> commandWithAckLabels = ackRequestSetter.apply(command);
             final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
-            acknowledgements.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests());
+            acknowledgements.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests(),
+                    command.getEntityId(), dittoHeaders);
             proxyActor.tell(commandWithAckLabels, getSelf());
 
             // After a Command was received, this Actor can only receive the correlating CommandResponse:

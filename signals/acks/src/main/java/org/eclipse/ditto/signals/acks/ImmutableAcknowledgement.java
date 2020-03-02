@@ -117,6 +117,21 @@ final class ImmutableAcknowledgement implements Acknowledgement {
     }
 
     @Override
+    public boolean isSuccess() {
+        return statusCode.isSuccess();
+    }
+
+    @Override
+    public boolean isFailed() {
+        return !isSuccess() && !isTimeout();
+    }
+
+    @Override
+    public boolean isTimeout() {
+        return statusCode == HttpStatusCode.REQUEST_TIMEOUT;
+    }
+
+    @Override
     public HttpStatusCode getStatusCode() {
         return statusCode;
     }
