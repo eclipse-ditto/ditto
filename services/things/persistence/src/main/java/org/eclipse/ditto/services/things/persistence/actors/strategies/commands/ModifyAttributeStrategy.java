@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -51,14 +52,23 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
             final long nextRevision, final ModifyAttribute command) {
         final Thing nonNullThing = getEntityOrThrow(thing);
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
-            final long lengthWithOutAttribute = nonNullThing.removeAttribute(command.getAttributePointer())
-                    .toJsonString()
-                    .length();
-            final long attributeLength = command.getAttributeValue().toString().length()
-                    + command.getAttributePointer().length() + 5L;
-            return lengthWithOutAttribute + attributeLength;
-        }, command::getDittoHeaders);
+        final JsonObject thingWithoutAttributeJsonObject = nonNullThing.removeAttribute(command.getAttributePointer()).toJson();
+        final JsonValue attributeJsonValue = command.getAttributeValue();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                () -> {
+                    final long lengthWithOutAttribute = thingWithoutAttributeJsonObject.getUpperBoundForStringSize();
+                    final long attributeLength = attributeJsonValue.getUpperBoundForStringSize()
+                            + command.getAttributePointer().length() + 5L;
+                    return lengthWithOutAttribute + attributeLength;
+                },
+                () -> {
+                    final long lengthWithOutAttribute = thingWithoutAttributeJsonObject.toString().length();
+                    final long attributeLength = attributeJsonValue.toString().length()
+                            + command.getAttributePointer().length() + 5L;
+                    return lengthWithOutAttribute + attributeLength;
+                },
+                command::getDittoHeaders);
 
         return nonNullThing.getAttributes()
                 .filter(attributes -> attributes.contains(command.getAttributePointer()))

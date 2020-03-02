@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -26,6 +27,9 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 final class ImmutableJsonString extends AbstractJsonValue {
+
+    private static final long MAX_CHAR_ESCAPE_SEQUENCE_LENGTH = 6; // "\u1234"
+    private static final long NUM_ENCLOSING_QUOTES = 2;
 
     private final String value;
     @Nullable private String stringRepresentation;
@@ -82,6 +86,19 @@ final class ImmutableJsonString extends AbstractJsonValue {
             stringRepresentation = result;
         }
         return result;
+    }
+
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeString(value);
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        if (stringRepresentation != null) {
+            return stringRepresentation.length();
+        }
+        return (value.length() * MAX_CHAR_ESCAPE_SEQUENCE_LENGTH) + NUM_ENCLOSING_QUOTES;
     }
 
     private String createStringRepresentation() {

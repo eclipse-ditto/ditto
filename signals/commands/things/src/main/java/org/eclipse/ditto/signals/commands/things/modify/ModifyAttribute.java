@@ -76,8 +76,10 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
-                dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                attributeValue::getUpperBoundForStringSize,
+                () -> attributeValue.toString().length(),
+                () -> dittoHeaders);
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
