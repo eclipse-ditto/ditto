@@ -35,12 +35,12 @@ enum ProtocolMessageType {
     STOP_SEND_EVENTS("STOP-SEND-EVENTS", StreamingType.EVENTS),
 
     /**
-     * Message indicating that the Websocket should start emitting twin events.
+     * Message indicating that the Websocket should start emitting twin search-events.
      */
     START_SUBSCRIPTION("START-SUBSCRIPTION", StreamingType.SUBSCRIPTION_EVENTS),
 
     /**
-     * Message indicating that the Websocket should stop emitting twin events.
+     * Message indicating that the Websocket should stop emitting twin search-events.
      */
     STOP_SUBSCRIPTION("STOP-SUBSCRIPTION", StreamingType.SUBSCRIPTION_EVENTS),
 

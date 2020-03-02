@@ -185,7 +185,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(String.format(
-                                "{\"subscriptionId\": \"%s\", \"demand\": \"%s\"}", TestConstants.SUBSCRIPTION_ID,
+                                "{\"subscriptionId\": \"%s\", \"demand\": %s}", TestConstants.SUBSCRIPTION_ID,
                                 TestConstants.DEMAND)))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
@@ -209,7 +209,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(String.format(
-                                "{\"subscriptionId\": \"%s\", \"demand\": \"%s\"}", TestConstants.SUBSCRIPTION_ID,
+                                "{\"subscriptionId\": \"%s\", \"demand\": %s}", TestConstants.SUBSCRIPTION_ID,
                                 TestConstants.DEMAND)))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)

@@ -167,7 +167,7 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
         } else if (commandName.startsWith(TopicPath.SearchAction.REQUEST.toString())) {
             RequestSubscription requestCommand = (RequestSubscription) command;
             payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\", \"demand\": \"%s\"}",
+                    String.format("{\"subscriptionId\": \"%s\", \"demand\": %s}",
                             requestCommand.getSubscriptionId(),
                             requestCommand.getDemand())));
         } else {

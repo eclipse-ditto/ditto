@@ -114,8 +114,6 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
     }
 
     protected static long demandFrom(final Adaptable adaptable) {
-
-
         if (adaptable.getPayload().getValue().isPresent()) {
             final JsonObject value = JsonObject.of(
                     adaptable
@@ -124,9 +122,9 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
                             .map(JsonValue::formatAsString)
                             .orElseThrow(() -> JsonParseException.newBuilder().build()));
             if (value.getValue("demand").isPresent()) {
-                return Long.parseLong(value.getValue("demand")
-                        .map(JsonValue::asString)
-                        .orElseThrow(() -> JsonParseException.newBuilder().build()));
+                return value.getValue("demand")
+                        .map(JsonValue::asLong)
+                        .orElseThrow(() -> JsonParseException.newBuilder().build());
             }
         }
         return 0;

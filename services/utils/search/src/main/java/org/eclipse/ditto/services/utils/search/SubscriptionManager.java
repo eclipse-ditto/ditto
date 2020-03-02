@@ -53,6 +53,9 @@ import akka.stream.javadsl.Source;
 public final class SubscriptionManager extends AbstractActor {
 
     // TODO: unify with other sources of page size limits
+
+    public static final String ACTOR_NAME = "subscriptionManager";
+
     private static final int DEFAULT_PAGE_SIZE = 25;
     private static final int MAX_PAGE_SIZE = 200;
     private static final int DEFAULT_MAX_RETRIES = 5; // 32s

@@ -63,6 +63,7 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -138,6 +139,10 @@ final class GatewayRootActor extends DittoRootActor {
                 StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory,
                         gatewayConfig.getStreamingConfig()));
 
+        final ActorRef subscriptionManager = startChildActor(SubscriptionManager.ACTOR_NAME,
+                SubscriptionManager.props(Duration.ofMinutes(5L), pubSubMediator, conciergeForwarder,
+                        materializer));
+
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
 
@@ -148,7 +153,7 @@ final class GatewayRootActor extends DittoRootActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
+        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, subscriptionManager,
                 healthCheckActor, healthCheckConfig, jwtAuthenticationFactory);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
@@ -200,6 +205,7 @@ final class GatewayRootActor extends DittoRootActor {
             final GatewayConfig gatewayConfig,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
+            final ActorRef subscriptionManager,
             final ActorRef healthCheckingActor,
             final HealthCheckConfig healthCheckConfig,
             final JwtAuthenticationFactory jwtAuthenticationFactory) {
@@ -247,7 +253,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, actorSystem.eventStream())
+                .websocketRoute(WebSocketRoute.getInstance(streamingActor, subscriptionManager, streamingConfig, actorSystem.eventStream())
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)

@@ -129,6 +129,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
         final ActorRef proxyActor = createDummyResponseActor();
+
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
@@ -148,7 +149,7 @@ public final class RootRouteTest extends EndpointTestBase {
                         new ThingsRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, proxyActor, streamingConfig, actorSystem.eventStream()))
                 .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

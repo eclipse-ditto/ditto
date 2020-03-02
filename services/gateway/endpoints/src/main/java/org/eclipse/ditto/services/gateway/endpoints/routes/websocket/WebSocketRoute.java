@@ -18,10 +18,12 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SUBSCRIPTION;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SUBSCRIPTION;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -87,6 +89,8 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -107,6 +111,7 @@ import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.Outlet;
 import akka.stream.SinkShape;
 import akka.stream.UniformFanInShape;
 import akka.stream.javadsl.Flow;
@@ -153,6 +158,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             .tag(DIRECTION, "dropped");
 
     private final ActorRef streamingActor;
+    private final ActorRef subscriptionManager;
     private final StreamingConfig streamingConfig;
     private final EventStream eventStream;
 
@@ -162,10 +168,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+    private WebSocketRoute(final ActorRef streamingActor, final ActorRef subscriptionManager, final StreamingConfig streamingConfig,
             final EventStream eventStream) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
+        this.subscriptionManager = checkNotNull(subscriptionManager, "subscriptionManager");
         this.streamingConfig = streamingConfig;
         this.eventStream = checkNotNull(eventStream, "eventStream");
 
@@ -186,10 +193,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor,
+    public static WebSocketRoute getInstance(final ActorRef streamingActor, final ActorRef subscriptionManager,
             final StreamingConfig streamingConfig, final EventStream eventStream) {
 
-        return new WebSocketRoute(streamingActor, streamingConfig, eventStream);
+        return new WebSocketRoute(streamingActor, subscriptionManager, streamingConfig, eventStream);
     }
 
     @Override
@@ -367,6 +374,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     builder.add(Filter.multiplexByEither(java.util.function.Function.identity()));
             final SinkShape<Signal> signalSink = builder.add(getCommandSubscriberSink(config));
             final SinkShape<StreamControlMessage> streamControlSink = builder.add(getStreamingActorSink());
+            final SinkShape<ThingSearchCommand> subscriptionManagerSink = builder.add(getSubscriptionManagerSink());
 
             builder.from(multiplexer.out0()).to(signalSink);
             builder.from(multiplexer.out1()).to(streamControlSink);
@@ -381,6 +389,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         eventStream);
         return Sink.actorSubscriber(commandSubscriberProps);
     }
+
 
     private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request, final String correlationId) {
         return Flow.<Message>create()
@@ -410,6 +419,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private Sink<StreamControlMessage, ?> getStreamingActorSink() {
         return Sink.foreach(streamControlMessage -> streamingActor.tell(streamControlMessage, ActorRef.noSender()));
+    }
+
+    private Sink<ThingSearchCommand, ?> getSubscriptionManagerSink() {
+        return Sink.foreach(streamControlMessage -> subscriptionManager.tell(streamControlMessage, ActorRef.noSender()));
     }
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
@@ -708,6 +721,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         switch (streamingType) {
             case EVENTS:
                 protocolMessage = subscribed ? START_SEND_EVENTS.toString() : STOP_SEND_EVENTS.toString();
+                break;
+            case SUBSCRIPTION_EVENTS:
+                protocolMessage = subscribed ? START_SUBSCRIPTION.toString() : STOP_SUBSCRIPTION.toString();
                 break;
             case MESSAGES:
                 protocolMessage = subscribed ? START_SEND_MESSAGES.toString() : STOP_SEND_MESSAGES.toString();
