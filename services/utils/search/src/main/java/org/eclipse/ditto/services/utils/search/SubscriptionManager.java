@@ -52,9 +52,12 @@ import akka.stream.javadsl.Source;
  */
 public final class SubscriptionManager extends AbstractActor {
 
-    // TODO: unify with other sources of page size limits
-
+    /**
+     * Name of this actor.
+     */
     public static final String ACTOR_NAME = "subscriptionManager";
+
+    // TODO: unify with other sources of page size limits
 
     private static final int DEFAULT_PAGE_SIZE = 25;
     private static final int MAX_PAGE_SIZE = 200;
@@ -182,13 +185,20 @@ public final class SubscriptionManager extends AbstractActor {
     }
 
     private Source<JsonArray, NotUsed> getPageSource(final CreateSubscription createSubscription) {
-        final String optionString = createSubscription.getOptions().map(SubscriptionManager::joinOptions).orElse(null);
+        final String optionString = createSubscription.getOptions()
+                .map(SubscriptionManager::joinOptions)
+                .filter(string -> !string.isBlank())
+                .orElse(null);
+        final JsonArray namespaces = createSubscription.getNamespaces()
+                .filter(ns -> !ns.isEmpty())
+                .map(SubscriptionManager::asJsonArray)
+                .orElse(null);
         try {
             final SearchSource searchSource = SearchSource.newBuilder()
                     .pubSubMediator(pubSubMediator)
                     .conciergeForwarder(conciergeForwarder)
                     .maxRetries(maxRetries)
-                    .namespaces(createSubscription.getNamespaces().map(SubscriptionManager::asJsonArray).orElse(null))
+                    .namespaces(namespaces)
                     .filter(createSubscription.getFilter().orElse(null))
                     .fields(createSubscription.getSelectedFields().orElse(null))
                     .option(optionString)

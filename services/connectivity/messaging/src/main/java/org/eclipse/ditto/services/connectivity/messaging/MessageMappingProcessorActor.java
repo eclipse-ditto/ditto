@@ -232,7 +232,10 @@ public final class MessageMappingProcessorActor
 
     private void forwardInboundSignal(final Signal<?> signal) {
         if (signal instanceof ThingSearchCommand<?>) {
-            // send to connection actor for dispatching to the same client actor for each session.
+            // Send to connection actor for dispatching to the same client actor for each session.
+            // See javadoc of
+            //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
+            // for the message path of the search protocol.
             connectionActor.tell(signal, ActorRef.noSender());
         } else {
             conciergeForwarder.tell(signal, getSelf());
