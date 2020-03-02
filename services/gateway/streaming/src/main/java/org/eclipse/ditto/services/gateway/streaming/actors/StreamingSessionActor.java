@@ -228,9 +228,10 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
-        getContext().findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+        final ActorContext context = getContext();
+        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
                 .ifPresentOrElse(
-                        forwarder -> forwarder.forward(acknowledgement, getContext()),
+                        forwarder -> forwarder.forward(acknowledgement, context),
                         () -> logger.withCorrelationId(acknowledgement)
                                 .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
                                         "was present: <{}>", acknowledgement)

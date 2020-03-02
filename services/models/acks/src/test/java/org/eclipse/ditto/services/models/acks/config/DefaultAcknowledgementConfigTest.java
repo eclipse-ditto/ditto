@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig.AcknowledgementConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,9 +61,8 @@ public final class DefaultAcknowledgementConfigTest {
         final DefaultAcknowledgementConfig underTest = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getForwarderFallbackTimeout())
-                .as(AcknowledgementConfig.AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath())
-                .isEqualTo(
-                        AcknowledgementConfig.AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getDefaultValue());
+                .as(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath())
+                .isEqualTo(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getDefaultValue());
     }
 
     @Test
@@ -70,7 +70,8 @@ public final class DefaultAcknowledgementConfigTest {
         final DefaultAcknowledgementConfig underTest = DefaultAcknowledgementConfig.of(acknowledgementConf);
 
         softly.assertThat(underTest.getForwarderFallbackTimeout())
-                .as(AcknowledgementConfig.AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath())
+                .as(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(23L));
     }
+
 }

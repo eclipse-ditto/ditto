@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -977,13 +976,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             expectMsgClass(Object.class);
 
-            final String correlationId = UUID.randomUUID().toString();
             final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
                     .timeout("2s")
-                    .correlationId(correlationId)
+                    .randomCorrelationId()
                     .build();
 
             final AttributeModified attributeModified = AttributeModified.of(
@@ -1014,13 +1012,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             expectMsgClass(Object.class);
 
-            final String correlationId = UUID.randomUUID().toString();
             final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
                     .timeout("10s")
-                    .correlationId(correlationId)
+                    .randomCorrelationId()
                     .build();
 
             // WHEN: an event with acknowledgementRequest is processed

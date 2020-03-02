@@ -25,6 +25,8 @@ import com.typesafe.config.Config;
 
 /**
  * This class is the default implementation of {@link AcknowledgementConfig}.
+ *
+ * @since 1.1.0
  */
 @Immutable
 public final class DefaultAcknowledgementConfig implements AcknowledgementConfig {

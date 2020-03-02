@@ -14,12 +14,16 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -30,23 +34,36 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit tests for {@link AcknowledgementForwarderActor}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class AcknowledgementForwarderActorTest {
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
+    @Mock
+    private ActorContext actorContext;
 
     private ActorSystem actorSystem;
     private AcknowledgementConfig acknowledgementConfig;
@@ -56,6 +73,9 @@ public final class AcknowledgementForwarderActorTest {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.load("acknowledgement-test"));
+        when(actorContext.actorOf(any(Props.class), anyString()))
+                .thenAnswer((Answer<ActorRef>) invocationOnMock -> actorSystem.actorOf(invocationOnMock.getArgument(0),
+                        invocationOnMock.getArgument(1)));
     }
 
     @After
@@ -65,83 +85,65 @@ public final class AcknowledgementForwarderActorTest {
     }
 
     @Test
-    public void createAcknowledgementForwarderWithMissingCorrelationId() {
-        final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("my-requested-ack");
+    public void tryToDetermineActorNameFromNullHeaders() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> AcknowledgementForwarderActor.determineActorName(null))
+                .withMessage("The dittoHeaders must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void determineActorNameReturnsExpected() {
+        final String correlationId = "my-correlation-id";
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(correlationId).build();
+        final String expected = AcknowledgementForwarderActor.ACTOR_NAME_PREFIX + correlationId;
+
+        final String actual = AcknowledgementForwarderActor.determineActorName(dittoHeaders);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void tryToDetermineActorNameWithMissingCorrelationId() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("my-requested-ack")))
                 .build();
 
-        assertThatExceptionOfType(AcknowledgementCorrelationIdMissingException.class).isThrownBy(() ->
-                AcknowledgementForwarderActor.determineActorName(dittoHeaders)
-        );
+        assertThatExceptionOfType(AcknowledgementCorrelationIdMissingException.class)
+                .isThrownBy(() -> AcknowledgementForwarderActor.determineActorName(dittoHeaders));
     }
 
     @Test
     public void createAcknowledgementForwarderAndThreadAcknowledgementThrough()
             throws ExecutionException, InterruptedException {
-        final String correlationId = UUID.randomUUID().toString();
+
         final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("my-requested-ack");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId(correlationId)
+                .randomCorrelationId()
                 .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                 .build();
         final EntityId entityId = DefaultEntityId.of("foo:bar");
         final Acknowledgement acknowledgement =
                 Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.ACCEPTED, dittoHeaders);
 
-        new TestKit(actorSystem) {
-            {
-                final Optional<ActorRef> actorRef = AcknowledgementForwarderActor.startAcknowledgementForwarder(
-                        actorSystem, getRef(), getRef(), entityId, dittoHeaders, acknowledgementConfig);
-                assertThat(actorRef).isPresent();
+        new TestKit(actorSystem) {{
+            when(actorContext.sender()).thenReturn(getRef());
 
-                final ActorSelection ackForwarderSelection = actorSystem.actorSelection(
-                        "/user/" + AcknowledgementForwarderActor.determineActorName(dittoHeaders));
-                assertThat(actorRef.get()).isEqualByComparingTo(
-                        ackForwarderSelection.resolveOne(Duration.ofMillis(100)).toCompletableFuture().get());
+            final Optional<ActorRef> underTest =
+                    AcknowledgementForwarderActor.startAcknowledgementForwarder(actorContext, entityId, dittoHeaders,
+                            acknowledgementConfig);
 
-                ackForwarderSelection.tell(acknowledgement, getRef());
-                expectMsg(acknowledgement);
-            }
-        };
-    }
+            softly.assertThat(underTest).isPresent();
 
-    @Test
-    public void createAcknowledgementForwarderWithDuplicatedCorrelationId() {
-        final String correlationId = UUID.randomUUID().toString();
-        final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("my-requested-ack");
-        final AcknowledgementLabel acknowledgementLabel2 = AcknowledgementLabel.of("my-requested-ack-2");
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId(correlationId)
-                .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
-                .build();
-        final DittoHeaders dittoHeaders2 = DittoHeaders.newBuilder()
-                .correlationId(correlationId)
-                .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel2))
-                .build();
-        final EntityId entityId = DefaultEntityId.of("foo:bar");
-        final AcknowledgementRequestDuplicateCorrelationIdException expectedException =
-                AcknowledgementRequestDuplicateCorrelationIdException.newBuilder(correlationId)
-                        .dittoHeaders(dittoHeaders2)
-                        .build();
+            final ActorSelection ackForwarderSelection = actorSystem.actorSelection(
+                    "/user/" + AcknowledgementForwarderActor.determineActorName(dittoHeaders));
 
-        new TestKit(actorSystem) {
-            {
-                final Optional<ActorRef> actorRef = AcknowledgementForwarderActor.startAcknowledgementForwarder(
-                        actorSystem, getRef(), getRef(), entityId, dittoHeaders, acknowledgementConfig);
-                assertThat(actorRef).isPresent();
-                expectNoMessage(Duration.ofMillis(200));
+            softly.assertThat(underTest.get()).isEqualByComparingTo(
+                    ackForwarderSelection.resolveOne(Duration.ofMillis(100)).toCompletableFuture().get());
 
-                final Optional<ActorRef> actorRef2 = AcknowledgementForwarderActor.startAcknowledgementForwarder(
-                        actorSystem, getRef(), getRef(), entityId, dittoHeaders2, acknowledgementConfig);
-                assertThat(actorRef2).isNotPresent();
-
-                final Acknowledgement nack = expectMsgClass(Acknowledgement.class);
-                assertThat(nack.getStatusCode()).isEqualByComparingTo(HttpStatusCode.CONFLICT);
-                assertThat((CharSequence) nack.getEntityId()).isEqualTo(entityId);
-                assertThat(nack.getEntity()).contains(expectedException.toJson());
-            }
-        };
+            ackForwarderSelection.tell(acknowledgement, getRef());
+            expectMsg(acknowledgement);
+        }};
     }
 
 }

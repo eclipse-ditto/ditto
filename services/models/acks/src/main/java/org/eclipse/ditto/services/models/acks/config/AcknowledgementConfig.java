@@ -20,6 +20,8 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for {@code Acknowledgement}s to be applied.
+ *
+ * @since 1.1.0
  */
 @Immutable
 public interface AcknowledgementConfig {
