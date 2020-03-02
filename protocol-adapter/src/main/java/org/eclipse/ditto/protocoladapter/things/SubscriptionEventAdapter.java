@@ -31,7 +31,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
 
 /**
- * Adapter for mapping a {@link ThingEvent} to and from an {@link Adaptable}.
+ * Adapter for mapping a {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent} to and from an {@link Adaptable}.
  */
 final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEvent<?>> {
 

@@ -51,6 +51,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.policies.PolicyException;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -85,6 +86,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -731,6 +733,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Signal<?> signal;
             if (jsonifiable instanceof PolicyException) {
                 signal = buildPolicyErrorResponse((DittoRuntimeException) jsonifiable);
+            } else if (jsonifiable instanceof ThingSearchException) {
+                signal = buildSearchErrorResponse((DittoRuntimeException) jsonifiable);
             } else {
                 signal = buildThingErrorResponse((DittoRuntimeException) jsonifiable);
             }
@@ -753,6 +757,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
         final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
         return PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders);
+    }
+
+    private static SearchErrorResponse buildSearchErrorResponse(final DittoRuntimeException dittoRuntimeException) {
+        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
+        return SearchErrorResponse.of(dittoRuntimeException, dittoHeaders);
     }
 
     private static Optional<JsonWebToken> extractJwtFromRequestIfPresent(final HttpRequest request) {

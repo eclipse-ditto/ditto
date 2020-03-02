@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -88,6 +91,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
     @Nullable
     private Adapter<? extends Signal<?>> signalFromAdaptable(final Adaptable adaptable,
             final AdapterProvider adapterProvider) {
+        final Set<TopicPath.SearchAction> searchActions = new HashSet<>(
+                Arrays.asList(TopicPath.SearchAction.COMPLETE, TopicPath.SearchAction.GENERATED,
+                        TopicPath.SearchAction.HAS_NEXT, TopicPath.SearchAction.FAILED));
         final TopicPath topicPath = adaptable.getTopicPath();
         if (TopicPath.Criterion.COMMANDS.equals(topicPath.getCriterion())) {
 
@@ -102,7 +108,11 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
         } else if (TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return adapterProvider.getEventAdapter();
-        } else if (TopicPath.Criterion.SEARCH.equals(topicPath.getCriterion())) {
+        } else if (TopicPath.Criterion.SEARCH.equals(topicPath.getCriterion()) &&
+                searchActions.contains(topicPath.getSearchAction().orElse(null))) {
+            return thingsAdapters.getSubscriptionEventAdapter();
+        }else if (TopicPath.Criterion.SEARCH.equals(topicPath.getCriterion()) &&
+                !searchActions.contains(topicPath.getSearchAction().orElse(null))) {
             return thingsAdapters.getSearchCommandAdapter();
         } else if (TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion())) {
             return adapterProvider.getErrorResponseAdapter();

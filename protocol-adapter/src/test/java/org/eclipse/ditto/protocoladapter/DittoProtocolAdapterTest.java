@@ -43,6 +43,8 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -301,6 +303,32 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
         assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(createSubscriptionWithFields);
+    }
+
+    @Test
+    public void subscriptionEventFromAdaptable() {
+        final SubscriptionCreated expected =
+                SubscriptionCreated.of(TestConstants.SUBSCRIPTION_ID, DITTO_HEADERS_V_2_NO_STATUS);
+
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
+                .twin()
+                .search()
+                .generated()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
+                                String.format("{\"subscriptionId\": \"%s\"}", TestConstants.SUBSCRIPTION_ID)))
+                        .build())
+                .withHeaders(DITTO_HEADERS_V_2_NO_STATUS)
+                .build();
+        final SubscriptionEvent actual = (SubscriptionEvent) underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+
     }
 
     @Test
