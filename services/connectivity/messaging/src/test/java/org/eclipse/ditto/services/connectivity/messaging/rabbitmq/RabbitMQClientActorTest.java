@@ -54,6 +54,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.CallingThreadDispatcher;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -80,6 +81,9 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Mock
     private final Channel mockChannel = Mockito.mock(Channel.class);
 
+    private TestProbe connectionActorProbe;
+    private ActorRef connectionActor;
+
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
@@ -98,6 +102,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     public void init() throws IOException, TimeoutException {
         when(mockConnectionFactory.newConnection()).thenReturn(mockConnection);
         when(mockConnection.createChannel()).thenReturn(mockChannel);
+        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
+        connectionActor = connectionActorProbe.ref();
     }
 
     @Test
@@ -112,9 +118,11 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
-                () -> RabbitMQClientActor.propsForTests(connection, null, null);
+                () -> RabbitMQClientActor.propsForTests(connection, null, connectionActor, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.propsForTests(connection, null, rabbitConnectionFactoryFactory);
+                () -> RabbitMQClientActor.propsForTests(connection, null, connectionActor,
+                        rabbitConnectionFactoryFactory
+                );
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
                         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -129,7 +137,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     RabbitMQClientActor.propsForTests(connection,
-                            getRef(), (con, exHandler) -> { throw CUSTOM_EXCEPTION; })
+                            getRef(), connectionActor, (con, exHandler) -> { throw CUSTOM_EXCEPTION; })
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
@@ -162,7 +170,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props =
                     RabbitMQClientActor.propsForTests(connectionWithoutTargets, getRef(),
-                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
+                            connectionActor, (con, exHandler) -> mockConnectionFactory)
+                            .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
@@ -255,7 +264,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Override
     protected Props createClientActor(final ActorRef conciergeForwarder) {
         return RabbitMQClientActor.propsForTests(getConnection(), conciergeForwarder,
-                (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
+                connectionActor, (con, exHandler) -> mockConnectionFactory)
+                .withDispatcher(CallingThreadDispatcher.Id());
     }
 
     @Override

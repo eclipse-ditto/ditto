@@ -100,7 +100,10 @@ public abstract class AbstractBaseClientActorTest {
     protected ConnectionId getConnectionId() {
         return getConnection().getId();
     }
+
     protected abstract Connection getConnection();
+
     protected abstract Props createClientActor(final ActorRef conciergeForwarder);
+
     protected abstract ActorSystem getActorSystem();
 }

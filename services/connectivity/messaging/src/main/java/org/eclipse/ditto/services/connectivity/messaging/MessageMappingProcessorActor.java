@@ -90,6 +90,7 @@ import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
@@ -128,6 +129,7 @@ public final class MessageMappingProcessorActor
     private final MessageMappingProcessor messageMappingProcessor;
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
+    private final ActorRef connectionActor;
     private final LimitsConfig limitsConfig;
     private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
@@ -143,6 +145,7 @@ public final class MessageMappingProcessorActor
             final ActorRef clientActor,
             final MessageMappingProcessor messageMappingProcessor,
             final ConnectionId connectionId,
+            final ActorRef connectionActor,
             final int processorPoolSize) {
 
         super(OutboundSignal.class);
@@ -151,6 +154,7 @@ public final class MessageMappingProcessorActor
         this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
+        this.connectionActor = connectionActor;
 
         final DefaultScopedConfig dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
@@ -177,6 +181,7 @@ public final class MessageMappingProcessorActor
      * @param clientActor the client actor that created this mapping actor
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
+     * @param connectionActor the connection actor acting as the grandparent of this actor.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
@@ -184,10 +189,11 @@ public final class MessageMappingProcessorActor
             final ActorRef clientActor,
             final MessageMappingProcessor processor,
             final ConnectionId connectionId,
+            final ActorRef connectionActor,
             final int processorPoolSize) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
-                connectionId, processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+                connectionId, connectionActor, processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
@@ -220,8 +226,17 @@ public final class MessageMappingProcessorActor
                         getContext().getDispatcher())
                 )
                 .flatMapConcat(signalSource -> signalSource)
-                .toMat(Sink.foreach(signal -> conciergeForwarder.tell(signal, getSelf())), Keep.left())
+                .toMat(Sink.foreach(this::forwardInboundSignal), Keep.left())
                 .run(materializer);
+    }
+
+    private void forwardInboundSignal(final Signal<?> signal) {
+        if (signal instanceof ThingSearchCommand<?>) {
+            // send to connection actor for dispatching to the same client actor for each session.
+            connectionActor.tell(signal, ActorRef.noSender());
+        } else {
+            conciergeForwarder.tell(signal, getSelf());
+        }
     }
 
     @Override

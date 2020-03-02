@@ -27,6 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.remote.DaemonMsgCreate;
@@ -98,13 +99,15 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {
-        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
+        final ActorRef deadLetters = actorSystem.deadLetters();
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), deadLetters, deadLetters);
         final Object objectToSerialize = wrapForSerialization(props);
         serializeAndDeserialize(objectToSerialize);
     }
 
     private void actorPropsIsSerializableAndEqualDeserializedObject(final ConnectionType connectionType) {
-        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
+        final ActorRef deadLetters = actorSystem.deadLetters();
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), deadLetters, deadLetters);
         final Object objectToSerialize = wrapForSerialization(props);
         final Object deserializedObject = serializeAndDeserialize(objectToSerialize);
 

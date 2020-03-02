@@ -127,6 +127,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
+    private final ActorRef connectionActor;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
@@ -137,7 +138,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
-    protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder) {
+    protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
         this.connection = connection;
 
         checkNotNull(connection, "connection");
@@ -151,6 +153,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientConfig = connectivityConfig.getClientConfig();
         this.conciergeForwarder =
                 Optional.ofNullable(conciergeForwarder).orElse(getContext().getSystem().deadLetters());
+        this.connectionActor = connectionActor;
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
@@ -1152,7 +1155,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
         final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
-                connectionId(), connection.getProcessorPoolSize());
+                connectionId(), connectionActor, connection.getProcessorPoolSize());
 
         return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
     }

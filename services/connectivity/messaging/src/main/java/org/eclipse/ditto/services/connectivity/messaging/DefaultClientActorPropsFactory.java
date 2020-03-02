@@ -46,26 +46,27 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ActorRef conciergeForwarder) {
+    public Props getActorPropsForType(final Connection connection, final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
         final ConnectionType connectionType = connection.getConnectionType();
 
         final Props result;
         switch (connectionType) {
             case AMQP_091:
-                result = RabbitMQClientActor.props(connection, conciergeForwarder);
+                result = RabbitMQClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, conciergeForwarder);
+                result = AmqpClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, conciergeForwarder);
+                result = HiveMqtt3ClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case KAFKA:
-                result = KafkaClientActor.props(connection, conciergeForwarder,
+                result = KafkaClientActor.props(connection, conciergeForwarder, connectionActor,
                         DefaultKafkaPublisherActorFactory.getInstance());
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection);
+                result = HttpPushClientActor.props(connection, connectionActor);
                 break;
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

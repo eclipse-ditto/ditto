@@ -120,11 +120,13 @@ public final class MessageMappingProcessorActorTest {
 
     private ActorSystem actorSystem;
     private ProtocolAdapterProvider protocolAdapterProvider;
+    private TestProbe connectionActorProbe;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
+        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
         MockConciergeForwarderActor.create(actorSystem);
     }
 
@@ -747,7 +749,7 @@ public final class MessageMappingProcessorActorTest {
     private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID, 99);
+                        CONNECTION_ID, connectionActorProbe.ref(), 99);
         return actorSystem.actorOf(props);
     }
 

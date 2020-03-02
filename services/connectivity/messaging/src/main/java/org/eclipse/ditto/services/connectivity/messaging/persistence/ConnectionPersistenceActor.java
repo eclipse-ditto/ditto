@@ -190,7 +190,7 @@ public final class ConnectionPersistenceActor
                         HttpPushValidator.newInstance());
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, connectionValidator,
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, getSelf(), connectionValidator,
                         actorSystem);
 
         if (customCommandValidator != null) {
@@ -784,7 +784,7 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder);
+            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));
