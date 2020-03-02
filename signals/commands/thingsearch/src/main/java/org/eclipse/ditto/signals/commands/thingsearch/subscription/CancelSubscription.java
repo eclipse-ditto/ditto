@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -89,9 +88,9 @@ public final class CancelSubscription extends AbstractCommand<CancelSubscription
     }
 
     /**
-     * Get the subscription ID.
+     * Returns the subscriptionId which is to be included in the JSON of the retrieved entity.
      *
-     * @return the subscription ID.
+     * @return the subscriptionId.
      */
     public String getSubscriptionId() {
         return subscriptionId;

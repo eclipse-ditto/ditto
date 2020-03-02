@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
@@ -251,6 +252,23 @@ public final class PoliciesModelFactory {
     public static ResourceKey newResourceKey(final CharSequence resourceType, final CharSequence resourcePath) {
         checkNotNull(resourcePath, "resource path");
         return ImmutableResourceKey.newInstance(resourceType, JsonPointer.of(resourcePath));
+    }
+
+    /**
+     * TODO test both [type:]/[path] and [type:/path]
+     * Returns a {@link ResourceKey} for the given {@link JsonPointer}.
+     *
+     * @param pointer the json pointer representing a resource key e.g. /thing:/path1/path2/...
+     * @return a new ResourceKey.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static ResourceKey newResourceKey(final JsonPointer pointer) {
+        checkNotNull(pointer, "pointer");
+        checkNotEmpty(pointer, "pointer");
+        // omit leading slash
+        final String typeWithPath = pointer.toString().substring(1);
+        return newResourceKey(typeWithPath);
     }
 
     /**

@@ -31,13 +31,12 @@ public interface TopicPathBuilder {
      */
     TopicPathBuilder policies();
 
-
     /**
-     * Sets the {@code Group} of this builder to {@link TopicPath.Group#SEARCH}. A previously set group is replaced.
+     * Sets the {@code Group} of this builder to {@link TopicPath.Criterion#SEARCH}. A previously set group is replaced.
      *
      * @return this builder to allow method chaining.
      */
-    TopicPathBuilder search();
+    SearchTopicPathBuilder search();
 
 
     /**
@@ -63,6 +62,14 @@ public interface TopicPathBuilder {
      * @return this builder to allow method chaining.
      */
     TopicPathBuilder live();
+
+    /**
+     * Sets the {@code Channel} of this builder to {@link TopicPath.Channel#NONE}. A previously set channel is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    TopicPathBuilder none();
 
     /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#EVENTS}. A previously set criterion is

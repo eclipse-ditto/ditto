@@ -13,20 +13,33 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ImmutableLogEntry;
+import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
+import org.eclipse.ditto.model.connectivity.LogLevel;
+import org.eclipse.ditto.model.connectivity.LogType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
 import org.junit.AfterClass;
@@ -47,6 +60,8 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
     private static ActorSystem actorSystem;
+    private static final MonitoringLoggerConfig LOGGER_CONFIG =
+            TestConstants.CONNECTIVITY_CONFIG.getMonitoringConfig().logger();
 
     @BeforeClass
     public static void setUp() {
@@ -70,7 +85,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
 
             final ActorRef underTest = childActorOf(
                     RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-                            DEFAULT_TIMEOUT));
+                            DEFAULT_TIMEOUT, LOGGER_CONFIG.maxLogSizeInBytes()));
 
             underTest.tell(expectedResponse, getRef());
 
@@ -95,12 +110,73 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
 
             final ActorRef underTest = childActorOf(
                     RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-                            DEFAULT_TIMEOUT));
+                            DEFAULT_TIMEOUT, LOGGER_CONFIG.maxLogSizeInBytes()));
 
             responses.forEach(response -> underTest.tell(response, getRef()));
 
             sender.expectMsg(expectedResponse);
         }};
+    }
+
+    @Test
+    public void withMultipleClientsRespectsMaxLogSize() throws InterruptedException {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final Connection connection = createConnectionWithClients(3);
+
+            final Instant since = Instant.now().minusSeconds(333);
+            final Instant until = Instant.now().plusSeconds(555);
+            final Collection<RetrieveConnectionLogsResponse> responses = Arrays.asList(
+                    createRetrieveConnectionLogsResponse(connection.getId(), since, until, maxSizeLogEntries()),
+                    createRetrieveConnectionLogsResponse(connection.getId(), since, until, maxSizeLogEntries()),
+                    createRetrieveConnectionLogsResponse(connection.getId(), since, until, maxSizeLogEntries())
+            );
+
+            final ActorRef underTest = childActorOf(
+                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
+                            DEFAULT_TIMEOUT, LOGGER_CONFIG.maxLogSizeInBytes()));
+
+            responses.forEach(response -> underTest.tell(response, getRef()));
+
+            final RetrieveConnectionLogsResponse retrieveConnectionLogsResponse =
+                    sender.expectMsgClass(RetrieveConnectionLogsResponse.class);
+            assertThat((Long) retrieveConnectionLogsResponse.getConnectionLogs().stream()
+                    .map(LogEntry::toJsonString)
+                    .map(String::length)
+                    .mapToLong(Integer::intValue)
+                    .sum())
+                    .isLessThan(LOGGER_CONFIG.maxLogSizeInBytes());
+        }};
+    }
+
+    private static Collection<LogEntry> maxSizeLogEntries() throws InterruptedException {
+        final List<LogEntry> logEntries = new ArrayList<>();
+
+        int currentSize = 0;
+        boolean maxSizeReached = false;
+        while (!maxSizeReached) {
+            final LogEntry logEntry =
+                    ImmutableLogEntry.getBuilder(correlationId(), Instant.now(), LogCategory.TARGET, LogType.DROPPED,
+                            LogLevel.SUCCESS,
+                            "Some example message that can be logged repeatedly just to create a big log.")
+                            .address("some/address")
+                            .thingId(ThingId.generateRandom())
+                            .build();
+
+            final int newSize = currentSize + logEntry.toJsonString().length();
+            maxSizeReached = newSize > LOGGER_CONFIG.maxLogSizeInBytes();
+            if (!maxSizeReached) {
+                logEntries.add(logEntry);
+                currentSize = newSize;
+            }
+            TimeUnit.MILLISECONDS.sleep(1); //ensure timestamps of logs are all different.
+        }
+
+        return logEntries;
+    }
+
+    private static String correlationId() {
+        return UUID.randomUUID().toString();
     }
 
     @Test
@@ -112,7 +188,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
 
             final ActorRef underTest = childActorOf(
                     RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-                            shortTimeout));
+                            shortTimeout, LOGGER_CONFIG.maxLogSizeInBytes()));
 
 
             sender.expectMsgClass(ConnectionTimeoutException.class);
@@ -132,7 +208,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
 
             final ActorRef underTest = childActorOf(
                     RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-                            aggregatorTimeout));
+                            aggregatorTimeout, LOGGER_CONFIG.maxLogSizeInBytes()));
 
             // only send one response
             final RetrieveConnectionLogsResponse expectedResponse =
@@ -148,8 +224,16 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
 
     private RetrieveConnectionLogsResponse createRetrieveConnectionLogsResponse(final ConnectionId connectionId,
             @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil) {
+        return createRetrieveConnectionLogsResponse(connectionId, enabledSince, enabledUntil,
+                TestConstants.Monitoring.LOG_ENTRIES);
+    }
+
+    private RetrieveConnectionLogsResponse createRetrieveConnectionLogsResponse(final ConnectionId connectionId,
+            @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
+            final Collection<LogEntry> logEntries) {
+
         return RetrieveConnectionLogsResponse.of(connectionId,
-                TestConstants.Monitoring.LOG_ENTRIES,
+                logEntries,
                 enabledSince,
                 enabledUntil,
                 DITTO_HEADERS);
@@ -160,6 +244,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         final Collection<LogEntry> mergedLogEntries = clientResponses.stream()
                 .map(RetrieveConnectionLogsResponse::getConnectionLogs)
                 .flatMap(Collection::stream)
+                .sorted(Comparator.comparing(LogEntry::getTimestamp))
                 .collect(Collectors.toList());
         final RetrieveConnectionLogsResponse firstResponse = clientResponses.stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("collection should contain at least one response"));

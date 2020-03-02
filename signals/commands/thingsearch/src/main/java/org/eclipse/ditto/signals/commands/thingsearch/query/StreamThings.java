@@ -150,10 +150,14 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
 
     @Override
     public StreamThings setNamespaces(@Nullable final Collection<String> namespaces) {
-        final JsonArray namespacesJson = namespaces.stream()
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray());
-        return new StreamThings(filter, namespacesJson, sort, sortValues, getDittoHeaders());
+        if (namespaces == null){
+            return new StreamThings(filter, JsonArray.empty(), sort, sortValues, getDittoHeaders());
+        }else {
+            final JsonArray namespacesJson = namespaces.stream()
+                    .map(JsonValue::of)
+                    .collect(JsonCollectors.valuesToArray());
+            return new StreamThings(filter, namespacesJson, sort, sortValues, getDittoHeaders());
+        }
     }
 
     @Override

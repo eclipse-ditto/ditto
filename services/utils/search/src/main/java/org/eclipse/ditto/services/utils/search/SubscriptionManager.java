@@ -97,6 +97,36 @@ public final class SubscriptionManager extends AbstractActor {
                 conciergeForwarder, materializer);
     }
 
+    private static JsonArray asJsonArray(final Collection<String> strings) {
+        return strings.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray());
+    }
+
+    private static String joinOptions(final Collection<String> strings) {
+        return String.join(",", strings);
+    }
+
+    private static int getPageSize(@Nullable final String optionString) {
+        if (optionString == null) {
+            return DEFAULT_PAGE_SIZE;
+        } else {
+            final int pageSize = RqlOptionParser.parseOptions(optionString)
+                    .stream()
+                    .flatMap(option -> option instanceof SizeOption
+                            ? Stream.of(((SizeOption) option).getSize())
+                            : Stream.empty())
+                    .findFirst()
+                    .orElse(DEFAULT_PAGE_SIZE);
+            if (pageSize > 0 && pageSize <= MAX_PAGE_SIZE) {
+                return pageSize;
+            } else {
+                throw InvalidOptionException.newBuilder()
+                        .message("Invalid option: '" + optionString + "'")
+                        .description("size(n) -- n must be between 1 and " + MAX_PAGE_SIZE)
+                        .build();
+            }
+        }
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -173,35 +203,5 @@ public final class SubscriptionManager extends AbstractActor {
     private String nextSubscriptionId(final CreateSubscription createSubscription) {
         final String prefix = createSubscription.getPrefix().orElse("");
         return prefix + subscriptionIdCounter++;
-    }
-
-    private static JsonArray asJsonArray(final Collection<String> strings) {
-        return strings.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray());
-    }
-
-    private static String joinOptions(final Collection<String> strings) {
-        return String.join(",", strings);
-    }
-
-    private static int getPageSize(@Nullable final String optionString) {
-        if (optionString == null) {
-            return DEFAULT_PAGE_SIZE;
-        } else {
-            final int pageSize = RqlOptionParser.parseOptions(optionString)
-                    .stream()
-                    .flatMap(option -> option instanceof SizeOption
-                            ? Stream.of(((SizeOption) option).getSize())
-                            : Stream.empty())
-                    .findFirst()
-                    .orElse(DEFAULT_PAGE_SIZE);
-            if (pageSize > 0 && pageSize <= MAX_PAGE_SIZE) {
-                return pageSize;
-            } else {
-                throw InvalidOptionException.newBuilder()
-                        .message("Invalid option: '" + optionString + "'")
-                        .description("size(n) -- n must be between 1 and " + MAX_PAGE_SIZE)
-                        .build();
-            }
-        }
     }
 }

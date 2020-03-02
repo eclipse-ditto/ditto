@@ -14,7 +14,8 @@ Examples for valid topic paths are:
 * `org.eclipse.ditto/fancy-car-0815/things/live/events/modified`
 * `org.eclipse.ditto/fancy-car-23/things/twin/search`
 * `org.eclipse.ditto/fancy-car-42/things/live/messages/hello.world`
-
+* `org.eclipse.ditto/fancy-policy-1/policies/commands/create`
+* `org.eclipse.ditto/fancy-policy-1/policies/commands/delete`
 
 ## Namespace
 
@@ -33,10 +34,15 @@ The `{group}` contains which type of entity should be referenced with the Protoc
 Addressing the _things_ group in the topic path indicates that a `Thing` entity is targeted which means that the entity
 identifier in the first two segments should be treated as `Thing ID`.
 
+### Policies Group
+
+Addressing the _policies_ group in the topic path indicates that a `Policy` entity is targeted which means that the entity
+identifier in the first two segments should be treated as `Policy ID`.
 
 ## Channel
 
-The `{channel}` specifies whether the Protocol message is addressed to the *digital twin* or to the actual *live* device.  
+The `{channel}` specifies whether the Protocol message is addressed to the *digital twin*, to the actual *live* device
+or to none of both.
 
 ### Twin channel
 
@@ -61,6 +67,13 @@ unauthorized access to a `Thing` by responding with an error.
 Protocol messages with the *messages* `{criterion}` are only possible on the *live* channel as Ditto only acts as a
 broker of connected actual devices.
 
+### No channel
+
+Some commands (e.g. Policy commands) are not related to an actual device and thus have no associated twin. 
+For these commands the *twin*/*live* semantics does not fit and consequently they have no channel assigned in the
+ *Topic* of the Ditto Protocol message.
+ 
+For example a *CreatePolicy* command has the following *Topic*: `<namespace>/<policyName>/policies/commands/create`
 
 ## Criterion
 

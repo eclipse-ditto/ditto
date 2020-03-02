@@ -88,6 +88,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-thingsearch</artifactId>
+        </dependency>
 
         <!-- ### Provided ### -->
         <dependency>
@@ -138,6 +142,12 @@
             <artifactId>jsonassert</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -174,6 +184,9 @@
                                              we don't want to have a slf4j dependency -->
                                         <exclude>org.slf4j</exclude>
                                     </excludes>
+                                    <includes>
+                                        <include>org.slf4j:*:*:jar:test</include>
+                                    </includes>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>
@@ -207,6 +220,8 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.protocoladapter.TopicPathBuilder</exclude>
+                            <exclude>org.eclipse.ditto.protocoladapter.ImmutableTopicPathBuilder</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

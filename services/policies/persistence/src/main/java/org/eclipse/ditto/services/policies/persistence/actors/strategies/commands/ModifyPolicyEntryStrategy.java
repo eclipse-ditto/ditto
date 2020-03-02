@@ -77,7 +77,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                 eventToPersist =
                         PolicyEntryModified.of(policyId, policyEntry, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
-                createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, dittoHeaders);
+                createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, label, dittoHeaders);
             } else {
                 eventToPersist =
                         PolicyEntryCreated.of(policyId, policyEntry, nextRevision, getEventTimestamp(),

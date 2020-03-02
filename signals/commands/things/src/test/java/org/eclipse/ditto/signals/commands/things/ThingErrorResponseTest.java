@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -76,4 +77,28 @@ public final class ThingErrorResponseTest {
         assertThat(underTest).isNotNull();
     }
 
+
+    @Test
+    public void createInstanceFromUnregisteredException() {
+        final JsonObject genericExceptionJson = KNOWN_JSON.toBuilder()
+                .set(ThingCommandResponse.JsonFields.PAYLOAD,
+                        DittoRuntimeException
+                                .newBuilder("some.error", HttpStatusCode.VARIANT_ALSO_NEGOTIATES)
+                                .description("the description")
+                                .message("the message")
+                                .build().toJson(FieldType.regularOrSpecial()))
+                .build();
+
+        final ThingErrorResponse underTest =
+                ThingErrorResponse.fromJson(genericExceptionJson, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        Assertions.assertThat(underTest.getDittoRuntimeException()).isNotNull();
+        Assertions.assertThat(underTest.getDittoRuntimeException().getErrorCode()).isEqualTo("some.error");
+        Assertions.assertThat(underTest.getDittoRuntimeException().getDescription()).contains("the description");
+        Assertions.assertThat(underTest.getDittoRuntimeException().getMessage()).isEqualTo("the message");
+        Assertions.assertThat(underTest.getDittoRuntimeException().getStatusCode())
+                .isEqualTo(HttpStatusCode.VARIANT_ALSO_NEGOTIATES);
+        Assertions.assertThat(underTest.getStatusCode()).isEqualTo(HttpStatusCode.VARIANT_ALSO_NEGOTIATES);
+    }
 }

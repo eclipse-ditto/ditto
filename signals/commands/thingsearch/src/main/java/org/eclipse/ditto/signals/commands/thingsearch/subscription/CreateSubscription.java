@@ -159,7 +159,11 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         });
     }
 
-    @Override
+    /**
+     * Returns the filter which is to be included in the JSON of the retrieved entity.
+     *
+     * @return the filter string.
+     */
     public Optional<String> getFilter() {
         return Optional.ofNullable(filter);
     }

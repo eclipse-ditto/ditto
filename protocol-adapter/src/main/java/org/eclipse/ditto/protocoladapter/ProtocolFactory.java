@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -23,7 +27,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -105,19 +111,31 @@ public final class ProtocolFactory {
      */
     @SuppressWarnings({"squid:S1166"})
     public static TopicPath newTopicPath(final String path) {
-        final String[] parts = path.split("/");
+        checkNotNull(path, "path");
+        final LinkedList<String> parts = new LinkedList<>(Arrays.asList(path.split(TopicPath.PATH_DELIMITER)));
 
         try {
-            final String namespace = parts[0];
-            final String id = parts[1];
+            final String namespace = parts.pop(); // parts[0]
+            final String id = parts.pop(); // parts[1]
             final TopicPath.Group group =
-                    TopicPath.Group.forName(parts[2])
+                    TopicPath.Group.forName(parts.pop()) // parts[2]
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-            final TopicPath.Channel channel =
-                    TopicPath.Channel.forName(parts[3])
+
+            final TopicPath.Channel channel;
+            switch (group) {
+                case POLICIES:
+                    channel = TopicPath.Channel.NONE;
+                    break;
+                case THINGS:
+                    channel = TopicPath.Channel.forName(parts.pop()) // parts[3]
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    break;
+                default:
+                    throw UnknownTopicPathException.newBuilder(path).build();
+            }
+
             final TopicPath.Criterion criterion =
-                    TopicPath.Criterion.forName(parts[4])
+                    TopicPath.Criterion.forName(parts.pop())
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
 
             switch (criterion) {
@@ -125,21 +143,25 @@ public final class ProtocolFactory {
                 case EVENTS:
                     // commands and events Path always contain an ID:
                     final TopicPath.Action action =
-                            TopicPath.Action.forName(parts[5])
+                            TopicPath.Action.forName(parts.pop())
                                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
+                case SEARCH:
+                    final TopicPath.SearchAction searchAction =
+                            TopicPath.SearchAction.forName(parts.pop())
+                                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, searchAction);
                 case ERRORS:
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
                     // messages Path always contain a subject:
-                    final String[] subjectParts = Arrays.copyOfRange(parts, 5, parts.length);
-                    final String subject = String.join("/", (CharSequence[]) subjectParts);
+                    final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }
-        } catch (final ArrayIndexOutOfBoundsException e) {
+        } catch (final NoSuchElementException e) {
             throw UnknownTopicPathException.newBuilder(path).build();
         }
     }
@@ -172,6 +194,34 @@ public final class ProtocolFactory {
      */
     public static TopicPathBuilder newTopicPathBuilder(final ThingId thingId) {
         return ImmutableTopicPathBuilder.of(thingId).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code entityId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
+     *
+     * @param entityId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code entityIdId} is not in the expected
+     * format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final NamespacedEntityId entityId) {
+        return ImmutableTopicPathBuilder.of(entityId).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code policyId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code policyId} and set in the builder.
+     *
+     * @param policyId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code policyId} is {@code null}.
+     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code policyId} is not in the expected
+     * format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final PolicyId policyId) {
+        return ImmutableTopicPathBuilder.of(policyId).policies();
     }
 
     /**

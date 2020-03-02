@@ -22,14 +22,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import com.eclipsesource.json.Json;
@@ -75,6 +82,15 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
                 .filter(m -> TO_ADAPTABLE.equals(m.getName())).collect(Collectors.toList());
     }
 
+    /**
+     * Generated examples that can be used for e.g. the ditto-documentation. The producer will therefore create
+     * .md-files for the different examples. Internally it will use {@link JsonExamplesProducer} for creating the
+     * example json.
+     *
+     * @param args expected one argument: the path where the examples should be stored. The last part of the path should
+     * represent the type of the produced example (only type "markdown" is supported). Example:
+     * "generated-examples/markdown"
+     */
     public static void main(final String... args) throws IOException {
         if (args.length != 1) {
             System.err.println("Exactly 1 argument required: the target folder in which to generate the JSON files");
@@ -95,6 +111,13 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
 
         if (jsonifiable instanceof DittoRuntimeException) {
+            if (jsonifiable instanceof ThingException) {
+                return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
+            } else if (jsonifiable instanceof PolicyException) {
+                return PolicyErrorResponse.of((DittoRuntimeException) jsonifiable);
+            }
+
+            System.out.println(jsonifiable.getClass().getName() + " is neither ThingException nor PolicyException.");
             return ThingErrorResponse.of((DittoRuntimeException) jsonifiable);
         } else {
             return jsonifiable;
@@ -123,8 +146,11 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
         if (adaptable.isPresent()) {
             final String jsonString =
-                    adaptable.map(adaptable1 ->
-                            ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1).toJsonString()
+                    adaptable.map(adaptable1 -> {
+                                final JsonObject adaptableJson = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1)
+                                        .toJson();
+                                return removeNonRegularFieldsFromValue(adaptableJson).toString();
+                            }
                     ).get();
 
             try {
@@ -136,6 +162,21 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         } else {
             System.out.println("Adaptable not found for class: " + theClass);
         }
+    }
+
+    private JsonObject removeNonRegularFieldsFromValue(final JsonObject initialObject) {
+        return initialObject.getValue(Payload.JsonFields.VALUE)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(value -> value.stream()
+                        // can't test for FieldType.REGULAR since some adaptables will already have forgotten the
+                        // field types for fields that should be shown. Thus we are safer this way.
+                        .filter(field -> !(field.isMarkedAs(FieldType.SPECIAL) || field.isMarkedAs(FieldType.HIDDEN)))
+                        .collect(JsonCollectors.fieldsToObject()))
+                .map(valueWithOnlyRegularFields -> initialObject.toBuilder()
+                        .set(Payload.JsonFields.VALUE, valueWithOnlyRegularFields)
+                        .build())
+                .orElse(initialObject);
     }
 
     private String wrapCodeSnippet(final String title, final String jsonString) {

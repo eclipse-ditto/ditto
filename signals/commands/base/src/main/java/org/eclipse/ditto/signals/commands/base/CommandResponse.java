@@ -85,7 +85,6 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
     /**
      * This class contains common definitions for all fields of a {@code CommandResponse}'s JSON representation.
      * Implementation of {@code CommandResponse} may add additional fields by extending this class.
-     *
      */
     @Immutable
     abstract class JsonFields {

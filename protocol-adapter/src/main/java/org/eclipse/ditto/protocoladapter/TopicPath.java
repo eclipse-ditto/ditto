@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -30,6 +31,7 @@ import org.eclipse.ditto.model.things.ThingId;
 public interface TopicPath {
 
     String ID_PLACEHOLDER = "_";
+    String PATH_DELIMITER = "/";
 
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
@@ -53,6 +55,17 @@ public interface TopicPath {
      */
     static TopicPathBuilder newBuilder(final ThingId thingId) {
         return ProtocolFactory.newTopicPathBuilder(thingId);
+    }
+
+    /**
+     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code policyId}.
+     *
+     * @param policyId the identifier of the {@code Policy}.
+     * @return the builder.
+     * @throws NullPointerException if {@code policyId} is {@code null}.
+     */
+    static TopicPathBuilder newBuilder(final PolicyId policyId) {
+        return ProtocolFactory.newTopicPathBuilder(policyId);
     }
 
     /**
@@ -102,6 +115,13 @@ public interface TopicPath {
     Optional<Action> getAction();
 
     /**
+     * Returns an {@link Optional} for an search action part of this {@code TopicPath}.
+     *
+     * @return the search action.
+     */
+    Optional<SearchAction> getSearchAction();
+
+    /**
      * Returns an {@link Optional} for a subject part of this {@code TopicPath}.
      *
      * @return the subject.
@@ -133,9 +153,7 @@ public interface TopicPath {
 
         POLICIES("policies"),
 
-        THINGS("things"),
-
-        SEARCH("search");
+        THINGS("things");
 
         private final String name;
 
@@ -178,6 +196,8 @@ public interface TopicPath {
         COMMANDS("commands"),
 
         EVENTS("events"),
+
+        SEARCH("search"),
 
         MESSAGES("messages"),
 
@@ -224,7 +244,9 @@ public interface TopicPath {
 
         TWIN("twin"),
 
-        LIVE("live");
+        LIVE("live"),
+
+        NONE("none");
 
         private final String name;
 
@@ -273,12 +295,6 @@ public interface TopicPath {
 
         DELETE("delete"),
 
-        SUBSCRIBE("subscribe"),
-
-        CANCEL("cancel"),
-
-        REQUEST("request"),
-
 
         CREATED("created"),
 
@@ -309,6 +325,64 @@ public interface TopicPath {
          * Returns the Action name as String.
          *
          * @return the Action name as String.
+         */
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    /**
+     * An enumeration of topic path search-actions.
+     *
+     * @since 1.2.0
+     */
+    enum SearchAction {
+
+
+        SUBSCRIBE("subscribe"),
+
+        CANCEL("cancel"),
+
+        REQUEST("request"),
+
+
+        COMPLETE("complete"),
+
+        GENERATED("created"),
+
+        FAILED("failed"),
+
+        HAS_NEXT("hasNext");
+
+        private final String name;
+
+        SearchAction(final String name) {
+            this.name = name;
+        }
+
+        /**
+         * Creates a SearchAction from the passed SearchAction {@code name} if such an enum value exists, otherwise an empty
+         * Optional.
+         *
+         * @param name the SearchAction name to create the SearchAction enum value of.
+         * @return the optional SearchAction.
+         * @since 1.2.0
+         */
+        public static Optional<SearchAction> forName(final String name) {
+            return Stream.of(values()) //
+                    .filter(a -> Objects.equals(a.getName(), name)) //
+                    .findFirst();
+        }
+
+        /**
+         * Returns the SearchAction name as String.
+         *
+         * @return the SearchAction name as String.
          */
         public String getName() {
             return name;
