@@ -44,6 +44,7 @@ final class TimeoutValueValidator extends AbstractHeaderValueValidator {
         return HeaderValueValidators.getLongValidator().andThen(new TimeoutValueValidator());
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
         try {
