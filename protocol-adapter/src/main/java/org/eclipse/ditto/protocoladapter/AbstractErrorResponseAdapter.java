@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
  *
  * @param <T> the type of the {@link ErrorResponse}
  */
-public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> implements Adapter<T> {
+public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> implements ErrorResponseAdapter<T> {
 
     private final HeaderTranslator headerTranslator;
     private final ErrorRegistry<DittoRuntimeException> errorRegistry;

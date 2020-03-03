@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.ModifyCommandResponseAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
@@ -24,7 +25,8 @@ import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandRes
 /**
  * Adapter for mapping a {@link PolicyModifyCommandResponse} to and from an {@link Adaptable}.
  */
-final class PolicyModifyCommandResponseAdapter extends AbstractPolicyAdapter<PolicyModifyCommandResponse<?>> {
+final class PolicyModifyCommandResponseAdapter extends AbstractPolicyAdapter<PolicyModifyCommandResponse<?>>
+        implements ModifyCommandResponseAdapter<PolicyModifyCommandResponse<?>> {
 
     private PolicyModifyCommandResponseAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getPolicyModifyCommandResponseMappingStrategies(),

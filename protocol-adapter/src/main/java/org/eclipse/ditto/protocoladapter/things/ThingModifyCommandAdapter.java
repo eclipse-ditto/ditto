@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.ModifyCommandAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
@@ -25,7 +26,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 /**
  * Adapter for mapping a {@link ThingModifyCommand} to and from an {@link Adaptable}.
  */
-final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCommand<?>> {
+final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCommand<?>>
+        implements ModifyCommandAdapter<ThingModifyCommand<?>> {
 
     private final SignalMapper<ThingModifyCommand<?>> signalMapper =
             SignalMapperFactory.newThingModifySignalMapper();

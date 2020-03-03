@@ -12,13 +12,9 @@
  */
 package org.eclipse.ditto.protocoladapter.provider;
 
+import java.util.List;
+
 import org.eclipse.ditto.protocoladapter.Adapter;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Provider for all available {@link Adapter}s of a certain type (things or policies).
@@ -26,42 +22,10 @@ import org.eclipse.ditto.signals.events.base.Event;
 public interface AdapterProvider {
 
     /**
-     * @return the query command adapter
+     * Retrieve all adapters known to this provider.
+     *
+     * @return the list of adapters.
      */
-    Adapter<? extends Signal<?>> getQueryCommandAdapter();
+    List<Adapter<?>> getAdapters();
 
-    /**
-     * @return the query command response adapter
-     */
-    Adapter<? extends CommandResponse<?>> getQueryCommandResponseAdapter();
-
-    /**
-     * @return the modify command adapter
-     */
-    Adapter<? extends Signal<?>> getModifyCommandAdapter();
-
-    /**
-     * @return the modify command response adapter
-     */
-    Adapter<? extends CommandResponse<?>> getModifyCommandResponseAdapter();
-
-    /**
-     * @return the message command adapter
-     */
-    Adapter<? extends MessageCommand<?, ?>> getMessageCommandAdapter();
-
-    /**
-     * @return the message command response adapter
-     */
-    Adapter<? extends MessageCommandResponse<?, ?>> getMessageCommandResponseAdapter();
-
-    /**
-     * @return the event adapter
-     */
-    Adapter<? extends Event<?>> getEventAdapter();
-
-    /**
-     * @return the error response adapter
-     */
-    Adapter<? extends ErrorResponse<?>> getErrorResponseAdapter();
 }

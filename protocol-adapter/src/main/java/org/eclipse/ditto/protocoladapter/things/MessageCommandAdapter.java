@@ -34,7 +34,8 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 /**
  * Adapter for mapping a {@link MessageCommandAdapter} to and from an {@link Adaptable}.
  */
-final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>> {
+final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>>
+        implements ThingMessageAdapter<MessageCommand<?, ?>> {
 
     private static final SignalMapper<MessageCommand<?, ?>>
             TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandSignalMapper();
@@ -57,6 +58,11 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>> 
     @Override
     public Adaptable toAdaptable(final MessageCommand<?, ?> t) {
         return toAdaptable(t, TopicPath.Channel.LIVE);
+    }
+
+    @Override
+    public boolean isForResponses() {
+        return false;
     }
 
     @Override

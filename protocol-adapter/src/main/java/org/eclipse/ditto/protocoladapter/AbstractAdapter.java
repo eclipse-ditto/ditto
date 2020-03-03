@@ -17,21 +17,18 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
  */
-public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonObject, JsonField>>
-        implements Adapter<T> {
+public abstract class AbstractAdapter<T extends Signal<?>> implements Adapter<T> {
 
     /**
      * Fixed criterion part of the adaptable type used in response signals.

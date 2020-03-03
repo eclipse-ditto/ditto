@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.QueryCommandResponseAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
@@ -24,7 +25,8 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandRespo
 /**
  * Adapter for mapping a {@link PolicyQueryCommandResponse} to and from an {@link Adaptable}.
  */
-final class PolicyQueryCommandResponseAdapter extends AbstractPolicyAdapter<PolicyQueryCommandResponse<?>> {
+final class PolicyQueryCommandResponseAdapter extends AbstractPolicyAdapter<PolicyQueryCommandResponse<?>>
+        implements QueryCommandResponseAdapter<PolicyQueryCommandResponse<?>> {
 
     private PolicyQueryCommandResponseAdapter(
             final HeaderTranslator headerTranslator) {

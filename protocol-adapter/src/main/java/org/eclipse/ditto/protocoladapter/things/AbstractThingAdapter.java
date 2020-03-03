@@ -16,22 +16,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocoladapter.Adapter}s that handle thing commands.
  *
  * @param <T> the type of the thing commands
  */
-abstract class AbstractThingAdapter<T extends Jsonifiable.WithPredicate<JsonObject, JsonField> & WithId> extends
-        AbstractAdapter<T> {
+abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter<T> implements ThingAdapter<T> {
 
     private static final Map<String, Pattern> THING_PATH_PATTERNS = new HashMap<>();
 
