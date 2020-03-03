@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import java.util.Set;
 
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -22,7 +23,7 @@ import org.eclipse.ditto.signals.base.Signal;
  * @param <T> the type mapped by this {@code Adapter}.
  * @since 1.1.0
  */
-public interface Adapter<T extends Signal<?>> {
+public interface Adapter<T extends Jsonifiable<?>> {
 
     /**
      * Maps the given {@code adaptable} to its corresponding {@code T}.

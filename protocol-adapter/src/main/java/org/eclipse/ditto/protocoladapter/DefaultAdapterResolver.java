@@ -43,8 +43,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable) {
-        return resolver.apply(adaptable);
+        return (Adapter<? extends Signal<?>>) resolver.apply(adaptable);
     }
 
     private static boolean isResponse(final Adaptable adaptable) {
