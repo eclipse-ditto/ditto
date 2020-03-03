@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.services.gateway.endpoints.actors.DefaultHttpRequestActorPropsFactory;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
@@ -81,6 +83,17 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     String getActorPropsFactoryFullQualifiedClassname();
 
     /**
+     * Returns definitions of headers which should be derived from query parameters.
+     * I. e. if query parameters are supplied with the same name as the configured header keys then the query parameters
+     * will be converted to header key-value pairs.
+     *
+     * @return the definitions of headers which should be derived from query parameters.
+     *
+     * @since 1.1.0
+     */
+    Set<HeaderDefinition> getQueryParametersAsHeaders();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpConfig}.
      */
@@ -122,13 +135,23 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The full qualified classname of the HttpRequestActorPropsFactory to instantiate.
          */
-        ACTOR_PROPS_FACTORY("actor-props-factory", DefaultHttpRequestActorPropsFactory.class.getName())
-        ;
+        ACTOR_PROPS_FACTORY("actor-props-factory", DefaultHttpRequestActorPropsFactory.class.getName()),
+
+        /**
+         * Denotes the name of query parameters that equal the names of well-known headers; the here defined query
+         * parameters will be converted to key-value pairs of request headers for further processing.
+         *
+         * @since 1.1.0
+         */
+        QUERY_PARAMS_AS_HEADERS("query-params-as-headers", Arrays.asList(DittoHeaderDefinition.CORRELATION_ID.getKey(),
+                DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
+                DittoHeaderDefinition.TIMEOUT.getKey()));
 
         private final String path;
         private final Object defaultValue;
 
-        GatewayHttpConfigValue(final String thePath, final Object theDefaultValue) {
+        private GatewayHttpConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
