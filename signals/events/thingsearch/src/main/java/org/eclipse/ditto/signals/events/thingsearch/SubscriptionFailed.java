@@ -141,8 +141,14 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
         return getClass().getSimpleName() + " [" + super.toString() + ", error=" + error + "]";
     }
 
-    private static final class JsonFields {
+    /**
+     * Json fields of this event.
+     */
+    public static final class JsonFields {
 
-        private static final JsonFieldDefinition<JsonObject> ERROR = JsonFactory.newJsonObjectFieldDefinition("error");
+        /**
+         * Json fields for a JSON representation of the error.
+         */
+        public static final JsonFieldDefinition<JsonObject> ERROR = JsonFactory.newJsonObjectFieldDefinition("error");
     }
 }

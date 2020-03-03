@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.events.thingsearch;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -40,6 +42,18 @@ public interface SubscriptionEvent<T extends SubscriptionEvent<T>> extends Event
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
+    }
+
+    /**
+     * Common JSON fields of subscription events.
+     */
+    final class JsonFields {
+
+        /**
+         * The JSON field for subscription ID.
+         */
+        public static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
+                JsonFactory.newStringFieldDefinition("subscriptionId");
     }
 
 }

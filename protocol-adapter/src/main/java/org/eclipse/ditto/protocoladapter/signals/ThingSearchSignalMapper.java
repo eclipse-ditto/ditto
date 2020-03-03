@@ -17,8 +17,6 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -62,21 +60,19 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
      * @param command the command that is processed
      * @return a {@link TopicPathBuilder} for the given command.
      */
-    private String getNamespacesConcat(final ThingSearchCommand command) {
-        return String.join(",", command.getNamespaces()
-                .orElse(Collections.singleton("_"))
-                .toString()
-                .replace(" ", "")
-                .replace("[", "")
-                .replace("]", ""));
+    private String getNamespacesConcat(final ThingSearchCommand<?> command) {
+        return String.join(",", command.getNamespaces().orElse(Collections.singleton(TopicPath.ID_PLACEHOLDER)));
     }
 
     /**
      * @return array of {@link org.eclipse.ditto.protocoladapter.TopicPath.Action}s the implementation supports.
      */
     public TopicPath.SearchAction[] getSupportedActions() {
-        return new TopicPath.SearchAction[]{TopicPath.SearchAction.REQUEST,
-                TopicPath.SearchAction.CANCEL, TopicPath.SearchAction.SUBSCRIBE};
+        return new TopicPath.SearchAction[]{
+                TopicPath.SearchAction.REQUEST,
+                TopicPath.SearchAction.CANCEL,
+                TopicPath.SearchAction.SUBSCRIBE
+        };
     }
 
     private void setTopicPathAction(final SearchTopicPathBuilder builder, final ThingSearchCommand command,
@@ -84,7 +80,7 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
 
         // e.g. message commands have no associated action
         if (supportedActions.length > 0) {
-            final String searchCommandName = (command.getType().replace(command.getTypePrefix(),"").toLowerCase());
+            final String searchCommandName = (command.getType().replace(command.getTypePrefix(), "").toLowerCase());
             setAction(builder, Stream.of(supportedActions)
                     .filter(action -> searchCommandName.startsWith(action.toString()))
                     .findAny()
@@ -126,6 +122,10 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
 
     @Override
     public Adaptable mapSignalToAdaptable(final T command, final TopicPath.Channel channel) {
+        // TODO: use AbstractSignalMapper.mapSignalToAdaptable instead; override validate and enhancePayloadBuilder
+        // TODO: match command types by "instanceOf" or by command.getType(),
+        //      instead of by command.getClass.getSimpleName().toLowerCase()
+        // TODO: use JsonObjectBuilder instead of JsonObject.of(String.format("{...}", ....)); danger of injection.
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
 
@@ -133,11 +133,13 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
         if (commandName.startsWith("create")) {
             CreateSubscription createCommand = (CreateSubscription) command;
             if (createCommand.getSelectedFields().isPresent()) {
-                payloadBuilder.withFields(createCommand.getSelectedFields().orElse(JsonFieldSelector.newInstance("/")).toString());
+                payloadBuilder.withFields(
+                        createCommand.getSelectedFields().orElse(JsonFieldSelector.newInstance("/")).toString());
             }
             if (createCommand.getFilter().isPresent() && createCommand.getOptions().isPresent()) {
                 payloadBuilder.withValue(JsonObject.of(
-                        String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", createCommand.getFilter().orElse(null),
+                        String.format("{\"filter\": \"%s\", \"options\": \"%s\"}",
+                                createCommand.getFilter().orElse(null),
                                 String.join(",", createCommand.getOptions()
                                         .orElse(Collections.emptyList())
                                         .toString()

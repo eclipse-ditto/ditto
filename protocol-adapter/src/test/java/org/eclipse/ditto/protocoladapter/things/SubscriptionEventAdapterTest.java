@@ -20,8 +20,6 @@ import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -37,6 +35,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -279,7 +278,7 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-
+    @AllValuesAreNonnullByDefault
     private static final class UnknownSubscriptionEvent implements SubscriptionEvent<UnknownSubscriptionEvent> {
 
         @Override
@@ -325,12 +324,9 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
             return this;
         }
 
-        @Nonnull
         @Override
         public String getManifest() {
             return getType();
         }
-
     }
-
 }

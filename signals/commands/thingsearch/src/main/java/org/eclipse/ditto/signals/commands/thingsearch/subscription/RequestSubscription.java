@@ -156,12 +156,21 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
                 ']';
     }
 
-    private static final class JsonFields {
+    /**
+     * JSON fields of this command.
+     */
+    public static final class JsonFields {
 
-        private static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
+        /**
+         * JSON field for the subscription ID. Should be equal to {@code SubscriptionEvent.JsonFields.SUBSCRIPTION_ID}.
+         */
+        public static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
                 JsonFactory.newStringFieldDefinition("subscriptionId");
 
-        private static final JsonFieldDefinition<Long> DEMAND = JsonFactory.newLongFieldDefinition("demand");
+        /**
+         * JSON field for number of pages demanded by this command.
+         */
+        public static final JsonFieldDefinition<Long> DEMAND = JsonFactory.newLongFieldDefinition("demand");
 
     }
 }

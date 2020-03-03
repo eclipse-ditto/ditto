@@ -193,7 +193,7 @@ public final class TestConstants {
 
     public static final String FILTER = "eq(attributes/foo, bar)";
 
-    public static final List<String> OPTIONS = Arrays.asList("sort(+thingId)", "cursor(200)");
+    public static final List<String> OPTIONS = singletonList("sort(+thingId),cursor(200)");
 
     public static final JsonFieldSelector FIELDS = JsonFieldSelector.newInstance("/attributes", "/definition");
 

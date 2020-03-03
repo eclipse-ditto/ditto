@@ -93,7 +93,6 @@ public class ImmutableTopicPathBuilderTest {
         assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
     }
 
-    /** */
     @Test
     public void buildThingSearchCommandTopicPath() {
         final TopicPath expected = ImmutableTopicPath

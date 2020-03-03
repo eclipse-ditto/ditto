@@ -17,10 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
@@ -64,37 +61,14 @@ final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStra
     }
 
     private static JsonArray itemsFrom(final Adaptable adaptable) {
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-
-            return value.getValue("items").map(JsonValue::asArray).orElse(JsonArray.empty());
-        }
-        return JsonArray.empty();
+        return getFromValue(adaptable, SubscriptionHasNext.JsonFields.ITEMS).orElseGet(JsonArray::empty);
     }
 
     private static DittoRuntimeException errorFrom(final Adaptable adaptable) {
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-
-            return DittoRuntimeException.fromUnknownErrorJson(
-                    JsonObject.of(value.getValue("error").map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build())), dittoHeadersFrom(adaptable))
-                    .orElseThrow(() -> JsonParseException.newBuilder().build());
-
-
-        }
-        return DittoRuntimeException.newBuilder(JsonParseException.newBuilder().build().toString(),
-                HttpStatusCode.BAD_REQUEST).build();
+        return getFromValue(adaptable, SubscriptionFailed.JsonFields.ERROR)
+                .flatMap(error ->
+                        DittoRuntimeException.fromUnknownErrorJson(error.asObject(), dittoHeadersFrom(adaptable)))
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
 }

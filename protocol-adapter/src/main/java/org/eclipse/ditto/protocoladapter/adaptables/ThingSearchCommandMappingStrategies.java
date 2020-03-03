@@ -21,14 +21,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -64,70 +63,30 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
                 requireNonNull(subscriptionIdFrom(adaptable)), demandFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
-
     }
 
     private static Set<String> namespacesFrom(final Adaptable adaptable) {
-        if ("_".equals(adaptable.getTopicPath().getNamespace())) {
+        if (TopicPath.ID_PLACEHOLDER.equals(adaptable.getTopicPath().getNamespace())) {
             return Collections.emptySet();
         }
-        return new HashSet<>(
-                Arrays.asList(adaptable.getTopicPath().getNamespace().split(",")));
-
+        return new HashSet<>(Arrays.asList(adaptable.getTopicPath().getNamespace().split(",")));
     }
 
-    private static @Nullable
-    String filterFrom(final Adaptable adaptable) {
-
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-
-            return value.getValue("filter").map(JsonValue::asString).orElse(null);
-
-        }
-        return null;
+    @Nullable
+    private static String filterFrom(final Adaptable adaptable) {
+        return getFromValue(adaptable, CreateSubscription.JsonFields.FILTER).orElse(null);
     }
 
     private static List<String> optionsFrom(final Adaptable adaptable) {
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-
-            if (value.getValue("options").isPresent()) {
-                return Arrays.asList(value.getValue("options")
-                        .map(JsonValue::asString)
-                        .orElseThrow(() -> JsonParseException.newBuilder().build())
-                        .replace(" ", "")
-                        .split(","));
-            }
-        }
-        return Collections.emptyList();
+        // TODO: convert OPTIONS to String type, then use getFromValue
+        return adaptable.getPayload()
+                .getValue()
+                .flatMap(value -> value.asObject().getValue(CreateSubscription.JsonFields.OPTIONS.getPointer()))
+                .map(options -> Collections.singletonList(options.asString()))
+                .orElse(Collections.emptyList());
     }
 
-    protected static long demandFrom(final Adaptable adaptable) {
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-            if (value.getValue("demand").isPresent()) {
-                return value.getValue("demand")
-                        .map(JsonValue::asLong)
-                        .orElseThrow(() -> JsonParseException.newBuilder().build());
-            }
-        }
-        return 0;
+    private static long demandFrom(final Adaptable adaptable) {
+        return getFromValue(adaptable, RequestSubscription.JsonFields.DEMAND).orElse(0L);
     }
-
 }

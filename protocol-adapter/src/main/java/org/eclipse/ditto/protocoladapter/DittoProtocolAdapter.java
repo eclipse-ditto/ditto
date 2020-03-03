@@ -285,6 +285,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel){
+        // TODO: actually validate 'channel'
         validateChannel(channel, subscriptionEvent, TWIN);
         return thingsAdapters.getSubscriptionEventAdapter().toAdaptable(subscriptionEvent, channel);
     }

@@ -25,7 +25,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
@@ -155,12 +154,6 @@ abstract class AbstractSubscriptionEvent<T extends AbstractSubscriptionEvent<T>>
         return "type=" + type +
                 ", subscriptionId=" + subscriptionId +
                 ", dittoHeaders=" + dittoHeaders;
-    }
-
-    static final class JsonFields {
-
-        static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
-                JsonFactory.newStringFieldDefinition("subscriptionId");
     }
 
 }

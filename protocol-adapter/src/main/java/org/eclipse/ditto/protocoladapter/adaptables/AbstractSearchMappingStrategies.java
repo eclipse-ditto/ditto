@@ -13,17 +13,18 @@
 package org.eclipse.ditto.protocoladapter.adaptables;
 
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Provides helper methods to map from {@link Adaptable}s to search commands and events.
@@ -43,19 +44,13 @@ abstract class AbstractSearchMappingStrategies<T extends Jsonifiable.WithPredica
         return adaptable.getPayload().getFields().orElse(null);
     }
 
-    protected static @Nullable String subscriptionIdFrom(final Adaptable adaptable) {
+    @Nullable
+    protected static String subscriptionIdFrom(final Adaptable adaptable) {
+        return getFromValue(adaptable, SubscriptionEvent.JsonFields.SUBSCRIPTION_ID).orElse(null);
+    }
 
-        if (adaptable.getPayload().getValue().isPresent()) {
-            final JsonObject value = JsonObject.of(
-                    adaptable
-                            .getPayload()
-                            .getValue()
-                            .map(JsonValue::formatAsString)
-                            .orElseThrow(() -> JsonParseException.newBuilder().build()));
-
-            return value.getValue("subscriptionId").map(JsonValue::asString).orElse(null);
-        }
-        return null;
+    static <T> Optional<T> getFromValue(final Adaptable adaptable, final JsonFieldDefinition<T> jsonFieldDefinition) {
+        return adaptable.getPayload().getValue().flatMap(value -> value.asObject().getValue(jsonFieldDefinition));
     }
 
 }

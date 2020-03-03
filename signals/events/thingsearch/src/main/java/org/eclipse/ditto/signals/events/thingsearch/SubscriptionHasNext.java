@@ -137,8 +137,14 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
         return getClass().getSimpleName() + " [" + super.toString() + ", items=" + items + "]";
     }
 
-    private static final class JsonFields {
+    /**
+     * Json fields of this event.
+     */
+    public static final class JsonFields {
 
-        private static final JsonFieldDefinition<JsonArray> ITEMS = JsonFactory.newJsonArrayFieldDefinition("items");
+        /**
+         * Json field for results in a page.
+         */
+        public static final JsonFieldDefinition<JsonArray> ITEMS = JsonFactory.newJsonArrayFieldDefinition("items");
     }
 }
