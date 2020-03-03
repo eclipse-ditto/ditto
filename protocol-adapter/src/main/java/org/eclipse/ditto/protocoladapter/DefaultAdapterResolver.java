@@ -178,8 +178,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
         final EnumMap<TopicPath.Action, Function<Adaptable, Adapter<?>>> dispatchByAction =
                 dispatchByEnum(adapters, TopicPath.Action.class, TopicPath.Action.values(),
                         Adapter::getActions, DefaultAdapterResolver::isResponseStep);
-        return evalEnumMapByOptional(dispatchByAction, isResponseStep(adapters),
-                adaptable -> adaptable.getTopicPath().getAction());
+        return evalEnumMapByOptional(dispatchByAction, isResponseStep(adapters), forTopicPath(TopicPath::getAction));
     }
 
     /**
@@ -205,12 +204,12 @@ final class DefaultAdapterResolver implements AdapterResolver {
     }
 
     /**
-     * Convert an enum-extracting function for TopicPath into one for Adaptable.
+     * Convert an extracting function for TopicPath into one for Adaptable.
      *
-     * @param extractor the enum-extracting function for TopicPath.
-     * @return the enum-extracting function for Adaptable.
+     * @param extractor the extracting function for TopicPath.
+     * @return the extracting function for Adaptable.
      */
-    private static <T extends Enum<T>> Function<Adaptable, T> forTopicPath(final Function<TopicPath, T> extractor) {
+    private static <T> Function<Adaptable, T> forTopicPath(final Function<TopicPath, T> extractor) {
         return extractor.compose(Adaptable::getTopicPath);
     }
 

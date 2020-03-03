@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -21,6 +21,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  * An {@code Adapter} maps objects of type {@link T} to an {@link Adaptable} and vice versa.
  *
  * @param <T> the type mapped by this {@code Adapter}.
+ * @since 1.1.0
  */
 public interface EventAdapter<T extends Event<?>> extends Adapter<T> {
 
