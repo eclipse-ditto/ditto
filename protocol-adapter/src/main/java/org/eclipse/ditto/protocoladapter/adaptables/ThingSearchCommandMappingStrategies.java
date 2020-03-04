@@ -77,6 +77,7 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
         return getFromValue(adaptable, CreateSubscription.JsonFields.FILTER).orElse(null);
     }
 
+    @Nullable
     private static String optionsFrom(final Adaptable adaptable) {
         return getFromValue(adaptable, CreateSubscription.JsonFields.OPTIONS).orElse(null);
     }

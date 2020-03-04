@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
@@ -126,16 +125,13 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
         if (command instanceof CreateSubscription) {
             CreateSubscription createCommand = (CreateSubscription) command;
             if (createCommand.getSelectedFields().isPresent()) {
-                payloadBuilder.withFields(
-                        createCommand.getSelectedFields().orElse(JsonFieldSelector.newInstance("/")).toString());
+                payloadBuilder.withFields(createCommand.getSelectedFields().orElse(null));
             }
             if (createCommand.getOptions().isPresent()) {
                 payloadContentBuilder.set("filter", createCommand.getFilter().orElse(null));
-
             }
             if (createCommand.getFilter().isPresent()) {
                 payloadContentBuilder.set("options", createCommand.getOptions().orElse(null));
-
             }
         } else if (command instanceof CancelSubscription) {
             CancelSubscription cancelCommand = (CancelSubscription) command;
