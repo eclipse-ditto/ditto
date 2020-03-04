@@ -51,7 +51,7 @@ public final class ImmutableAcknowledgementRequestTest {
 
     @Test
     public void getLabelReturnsExpected() {
-        final DittoAcknowledgementLabel label = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel label = DittoAcknowledgementLabel.PERSISTED;
         final ImmutableAcknowledgementRequest underTest = ImmutableAcknowledgementRequest.getInstance(label);
 
         assertThat(underTest.getLabel()).isEqualTo(label);
@@ -59,7 +59,7 @@ public final class ImmutableAcknowledgementRequestTest {
 
     @Test
     public void toStringReturnsExpected() {
-        final DittoAcknowledgementLabel label = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel label = DittoAcknowledgementLabel.PERSISTED;
         final ImmutableAcknowledgementRequest underTest = ImmutableAcknowledgementRequest.getInstance(label);
 
         assertThat(underTest.toString()).isEqualTo(label.toString());

@@ -18,21 +18,21 @@ import javax.annotation.Nullable;
 
 /**
  * Defines built-in {@link AcknowledgementLabel}s which are emitted by Ditto itself.
+ * This is intentionally <em>not</em> an {@code enum} as the enum values would have difficulties to comply to the
+ * {@code hashCode/equals} contract when comparing with an {@code ImmutableAcknowledgementLabel} of the same value.
  *
  * @since 1.1.0
  */
-public enum DittoAcknowledgementLabel implements AcknowledgementLabel {
+public final class DittoAcknowledgementLabel {
 
     /**
      * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been persisted
-     * in Ditto.
+     * to the twin.
      */
-    PERSISTED("ditto-persisted");
+    public static final AcknowledgementLabel PERSISTED = AcknowledgementLabel.of("twin-persisted");
 
-    private final AcknowledgementLabel delegate;
-
-    private DittoAcknowledgementLabel(final CharSequence labelValue) {
-        delegate = AcknowledgementLabel.of(labelValue);
+    private DittoAcknowledgementLabel() {
+        throw new AssertionError();
     }
 
     /**
@@ -42,7 +42,7 @@ public enum DittoAcknowledgementLabel implements AcknowledgementLabel {
      * @return {@code true} if the given acknowledgement label is a constant of DittoAcknowledgementLabel.
      */
     public static boolean contains(@Nullable final AcknowledgementLabel acknowledgementLabel) {
-        for (final DittoAcknowledgementLabel dittoAcknowledgementLabel : values()) {
+        for (final AcknowledgementLabel dittoAcknowledgementLabel : values()) {
             if (areEqual(dittoAcknowledgementLabel, acknowledgementLabel)) {
                 return true;
             }
@@ -50,30 +50,16 @@ public enum DittoAcknowledgementLabel implements AcknowledgementLabel {
         return false;
     }
 
-    private static boolean areEqual(final DittoAcknowledgementLabel dittoAcknowledgementLabel,
+    private static AcknowledgementLabel[] values() {
+        return new AcknowledgementLabel[] {
+                PERSISTED
+        };
+    }
+
+    private static boolean areEqual(final AcknowledgementLabel dittoAcknowledgementLabel,
             @Nullable final AcknowledgementLabel other) {
 
-        return dittoAcknowledgementLabel.equals(other) || Objects.equals(dittoAcknowledgementLabel.delegate, other);
-    }
-
-    @Override
-    public String toString() {
-        return delegate.toString();
-    }
-
-    @Override
-    public int length() {
-        return delegate.length();
-    }
-
-    @Override
-    public char charAt(final int index) {
-        return delegate.charAt(index);
-    }
-
-    @Override
-    public CharSequence subSequence(final int start, final int end) {
-        return delegate.subSequence(start, end);
+        return Objects.equals(dittoAcknowledgementLabel, other);
     }
 
 }
