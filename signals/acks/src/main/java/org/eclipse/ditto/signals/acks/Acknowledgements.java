@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.acks;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -22,6 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -32,18 +34,8 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
 
 /**
  * Acknowledgements aggregate several {@link Acknowledgement}s and contain an aggregated overall
- * {@link #getStatusCode() statusCode} describing the aggregated status of all contained Acknowledgements.
- * <p>
- * The {@link #getStatusCode()} is determined by the following algorithm:
- * <ul>
- * <li>When only one {@code Acknowledgement} is included: the {@link Acknowledgement#getStatusCode()} of this Ack is used as the {@code statusCode}</li>
- * <li>When several {@code Acknowledgement}s are included:
- * <ul>
- * <li>If all contained {@code Acknowledgement}s are successful, the overall {@link #getStatusCode()} is {@link HttpStatusCode#OK}</li>
- * <li>If at least one {@code Acknowledgement} is not, the overall {@link #getStatusCode()} is {@link HttpStatusCode#FAILED_DEPENDENCY}</li>
- * </ul>
- * </li>
- * </ul>
+ * {@link #getStatusCode() statusCode} describing the aggregated status of all contained Acknowledgements as well as
+ * a {@link #getEntity(JsonSchemaVersion)} returning the contained Json entity.
  *
  * @since 1.1.0
  */
@@ -76,11 +68,51 @@ public interface Acknowledgements extends Iterable<Acknowledgement>, Signal<Ackn
     }
 
     /**
-     * Returns the status code of the Acknowledgements.
+     * Returns a new {@code Acknowledgements} parsed from the given JSON object.
+     *
+     * @param jsonObject the JSON object to be parsed.
+     * @return the Acknowledgements.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
+     * expected 'Acknowledgements' format.
+     */
+    static Acknowledgements fromJson(final JsonObject jsonObject) {
+        return AcknowledgementFactory.acknowledgementsFromJson(jsonObject);
+    }
+
+    /**
+     * Returns the status code of the Acknowledgements:
+     * <ul>
+     * <li>When only one {@code Acknowledgement} is included: the {@link Acknowledgement#getStatusCode()} of this Ack
+     * is used as the {@code statusCode}</li>
+     * <li>When several {@code Acknowledgement}s are included:
+     * <ul>
+     * <li>If all contained {@code Acknowledgement}s are successful, the overall statusCode is
+     * {@link HttpStatusCode#OK}</li>
+     * <li>If at least one {@code Acknowledgement} is not, the overall statusCode is
+     * {@link HttpStatusCode#FAILED_DEPENDENCY}</li>
+     * </ul>
+     * </li>
+     * </ul>
      *
      * @return the status code of the Acknowledgements.
      */
     HttpStatusCode getStatusCode();
+
+    /**
+     * Returns the entity as JSON:
+     * <ul>
+     * <li>When only one {@code Acknowledgement} is included: the {@link Acknowledgement#getEntity(JsonSchemaVersion)}
+     * of this Ack is returned</li>
+     * <li>When several {@code Acknowledgement}s are included: the {@link Acknowledgement#getEntity(JsonSchemaVersion)}
+     * of each Ack is returned in a JsonObject with the {@code AcknowledgementLabel} as key of each Ack entry
+     * </ul>
+     *
+     * @param schemaVersion the JsonSchemaVersion in which to return the JSON.
+     * @return the entity as JSON.
+     */
+    @Override
+    Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
 
     /**
      * Returns a set containing the the AcknowledgementLabels.

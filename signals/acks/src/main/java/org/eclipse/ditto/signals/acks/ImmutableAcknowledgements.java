@@ -92,6 +92,8 @@ final class ImmutableAcknowledgements implements Acknowledgements {
      * @param acknowledgements the {@link Acknowledgement}s of the new AcknowledgementAggregation.
      * @return the new {@code AcknowledgementAggregation}.
      * @throws NullPointerException if {@code acknowledgements} is {@code null}.
+     * @throws IllegalArgumentException if the passed {@code acknowledgements} iterable contains an
+     * {@code Acknowledgement} with the same {@code AcknowledgementLabel} more than once.
      */
     static ImmutableAcknowledgements of(final CharSequence entityId,
             final HttpStatusCode statusCode,

@@ -17,8 +17,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,6 +29,7 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
@@ -64,7 +67,7 @@ public final class ImmutableAcknowledgementsTest {
         KNOWN_ACKS_MAP.put(KNOWN_ACK_2.getLabel(), KNOWN_ACK_2);
     }
 
-    private static final JsonObject KNOWN_ACKS_MAP_JSON = JsonObject.newBuilder()
+    private static final JsonObject KNOWN_ACKNOWLEDGEMENTS_MAP_JSON = JsonObject.newBuilder()
             .set(KNOWN_ACK_1.getLabel(), KNOWN_ACK_1.toJson())
             .set(KNOWN_ACK_2.getLabel(), KNOWN_ACK_2.toJson())
             .build();
@@ -72,14 +75,22 @@ public final class ImmutableAcknowledgementsTest {
     private static final JsonObject KNOWN_ACKS_JSON = JsonObject.newBuilder()
             .set(Acknowledgements.JsonFields.ENTITY_ID, KNOWN_ENTITY_ID.toString())
             .set(Acknowledgements.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.toInt())
-            .set(Acknowledgements.JsonFields.ACKNOWLEDGEMENTS, KNOWN_ACKS_MAP_JSON)
+            .set(Acknowledgements.JsonFields.ACKNOWLEDGEMENTS, KNOWN_ACKNOWLEDGEMENTS_MAP_JSON)
             .set(Acknowledgements.JsonFields.DITTO_HEADERS, KNOWN_DITTO_HEADERS.toJson())
             .build();
 
-    private static final ImmutableAcknowledgements KNOWN_ACKS = ImmutableAcknowledgements.of(KNOWN_ENTITY_ID,
-            KNOWN_STATUS_CODE,
-            KNOWN_ACKS_MAP,
-            KNOWN_DITTO_HEADERS);
+    private static final ImmutableAcknowledgements KNOWN_ACKNOWLEDGEMENTS_WITH_2_ACKS =
+            ImmutableAcknowledgements.of(KNOWN_ENTITY_ID,
+                    KNOWN_STATUS_CODE,
+                    KNOWN_ACKS_MAP,
+                    KNOWN_DITTO_HEADERS);
+
+    private static final ImmutableAcknowledgements KNOWN_ACKNOWLEDGEMENTS_WITH_1_ACK =
+            ImmutableAcknowledgements.of(KNOWN_ENTITY_ID,
+                    KNOWN_STATUS_CODE,
+                    Collections.singletonMap(KNOWN_ACK_1.getLabel(), KNOWN_ACK_1),
+                    KNOWN_DITTO_HEADERS);
+
 
     @Test
     public void testHashCodeAndEquals() {
@@ -97,13 +108,25 @@ public final class ImmutableAcknowledgementsTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = KNOWN_ACKS.toJson();
+        final JsonObject actual = KNOWN_ACKNOWLEDGEMENTS_WITH_2_ACKS.toJson();
         assertThat(actual).isEqualTo(KNOWN_ACKS_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
         final ImmutableAcknowledgements actual = ImmutableAcknowledgements.fromJson(KNOWN_ACKS_JSON);
-        assertThat(actual).isEqualTo(KNOWN_ACKS);
+        assertThat(actual).isEqualTo(KNOWN_ACKNOWLEDGEMENTS_WITH_2_ACKS);
+    }
+
+    @Test
+    public void getEntityWith2AcksReturnsExpected() {
+        final Optional<JsonValue> actual = KNOWN_ACKNOWLEDGEMENTS_WITH_2_ACKS.getEntity(JsonSchemaVersion.LATEST);
+        assertThat(actual).contains(KNOWN_ACKNOWLEDGEMENTS_MAP_JSON);
+    }
+
+    @Test
+    public void getEntityWith1AckReturnsExpected() {
+        final Optional<JsonValue> actual = KNOWN_ACKNOWLEDGEMENTS_WITH_1_ACK.getEntity(JsonSchemaVersion.LATEST);
+        assertThat(actual).isEqualTo(KNOWN_ACK_1.getEntity(JsonSchemaVersion.LATEST));
     }
 }
