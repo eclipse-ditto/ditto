@@ -129,14 +129,6 @@ public final class AcknowledgementAggregatorTest {
     }
 
     @Test
-    public void getMissingAcknowledgementLabelsFromEmptyInstance() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance();
-
-        final Acknowledgements acknowledgements = underTest.buildAggregatedAcknowledgements(ENTITY_ID, DITTO_HEADERS);
-        assertThat(acknowledgements.getMissingAcknowledgementLabels()).isEmpty();
-    }
-
-    @Test
     public void onlyRegardFirstReceivedAcknowledgementForSameLabel() {
         final DittoAcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
         final EntityId thingId = DefaultEntityId.generateRandom();
@@ -262,6 +254,53 @@ public final class AcknowledgementAggregatorTest {
 
         final Acknowledgements acknowledgements = underTest.buildAggregatedAcknowledgements(ENTITY_ID, DITTO_HEADERS);
         assertThat(acknowledgements.getFailedAcknowledgements()).containsExactlyElementsOf(failedAcks);
+    }
+
+    @Test
+    public void successfulAcknowledgementsLeadToHttpStatusCodeOK() {
+        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance();
+        final List<Acknowledgement> successfulAcks = new ArrayList<>();
+        successfulAcks.add(createAcknowledgement(HttpStatusCode.OK));
+        successfulAcks.add(createAcknowledgement(HttpStatusCode.NO_CONTENT));
+        successfulAcks.add(createAcknowledgement(HttpStatusCode.CREATED));
+        successfulAcks.forEach(
+                ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel()), ENTITY_ID,
+                        DITTO_HEADERS));
+        successfulAcks.forEach(underTest::addReceivedAcknowledgment);
+
+        final Acknowledgements acknowledgements = underTest.buildAggregatedAcknowledgements(ENTITY_ID, DITTO_HEADERS);
+        assertThat(acknowledgements.getStatusCode()).isEqualByComparingTo(HttpStatusCode.OK);
+    }
+
+    @Test
+    public void acknowledgementsWithOneFailedLeadToHttpStatusCodeFailedDependency() {
+        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance();
+        final List<Acknowledgement> acks = new ArrayList<>();
+        acks.add(createAcknowledgement(HttpStatusCode.OK));
+        acks.add(createAcknowledgement(HttpStatusCode.NOT_FOUND));
+        acks.forEach(
+                ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel()), ENTITY_ID,
+                        DITTO_HEADERS));
+        acks.forEach(underTest::addReceivedAcknowledgment);
+
+        final Acknowledgements acknowledgements = underTest.buildAggregatedAcknowledgements(ENTITY_ID, DITTO_HEADERS);
+        assertThat(acknowledgements.getStatusCode()).isEqualByComparingTo(HttpStatusCode.FAILED_DEPENDENCY);
+    }
+
+    @Test
+    public void acknowledgementsWithOneTimeoutLeadToHttpStatusCodeFailedDependency() {
+        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance();
+        final List<Acknowledgement> acks = new ArrayList<>();
+        acks.add(createAcknowledgement(HttpStatusCode.OK));
+        acks.add(createAcknowledgement(HttpStatusCode.NOT_FOUND));
+        acks.add(createAcknowledgement(HttpStatusCode.REQUEST_TIMEOUT));
+        acks.forEach(
+                ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel()), ENTITY_ID,
+                        DITTO_HEADERS));
+        acks.forEach(underTest::addReceivedAcknowledgment);
+
+        final Acknowledgements acknowledgements = underTest.buildAggregatedAcknowledgements(ENTITY_ID, DITTO_HEADERS);
+        assertThat(acknowledgements.getStatusCode()).isEqualByComparingTo(HttpStatusCode.FAILED_DEPENDENCY);
     }
 
     private Acknowledgement createAcknowledgement(final HttpStatusCode statusCode) {

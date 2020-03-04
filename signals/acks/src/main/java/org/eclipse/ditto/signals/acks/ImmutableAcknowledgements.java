@@ -234,13 +234,12 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     private JsonObject acknowledgementsToJson(final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         acknowledgements.values().forEach(acknowledgement -> {
             final JsonKey key = JsonKey.of(acknowledgement.getLabel());
             final JsonValue value = acknowledgement.toJson(schemaVersion, thePredicate);
-            jsonObjectBuilder.set(key, value, predicate);
+            jsonObjectBuilder.set(key, value);
         });
 
         return jsonObjectBuilder.build();
