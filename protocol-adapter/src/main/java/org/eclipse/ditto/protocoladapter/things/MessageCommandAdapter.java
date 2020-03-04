@@ -80,4 +80,5 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>>
     public Adaptable mapSignalToAdaptable(final MessageCommand<?, ?> command, final TopicPath.Channel channel) {
         return TO_ADAPTABLE_MAPPER.mapSignalToAdaptable(command, channel);
     }
+
 }

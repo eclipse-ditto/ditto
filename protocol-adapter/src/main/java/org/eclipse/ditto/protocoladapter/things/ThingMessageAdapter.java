@@ -36,7 +36,7 @@ interface ThingMessageAdapter<T extends Signal<?>> extends Adapter<T> {
 
     @Override
     default Set<TopicPath.Criterion> getCriteria() {
-        return EnumSet.of(TopicPath.Criterion.COMMANDS);
+        return EnumSet.of(TopicPath.Criterion.MESSAGES);
     }
 
     @Override

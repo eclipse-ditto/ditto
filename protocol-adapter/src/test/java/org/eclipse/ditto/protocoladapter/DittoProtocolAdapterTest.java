@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
@@ -235,6 +236,31 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
         assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(retrieveThingWithFields);
+    }
+
+    @Test
+    public void thingLiveQueryCommandFromAdaptable() {
+        final RetrieveThing retrieveThing = RetrieveThing.of(THING_ID, DITTO_HEADERS_V_2.toBuilder()
+                .putHeader(DittoHeaderDefinition.CHANNEL.getKey(), "live")
+                .build());
+
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .live()
+                .commands()
+                .retrieve()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final ThingQueryCommand actualCommand =
+                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder(path)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
+                        .build());
+
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(retrieveThing);
+        assertThat(actualCommand.getDittoHeaders().getChannel()).contains("live");
     }
 
     @Test
