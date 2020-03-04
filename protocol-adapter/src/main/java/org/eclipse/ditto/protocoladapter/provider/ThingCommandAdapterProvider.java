@@ -17,6 +17,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
@@ -30,6 +31,6 @@ public interface ThingCommandAdapterProvider
         ErrorResponseAdapterProvider<ThingErrorResponse>,
         EventAdapterProvider<ThingEvent<?>>,
         SubscriptionEventAdapterProvider<SubscriptionEvent<?>>,
-        ThingSearchCommandAdapterProvider,
+        ThingSearchCommandAdapterProvider<ThingSearchCommand<?>>,
         AdapterProvider {
 }

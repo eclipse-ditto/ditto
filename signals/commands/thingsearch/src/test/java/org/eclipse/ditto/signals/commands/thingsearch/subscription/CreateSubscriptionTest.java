@@ -42,10 +42,7 @@ public final class CreateSubscriptionTest {
     private static final String JSON_ALL_FIELDS = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CreateSubscription.TYPE)
             .set(CreateSubscription.JsonFields.FILTER, TestConstants.KNOWN_FILTER_STR)
-            .set(CreateSubscription.JsonFields.OPTIONS, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.KNOWN_OPT_1)
-                    .add(TestConstants.KNOWN_OPT_2)
-                    .build())
+            .set(CreateSubscription.JsonFields.OPTIONS, String.format("%s, %s",TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2))
             .set(CreateSubscription.JsonFields.FIELDS, KNOWN_FIELDS)
             .set(CreateSubscription.JsonFields.NAMESPACES, JsonFactory.newArrayBuilder()
                     .add(TestConstants.KNOWN_NAMESPACE)
@@ -76,7 +73,7 @@ public final class CreateSubscriptionTest {
     @Test
     public void toJsonWithAllFieldsSet() {
         final CreateSubscription command = CreateSubscription.of(TestConstants.KNOWN_FILTER_STR,
-                Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
+                String.format("%s, %s",TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                 JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
                 TestConstants.KNOWN_NAMESPACES_SET,
                 DittoHeaders.empty()).setPrefix(KNOWN_PREFIX);
@@ -95,7 +92,7 @@ public final class CreateSubscriptionTest {
     @Test
     public void fromJsonWithAllFieldsSet() {
         final CreateSubscription command = CreateSubscription.of(TestConstants.KNOWN_FILTER_STR,
-                Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
+                String.format("%s, %s",TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                 JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
                 TestConstants.KNOWN_NAMESPACES_SET,
                 DittoHeaders.empty()).setPrefix(KNOWN_PREFIX);

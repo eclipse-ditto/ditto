@@ -14,7 +14,9 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -55,49 +57,41 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
 
     @Override
     protected Adaptable mapSignalToAdaptable(final SubscriptionEvent<?> event, final TopicPath.Channel channel) {
-        // TODO: match event types by "instanceOf" or by event.getType(),
-        //      instead of by event.getClass.getSimpleName().toLowerCase()
-        // TODO: use JsonObjectBuilder instead of JsonObject.of(String.format("{...}", ....)); danger of injection.
-
         TopicPath topicPath;
         final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath());
+        final JsonObjectBuilder payloadContentBuilder =JsonFactory.newObjectBuilder();
 
         final String eventName = event.getClass().getSimpleName().toLowerCase().replace("subscription", "");
-        if (eventName.startsWith(TopicPath.SearchAction.GENERATED.toString().toLowerCase())) {
+        if (event instanceof SubscriptionCreated) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().generated().build();
             SubscriptionCreated createdEvent = (SubscriptionCreated) event;
-            payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\"}", createdEvent.getSubscriptionId())));
+            payloadContentBuilder.set("subscriptionId", createdEvent.getSubscriptionId());
 
-        } else if (eventName.startsWith(TopicPath.SearchAction.COMPLETE.toString().toLowerCase())) {
+        } else if (event instanceof SubscriptionComplete) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().complete().build();
             SubscriptionComplete completedEvent = (SubscriptionComplete) event;
-            payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\"}", completedEvent.getSubscriptionId())));
+            payloadContentBuilder.set("subscriptionId", completedEvent.getSubscriptionId());
 
-        } else if (eventName.startsWith(TopicPath.SearchAction.FAILED.toString().toLowerCase())) {
+        } else if (event instanceof SubscriptionFailed) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().failed().build();
             SubscriptionFailed failedEvent = (SubscriptionFailed) event;
-            payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\", \"error\": %s}",
-                            failedEvent.getSubscriptionId(),
-                            failedEvent.getError().toJson())));
+            payloadContentBuilder
+                    .set("subscriptionId", failedEvent.getSubscriptionId())
+                    .set("error", failedEvent.getError().toJson());
 
-        } else if (eventName.startsWith(TopicPath.SearchAction.HAS_NEXT.toString().toLowerCase())) {
+        } else if (event instanceof SubscriptionHasNext) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().hasNext().build();
             SubscriptionHasNext hasNextEvent = (SubscriptionHasNext) event;
-            payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\", \"items\": %s}",
-                            hasNextEvent.getSubscriptionId(),
-                            hasNextEvent.getItems())));
+            payloadContentBuilder
+                    .set("subscriptionId", hasNextEvent.getSubscriptionId())
+                    .set("items", hasNextEvent.getItems());
 
         } else {
             throw UnknownEventException.newBuilder(eventName).build();
         }
 
-
         return Adaptable.newBuilder(topicPath)
-                .withPayload(payloadBuilder.build())
+                .withPayload(payloadBuilder.withValue(payloadContentBuilder.build()).build())
                 .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(event.getDittoHeaders()))
                 .build();
     }

@@ -272,7 +272,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void thingSearchCommandFromAdaptable() {
         final CreateSubscription createSubscription =
-                CreateSubscription.of(null, Collections.emptyList(), null, Collections.emptySet(),
+                CreateSubscription.of(null, null, null, Collections.emptySet(),
                         DITTO_HEADERS_V_2_NO_STATUS);
 
         final TopicPath topicPath = TopicPath.fromNamespace("_")
@@ -292,7 +292,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("thingId");
         final CreateSubscription createSubscriptionWithFields =
-                CreateSubscription.of(null, Collections.emptyList(), selectedFields, Collections.emptySet(),
+                CreateSubscription.of(null, null, selectedFields, Collections.emptySet(),
                         DITTO_HEADERS_V_2);
 
         final ThingSearchCommand actualCommandWithFields =

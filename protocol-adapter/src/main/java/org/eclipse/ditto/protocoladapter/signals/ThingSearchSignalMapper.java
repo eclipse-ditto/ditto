@@ -15,11 +15,10 @@ package org.eclipse.ditto.protocoladapter.signals;
 import java.util.Collections;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.SearchTopicPathBuilder;
@@ -121,66 +120,37 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
     }
 
     @Override
-    public Adaptable mapSignalToAdaptable(final T command, final TopicPath.Channel channel) {
-        // TODO: use AbstractSignalMapper.mapSignalToAdaptable instead; override validate and enhancePayloadBuilder
-        // TODO: match command types by "instanceOf" or by command.getType(),
-        //      instead of by command.getClass.getSimpleName().toLowerCase()
-        // TODO: use JsonObjectBuilder instead of JsonObject.of(String.format("{...}", ....)); danger of injection.
+    void enhancePayloadBuilder(final T command, final PayloadBuilder payloadBuilder) {
+        final JsonObjectBuilder payloadContentBuilder = JsonFactory.newObjectBuilder();
 
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
-
-        final String commandName = command.getClass().getSimpleName().toLowerCase();
-        if (commandName.startsWith("create")) {
+        if (command instanceof CreateSubscription) {
             CreateSubscription createCommand = (CreateSubscription) command;
             if (createCommand.getSelectedFields().isPresent()) {
                 payloadBuilder.withFields(
                         createCommand.getSelectedFields().orElse(JsonFieldSelector.newInstance("/")).toString());
             }
-            if (createCommand.getFilter().isPresent() && createCommand.getOptions().isPresent()) {
-                payloadBuilder.withValue(JsonObject.of(
-                        String.format("{\"filter\": \"%s\", \"options\": \"%s\"}",
-                                createCommand.getFilter().orElse(null),
-                                String.join(",", createCommand.getOptions()
-                                        .orElse(Collections.emptyList())
-                                        .toString()
-                                        .replace(" ", "")
-                                        .replace("[", "")
-                                        .replace("]", "")))));
-            } else if (createCommand.getFilter().isPresent()) {
-                payloadBuilder.withValue(JsonObject.of(
-                        String.format("{\"filter\": \"%s\"}", createCommand.getFilter().orElse(null))));
-            } else if (createCommand.getOptions().isPresent()) {
-                payloadBuilder.withValue(
-                        JsonObject.of(
-                                String.format("{\"options\": \"%s\"}", String.join(",", createCommand.getOptions()
-                                        .orElse(Collections.emptyList())
-                                        .toString()
-                                        .replace(" ", "")
-                                        .replace("[", "")
-                                        .replace("]", "")))));
-            } else {
-                payloadBuilder.withValue(null);
+            if (createCommand.getOptions().isPresent()) {
+                payloadContentBuilder.set("filter", createCommand.getFilter().orElse(null));
+
             }
-        } else if (commandName.startsWith(TopicPath.SearchAction.CANCEL.toString())) {
+            if (createCommand.getFilter().isPresent()) {
+                payloadContentBuilder.set("options", createCommand.getOptions().orElse(null));
+
+            }
+        } else if (command instanceof CancelSubscription) {
             CancelSubscription cancelCommand = (CancelSubscription) command;
-            payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\"}", cancelCommand.getSubscriptionId())));
+            payloadContentBuilder.set("subscriptionId", cancelCommand.getSubscriptionId());
 
-        } else if (commandName.startsWith(TopicPath.SearchAction.REQUEST.toString())) {
+        } else if (command instanceof RequestSubscription) {
             RequestSubscription requestCommand = (RequestSubscription) command;
-            payloadBuilder.withValue(JsonObject.of(
-                    String.format("{\"subscriptionId\": \"%s\", \"demand\": %s}",
-                            requestCommand.getSubscriptionId(),
-                            requestCommand.getDemand())));
+            payloadContentBuilder
+                    .set("subscriptionId", requestCommand.getSubscriptionId())
+                    .set("demand", requestCommand.getDemand());
         } else {
-            throw UnknownCommandException.newBuilder(commandName).build();
+            throw UnknownCommandException.newBuilder(command.getClass().toString()).build();
         }
-
-
-        return Adaptable.newBuilder((getTopicPath(command, TopicPath.Channel.TWIN)))
-                .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
-                .build();
+        payloadBuilder.withValue(payloadContentBuilder.build());
     }
+
 
 }

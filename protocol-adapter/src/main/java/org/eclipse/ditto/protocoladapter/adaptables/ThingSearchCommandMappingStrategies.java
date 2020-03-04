@@ -77,13 +77,8 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
         return getFromValue(adaptable, CreateSubscription.JsonFields.FILTER).orElse(null);
     }
 
-    private static List<String> optionsFrom(final Adaptable adaptable) {
-        // TODO: convert OPTIONS to String type, then use getFromValue
-        return adaptable.getPayload()
-                .getValue()
-                .flatMap(value -> value.asObject().getValue(CreateSubscription.JsonFields.OPTIONS.getPointer()))
-                .map(options -> Collections.singletonList(options.asString()))
-                .orElse(Collections.emptyList());
+    private static String optionsFrom(final Adaptable adaptable) {
+        return getFromValue(adaptable, CreateSubscription.JsonFields.OPTIONS).orElse(null);
     }
 
     private static long demandFrom(final Adaptable adaptable) {

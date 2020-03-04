@@ -65,13 +65,13 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     @Nullable private final String filter;
-    @Nullable private final List<String> options;
+    @Nullable private final String options;
     @Nullable private final JsonFieldSelector fields;
     @Nullable private final Set<String> namespaces;
     @Nullable private final String prefix;
 
     private CreateSubscription(@Nullable final String filter,
-            @Nullable final List<String> options,
+            @Nullable final String options,
             @Nullable final JsonFieldSelector fields,
             @Nullable final Collection<String> namespaces,
             @Nullable final String prefix,
@@ -79,11 +79,8 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         super(TYPE, dittoHeaders);
         this.filter = filter;
         this.prefix = prefix;
-        if (options != null) {
-            this.options = Collections.unmodifiableList(options);
-        } else {
-            this.options = null;
-        }
+        this.options = options;
+
         this.fields = fields;
         if (namespaces != null) {
             this.namespaces = Collections.unmodifiableSet(new HashSet<>(namespaces));
@@ -102,7 +99,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
      * @return a new command to subscribe for search results.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static CreateSubscription of(@Nullable final String filter, @Nullable final List<String> options,
+    public static CreateSubscription of(@Nullable final String filter, @Nullable final String options,
             @Nullable final JsonFieldSelector fields, @Nullable final Set<String> namespaces,
             final DittoHeaders dittoHeaders) {
         return new CreateSubscription(filter, options, fields, namespaces, null, dittoHeaders);
@@ -133,12 +130,8 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         return new CommandJsonDeserializer<CreateSubscription>(TYPE, jsonObject).deserialize(() -> {
             final String extractedFilter = jsonObject.getValue(JsonFields.FILTER).orElse(null);
 
-            final List<String> extractedOptions = jsonObject.getValue(JsonFields.OPTIONS)
-                    .map(jsonArray -> jsonArray.stream()
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString)
-                            .collect(Collectors.toList()))
-                    .orElse(null);
+            final String extractedOptions = jsonObject.getValue(JsonFields.OPTIONS).orElse(null);
+
 
             final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JsonFields.FIELDS)
                     .map(fields -> JsonFactory.newFieldSelector(fields, JsonFactory.newParseOptionsBuilder().build()))
@@ -170,11 +163,10 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
 
     /**
      * Get the optional options.
-     * TODO: turn this into String type; callers are joining the options before parsing them anyway
      *
      * @return the optional options.
      */
-    public Optional<List<String>> getOptions() {
+    public Optional<String> getOptions() {
         return Optional.ofNullable(options);
     }
 
@@ -224,9 +216,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         getFilter().ifPresent(presentFilter -> jsonObjectBuilder.set(JsonFields.FILTER, presentFilter, predicate));
-        getOptions().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.OPTIONS, presentOptions.stream()
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray()), predicate));
+        getOptions().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.OPTIONS, presentOptions, predicate));
         getSelectedFields().ifPresent(
                 presentFields -> jsonObjectBuilder.set(JsonFields.FIELDS, presentFields.toString(), predicate));
         getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.NAMESPACES, presentOptions.stream()
@@ -288,8 +278,8 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         /**
          * Optional JSON field for the options of this command.
          */
-        public static final JsonFieldDefinition<JsonArray> OPTIONS =
-                JsonFactory.newJsonArrayFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> OPTIONS =
+                JsonFactory.newStringFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

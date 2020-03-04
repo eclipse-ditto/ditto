@@ -185,10 +185,7 @@ public final class SubscriptionManager extends AbstractActor {
     }
 
     private Source<JsonArray, NotUsed> getPageSource(final CreateSubscription createSubscription) {
-        final String optionString = createSubscription.getOptions()
-                .map(SubscriptionManager::joinOptions)
-                .filter(string -> !string.isBlank())
-                .orElse(null);
+        final String optionString = createSubscription.getOptions().orElse(null);
         final JsonArray namespaces = createSubscription.getNamespaces()
                 .filter(ns -> !ns.isEmpty())
                 .map(SubscriptionManager::asJsonArray)

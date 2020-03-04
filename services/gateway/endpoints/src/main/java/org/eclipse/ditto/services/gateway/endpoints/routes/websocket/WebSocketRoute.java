@@ -18,12 +18,10 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_MESSAGES;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SUBSCRIPTION;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_MESSAGES;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SUBSCRIPTION;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -90,7 +88,6 @@ import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -111,7 +108,6 @@ import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
-import akka.stream.Outlet;
 import akka.stream.SinkShape;
 import akka.stream.UniformFanInShape;
 import akka.stream.javadsl.Flow;
@@ -168,7 +164,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final ActorRef subscriptionManager, final StreamingConfig streamingConfig,
+    private WebSocketRoute(final ActorRef streamingActor, final ActorRef subscriptionManager,
+            final StreamingConfig streamingConfig,
             final EventStream eventStream) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
@@ -422,7 +419,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private Sink<ThingSearchCommand, ?> getSubscriptionManagerSink() {
-        return Sink.foreach(streamControlMessage -> subscriptionManager.tell(streamControlMessage, ActorRef.noSender()));
+        return Sink.foreach(
+                streamControlMessage -> subscriptionManager.tell(streamControlMessage, ActorRef.noSender()));
     }
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
@@ -721,9 +719,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         switch (streamingType) {
             case EVENTS:
                 protocolMessage = subscribed ? START_SEND_EVENTS.toString() : STOP_SEND_EVENTS.toString();
-                break;
-            case SUBSCRIPTION_EVENTS:
-                protocolMessage = subscribed ? START_SUBSCRIPTION.toString() : STOP_SUBSCRIPTION.toString();
                 break;
             case MESSAGES:
                 protocolMessage = subscribed ? START_SEND_MESSAGES.toString() : STOP_SEND_MESSAGES.toString();

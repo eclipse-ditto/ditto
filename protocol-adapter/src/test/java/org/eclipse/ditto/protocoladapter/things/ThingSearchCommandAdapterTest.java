@@ -70,7 +70,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        String.join(",", TestConstants.OPTIONS))))
+                                        TestConstants.OPTIONS)))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
@@ -94,7 +94,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        String.join(",", TestConstants.OPTIONS))))
+                                        TestConstants.OPTIONS)))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
@@ -103,8 +103,6 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, null,
                         TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
         final Adaptable actual = underTest.toAdaptable(createSubscription, TopicPath.Channel.TWIN);
-
-        System.out.println(String.join(",", createSubscription.getNamespaces().get()));
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -128,7 +126,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        String.join(",", TestConstants.OPTIONS))))
+                                        TestConstants.OPTIONS)))
                         .withFields(TestConstants.FIELDS)
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
@@ -153,7 +151,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(
                                 String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        String.join(",", TestConstants.OPTIONS))))
+                                        TestConstants.OPTIONS)))
                         .withFields(TestConstants.FIELDS)
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)

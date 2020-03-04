@@ -88,7 +88,7 @@ public final class SubscriptionManagerTest {
     public void illegalPageSize() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createSubscriptionManager();
-            underTest.tell(CreateSubscription.of(null, List.of("size(0)"), null, null, DittoHeaders.empty()), getRef());
+            underTest.tell(CreateSubscription.of(null, "size(0)", null, null, DittoHeaders.empty()), getRef());
             expectMsgClass(SubscriptionCreated.class);
             expectMsgClass(SubscriptionFailed.class);
         }};
@@ -196,7 +196,7 @@ public final class SubscriptionManagerTest {
 
     private static CreateSubscription createSubscription(final int i) {
         return CreateSubscription.of("exists(attributes/tag" + i + ")",
-                List.of("size(1)"),
+                "size(1)",
                 JsonFieldSelector.newInstance(Thing.JsonFields.ID.getPointer()),
                 null,
                 DittoHeaders.empty()

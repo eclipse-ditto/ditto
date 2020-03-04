@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 public enum StreamingType {
 
     EVENTS(ThingEvent.TYPE_PREFIX),
-    SUBSCRIPTION_EVENTS(SubscriptionEvent.TYPE_PREFIX),
+    SUBSCRIPTION(SubscriptionEvent.TYPE_PREFIX),
     MESSAGES(MessageCommand.TYPE_PREFIX),
     LIVE_COMMANDS("things-live-commands"),
     LIVE_EVENTS("things-live-events");
@@ -92,7 +92,7 @@ public enum StreamingType {
         } else if (signal instanceof ThingEvent) {
             result = EVENTS;
         } else if (signal instanceof SubscriptionEvent){
-            result = SUBSCRIPTION_EVENTS;
+            result = SUBSCRIPTION;
         } else {
             result = null;
         }
