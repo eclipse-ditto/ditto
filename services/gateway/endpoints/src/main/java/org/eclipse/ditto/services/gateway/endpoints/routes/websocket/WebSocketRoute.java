@@ -154,7 +154,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             .tag(DIRECTION, "dropped");
 
     private final ActorRef streamingActor;
-    private final ActorRef subscriptionManager;
     private final StreamingConfig streamingConfig;
     private final EventStream eventStream;
 
@@ -164,12 +163,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final ActorRef subscriptionManager,
+    private WebSocketRoute(final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
             final EventStream eventStream) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
-        this.subscriptionManager = checkNotNull(subscriptionManager, "subscriptionManager");
         this.streamingConfig = streamingConfig;
         this.eventStream = checkNotNull(eventStream, "eventStream");
 
@@ -190,10 +188,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor, final ActorRef subscriptionManager,
+    public static WebSocketRoute getInstance(final ActorRef streamingActor,
             final StreamingConfig streamingConfig, final EventStream eventStream) {
 
-        return new WebSocketRoute(streamingActor, subscriptionManager, streamingConfig, eventStream);
+        return new WebSocketRoute(streamingActor, streamingConfig, eventStream);
     }
 
     @Override
@@ -371,7 +369,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     builder.add(Filter.multiplexByEither(java.util.function.Function.identity()));
             final SinkShape<Signal> signalSink = builder.add(getCommandSubscriberSink(config));
             final SinkShape<StreamControlMessage> streamControlSink = builder.add(getStreamingActorSink());
-            final SinkShape<ThingSearchCommand> subscriptionManagerSink = builder.add(getSubscriptionManagerSink());
 
             builder.from(multiplexer.out0()).to(signalSink);
             builder.from(multiplexer.out1()).to(streamControlSink);
@@ -418,10 +415,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return Sink.foreach(streamControlMessage -> streamingActor.tell(streamControlMessage, ActorRef.noSender()));
     }
 
-    private Sink<ThingSearchCommand, ?> getSubscriptionManagerSink() {
-        return Sink.foreach(
-                streamControlMessage -> subscriptionManager.tell(streamControlMessage, ActorRef.noSender()));
-    }
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
     selectStreamControlOrSignal(

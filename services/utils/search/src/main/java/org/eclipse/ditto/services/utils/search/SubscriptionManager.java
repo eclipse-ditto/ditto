@@ -107,10 +107,6 @@ public final class SubscriptionManager extends AbstractActor {
         return strings.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray());
     }
 
-    private static String joinOptions(final Collection<String> strings) {
-        return String.join(",", strings);
-    }
-
     private static int getPageSize(@Nullable final String optionString) {
         if (optionString == null) {
             return DEFAULT_PAGE_SIZE;
