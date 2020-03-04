@@ -130,7 +130,7 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void onlyRegardFirstReceivedAcknowledgementForSameLabel() {
-        final DittoAcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
         final EntityId thingId = DefaultEntityId.generateRandom();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         final Acknowledgement failedAcknowledgement =
@@ -213,7 +213,7 @@ public final class AcknowledgementAggregatorTest {
     @Test
     public void unknownReceivedAcknowledgementsAreIgnored() {
         final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance();
-        final DittoAcknowledgementLabel requestedAckLabel = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel requestedAckLabel = DittoAcknowledgementLabel.PERSISTED;
         underTest.addAcknowledgementRequest(AcknowledgementRequest.of(requestedAckLabel), ENTITY_ID, DITTO_HEADERS);
         final List<Acknowledgement> acknowledgementsList = createAcknowledgements(1, HttpStatusCode.NO_CONTENT);
         acknowledgementsList.addAll(createAcknowledgements(1, HttpStatusCode.BAD_REQUEST));
