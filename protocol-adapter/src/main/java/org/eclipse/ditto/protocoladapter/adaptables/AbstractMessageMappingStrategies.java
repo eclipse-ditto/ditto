@@ -102,10 +102,11 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
         return messageBuilder.build();
     }
 
-    protected static void enforceMessageSizeLimit(final MessageHeaders messageHeaders,
-            final Optional<JsonValue> value) {
-        MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
-                value.map(jsonValue -> jsonValue.toString().length()).orElse(0), () -> messageHeaders);
+    private static void enforceMessageSizeLimit(final MessageHeaders messageHeaders, final Optional<JsonValue> value) {
+        MessageCommandSizeValidator.getInstance().ensureValidSize(
+                () -> value.map(JsonValue::getUpperBoundForStringSize).orElse(Long.MAX_VALUE),
+                () -> value.map(jsonValue -> jsonValue.toString().length()).orElse(0),
+                () -> messageHeaders);
     }
 
     /**

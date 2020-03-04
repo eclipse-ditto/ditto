@@ -71,8 +71,12 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
         this.policyId = policyId;
         this.policyEntry = policyEntry;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policyEntry.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject policyEntryJsonObject = policyEntry.toJson();
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                policyEntryJsonObject::getUpperBoundForStringSize,
+                () -> policyEntryJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**

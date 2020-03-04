@@ -240,10 +240,20 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private AmqpClientActor.JmsConnected tryConnect(@Nullable final ActorRef origin) {
         final JmsConnection jmsConnection = createJmsConnection();
-        startConnection(jmsConnection);
-        final Session session = createSession(jmsConnection);
-        final List<ConsumerData> consumers = createConsumers(session);
-        return new AmqpClientActor.JmsConnected(origin, jmsConnection, session, consumers);
+        try {
+            startConnection(jmsConnection);
+            final Session session = createSession(jmsConnection);
+            final List<ConsumerData> consumers = createConsumers(session);
+            return new AmqpClientActor.JmsConnected(origin, jmsConnection, session, consumers);
+        } catch (final ConnectionFailedException e) {
+            // thrown by createConsumers
+            terminateConnection(jmsConnection);
+            throw e;
+        } catch (final RuntimeException e) {
+            log.error(e, "An unexpected exception occurred. Terminating JMS connection.");
+            terminateConnection(jmsConnection);
+            throw e;
+        }
     }
 
     private void startConnection(final JmsConnection jmsConnection) {

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -79,4 +80,13 @@ final class ImmutableJsonBoolean extends AbstractJsonValue {
         return String.valueOf(value);
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.getJacksonGenerator().writeBoolean(value);
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 5;
+    }
 }

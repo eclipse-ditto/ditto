@@ -101,8 +101,12 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = null;
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     private CreateThing(final Thing thing, final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
@@ -114,8 +118,12 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             PolicyId.of(policyIdOrPlaceholder); //validates
         }
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**
