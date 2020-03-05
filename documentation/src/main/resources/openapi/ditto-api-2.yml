@@ -3802,7 +3802,7 @@ components:
       properties:
         type:
           type: string
-          description: This is just a String that helps you to document your subject entries. It will not have any effect in the service.
+          description: The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.
     Resources:
       type: object
       description: |-
