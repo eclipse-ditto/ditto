@@ -14,8 +14,7 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.BACKGROUND_SYNC_COLLECTION_NAME;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -105,22 +104,16 @@ public final class SearchRootActor extends DittoRootActor {
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
         pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
-        final TimestampPersistence thingsSyncPersistence =
-                MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
+        final TimestampPersistence backgroundSyncPersistence =
+                MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
                         materializer);
 
-        final TimestampPersistence policiesSyncPersistence =
-                MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
-                        materializer);
-
-        final ActorRef healthCheckingActor =
-                initializeHealthCheckActor(searchConfig, thingsSyncPersistence, policiesSyncPersistence);
+        final ActorRef searchUpdaterRootActor = startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
+                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSearchPersistence,
+                        backgroundSyncPersistence));
+        final ActorRef healthCheckingActor = initializeHealthCheckActor(searchConfig, searchUpdaterRootActor);
 
         createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor, materializer);
-
-        startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
-                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSyncPersistence,
-                        policiesSyncPersistence));
     }
 
     @Nullable
@@ -175,10 +168,10 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
-            final TimestampPersistence thingsSyncPersistence, final TimestampPersistence policiesSyncPersistence) {
+            final ActorRef searchUpdaterRootActor) {
 
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
-                SearchHealthCheckingActorFactory.props(searchConfig, thingsSyncPersistence, policiesSyncPersistence));
+                SearchHealthCheckingActorFactory.props(searchConfig, searchUpdaterRootActor));
     }
 
     private void createHealthCheckingActorHttpBinding(final HttpConfig httpConfig,

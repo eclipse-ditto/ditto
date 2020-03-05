@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.gateway.starter;
 
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscri
 public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
     public GatewayServiceGlobalCommandRegistryTest() {
-        super(SudoStreamModifiedEntities.class,
+        super(SudoStreamPids.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,

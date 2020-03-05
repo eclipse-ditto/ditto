@@ -126,11 +126,15 @@ public final class ThingsRootActor extends DittoRootActor {
                 ));
 
         final TagsConfig tagsConfig = thingsConfig.getTagsConfig();
-        final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
-                ThingsPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
+        final ActorRef eventStreamingActor =
+                ThingsPersistenceStreamingActorCreator.startEventStreamingActor(tagsConfig.getStreamingCacheSize(),
+                        this::startChildActor);
+        final ActorRef snapshotStreamingActor =
+                ThingsPersistenceStreamingActorCreator.startSnapshotStreamingActor(this::startChildActor);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
-        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(eventStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(snapshotStreamingActor), getSelf());
 
         final HttpConfig httpConfig = thingsConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();

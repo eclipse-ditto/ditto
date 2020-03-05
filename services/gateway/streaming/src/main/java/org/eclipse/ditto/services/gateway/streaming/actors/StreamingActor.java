@@ -197,11 +197,18 @@ public final class StreamingActor extends AbstractActorWithTimers
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
-                final AuthorizationContext authorizationContext =
-                        jwtAuthorizationContextProvider.getAuthorizationContext(jsonWebToken);
-                forwardToSessionActor(connectionCorrelationId,
-                        new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
-                                authorizationContext));
+                try {
+                    final AuthorizationContext authorizationContext =
+                            jwtAuthorizationContextProvider.getAuthorizationContext(jsonWebToken);
+
+                    forwardToSessionActor(connectionCorrelationId,
+                            new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
+                                    authorizationContext));
+                } catch (final Exception exception) {
+                    logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
+                            connectionCorrelationId, exception.getMessage());
+                    forwardToSessionActor(connectionCorrelationId, InvalidJwt.getInstance());
+                }
             } else {
                 forwardToSessionActor(connectionCorrelationId, InvalidJwt.getInstance());
             }

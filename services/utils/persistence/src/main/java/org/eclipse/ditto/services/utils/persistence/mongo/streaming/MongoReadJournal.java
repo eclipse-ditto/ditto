@@ -13,20 +13,18 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -37,8 +35,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.QueryOperators;
+import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -73,6 +74,11 @@ import akka.stream.javadsl.Source;
 public class MongoReadJournal {
     // not a final class to test with Mockito
 
+    /**
+     * ID field of documents delivered by the read journal.
+     */
+    public static final String ID = JournallingFieldNames$.MODULE$.ID();
+
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
     private static final String AKKA_PERSISTENCE_SNAPS_AUTO_START =
@@ -81,12 +87,15 @@ public class MongoReadJournal {
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
     private static final String SNAPS_COLLECTION_NAME_KEY = "overrides.snaps-collection";
 
-    private static final String ID = JournallingFieldNames$.MODULE$.ID();
     private static final String PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String TO = JournallingFieldNames$.MODULE$.TO();
     private static final String SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
     private static final String GTE = QueryOperators.GTE;
     private static final String LT = QueryOperators.LT;
+
+    // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
+    private static final String SERIALIZED_SNAPSHOT = "s2";
+    private static final String LIFECYCLE = "__lifecycle";
 
     private static final Integer PROJECT_INCLUDE = 1;
     private static final Integer SORT_DESCENDING = -1;
@@ -98,7 +107,6 @@ public class MongoReadJournal {
 
     private static final Document ID_DESC = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
 
-    private static final String COLLECTION_NAME_FIELD = "name";
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
     private final String journalCollection;
@@ -128,6 +136,20 @@ public class MongoReadJournal {
     }
 
     /**
+     * Instantiate a read journal from collection names and database client, primarily for tests.
+     *
+     * @param journalCollection the journal collection name.
+     * @param snapsCollection the snapshot collection name.
+     * @param dittoMongoClient the client.
+     * @return a read journal for the journal and snapshot collections.
+     */
+    public static MongoReadJournal newInstance(final String journalCollection, final String snapsCollection,
+            final DittoMongoClient dittoMongoClient) {
+
+        return new MongoReadJournal(journalCollection, snapsCollection, dittoMongoClient);
+    }
+
+    /**
      * Creates a new {@code MongoReadJournal}.
      *
      * @param config The Akka system configuration.
@@ -142,24 +164,6 @@ public class MongoReadJournal {
         final String snapshotCollection =
                 getOverrideCollectionName(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
         return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient);
-    }
-
-    /**
-     * Retrieve sequence numbers for persistence IDs modified within the time interval as a source of {@code
-     * PidWithSeqNr}. A persistence ID may appear multiple times with various sequence numbers.
-     *
-     * @param start start of the time window.
-     * @param end end of the time window.
-     * @return source of persistence IDs and sequence numbers written within the given time window.
-     */
-    public Source<PidWithSeqNr, NotUsed> getPidWithSeqNrsByInterval(final Instant start, final Instant end) {
-        final MongoDatabase db = mongoClient.getDefaultDatabase();
-        final Document idFilter = createIdFilter(start, end);
-
-        log.debug("Looking for journal <{}> and snapshot store <{}>.", journalCollection, snapsCollection);
-
-        return getJournalAndSnapshotStore()
-                .flatMapConcat(journalAndSnaps -> listPidWithSeqNr(journalAndSnaps, db, idFilter));
     }
 
     /**
@@ -189,16 +193,40 @@ public class MongoReadJournal {
      *
      * @param lowerBoundPid the lower-bound PID.
      * @param batchSize how many events to read in 1 query.
-     * @param maxIdleTime max idle time of the stream.
      * @param mat the materializer.
      * @return all unique PIDs in journals above a lower bound.
      */
     public Source<String, NotUsed> getJournalPidsAbove(final String lowerBoundPid, final int batchSize,
-            final Duration maxIdleTime, final ActorMaterializer mat) {
+            final ActorMaterializer mat) {
 
-        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+        return getJournal()
+                .withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, lowerBoundPid, batchSize, mat, Duration.ZERO, 0)
+                        listPidsInJournal(journal, lowerBoundPid, batchSize, mat, MAX_BACK_OFF_DURATION, 0)
+                )
+                .mapConcat(pids -> pids);
+    }
+
+    /**
+     * Retrieve all latest snapshots with unique PIDs in snapshot store above a lower bound.
+     * Does not limit database access in any way.
+     *
+     * @param lowerBoundPid the lower-bound PID.
+     * @param batchSize how many snapshots to read in 1 query.
+     * @param mat the materializer.
+     * @param snapshotFields snapshot fields to project out.
+     * @return source of newest snapshots with unique PIDs.
+     */
+    public Source<Document, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
+            final int batchSize,
+            final ActorMaterializer mat,
+            final String... snapshotFields) {
+
+        return getSnapshotStore()
+                .withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(snapshotStore ->
+                        listNewestSnapshots(snapshotStore, lowerBoundPid, batchSize, mat,
+                                snapshotFields)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -207,16 +235,38 @@ public class MongoReadJournal {
             final String lowerBound, final int batchSize, final ActorMaterializer mat, final Duration maxBackOff,
             final int maxRestarts) {
 
+        return unfoldBatchedSource(lowerBound, mat, Function.identity(), actualStart ->
+                listJournalPidsAbove(journal, actualStart, batchSize, maxBackOff, maxRestarts)
+        );
+    }
+
+    private Source<List<Document>, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
+            final String lowerBound,
+            final int batchSize,
+            final ActorMaterializer mat,
+            final String... snapshotFields) {
+
+        return unfoldBatchedSource(lowerBound, mat, document -> document.getString(ID), actualStart ->
+                listNewestSnapshots(snapshotStore, actualStart, batchSize, snapshotFields)
+        );
+    }
+
+    private <T> Source<List<T>, NotUsed> unfoldBatchedSource(
+            final String lowerBound,
+            final ActorMaterializer mat,
+            final Function<T, String> seedCreator,
+            final Function<String, Source<T, ?>> sourceCreator) {
+
         return Source.unfoldAsync("",
                 start -> {
                     final String actualStart = lowerBound.compareTo(start) >= 0 ? lowerBound : start;
-                    return listJournalPidsAbove(journal, actualStart, batchSize, maxBackOff, maxRestarts)
+                    return sourceCreator.apply(actualStart)
                             .runWith(Sink.seq(), mat)
                             .thenApply(list -> {
                                 if (list.isEmpty()) {
                                     return Optional.empty();
                                 } else {
-                                    return Optional.of(Pair.create(list.get(list.size() - 1), list));
+                                    return Optional.of(Pair.create(seedCreator.apply(list.get(list.size() - 1)), list));
                                 }
                             });
                 })
@@ -248,8 +298,9 @@ public class MongoReadJournal {
         final double randomFactor = 0.1;
 
         return RestartSource.onFailuresWithBackoff(minBackOff, maxBackOff, randomFactor, maxRestarts,
-                () -> Source.fromPublisher(journal.aggregate(pipeline)).map(document ->
-                        document.getString(ID)));
+                () -> Source.fromPublisher(journal.aggregate(pipeline))
+                        .filter(document -> document.containsKey(ID))
+                        .map(document -> document.getString(ID)));
     }
 
     private int computeMaxRestarts(final Duration maxDuration) {
@@ -263,19 +314,51 @@ public class MongoReadJournal {
         }
     }
 
-    private Source<PidWithSeqNr, NotUsed> listPidWithSeqNr(final JournalAndSnaps journalAndSnaps,
-            final MongoDatabase database, final Document idFilter) {
+    private Source<Document, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
+            final String start,
+            final int batchSize,
+            final String... snapshotFields) {
 
-        final Source<PidWithSeqNr, NotUsed> journalPids =
-                find(database, journalAndSnaps.journal, idFilter, JOURNAL_PROJECT_DOCUMENT)
-                        .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(TO)));
+        final List<Bson> pipeline = new ArrayList<>(5);
+        // optional match stage
+        if (!start.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.gt(PROCESSOR_ID, start)));
+        }
 
-        final Source<PidWithSeqNr, ?> snapsPids =
-                Source.lazily(() -> find(database, journalAndSnaps.snaps, idFilter, SNAPS_PROJECT_DOCUMENT)
-                        .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(SN)))
-                );
+        // sort stage
+        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(PROCESSOR_ID), Sorts.descending(SN))));
 
-        return journalPids.concat(snapsPids);
+        // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
+        pipeline.add(Aggregates.limit(batchSize));
+
+        // group stage
+        pipeline.add(Aggregates.group("$" + PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
+
+        // filter out entities whose latest snapshots are deleted snapshots.
+        // all Ditto entities store their lifecycle in the field "__lifecycle".
+        pipeline.add(Aggregates.match(Filters.ne(LIFECYCLE, "DELETED")));
+        pipeline.add(Aggregates.project(Projections.exclude(LIFECYCLE)));
+
+        // sort stage 2 -- order after group stage is not defined
+        pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
+
+        return Source.fromPublisher(snapshotStore.aggregate(pipeline));
+    }
+
+    /**
+     * For $group stage of an aggregation pipeline over a snapshot collection: take the newest values of fields
+     * of serialized snapshots. Always include the first snapshot lifecycle.
+     *
+     * @param snapshotFields fields of a serialized snapshot to project.
+     * @return list of group stage field accumulators.
+     */
+    private List<BsonField> asFirstSnapshotBsonFields(final String... snapshotFields) {
+        return Stream.concat(Stream.of(LIFECYCLE), Arrays.stream(snapshotFields))
+                .map(fieldName -> {
+                    final String serializedFieldName = String.format("$%s.%s", SERIALIZED_SNAPSHOT, fieldName);
+                    return Accumulators.first(fieldName, serializedFieldName);
+                })
+                .collect(Collectors.toList());
     }
 
     private Source<Document, NotUsed> find(final MongoDatabase db, final String collection, final Document filter,
@@ -286,40 +369,12 @@ public class MongoReadJournal {
         );
     }
 
-    private Source<JournalAndSnaps, NotUsed> getJournalAndSnapshotStore() {
-        return Source.single(new JournalAndSnaps(journalCollection, snapsCollection));
-    }
-
     private Source<MongoCollection<Document>, NotUsed> getJournal() {
         return Source.single(mongoClient.getDefaultDatabase().getCollection(journalCollection));
     }
 
-    private Document createIdFilter(final Instant start, final Instant end) {
-        final ObjectId startObjectId = instantToObjectIdBoundary(start);
-        final ObjectId endObjectId = instantToObjectIdBoundary(end.plus(1L, ChronoUnit.SECONDS));
-        log.debug("Limiting query to ObjectIds $gte {} and $lt {}", startObjectId, endObjectId);
-        return toDocument(new Object[][]{
-                {ID, toDocument(new Object[][]{
-                        {GTE, startObjectId},
-                        {LT, endObjectId}
-                })}
-        });
-    }
-
-    /* Create a ObjectID boundary from a timestamp to be used for comparison in MongoDB queries. */
-    private static ObjectId instantToObjectIdBoundary(final Instant instant) {
-        // MongoDBObject IDs only contain dates with precision of seconds, thus adjust the range of the query
-        // appropriately to make sure a client does not miss data when providing Instants with higher precision.
-        //
-        // Do not use
-        //
-        //   new ObjectId(Date.from(startTruncatedToSecs))
-        //
-        // to compute object ID boundaries. The 1-argument constructor above appends incidental non-zero bits after
-        // the timestamp and may filter out events persisted after 'instant' if they happen to have
-        // a lower machine ID, process ID or counter value. (A MongoDB ObjectID is a byte array with fields for
-        // timestamp, machine ID, process ID and counter such that timestamp occupies the most significant bits.)
-        return new ObjectId(Date.from(instant.truncatedTo(ChronoUnit.SECONDS)), 0, (short) 0, 0);
+    private Source<MongoCollection<Document>, NotUsed> getSnapshotStore() {
+        return Source.single(mongoClient.getDefaultDatabase().getCollection(snapsCollection));
     }
 
     private static Document toDocument(final Object[][] keyValuePairs) {
@@ -370,24 +425,6 @@ public class MongoReadJournal {
      */
     private static String getOverrideCollectionName(final Config journalOrSnapsConfig, final String key) {
         return journalOrSnapsConfig.getString(key);
-    }
-
-    private static final class JournalAndSnaps {
-
-        private final String journal;
-
-        private final String snaps;
-
-        private JournalAndSnaps(final String journal, final String snaps) {
-            this.journal = journal;
-            this.snaps = snaps;
-        }
-
-        @Override
-        public String toString() {
-            return "JournalAndSnapshot[journal=" + journal + ",snaps=" + snaps + "]";
-        }
-
     }
 
 }

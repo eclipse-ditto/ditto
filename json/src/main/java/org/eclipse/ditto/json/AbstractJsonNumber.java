@@ -88,5 +88,4 @@ abstract class AbstractJsonNumber<T extends Number> extends AbstractJsonValue im
     public String toString() {
         return value.toString();
     }
-
 }

@@ -82,7 +82,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
                 .match(QueryThings.class, qt -> {
                     final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender()));
+                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender(),
+                                    pubSubMediator));
                     conciergeForwarder.tell(qt, responseActor);
                 })
 

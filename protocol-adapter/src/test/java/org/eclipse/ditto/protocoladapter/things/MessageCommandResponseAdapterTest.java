@@ -42,7 +42,6 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,8 +63,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
 
     @Parameterized.Parameters(name = "type={0}")
     public static Collection<Object[]> data() {
-        return Stream.of(SendThingMessageResponse.TYPE, SendFeatureMessageResponse.TYPE, SendClaimMessageResponse.TYPE,
-                SendMessageAcceptedResponse.TYPE)
+        return Stream.of(SendThingMessageResponse.TYPE, SendFeatureMessageResponse.TYPE, SendClaimMessageResponse.TYPE)
                 .map(type -> new Object[]{type})
                 .collect(Collectors.toList());
     }
@@ -112,10 +110,6 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
         final DittoHeadersBuilder expectedHeadersBuilder = TestConstants.DITTO_HEADERS_V_2.toBuilder()
                 .contentType(contentType)
                 .channel(TopicPath.Channel.LIVE.getName());
-        if (isAcceptedResponse()) {
-            messageHeadersBuilder.responseRequired(false);
-            expectedHeadersBuilder.responseRequired(false);
-        }
         final Message<Object> expectedMessage = Message.newBuilder(messageHeadersBuilder.build())
                 .payload(javaPayload)
                 .build();
@@ -173,7 +167,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(statusCode)
-                        .withValue(isAcceptedResponse() ? null : payload)
+                        .withValue(payload)
                         .build())
                 .withHeaders(expectedHeaders)
                 .build();
@@ -202,9 +196,6 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                         HttpStatusCode.OK, headers);
             case SendClaimMessageResponse.TYPE:
                 return SendClaimMessageResponse.of(TestConstants.THING_ID, message, HttpStatusCode.OK, headers);
-            case SendMessageAcceptedResponse.TYPE:
-                return SendMessageAcceptedResponse.newInstance(TestConstants.THING_ID, message.getHeaders(),
-                        HttpStatusCode.OK, headers);
             default:
                 throw new IllegalArgumentException(type + " not supported.");
         }
@@ -222,18 +213,11 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
         if (isFeatureResponse()) {
             headersBuilder.putHeader(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
         }
-        if (isAcceptedResponse()) {
-            headersBuilder.putHeader(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), "false");
-        }
         return headersBuilder.build();
     }
 
     private boolean isFeatureResponse() {
         return SendFeatureMessageResponse.TYPE.equals(type);
-    }
-
-    private boolean isAcceptedResponse() {
-        return SendMessageAcceptedResponse.TYPE.equals(type);
     }
 
 }
