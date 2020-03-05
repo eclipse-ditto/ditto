@@ -3802,14 +3802,7 @@ components:
       properties:
         type:
           type: string
-          description: the type of the (Authorization) Subject
-          enum:
-            - iot-permissions-sid
-            - iot-permissions-userid
-            - iot-permissions-groupid
-            - iot-permissions-roleid
-            - iot-things-clientid
-            - jwt
+          description: The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.
     Resources:
       type: object
       description: |-
