@@ -320,6 +320,11 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
         }
 
         @Override
+        public String getSubscriptionId() {
+            return "dummy-subscription-id";
+        }
+
+        @Override
         public UnknownSubscriptionEvent setDittoHeaders(final DittoHeaders dittoHeaders) {
             return this;
         }

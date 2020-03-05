@@ -62,11 +62,7 @@ abstract class AbstractSubscriptionEvent<T extends AbstractSubscriptionEvent<T>>
         this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
     }
 
-    /**
-     * Retrieve the subscription ID.
-     *
-     * @return the subscription ID.
-     */
+    @Override
     public String getSubscriptionId() {
         return subscriptionId;
     }

@@ -36,6 +36,13 @@ public interface SubscriptionEvent<T extends SubscriptionEvent<T>> extends Event
      */
     String TYPE_PREFIX = RESOURCE_TYPE + "." + TYPE_QUALIFIER + ":";
 
+    /**
+     * Retrieve the subscription ID.
+     *
+     * @return the subscription ID.
+     */
+    String getSubscriptionId();
+
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
