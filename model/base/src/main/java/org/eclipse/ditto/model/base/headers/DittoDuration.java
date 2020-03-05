@@ -88,8 +88,8 @@ final class DittoDuration implements CharSequence {
         }
         if (null == durationValue) {
 
-            // interpret duration as seconds if unit was omitted
-            timeUnit = DittoTimeUnit.SECONDS;
+            // interpret duration as seconds implicit (without suffix) if unit was omitted
+            timeUnit = DittoTimeUnit.SECONDS_IMPLICIT;
             durationValue = parseDurationPlain(duration, "");
         }
         return new DittoDuration(durationValue, timeUnit);
@@ -174,6 +174,7 @@ final class DittoDuration implements CharSequence {
         // The order matters as we expect seconds to be the main unit.
         // By making it the first constant, parsing a duration from string will be accelerated.
         SECONDS("s", Duration::ofSeconds),
+        SECONDS_IMPLICIT("", Duration::ofSeconds),
         MILLISECONDS("ms", Duration::ofMillis),
         MINUTES("m", Duration::ofMinutes);
 

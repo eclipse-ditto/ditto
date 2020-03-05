@@ -131,8 +131,10 @@ public final class DittoDurationTest {
     public void toStringReturnsExpected() {
         final String durationMillisecondsString = 5500 + "ms";
         final String durationSecondsString = 60 + "s";
+        final String durationSecondsImplicitString = 23 + "";
         final String durationMinutesString = 2 + "m";
         final DittoDuration durationFromSeconds = DittoDuration.parseDuration(durationSecondsString);
+        final DittoDuration durationFromSecondsImplicit = DittoDuration.parseDuration(durationSecondsImplicitString);
         final DittoDuration durationFromMilliseconds = DittoDuration.parseDuration(durationMillisecondsString);
         final DittoDuration durationFromMinutes = DittoDuration.parseDuration(durationMinutesString);
 
@@ -140,6 +142,9 @@ public final class DittoDurationTest {
             softly.assertThat(durationFromSeconds.toString())
                     .as("seconds string")
                     .isEqualTo(durationSecondsString);
+            softly.assertThat(durationFromSecondsImplicit.toString())
+                    .as("seconds implicit string")
+                    .isEqualTo(durationSecondsImplicitString);
             softly.assertThat(durationFromMilliseconds.toString())
                     .as("milliseconds string")
                     .isEqualTo(durationMillisecondsString);
