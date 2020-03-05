@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -41,7 +42,6 @@ interface ThingMessageAdapter<T extends Signal<?>> extends Adapter<T> {
 
     @Override
     default Set<TopicPath.Action> getActions() {
-        return EnumSet.of(TopicPath.Action.CREATE, TopicPath.Action.RETRIEVE, TopicPath.Action.MODIFY,
-                TopicPath.Action.DELETE);
+        return Collections.emptySet();
     }
 }

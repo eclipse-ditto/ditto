@@ -79,8 +79,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
         final List<Adapter<?>> responseAdapters = filter(adapters, Adapter::isForResponses);
         final List<Adapter<?>> nonResponseAdapters = filterNot(adapters, Adapter::isForResponses);
         if (responseAdapters.size() > 1 || nonResponseAdapters.size() > 1) {
-            // ambiguous choice - some of the previously selected enums are invalid
-            return DefaultAdapterResolver::throwUnknownTopicPathException;
+            // Ambiguity detected: Adapters have overlapping topic paths.
+            throw new IllegalStateException("Ambiguity detected: responseAdapters=" + responseAdapters +
+                    ", nonResponseAdapters=" + nonResponseAdapters);
         }
         final Function<Adaptable, Adapter<?>> getResponseAdapter = responseAdapters.isEmpty()
                 ? DefaultAdapterResolver::throwUnknownTopicPathException
@@ -179,7 +180,11 @@ final class DefaultAdapterResolver implements AdapterResolver {
         final EnumMap<TopicPath.Action, Function<Adaptable, Adapter<?>>> dispatchByAction =
                 dispatchByEnum(adapters, TopicPath.Action.class, TopicPath.Action.values(),
                         Adapter::getActions, DefaultAdapterResolver::isResponseStep);
-        return evalEnumMapByOptional(dispatchByAction, isResponseStep(adapters), forTopicPath(TopicPath::getAction));
+        // consider adapters that support no action to be those that support adaptables without action,
+        // e. g., message commands and responses
+        final List<Adapter<?>> noActionAdapters = filter(adapters, adapter -> adapter.getActions().isEmpty());
+        return evalEnumMapByOptional(dispatchByAction, isResponseStep(noActionAdapters),
+                forTopicPath(TopicPath::getAction));
     }
 
     /**
