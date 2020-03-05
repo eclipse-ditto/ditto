@@ -53,10 +53,10 @@ import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Unit test for {@link AcknowledgementForwarderActor.ActorStarter}.
+ * Unit test for {@link AcknowledgementForwarderActorStarter}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class ActorStarterTest {
+public final class AcknowledgementForwarderActorStarterTest {
 
     private static final EntityId KNOWN_ENTITY_ID = DefaultEntityId.of("foo:bar");
 
@@ -99,7 +99,7 @@ public final class ActorStarterTest {
     public void getEmptyOptionalIfNoAcknowledgementsRequested() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
 
-        final AcknowledgementForwarderActor.ActorStarter underTest = getActorStarter(dittoHeaders);
+        final AcknowledgementForwarderActorStarter underTest = getActorStarter(dittoHeaders);
 
         softly.assertThat(underTest.get()).isNotPresent();
         Mockito.verifyNoInteractions(actorContext);
@@ -113,7 +113,7 @@ public final class ActorStarterTest {
                         AcknowledgementRequest.of(AcknowledgementLabel.of("my-ack")))
                 .build();
 
-        final AcknowledgementForwarderActor.ActorStarter underTest = getActorStarter(dittoHeaders);
+        final AcknowledgementForwarderActorStarter underTest = getActorStarter(dittoHeaders);
 
         softly.assertThat(underTest.get()).isPresent();
     }
@@ -134,7 +134,7 @@ public final class ActorStarterTest {
         final Acknowledgement expectedNack = Acknowledgement.of(customAckLabel, KNOWN_ENTITY_ID,
                 HttpStatusCode.CONFLICT, dittoHeaders, expectedException.toJson());
 
-        final AcknowledgementForwarderActor.ActorStarter underTest = getActorStarter(dittoHeaders);
+        final AcknowledgementForwarderActorStarter underTest = getActorStarter(dittoHeaders);
 
         new TestKit(actorSystem) {{
             softly.assertThat(underTest.get()).as("first start").isPresent();
@@ -153,8 +153,8 @@ public final class ActorStarterTest {
         }};
     }
 
-    private AcknowledgementForwarderActor.ActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
-        return AcknowledgementForwarderActor.ActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID, dittoHeaders,
+    private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
+        return AcknowledgementForwarderActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID, dittoHeaders,
                 acknowledgementConfig);
     }
 

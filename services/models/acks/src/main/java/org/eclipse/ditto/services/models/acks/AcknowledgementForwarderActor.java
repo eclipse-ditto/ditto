@@ -16,29 +16,17 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
-import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 
@@ -50,15 +38,66 @@ import akka.actor.ReceiveTimeout;
  *
  * @since 1.1.0
  */
-public final class AcknowledgementForwarderActor {
+public final class AcknowledgementForwarderActor extends AbstractActor {
 
     /**
      * Prefix of the acknowledgement forwarder actor's name.
      */
     static final String ACTOR_NAME_PREFIX = "ackForwarder-";
 
-    private AcknowledgementForwarderActor() {
-        throw new AssertionError();
+    private final ActorRef acknowledgementRequester;
+    private final String correlationId;
+    private final DittoDiagnosticLoggingAdapter log;
+
+    @SuppressWarnings("unused")
+    private AcknowledgementForwarderActor(final ActorRef acknowledgementRequester, final DittoHeaders dittoHeaders,
+            final Duration defaultTimeout) {
+
+        this.acknowledgementRequester = acknowledgementRequester;
+        correlationId = dittoHeaders.getCorrelationId()
+                .orElseGet(() ->
+                        // fall back using the actor name which also contains the correlation-id
+                        getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
+                );
+        log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
+        getContext().setReceiveTimeout(dittoHeaders.getTimeout().orElse(defaultTimeout));
+    }
+
+    /**
+     * Creates Akka configuration object Props for this AcknowledgementForwarderActor.
+     *
+     * @param acknowledgementRequester the ActorRef of the original sender who requested the Acknowledgements.
+     * @param dittoHeaders the DittoHeaders of the Signal which contained the request for Acknowledgements.
+     * @param defaultTimeout the default timeout to apply when {@code dittoHeaders} did not contain a specific timeout.
+     * @return the Akka configuration Props object.
+     */
+    static Props props(final ActorRef acknowledgementRequester, final DittoHeaders dittoHeaders,
+            final Duration defaultTimeout) {
+
+        return Props.create(AcknowledgementForwarderActor.class, acknowledgementRequester, dittoHeaders,
+                defaultTimeout);
+    }
+
+    @Override
+    public Receive createReceive() {
+        return receiveBuilder()
+                .match(Acknowledgement.class, this::handleAcknowledgement)
+                .match(ReceiveTimeout.class, this::handleReceiveTimeout)
+                .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
+                .build();
+    }
+
+    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+        log.withCorrelationId(acknowledgement)
+                .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
+        acknowledgementRequester.tell(acknowledgement, getSender());
+    }
+
+    private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
+        log.withCorrelationId(correlationId)
+                .debug("Timed out waiting for requested acknowledgements, stopping myself ...");
+        getContext().stop(getSelf());
     }
 
     /**
@@ -95,172 +134,15 @@ public final class AcknowledgementForwarderActor {
      * {@code dittoHeaders} or when a conflict caused by a re-used {@code correlation-id} was detected.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Optional<ActorRef> startAcknowledgementForwarder(final ActorContext context,
+    public static Optional<ActorRef> startAcknowledgementForwarder(final akka.actor.ActorContext context,
             final EntityId entityId,
             final DittoHeaders dittoHeaders,
             final AcknowledgementConfig acknowledgementConfig) {
 
-        final ActorStarter starter = ActorStarter.getInstance(context, entityId, dittoHeaders, acknowledgementConfig);
+        final AcknowledgementForwarderActorStarter starter =
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, dittoHeaders,
+                        acknowledgementConfig);
         return starter.get();
-    }
-
-    /**
-     * Starting an acknowledgement forwarder actor is more complex than simply call {@code actorOf}.
-     * Thus starting logic is worth to be handled within its own class.
-     *
-     * @since 1.1.0
-     */
-    static final class ActorStarter implements Supplier<Optional<ActorRef>> {
-
-        private final ActorContext actorContext;
-        private final EntityId entityId;
-        private final DittoHeaders dittoHeaders;
-        private final Set<AcknowledgementRequest> acknowledgementRequests;
-        private final AcknowledgementConfig acknowledgementConfig;
-
-        private ActorStarter(final ActorContext context,
-                final EntityId entityId,
-                final DittoHeaders dittoHeaders,
-                final AcknowledgementConfig acknowledgementConfig) {
-
-            actorContext = checkNotNull(context, "context");
-            this.entityId = checkNotNull(entityId, "entityId");
-            this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
-            acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
-            this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
-        }
-
-        /**
-         * Returns an instance of {@code ActorStarter}.
-         *
-         * @param context the context to start the forwarder actor in. Furthermore provides the sender and self
-         * reference for forwarding.
-         * @param entityId is used for the NACKs if the forwarder actor cannot be started.
-         * @param dittoHeaders the headers which contain the acknowledgement requests.
-         * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
-         * @return a means to start an acknowledgement forwarder actor.
-         * @throws NullPointerException if any argument is {@code null}.
-         */
-        static ActorStarter getInstance(final ActorContext context,
-                final EntityId entityId,
-                final DittoHeaders dittoHeaders,
-                final AcknowledgementConfig acknowledgementConfig) {
-
-            return new ActorStarter(context, entityId, dittoHeaders, acknowledgementConfig);
-        }
-
-        @Override
-        public Optional<ActorRef> get() {
-            ActorRef actorRef = null;
-            if (!acknowledgementRequests.isEmpty()) {
-                actorRef = tryToStartAckForwarderActor();
-            }
-            return Optional.ofNullable(actorRef);
-        }
-
-        @Nullable
-        private ActorRef tryToStartAckForwarderActor() {
-            try {
-                return startAckForwarderActor();
-            } catch (final InvalidActorNameException e) {
-
-                // In case that the actor with that name already existed, the correlation-id was already used recently:
-                declineAllNonDittoAckRequests(getDuplicateCorrelationIdException(e));
-                return null;
-            }
-        }
-
-        private ActorRef startAckForwarderActor() {
-            final Props props = ActorImplementation.props(actorContext.sender(), dittoHeaders,
-                    acknowledgementConfig.getForwarderFallbackTimeout());
-            return actorContext.actorOf(props, determineActorName(dittoHeaders));
-        }
-
-        private DittoRuntimeException getDuplicateCorrelationIdException(final Throwable cause) {
-            return AcknowledgementRequestDuplicateCorrelationIdException
-                    .newBuilder(dittoHeaders.getCorrelationId().orElse("?"))
-                    .dittoHeaders(dittoHeaders)
-                    .cause(cause)
-                    .build();
-        }
-
-        private void declineAllNonDittoAckRequests(final DittoRuntimeException dittoRuntimeException) {
-            final ActorRef sender = actorContext.sender();
-            final ActorRef self = actorContext.self();
-
-            // answer NACKs for all AcknowledgementRequests with labels which were not Ditto-defined
-            acknowledgementRequests.stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .filter(Predicate.not(DittoAcknowledgementLabel::contains))
-                    .map(label -> getNack(label, dittoRuntimeException))
-                    .forEach(nack -> sender.tell(nack, self));
-        }
-
-        private Acknowledgement getNack(final AcknowledgementLabel label,
-                final DittoRuntimeException dittoRuntimeException) {
-
-            return Acknowledgement.of(label, entityId, dittoRuntimeException.getStatusCode(), dittoHeaders,
-                    dittoRuntimeException.toJson());
-        }
-
-    }
-
-    private static final class ActorImplementation extends AbstractActor {
-
-        private final ActorRef acknowledgementRequester;
-        private final String correlationId;
-        private final DittoDiagnosticLoggingAdapter log;
-
-        @SuppressWarnings("unused")
-        private ActorImplementation(final ActorRef acknowledgementRequester, final DittoHeaders dittoHeaders,
-                final Duration defaultTimeout) {
-
-            this.acknowledgementRequester = acknowledgementRequester;
-            correlationId = dittoHeaders.getCorrelationId()
-                    .orElseGet(() ->
-                            // fall back using the actor name which also contains the correlation-id
-                            getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
-                    );
-            log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-
-            getContext().setReceiveTimeout(dittoHeaders.getTimeout().orElse(defaultTimeout));
-        }
-
-        /**
-         * Creates Akka configuration object Props for this AcknowledgementForwarderActor.
-         *
-         * @param acknowledgementRequester the ActorRef of the original sender who requested the Acknowledgements.
-         * @param dittoHeaders the DittoHeaders of the Signal which contained the request for Acknowledgements.
-         * @param defaultTimeout the default timeout to apply when {@code dittoHeaders} did not contain a specific timeout.
-         * @return the Akka configuration Props object.
-         */
-        static Props props(final ActorRef acknowledgementRequester, final DittoHeaders dittoHeaders,
-                final Duration defaultTimeout) {
-
-            return Props.create(ActorImplementation.class, acknowledgementRequester, dittoHeaders, defaultTimeout);
-        }
-
-        @Override
-        public Receive createReceive() {
-            return receiveBuilder()
-                    .match(Acknowledgement.class, this::handleAcknowledgement)
-                    .match(ReceiveTimeout.class, this::handleReceiveTimeout)
-                    .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
-                    .build();
-        }
-
-        private void handleAcknowledgement(final Acknowledgement acknowledgement) {
-            log.withCorrelationId(acknowledgement)
-                    .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
-            acknowledgementRequester.tell(acknowledgement, getSender());
-        }
-
-        private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
-            log.withCorrelationId(correlationId)
-                    .debug("Timed out waiting for requested acknowledgements, stopping myself ...");
-            getContext().stop(getSelf());
-        }
-
     }
 
 }
