@@ -30,7 +30,10 @@ public enum JsonSchemaVersion implements JsonFieldMarker, Predicate<JsonField> {
 
     /**
      * Version 1 of JSON schema.
+     *
+     * @deprecated deprecated API version 1. Use API version 2 instead.
      */
+    @Deprecated
     V_1(1),
 
     /**
@@ -48,7 +51,7 @@ public enum JsonSchemaVersion implements JsonFieldMarker, Predicate<JsonField> {
     private final int schemaVersionNumber;
     private final Predicate<JsonField> predicate;
 
-    private JsonSchemaVersion(final int theSchemaVersionNumber) {
+    JsonSchemaVersion(final int theSchemaVersionNumber) {
         schemaVersionNumber = theSchemaVersionNumber;
         predicate = jsonField -> jsonField.isMarkedAs(this);
     }

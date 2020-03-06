@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -55,7 +55,6 @@ public final class DefaultPersistenceStreamingActorTest {
     private static ActorSystem actorSystem;
 
     private static final EntityId ID = DefaultEntityId.of("ns:knownId");
-    private static final long REVISION = 32L;
 
     @BeforeClass
     public static void initActorSystem() {
@@ -71,7 +70,7 @@ public final class DefaultPersistenceStreamingActorTest {
     @Test
     public void retrieveEmptyStream() {
         new TestKit(actorSystem) {{
-            final Source<PidWithSeqNr, NotUsed> mockedSource = Source.empty();
+            final Source<String, NotUsed> mockedSource = Source.empty();
             final ActorRef underTest = createPersistenceQueriesActor(mockedSource);
             final Command<?> command = createStreamingRequest();
 
@@ -90,7 +89,7 @@ public final class DefaultPersistenceStreamingActorTest {
     @SuppressWarnings("unchecked")
     public void retrieveNonEmptyStream() {
         new TestKit(actorSystem) {{
-            final Source<PidWithSeqNr, NotUsed> mockedSource = Source.single(new PidWithSeqNr(ID.toString(), REVISION));
+            final Source<String, NotUsed> mockedSource = Source.single(ID.toString());
             final ActorRef underTest = createPersistenceQueriesActor(mockedSource);
             final Command<?> command = createStreamingRequest();
 
@@ -100,7 +99,7 @@ public final class DefaultPersistenceStreamingActorTest {
 
             final Object expectedMessage =
                     BatchedEntityIdWithRevisions.of(SimpleEntityIdWithRevision.class,
-                            Collections.singletonList(new SimpleEntityIdWithRevision(ID, REVISION)));
+                            Collections.singletonList(new SimpleEntityIdWithRevision(ID, 0L)));
 
             sourceRef.getSource()
                     .runWith(TestSink.probe(actorSystem), materializer())
@@ -115,18 +114,13 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static Command<?> createStreamingRequest() {
-        final Instant endTs = Instant.now().minusSeconds(5);
-        final Instant startTs = endTs.minusSeconds(10);
-
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        return SudoStreamModifiedEntities.of(startTs, endTs, 1, 10_000L, dittoHeaders);
+        return SudoStreamPids.of(1, 10_000L, DittoHeaders.empty());
     }
 
-    private static ActorRef createPersistenceQueriesActor(final Source<PidWithSeqNr, NotUsed> mockedSource) {
+    private static ActorRef createPersistenceQueriesActor(final Source<String, NotUsed> mockedSource) {
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
-        when(mockJournal.getPidWithSeqNrsByInterval(any(), any())).thenReturn(mockedSource);
+        when(mockJournal.getJournalPids(anyInt(), any(), any())).thenReturn(mockedSource);
         final Props props = DefaultPersistenceStreamingActor.propsForTests(SimpleEntityIdWithRevision.class,
-                100,
                 DefaultPersistenceStreamingActorTest::mapEntity,
                 DefaultPersistenceStreamingActorTest::unmapEntity,
                 mockJournal);

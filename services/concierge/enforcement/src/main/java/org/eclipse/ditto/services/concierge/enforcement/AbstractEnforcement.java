@@ -107,7 +107,10 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * Reports an error differently based on type of the error. If the error is of type
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is send to the {@code sender}
      * without modification, otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
-     * @return
+     *
+     * @param hint hint about the nature of the error.
+     * @param error the error.
+     * @return DittoRuntimerException suitable for transmission of the error.
      */
     protected DittoRuntimeException reportError(final String hint, final Throwable error) {
         if (error instanceof DittoRuntimeException) {
@@ -310,9 +313,14 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
         final DittoRuntimeException dittoRuntimeException =
                 DittoRuntimeException.asDittoRuntimeException(throwable,
-                        cause -> GatewayInternalErrorException.newBuilder()
-                                .cause(cause)
-                                .build());
+                        cause -> {
+                            LogUtil.enhanceLogWithCorrelationId(log(), context.getDittoHeaders());
+                            log().error(cause, "Unexpected non-DittoRuntimeException");
+                            return GatewayInternalErrorException.newBuilder()
+                                    .cause(cause)
+                                    .dittoHeaders(context.getDittoHeaders())
+                                    .build();
+                        });
 
         return newContext.withMessage(dittoRuntimeException);
     }

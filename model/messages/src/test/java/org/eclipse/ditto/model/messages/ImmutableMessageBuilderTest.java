@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.messages;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
-import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -50,7 +49,7 @@ public final class ImmutableMessageBuilderTest {
     }
 
     @Test
-    public void buildFromFeatureMessageWithStringPayload() throws UnsupportedEncodingException {
+    public void buildFromFeatureMessageWithStringPayload() {
         final MessageHeaders messageHeaders =
                 MessageHeaders.newBuilder(MessageDirection.FROM, KNOWN_THING_ID, KNOWN_SUBJECT)
                         .featureId(KNOWN_FEATURE_ID)

@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,11 +65,13 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final int successCapacity;
     private final int failureCapacity;
     private final TemporalAmount loggingDuration;
+    private final long maximumLogSizeInByte;
 
     private ConnectionLoggerRegistry(final int successCapacity, final int failureCapacity,
-            final Duration loggingDuration) {
+            final long maximumLogSizeInByte, final Duration loggingDuration) {
         this.successCapacity = successCapacity;
         this.failureCapacity = failureCapacity;
+        this.maximumLogSizeInByte = maximumLogSizeInByte;
         this.loggingDuration = checkNotNull(loggingDuration);
     }
 
@@ -78,10 +81,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param config the configuration to use.
      * @return a new instance of {@code ConnectionLoggerRegistry}.
      */
-    public static ConnectionLoggerRegistry fromConfig(
-            final MonitoringLoggerConfig config) {
+    public static ConnectionLoggerRegistry fromConfig(final MonitoringLoggerConfig config) {
         checkNotNull(config);
-        return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(), config.logDuration());
+        return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(),
+                config.maxLogSizeInBytes(), config.logDuration());
     }
 
     /**
@@ -96,17 +99,18 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
 
         final LogMetadata timing;
-        final Collection<LogEntry> logs;
+        final List<LogEntry> logs;
 
         if (isActiveForConnection(connectionId)) {
             LOGGER.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
-
             timing = refreshMetadata(connectionId);
-            logs = streamLoggers(connectionId)
+            final List<LogEntry> allLogs = streamLoggers(connectionId)
                     .map(ConnectionLogger::getLogs)
                     .flatMap(Collection::stream)
-                    .sorted(Comparator.comparing(LogEntry::getTimestamp))
+                    .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
                     .collect(Collectors.toList());
+
+            logs = restrictMaxLogEntriesLength(allLogs, connectionId);
         } else {
             LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
 
@@ -116,6 +120,25 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         LOGGER.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
         return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+    }
+
+    // needed so that the logs fit into the max cluster message size
+    private List<LogEntry> restrictMaxLogEntriesLength(final List<LogEntry> originalLogEntries, final ConnectionId connectionId) {
+        final List<LogEntry> restrictedLogs = new ArrayList<>();
+        long currentSize = 0;
+        for (final LogEntry logEntry : originalLogEntries) {
+            final long sizeOfLogEntry = logEntry.toJsonString().length();
+            final long sizeWithNextEntry = currentSize + sizeOfLogEntry;
+            if (sizeWithNextEntry > maximumLogSizeInByte) {
+                LOGGER.info("Dropping <{}> of <{}> log entries for connection with ID <{}>, because of size limit.",
+                        originalLogEntries.size() - restrictedLogs.size(), originalLogEntries.size(), connectionId);
+                break;
+            }
+            restrictedLogs.add(logEntry);
+            currentSize = sizeWithNextEntry;
+        }
+        Collections.reverse(restrictedLogs);
+        return restrictedLogs;
     }
 
     /**
@@ -360,20 +383,22 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final ConnectionLoggerRegistry that = (ConnectionLoggerRegistry) o;
         return successCapacity == that.successCapacity &&
                 failureCapacity == that.failureCapacity &&
+                maximumLogSizeInByte == that.maximumLogSizeInByte &&
                 Objects.equals(loggingDuration, that.loggingDuration);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(successCapacity, failureCapacity, loggingDuration);
+        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", successCapacity=" + successCapacity +
+                "successCapacity=" + successCapacity +
                 ", failureCapacity=" + failureCapacity +
                 ", loggingDuration=" + loggingDuration +
+                ", maximumLogSizeInByte=" + maximumLogSizeInByte +
                 "]";
     }
 

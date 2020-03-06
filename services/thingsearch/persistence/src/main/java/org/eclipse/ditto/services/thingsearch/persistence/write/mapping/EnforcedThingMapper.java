@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -97,7 +98,7 @@ public final class EnforcedThingMapper {
         final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);
         final ThingId thingId = ThingId.of(extractedThing);
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
-        final String nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).orElse(null);
+        final PolicyId nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
         final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision);
 
         // hierarchical values for sorting

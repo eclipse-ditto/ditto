@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity;
 
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
@@ -37,7 +37,7 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
 
     public ConnectivityServiceGlobalCommandRegistryTest() {
         super(
-                SudoStreamModifiedEntities.class,
+                SudoStreamPids.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,

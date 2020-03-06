@@ -10,8 +10,11 @@
 # SPDX-License-Identifier: EPL-2.0
 openapi: 3.0.0
 info:
-  title: Eclipse Ditto HTTP API
+  title: Eclipse Ditto HTTP API - Deprecated
   description: JSON-based, REST-like API for Eclipse Ditto
+
+  Find a guide to migrate things from API 1 to API 2 [here](https://www.eclipse.org/ditto/httpapi-concepts.html/#migration-from-api-1-to-api-2)
+
   version: "1"
 servers:
   - url: https://ditto.eclipse.org/api/1
@@ -42,6 +45,7 @@ paths:
         Optionally you can use field selectors (see parameter `fields`) to only get the specified fields.
 
         To retrieve all Things the logged in user is allowed to read, please use the `GET /search/things` operation.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -86,6 +90,7 @@ paths:
         entry with `READ`, `WRITE` and `ADMINISTRATE` permissions set to `true`.
         If no ACL is provided, a default ACL with an entry for the authorized subject with all permissions set to
         `true` will be created.
+      deprecated: true
       tags:
         - Things
       responses:
@@ -142,6 +147,7 @@ paths:
         Returns the Thing identified by the `thingId` path parameter.
         The response includes all details about the Thing.
         Optionally you can use field selectors (see parameter `fields`) to only get the specified fields.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -272,6 +278,7 @@ paths:
         }
 
         ```
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -350,6 +357,7 @@ paths:
       summary: Delete a specific Thing
       description: |-
         Deletes the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -393,6 +401,7 @@ paths:
       description: |-
         Returns the Access Control List (ACL) of the Thing identified by the `thingId` path parameter.
         The response contains the ACL as JSON object containing a key for each subject having ACL permissions.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -457,6 +466,7 @@ paths:
         Modify the complete Access Control List (ACL) of the Thing identified by the `thingId` path parameter.
 
         The ACL must include at least one entry with `READ`, `WRITE` and `ADMINISTRATE` permissions set to `true`.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -531,6 +541,7 @@ paths:
       description: |-
         Returns one Access Control List (ACL) entry of the Thing identified by the `thingId` path parameter and for the subject
         identified by the `authorizationSubject` path parameter.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -584,6 +595,7 @@ paths:
 
         An ACL entry must contain values for `READ`, `WRITE` and `ADMINISTRATE` permissions, all other permissions will be ignored.
         The ACL must contain at least one entry with all permissions set to `true`.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -660,6 +672,7 @@ paths:
         identified by the `authorizationSubject` path parameter.
 
         The ACL must contain at least one entry with all permissions set to `true`.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -705,6 +718,7 @@ paths:
       summary: List all Attributes of a specific Thing
       description: |-
         Returns all Attributes of the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -755,6 +769,7 @@ paths:
       description: |-
         Create or update the Attributes of a Thing identified by the `thingId` path parameter at once.
         The Attributes will be replaced by the request body's JSON.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -827,6 +842,7 @@ paths:
       summary: Delete all Attributes of a specific Thing at once
       description: |-
         Deletes all Attributes of the Thing identified by the `thingId` path parameter at once.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -872,6 +888,7 @@ paths:
       description: |-
         Returns a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/attributes/address/city` in order to retrieve the `city` field of an `address` object.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -919,6 +936,7 @@ paths:
         Create or update a specific Attribute of the Thing identified by the `thingId` path parameter.
         The Attribute will be created if it doesn't exist or else updated. The Attribute (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/attributes/address/city` in order to create/update the `city` field of an `address` object.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -987,6 +1005,7 @@ paths:
       description: |-
         Deletes a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/attributes/address/city` in order to delete the `city` field of an `address` object.
+      deprecated: true
       tags:
         - Things
       parameters:
@@ -1031,6 +1050,7 @@ paths:
       summary: List all Features of a specific Thing
       description: |-
         Returns all Features of the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1092,6 +1112,7 @@ paths:
       summary: Create or modify all Features of a specific Thing at once
       description: |-
         Create or modify the Features of a Thing identified by the `thingId` path parameter at once. The list of Features will be replaced by the request body's JSON.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1173,6 +1194,7 @@ paths:
       summary: Delete all Features of a specific Thing
       description: |-
         Deletes all features of the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1216,6 +1238,7 @@ paths:
       summary: Retrieve a specific Feature of a specific Thing
       description: |-
         Returns a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1267,6 +1290,7 @@ paths:
       summary: Create or modify a specific Feature of a specific Thing
       description: |-
         Create or modify a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1347,6 +1371,7 @@ paths:
       summary: Delete a specific Feature of a specific Thing
       description: |-
         Deletes a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1393,6 +1418,7 @@ paths:
       description: |-
         Returns the complete Definition of the Feature identified by the `thingId` and
         `featureId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1448,6 +1474,7 @@ paths:
         Create or update the complete Definition of a Feature identified by the `thingId`
         and `featureId` path parameter at once. The Definition will be replaced
         by the request body's JSON array.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1533,6 +1560,7 @@ paths:
       description: |-
         Deletes the complete Definition of the Feature identified by the `thingId` and
         `featureId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1581,6 +1609,7 @@ paths:
       summary: List all Properties of a Feature.
       description: |-
         Returns all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1633,6 +1662,7 @@ paths:
       description: |-
         Create or update the Properties of a Feature identified by the `thingId` and `featureId` path parameter at once.
         The Properties will be replaced by the request body's JSON.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1709,6 +1739,7 @@ paths:
       summary: Delete all Properties of a Feature.
       description: |-
         Deletes all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1755,6 +1786,7 @@ paths:
       description: |-
         Returns the Property of the Feature identified by the `thingId` and `featureId` path parameter. The Property (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/features/{featureId}/properties/location/latitude` in order to retrieve the `latitude` field of an `location` Property.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1803,6 +1835,7 @@ paths:
         Create or update a specific Property of a Feature identified by the `thingId` and `featureId` path parameter.
         The Property will be created if it doesn't exist or else updated. The Property (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/features/{featureId}/properties/location/latitude` in order to create/update the `latitude` field of an `location` object.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1870,6 +1903,7 @@ paths:
       description: |-
         Deletes a specific Property of the Feature identified by the `thingId` and `featureId` path parameter.  The Property (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
         `/things/{thingId}/features/{featureId}/properties/location/latitude` in order to delete the `latitude` field of an `location` Property.
+      deprecated: true
       tags:
         - Features
       parameters:
@@ -1921,6 +1955,7 @@ paths:
         available or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
         No special permissions are required to issue a Claim message.
+      deprecated: true
       tags:
         - Messages
       parameters:
@@ -1973,6 +2008,7 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+      deprecated: true
       tags:
         - Messages
       parameters:
@@ -2024,6 +2060,7 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+      deprecated: true
       tags:
         - Messages
       parameters:
@@ -2075,6 +2112,7 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+      deprecated: true
       tags:
         - Messages
       parameters:
@@ -2127,6 +2165,7 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+      deprecated: true
       tags:
         - Messages
       parameters:
@@ -2179,6 +2218,7 @@ paths:
         of the parent property `attributes` with a forward slash as separator:
 
         ```eq(attributes/location,"kitchen")```
+      deprecated: true
       parameters:
         - $ref: '#/components/parameters/searchFilter'
         - $ref: '#/components/parameters/namespacesFilter'
@@ -2222,9 +2262,7 @@ paths:
             The deprecated paging option `limit` may not combine with the other paging options `size` and `cursor`.
           required: false
           schema:
-            type: array
-            items:
-              type: string
+            type: string
 
       tags:
         - Things-Search
@@ -2274,6 +2312,7 @@ paths:
         of the parent property `attributes` with a forward slash as separator:
 
         ```eq(attributes/location,"kitchen")```
+      deprecated: true
       parameters:
         - $ref: '#/components/parameters/searchFilter'
         - $ref: '#/components/parameters/namespacesFilter'

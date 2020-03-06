@@ -31,7 +31,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 /**
  * This exception indicates that the ACL of a Thing is invalid for some reason. The cause of this exception is
  * documented in the message.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableException(errorCode = AclInvalidException.ERROR_CODE)
 public final class AclInvalidException extends DittoRuntimeException implements ThingException {

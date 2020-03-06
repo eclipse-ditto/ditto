@@ -143,7 +143,6 @@ public final class ConnectionPersistenceActor
 
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
-
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final ClientActorPropsFactory propsFactory;
@@ -162,6 +161,7 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant loggingEnabledUntil;
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
+    private final MonitoringConfig monitoringConfig;
 
     @SuppressWarnings("unused")
     private ConnectionPersistenceActor(final ConnectionId connectionId,
@@ -204,7 +204,7 @@ public final class ConnectionPersistenceActor
 
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionMonitorRegistry =
                 DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         final ConnectionLoggerRegistry loggerRegistry =
@@ -600,7 +600,8 @@ public final class ConnectionPersistenceActor
         this.updateLoggingIfEnabled();
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, sender, command.getDittoHeaders(), timeout),
+                        existingConnection, sender, command.getDittoHeaders(), timeout,
+                        monitoringConfig.logger().maxLogSizeInBytes()),
                 () -> respondWithEmptyLogs(command, sender));
     }
 

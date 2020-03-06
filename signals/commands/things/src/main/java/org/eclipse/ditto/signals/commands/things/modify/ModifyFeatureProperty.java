@@ -82,8 +82,10 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         this.propertyPointer = checkNotNull(propertyPointer, "Property JsonPointer");
         this.propertyValue = checkNotNull(propertyValue, "Property Value");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> propertyValue.toString().length(), () ->
-                dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                propertyValue::getUpperBoundForStringSize,
+                () -> propertyValue.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**

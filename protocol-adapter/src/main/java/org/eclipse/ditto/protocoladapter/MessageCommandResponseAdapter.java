@@ -17,7 +17,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
@@ -78,8 +77,6 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessageResponse.TYPE;
-        } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
-            return SendMessageAcceptedResponse.TYPE;
         } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {

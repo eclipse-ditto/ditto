@@ -20,12 +20,8 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.models.streaming.StartStreamRequest;
-import org.eclipse.ditto.services.models.streaming.StartStreamRequestVisitor;
-import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
-import org.eclipse.ditto.services.utils.cache.ComparableCache;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
@@ -46,10 +42,8 @@ import akka.stream.javadsl.Source;
  */
 @AllValuesAreNonnullByDefault
 public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRevision>
-        extends AbstractStreamingActor<StartStreamRequest, T>
-        implements StartStreamRequestVisitor<Source<T, NotUsed>> {
+        extends AbstractStreamingActor<SudoStreamPids, T> {
 
-    private final int streamingCacheSize;
     private final Function<PidWithSeqNr, T> entityMapper;
     private final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper;
 
@@ -59,15 +53,12 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     /**
      * Constructor.
      *
-     * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
      * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      */
-    protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper,
+    protected AbstractPersistenceStreamingActor(final Function<PidWithSeqNr, T> entityMapper,
             final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
-        this.streamingCacheSize = streamingCacheSize;
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;
 
@@ -81,17 +72,14 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     /**
      * Constructor for tests.
      *
-     * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
      * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      * @param readJournal the ReadJournal to use instead of creating one in the non-test constructor.
      */
-    protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper,
+    protected AbstractPersistenceStreamingActor(final Function<PidWithSeqNr, T> entityMapper,
             final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
             final MongoReadJournal readJournal) {
-        this.streamingCacheSize = streamingCacheSize;
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;
 
@@ -116,22 +104,22 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     protected abstract Class<T> getElementClass();
 
     @Override
-    protected final Class<StartStreamRequest> getCommandClass() {
-        return StartStreamRequest.class;
+    protected final Class<SudoStreamPids> getCommandClass() {
+        return SudoStreamPids.class;
     }
 
     @Override
-    protected int getBurst(final StartStreamRequest command) {
+    protected int getBurst(final SudoStreamPids command) {
         return command.getBurst();
     }
 
     @Override
-    protected Duration getInitialTimeout(final StartStreamRequest command) {
+    protected Duration getInitialTimeout(final SudoStreamPids command) {
         return Duration.ofMillis(command.getTimeoutMillis());
     }
 
     @Override
-    protected Duration getIdleTimeout(final StartStreamRequest command) {
+    protected Duration getIdleTimeout(final SudoStreamPids command) {
         return Duration.ofMillis(command.getTimeoutMillis());
     }
 
@@ -141,30 +129,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     }
 
     @Override
-    protected final Source<T, NotUsed> createSource(final StartStreamRequest command) {
-        return command.accept(this);
-    }
-
-    @Override
-    public Source<T, NotUsed> visit(final SudoStreamModifiedEntities command) {
-        log.info("Starting stream for <{}>", command);
-        final String actorName = getSelf().path().name();
-        final String unfilteredStreamingLogName = actorName + "unfiltered-streaming";
-        final String filteredStreamingLogName = actorName + "filtered-streaming";
-
-        // create a separate cache per stream (don't use member variable!)
-        final ComparableCache<String, Long> cache = new ComparableCache<>(streamingCacheSize);
-        return readJournal.getPidWithSeqNrsByInterval(command.getStart(), command.getEnd())
-                .log(unfilteredStreamingLogName, log)
-                // avoid unnecessary streaming of old sequence numbers
-                .filter(pidWithSeqNr ->
-                        cache.updateIfNewOrGreater(pidWithSeqNr.getPersistenceId(), pidWithSeqNr.getSequenceNr()))
-                .map(this::mapEntity)
-                .log(filteredStreamingLogName, log);
-    }
-
-    @Override
-    public Source<T, NotUsed> visit(final SudoStreamPids command) {
+    protected final Source<T, NotUsed> createSource(final SudoStreamPids command) {
         log.info("Starting stream for <{}>", command);
         final Duration maxIdleTime = Duration.ofMillis(command.getTimeoutMillis());
         final int batchSize = command.getBurst() * 5;
@@ -173,7 +138,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
             // resume from lower bound
             final PidWithSeqNr pidWithSeqNr = entityUnmapper.apply(command.getLowerBound());
             pidSource =
-                    readJournal.getJournalPidsAbove(pidWithSeqNr.getPersistenceId(), batchSize, maxIdleTime,
+                    readJournal.getJournalPidsAbove(pidWithSeqNr.getPersistenceId(), batchSize,
                             materializer);
         } else {
             // no lower bound; read from event journals with restart-source

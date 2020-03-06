@@ -146,7 +146,8 @@ final class EnforcementFlow {
             final int iteration) {
 
         if (iteration <= 0) {
-            return entry == null || !entry.exists() || entry.getRevision() < metadata.getPolicyRevision();
+            return entry == null || !entry.exists() ||
+                    entry.getRevision() < metadata.getPolicyRevision().orElse(Long.MAX_VALUE);
         } else {
             // never attempt to reload cache more than once
             return false;

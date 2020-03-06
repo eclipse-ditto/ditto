@@ -19,11 +19,14 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
@@ -319,11 +322,25 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         return withMessageToReceiver(signal, pub.getPublisher(), obj -> pub.wrapForPublication((T) obj));
     }
 
-    private static boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {
+    private boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {
         return enforcer.hasUnrestrictedPermissions(
-                PoliciesResourceType.messageResource(command.getResourcePath()),
+                extractMessageResourceKey(command),
                 command.getDittoHeaders().getAuthorizationContext(),
                 WRITE);
     }
+
+    private ResourceKey extractMessageResourceKey(final MessageCommand command) {
+        try {
+            final JsonPointer resourcePath = command.getResourcePath();
+            return PoliciesResourceType.messageResource(resourcePath);
+        } catch (final IllegalArgumentException e) {
+            throw MessageFormatInvalidException.newBuilder(JsonFactory.nullArray())
+                    .message("Unable to determine message resource path.")
+                    .description("Please verify that the thing ID, message subject and direction are set correctly.")
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        }
+    }
+
 
 }

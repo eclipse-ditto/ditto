@@ -20,8 +20,8 @@ import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
@@ -112,7 +112,7 @@ public final class ThingUpdaterTest {
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
                 underTest.tell(thingCreated, getRef());
 
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, 1L, "", -1L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, 1L, null, -1L));
             }
         };
     }
@@ -133,10 +133,10 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = createThingUpdaterActor();
 
                 underTest.tell(ThingModified.of(currentThing, revision, DittoHeaders.empty()), ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, revision, "", -1L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, revision, null, -1L));
 
                 underTest.tell(thingTag, ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, thingTagRevision, "", -1L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, thingTagRevision, null, -1L));
             }
         };
     }
@@ -157,7 +157,7 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = createThingUpdaterActor();
 
                 underTest.tell(ThingModified.of(currentThing, revision, DittoHeaders.empty()), ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, revision, "", -1L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, revision, null, -1L));
 
                 underTest.tell(thingTag, ActorRef.noSender());
                 changeQueueTestProbe.expectNoMessage();
@@ -175,7 +175,7 @@ public final class ThingUpdaterTest {
                 final PolicyId policyId = PolicyId.of(THING_ID);
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, newPolicyRevision)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId.toString(), newPolicyRevision));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId, newPolicyRevision));
 
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, REVISION)),
                         ActorRef.noSender());
@@ -196,11 +196,11 @@ public final class ThingUpdaterTest {
                 // establish policy ID
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId1, 99L)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId1.toString(), 99L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId1, 99L));
 
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId2, 9L)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2.toString(), 9L));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2, 9L));
             }
         };
     }

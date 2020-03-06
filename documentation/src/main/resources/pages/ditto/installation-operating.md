@@ -432,7 +432,8 @@ Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "status.commands:retrieveHealth"
@@ -486,7 +487,8 @@ The response has the following details:
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:retrieveConfig"
@@ -540,7 +542,8 @@ Configurations absent in the payload of the piggyback command remain unchanged.
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:modifyConfig",
@@ -598,7 +601,8 @@ The next process is scheduled after the `quiet-period` duration in the coordinat
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:shutdown"
@@ -655,6 +659,60 @@ Response example:
   }
 }
 ```
+
+#### Managing background synchronization
+
+A background sync actor goes over thing snapshots and search index entries slowly to ensure eventual consistency
+of the search index. The actor operates in the same manner as the background cleanup coordinator and responds to
+the same commands.
+
+`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/user/thingsSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": true
+  },
+  "piggybackCommand": {
+    "type": "<COMMAND-TYPE>"
+  }
+}
+```
+
+`COMMAND-TYPE` can be:
+- `common.commands:shutdown` to shutdown or restart a background sync stream,
+- `common.commands:retrieveConfig` to retrieve the current configuration,
+- `common.commands:modifyConfig` to modify the current configuration, or
+- `status.commands:retrieveHealth` to query the current progress and event log.
+
+For each command type, please refer to the corresponding segment of "Managing background cleanup" for the exact format.
+
+#### Force search index update for one thing
+
+The search index should rarely become out-of-sync for a long time, and it can repair itself
+of any inconsistencies detected at query time. Nevertheless, you can trigger search index update
+for a particular thing by a DevOp-command and bring the entry up-to-date immediately.
+
+`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=0`
+
+```json
+{
+  "targetActorSelection": "/user/thingsSearchRoot/searchUpdaterRoot/thingsUpdater",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": true
+  },
+  "piggybackCommand": {
+    "type": "thing-search.commands:updateThing",
+    "thingId": "<THING-ID>"
+  }
+}
+```
+
+There is no response. Things-search service will log a warning upon receiving this message
+and continue to log warnings should the search index update fail on the persistence.
 
 #### Erasing data within a namespace
 
