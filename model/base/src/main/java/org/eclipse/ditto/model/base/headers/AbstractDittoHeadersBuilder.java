@@ -21,8 +21,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -171,8 +173,15 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S authorizationSubjects(final Collection<String> authorizationSubjectIds) {
-        putStringCollection(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS, authorizationSubjectIds);
+        final List<String> onlyWithIssuerPrefix = keepSubjectsWithIssuerPrefix(authorizationSubjectIds);
+        putStringCollection(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS, onlyWithIssuerPrefix);
         return myself;
+    }
+
+    private static List<String> keepSubjectsWithIssuerPrefix(
+            final Collection<String> subjectsWithAndWithoutPrefix) {
+        return AbstractDittoHeaders.keepSubjectsWithIssuer(subjectsWithAndWithoutPrefix.stream())
+                .collect(Collectors.toList());
     }
 
     @Override
