@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Thing;
 
 /**
@@ -53,7 +54,7 @@ public final class PoliciesAclMigrations {
             final PolicyId policyId, final List<SubjectIssuer> subjectIssuers) {
         final PolicyBuilder policyBuilder = PoliciesModelFactory.newPolicyBuilder(policyId);
         accessControlList.getEntriesSet().forEach(aclEntry -> {
-            final String sid = aclEntry.getAuthorizationSubject().getId();
+            final String sid = getSubjectWithoutIssuer(aclEntry);
             final PolicyBuilder.LabelScoped labelScoped = policyBuilder.forLabel(ACL_LABEL_PREFIX + sid);
 
             subjectIssuers.forEach(
@@ -92,4 +93,11 @@ public final class PoliciesAclMigrations {
         return policyBuilder.build();
     }
 
+    private static String getSubjectWithoutIssuer(final AclEntry aclEntry) {
+        final String sid = aclEntry.getAuthorizationSubject().getId();
+        if (sid.contains(":")) {
+            return sid.split(":", 2)[1];
+        }
+        return sid;
+    }
 }
