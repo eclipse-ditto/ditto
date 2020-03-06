@@ -54,16 +54,37 @@ final class ImmutableAcknowledgementLabel implements AcknowledgementLabel {
         return label.substring(start, end);
     }
 
+    @SuppressWarnings("squid:S2097")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (null == o) {
             return false;
         }
-        final ImmutableAcknowledgementLabel that = (ImmutableAcknowledgementLabel) o;
-        return Objects.equals(label, that.label);
+        final Class<? extends ImmutableAcknowledgementLabel> thisClass = getClass();
+        final Class<?> otherClass = o.getClass();
+        if (thisClass == otherClass) {
+            final ImmutableAcknowledgementLabel that = (ImmutableAcknowledgementLabel) o;
+            return Objects.equals(label, that.label);
+        }
+        final Class<?>[] otherInterfaces = otherClass.getInterfaces();
+        for (final Class<?> thisInterface : thisClass.getInterfaces()) {
+            if (!contains(otherInterfaces, thisInterface)) {
+                return false;
+            }
+        }
+        return Objects.equals(toString(), o.toString());
+    }
+
+    private static boolean contains(final Class<?>[] interfaceClasses, final Class<?> searchedInterfaceClass) {
+        for (final Class<?> interfaceClass : interfaceClasses) {
+            if (interfaceClass == searchedInterfaceClass) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -18,21 +18,34 @@ import javax.annotation.Nullable;
 
 /**
  * Defines built-in {@link AcknowledgementLabel}s which are emitted by Ditto itself.
- * This is intentionally <em>not</em> an {@code enum} as the enum values would have difficulties to comply to the
- * {@code hashCode/equals} contract when comparing with an {@code ImmutableAcknowledgementLabel} of the same value.
  *
  * @since 1.1.0
  */
-public final class DittoAcknowledgementLabel {
+/*
+ * This is intentionally not an enum as the enum constants would have difficulties to comply to the
+ * hashCode/equals contract when comparing with an ImmutableAcknowledgementLabel of the same value.
+ */
+public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
 
     /**
      * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been persisted
      * to the twin.
      */
-    public static final AcknowledgementLabel PERSISTED = AcknowledgementLabel.of("twin-persisted");
+    public static final DittoAcknowledgementLabel PERSISTED = new DittoAcknowledgementLabel("twin-persisted");
 
-    private DittoAcknowledgementLabel() {
-        throw new AssertionError();
+    private final AcknowledgementLabel delegate;
+
+    private DittoAcknowledgementLabel(final CharSequence labelValue) {
+        delegate = AcknowledgementLabel.of(labelValue);
+    }
+
+    /**
+     * Returns an array containing the Ditto acknowledgement labels, in the order they're declared.
+     *
+     * @return an array containing the Ditto acknowledgement labels, in the order they're declared.
+     */
+    public static AcknowledgementLabel[] values() {
+        return new AcknowledgementLabel[]{PERSISTED};
     }
 
     /**
@@ -42,24 +55,72 @@ public final class DittoAcknowledgementLabel {
      * @return {@code true} if the given acknowledgement label is a constant of DittoAcknowledgementLabel.
      */
     public static boolean contains(@Nullable final AcknowledgementLabel acknowledgementLabel) {
-        for (final AcknowledgementLabel dittoAcknowledgementLabel : values()) {
-            if (areEqual(dittoAcknowledgementLabel, acknowledgementLabel)) {
+        if (null != acknowledgementLabel) {
+            for (final AcknowledgementLabel dittoAcknowledgementLabel : values()) {
+                if (dittoAcknowledgementLabel.equals(acknowledgementLabel)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("squid:S2097")
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (null == o) {
+            return false;
+        }
+        final Class<? extends DittoAcknowledgementLabel> thisClass = getClass();
+        final Class<?> otherClass = o.getClass();
+        if (thisClass == otherClass) {
+            final DittoAcknowledgementLabel that = (DittoAcknowledgementLabel) o;
+            return Objects.equals(delegate, that.delegate);
+        }
+        final Class<?>[] otherInterfaces = otherClass.getInterfaces();
+        for (final Class<?> thisInterface : thisClass.getInterfaces()) {
+            if (!contains(otherInterfaces, thisInterface)) {
+                return false;
+            }
+        }
+        return Objects.equals(toString(), o.toString());
+    }
+
+    private static boolean contains(final Class<?>[] interfaceClasses, final Class<?> searchedInterfaceClass) {
+        for (final Class<?> interfaceClass : interfaceClasses) {
+            if (interfaceClass == searchedInterfaceClass) {
                 return true;
             }
         }
         return false;
     }
 
-    private static AcknowledgementLabel[] values() {
-        return new AcknowledgementLabel[] {
-                PERSISTED
-        };
+    @Override
+    public int hashCode() {
+        return delegate.hashCode();
     }
 
-    private static boolean areEqual(final AcknowledgementLabel dittoAcknowledgementLabel,
-            @Nullable final AcknowledgementLabel other) {
+    @Override
+    public int length() {
+        return delegate.length();
+    }
 
-        return Objects.equals(dittoAcknowledgementLabel, other);
+    @Override
+    public char charAt(final int index) {
+        return delegate.charAt(index);
+    }
+
+    @Override
+    public CharSequence subSequence(final int start, final int end) {
+        return delegate.subSequence(start, end);
+    }
+
+    @Override
+    public String toString() {
+        return delegate.toString();
     }
 
 }

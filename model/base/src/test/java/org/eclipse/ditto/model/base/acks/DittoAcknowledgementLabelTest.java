@@ -13,13 +13,42 @@
 package org.eclipse.ditto.model.base.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import org.junit.Test;
+
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link DittoAcknowledgementLabel}.
  */
 public final class DittoAcknowledgementLabelTest {
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(DittoAcknowledgementLabel.class,
+                areImmutable(),
+                provided(AcknowledgementLabel.class).isAlsoImmutable());
+    }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(DittoAcknowledgementLabel.class)
+                .usingGetClass()
+                .verify();
+
+        final DittoAcknowledgementLabel underTest = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel other = AcknowledgementLabel.of(underTest.toString());
+
+        assertThat(other).isEqualTo(underTest);
+    }
 
     @Test
     public void containsNullIsFalse() {
@@ -44,6 +73,32 @@ public final class DittoAcknowledgementLabelTest {
                 AcknowledgementLabel.of(DittoAcknowledgementLabel.PERSISTED.toString());
 
         assertThat(DittoAcknowledgementLabel.contains(acknowledgementLabel)).isTrue();
+    }
+
+    @Test
+    public void valuesReturnsAllConstantsInCorrectOrder() throws IllegalAccessException {
+        final Collection<DittoAcknowledgementLabel> expectedConstants = new ArrayList<>();
+        final Class<DittoAcknowledgementLabel> underTestType = DittoAcknowledgementLabel.class;
+        final Field[] declaredFields = underTestType.getDeclaredFields();
+        for (final Field declaredField : declaredFields) {
+            if (isDittoAckLabelConstant(underTestType, declaredField)) {
+                final Object constantValue = declaredField.get(null);
+                expectedConstants.add((DittoAcknowledgementLabel) constantValue);
+            }
+        }
+
+        final AcknowledgementLabel[] actual = DittoAcknowledgementLabel.values();
+
+        assertThat(actual).containsExactlyElementsOf(expectedConstants);
+    }
+
+    private static boolean isDittoAckLabelConstant(final Class<?> underTestType, final Field declaredField) {
+        boolean result = false;
+        if (underTestType.equals(declaredField.getType())) {
+            final int modifiers = declaredField.getModifiers();
+            result = Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers) && Modifier.isFinal(modifiers);
+        }
+        return result;
     }
 
 }
