@@ -505,7 +505,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        Authorization.SOURCE_SPECIFIC_CONTEXT));
+                        TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT)));
     }
 
     @Test
@@ -521,12 +521,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 c -> {
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
+                            .equals(TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT))) {
                         messageReceivedForSourceContext.set(true);
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
+                            .equals(TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT))) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -541,7 +541,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
+                        .isEqualTo(TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT)));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,

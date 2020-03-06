@@ -107,7 +107,8 @@ public final class MessageMappingProcessorActorTest {
     private static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
     private static final String ADD_HEADER_MAPPER = AddHeaderMessageMapper.ALIAS;
     private static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES = withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES =
+            TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -499,7 +500,7 @@ public final class MessageMappingProcessorActorTest {
                 AuthorizationModelFactory.newAuthSubject(
                         "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
 
-        final AuthorizationContext expectedAuthContext = withUnprefixedSubjects(AuthorizationModelFactory.newAuthContext(
+        final AuthorizationContext expectedAuthContext = TestConstants.Authorization.withUnprefixedSubjects(AuthorizationModelFactory.newAuthContext(
                 AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"),
                 AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId)));
 
@@ -559,7 +560,7 @@ public final class MessageMappingProcessorActorTest {
                 AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"),
                 AuthorizationModelFactory.newAuthSubject("integration:hub-application/json"));
 
-        final AuthorizationContext expectedMessageAuthContext = withUnprefixedSubjects(connectionAuthContext);
+        final AuthorizationContext expectedMessageAuthContext = TestConstants.Authorization.withUnprefixedSubjects(connectionAuthContext);
 
         testMessageMappingWithoutCorrelationId(connectionAuthContext, ModifyAttribute.class, modifyAttribute -> {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
@@ -815,16 +816,5 @@ public final class MessageMappingProcessorActorTest {
         }
 
     }
-
-    private static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
-        final List<AuthorizationSubject> mergedSubjects = new ArrayList<>(authorizationContext.getAuthorizationSubjects());
-        authorizationContext.getAuthorizationSubjectIds().stream()
-                .map(subject -> subject.split(":", 2)[1])
-                .map(AuthorizationSubject::newInstance)
-                .forEach(mergedSubjects::add);
-
-        return AuthorizationModelFactory.newAuthContext(mergedSubjects);
-    }
-
 
 }
