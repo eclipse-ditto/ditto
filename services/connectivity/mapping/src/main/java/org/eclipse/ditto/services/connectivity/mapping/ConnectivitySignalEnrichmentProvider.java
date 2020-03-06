@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.Arrays;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 

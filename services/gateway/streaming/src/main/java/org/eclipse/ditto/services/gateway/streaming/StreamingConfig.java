@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
@@ -51,7 +50,7 @@ public interface StreamingConfig {
      *
      * @return the signal-enrichment config.
      */
-    SignalEnrichmentConfig getSignalEnrichmentConfig();
+    GatewaySignalEnrichmentConfig getSignalEnrichmentConfig();
 
     /**
      * Returns maximum number of stream elements to process in parallel.

@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import com.typesafe.config.Config;
+
 /**
  * Provides configuration settings of a particular cache of Concierge.
  */
@@ -52,6 +54,13 @@ public interface CacheConfig {
      * @return the duration between creation and expiration.
      */
     Duration getExpireAfterCreate();
+
+    /**
+     * Render this object into a Config object from which a copy of this object can be constructed.
+     *
+     * @return the config representation.
+     */
+    Config render();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for {@code CacheConfig}.
