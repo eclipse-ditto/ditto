@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.config;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +29,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
@@ -44,7 +45,7 @@ public final class GatewayHttpConfig implements HttpConfig {
 
     private final String hostname;
     private final int port;
-    private final Set<Integer> schemaVersions;
+    private final Set<JsonSchemaVersion> schemaVersions;
     private final boolean forceHttps;
     private final boolean redirectToHttps;
     private final Pattern redirectToHttpsBlacklistPattern;
@@ -56,8 +57,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig) {
         hostname = basicHttpConfig.getHostname();
         port = basicHttpConfig.getPort();
-        schemaVersions = Collections.unmodifiableSet(
-                new HashSet<>(scopedConfig.getIntList(GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath())));
+        schemaVersions = Collections.unmodifiableSet(getJsonSchemaVersions(scopedConfig));
         forceHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.FORCE_HTTPS.getConfigPath());
         redirectToHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.REDIRECT_TO_HTTPS.getConfigPath());
         redirectToHttpsBlacklistPattern = tryToCreateBlacklistPattern(scopedConfig);
@@ -66,6 +66,22 @@ public final class GatewayHttpConfig implements HttpConfig {
         actorPropsFactoryFullQualifiedClassname = scopedConfig.getString(
                 GatewayHttpConfigValue.ACTOR_PROPS_FACTORY.getConfigPath());
         queryParamsAsHeaders = Collections.unmodifiableSet(getQueryParameterNamesAsHeaderDefinitions(scopedConfig));
+    }
+
+    private static Set<JsonSchemaVersion> getJsonSchemaVersions(final Config httpScopedConfig) {
+        final List<Integer> schemaVersionNumbers =
+                httpScopedConfig.getIntList(GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath());
+
+        final Set<JsonSchemaVersion> result = EnumSet.noneOf(JsonSchemaVersion.class);
+        schemaVersionNumbers.forEach(schemaVersionNumber -> {
+            final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(schemaVersionNumber)
+                    .orElseThrow(() -> {
+                        final String msgPattern = "Schema version <{0}> is not supported!";
+                        return new DittoConfigError(MessageFormat.format(msgPattern, schemaVersionNumber));
+                    });
+            result.add(jsonSchemaVersion);
+        });
+        return result;
     }
 
     private static Pattern tryToCreateBlacklistPattern(final Config httpScopedConfig) {
@@ -139,7 +155,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
-    public Set<Integer> getSupportedSchemaVersions() {
+    public Set<JsonSchemaVersion> getSupportedSchemaVersions() {
         return schemaVersions;
     }
 

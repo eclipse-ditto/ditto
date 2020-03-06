@@ -17,34 +17,23 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.Correlatio
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
-import java.util.function.IntFunction;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
@@ -63,18 +52,13 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
 
-import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpMessage;
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.PathMatchers;
@@ -84,7 +68,6 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteAdapter;
 import akka.http.scaladsl.server.RouteResult;
 import akka.japi.pf.PFBuilder;
-import akka.util.ByteString;
 import scala.Function1;
 import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
@@ -94,15 +77,8 @@ import scala.concurrent.Future;
  */
 public final class RootRoute extends AllDirectives {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RootRoute.class);
-
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
-
-    /**
-     * Query parameter specifying the timeout (in seconds) to apply for a HTTP calls.
-     */
-    public static final String TIMEOUT_PARAMETER = DittoHeaderDefinition.TIMEOUT.getKey();
 
     private final HttpConfig httpConfig;
 
@@ -122,13 +98,12 @@ public final class RootRoute extends AllDirectives {
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
     private final ExceptionHandler exceptionHandler;
-    private final Set<Integer> supportedSchemaVersions;
+    private final Map<Integer, JsonSchemaVersion> supportedSchemaVersions;
     private final ProtocolAdapterProvider protocolAdapterProvider;
-    private final HeaderTranslator headerTranslator;
+    private final Function<DittoRuntimeException, HttpResponse> dreToHttpResponse;
     private final CustomHeadersHandler customHeadersHandler;
     private final RejectionHandler rejectionHandler;
-
-    private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
+    private final RootRouteHeadersStepBuilder rootRouteHeadersStepBuilder;
 
     private RootRoute(final Builder builder) {
         httpConfig = builder.httpConfig;
@@ -145,13 +120,18 @@ public final class RootRoute extends AllDirectives {
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
-        exceptionHandler = null != builder.exceptionHandler ? builder.exceptionHandler : createExceptionHandler();
-        supportedSchemaVersions = new HashSet<>(builder.supportedSchemaVersions);
+        supportedSchemaVersions = new HashMap<>(builder.supportedSchemaVersions);
         protocolAdapterProvider = builder.protocolAdapterProvider;
-        headerTranslator = builder.headerTranslator;
+        dreToHttpResponse = DittoRuntimeExceptionToHttpResponse.getInstance(builder.headerTranslator);
+        exceptionHandler = null != builder.exceptionHandler
+                ? builder.exceptionHandler
+                : RootRouteExceptionHandler.getInstance(dreToHttpResponse);
         customHeadersHandler = builder.customHeadersHandler;
         rejectionHandler = builder.rejectionHandler;
-        dittoHeadersSizeChecker = checkNotNull(builder.dittoHeadersSizeChecker, "dittoHeadersSizeChecker");
+        rootRouteHeadersStepBuilder = RootRouteHeadersStepBuilder.getInstance(builder.headerTranslator,
+                QueryParametersToHeadersMap.getInstance(httpConfig),
+                customHeadersHandler,
+                builder.dittoHeadersSizeChecker);
     }
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
@@ -168,16 +148,16 @@ public final class RootRoute extends AllDirectives {
 
     private Route buildRoute() {
         return wrapWithRootDirectives(correlationId ->
-                parameterOptional(TIMEOUT_PARAMETER, timeout ->
+                parameterMap(queryParameters ->
                         extractRequestContext(ctx ->
                                 concat(
                                         statsRoute.buildStatsRoute(correlationId), // /stats
                                         cachingHealthRoute.buildHealthRoute(), // /health
-                                        api(ctx, correlationId, timeout.orElse(null)), // /api
+                                        api(ctx, correlationId, queryParameters), // /api
                                         ws(ctx, correlationId), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
                                         overallStatusRoute.buildOverallStatusRoute(), // /overall
-                                        devopsRoute.buildDevOpsRoute(ctx, timeout.orElse(null)) // /devops
+                                        devopsRoute.buildDevOpsRoute(ctx, queryParameters) // /devops
                                 )
                         )
                 )
@@ -242,7 +222,9 @@ public final class RootRoute extends AllDirectives {
      *
      * @return route for API resource.
      */
-    private Route api(final RequestContext ctx, final String correlationId, @Nullable final String timeout) {
+    private Route api(final RequestContext ctx, final CharSequence correlationId,
+            final Map<String, String> queryParameters) {
+
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
@@ -250,23 +232,20 @@ public final class RootRoute extends AllDirectives {
                                         mapAuthorizationContext(
                                                 correlationId,
                                                 apiVersion,
-                                                authContextWithPrefixedSubjects, authContext ->
-                                                        parameterOptional(TopicPath.Channel.LIVE.getName(),
-                                                                liveParam ->
-                                                                        withDittoHeaders(
-                                                                                authContext,
-                                                                                apiVersion,
-                                                                                correlationId,
-                                                                                ctx,
-                                                                                liveParam.orElse(null),
-                                                                                timeout,
-                                                                                CustomHeadersHandler.RequestType.API,
-                                                                                dittoHeaders ->
-                                                                                        buildApiSubRoutes(ctx,
-                                                                                                dittoHeaders,
-                                                                                                authContext)
-                                                                        )
-                                                        )
+                                                authContextWithPrefixedSubjects, authContext -> {
+                                                    final CompletionStage<DittoHeaders> dittoHeadersPromise =
+                                                            rootRouteHeadersStepBuilder
+                                                                    .withAuthorizationContext(authContext)
+                                                                    .withSchemaVersion(apiVersion)
+                                                                    .withCorrelationId(correlationId)
+                                                                    .withRequestContext(ctx)
+                                                                    .withQueryParameters(queryParameters)
+                                                                    .build(CustomHeadersHandler.RequestType.API);
+
+                                                    return withDittoHeaders(dittoHeadersPromise,
+                                                            dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders,
+                                                                    authContext));
+                                                }
                                         )
                                 )
                         )
@@ -274,43 +253,22 @@ public final class RootRoute extends AllDirectives {
         );
     }
 
-    private Route ensureSchemaVersion(final IntFunction<Route> inner) {
+    private Route ensureSchemaVersion(final Function<JsonSchemaVersion, Route> inner) {
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.integerSegment()),
                 apiVersion -> { // /xx/<schemaVersion>
-                    if (supportedSchemaVersions.contains(apiVersion)) {
-                        try {
-                            return inner.apply(apiVersion);
-                        } catch (final RuntimeException e) {
-                            throw e; // rethrow RuntimeExceptions
-                        } catch (final Exception e) {
-                            throw new IllegalStateException("Unexpected checked exception", e);
-                        }
+                    @Nullable final JsonSchemaVersion jsonSchemaVersion = supportedSchemaVersions.get(apiVersion);
+                    if (null == jsonSchemaVersion) {
+                        final DittoRuntimeException dre = CommandNotSupportedException.newBuilder(apiVersion).build();
+                        return complete(dreToHttpResponse.apply(dre));
                     }
-                    return complete(getHttpResponseFor(CommandNotSupportedException.newBuilder(apiVersion).build()));
+                    try {
+                        return inner.apply(jsonSchemaVersion);
+                    } catch (final RuntimeException e) {
+                        throw e; // rethrow RuntimeExceptions
+                    } catch (final Exception e) {
+                        throw new IllegalStateException("Unexpected checked exception", e);
+                    }
                 });
-    }
-
-    private Route buildSseThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final AuthorizationContext authorizationContext) {
-        return handleExceptions(exceptionHandler, () ->
-                sseThingsRouteBuilder.build(ctx, () ->
-                        overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext))
-        );
-    }
-
-    private HttpResponse getHttpResponseFor(final DittoRuntimeException exception) {
-        return HttpResponse.create()
-                .withStatus(exception.getStatusCode().toInt())
-                .withHeaders(getExternalHeadersFor(exception.getDittoHeaders()))
-                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(exception.toJsonString()));
-    }
-
-    private Set<HttpHeader> getExternalHeadersFor(final DittoHeaders dittoHeaders) {
-        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(dittoHeaders);
-        return externalHeaders.entrySet()
-                .stream()
-                .map(headerEntry -> HttpHeader.parse(headerEntry.getKey(), headerEntry.getValue()))
-                .collect(Collectors.toSet());
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,
@@ -330,170 +288,88 @@ public final class RootRoute extends AllDirectives {
         ).orElse(customApiSubRoutes);
     }
 
+    private Route buildSseThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final AuthorizationContext authorizationContext) {
+
+        return handleExceptions(exceptionHandler,
+                () -> sseThingsRouteBuilder.build(ctx,
+                        () -> overwriteDittoHeadersForSse(ctx, dittoHeaders, authorizationContext)));
+    }
+
+    private CompletionStage<DittoHeaders> overwriteDittoHeadersForSse(final RequestContext ctx,
+            final DittoHeaders dittoHeaders, final AuthorizationContext authorizationContext) {
+
+        final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
+
+        return customHeadersHandler.handleCustomHeaders(correlationId, ctx, CustomHeadersHandler.RequestType.SSE,
+                authorizationContext, dittoHeaders);
+    }
+
     /*
      * Describes {@code /ws} route.
      *
      * @return route for Websocket resource.
      */
-    private Route ws(final RequestContext ctx, final String correlationId) {
+    private Route ws(final RequestContext ctx, final CharSequence correlationId) {
         return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
                                 mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
-                                        authContext -> withDittoHeaders(authContext,
-                                                wsVersion, correlationId, ctx, null, null,
-                                                CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
+                                        authContext -> {
+                                            final CompletionStage<DittoHeaders> dittoHeadersPromise =
+                                                    rootRouteHeadersStepBuilder
+                                                            .withAuthorizationContext(authContextWithPrefixedSubjects)
+                                                            .withSchemaVersion(wsVersion)
+                                                            .withCorrelationId(correlationId)
+                                                            .withRequestContext(ctx)
+                                                            .withQueryParameters(Collections.emptyMap())
+                                                            .build(CustomHeadersHandler.RequestType.WS);
 
-                                                    final String userAgent = extractUserAgent(ctx).orElse(null);
-                                                    final ProtocolAdapter chosenProtocolAdapter =
-                                                            protocolAdapterProvider.getProtocolAdapter(
-                                                                    userAgent);
-                                                    return websocketRouteBuilder.build(wsVersion, correlationId,
-                                                            authContext, dittoHeaders, chosenProtocolAdapter);
-                                                }
-                                        )
+                                            return withDittoHeaders(dittoHeadersPromise, dittoHeaders -> {
+                                                        @Nullable final String userAgent = getUserAgentOrNull(ctx);
+                                                        final ProtocolAdapter chosenProtocolAdapter =
+                                                                protocolAdapterProvider.getProtocolAdapter(userAgent);
+                                                        return websocketRouteBuilder.build(wsVersion, correlationId,
+                                                                authContext, dittoHeaders, chosenProtocolAdapter);
+                                                    });
+                                        }
                                 )
                         )
                 )
         );
     }
 
-    private static Optional<String> extractUserAgent(final RequestContext requestContext) {
-        final Stream<HttpHeader> headerStream =
-                StreamSupport.stream(requestContext.getRequest().getHeaders().spliterator(), false);
-        // find user-agent: HTTP header names are case-insensitive
-        return headerStream.filter(header -> "user-agent".equalsIgnoreCase(header.name()))
-                .map(HttpHeader::value)
-                .findAny();
+    @Nullable
+    private static String getUserAgentOrNull(final RequestContext requestContext) {
+        final HttpRequest request = requestContext.getRequest();
+        for (final HttpHeader header : request.getHeaders()) {
+
+            // find user-agent: HTTP header names are case-insensitive
+            if ("user-agent".equalsIgnoreCase(header.name())) {
+                return header.value();
+            }
+        }
+        return null;
     }
 
-    private Route withDittoHeaders(final AuthorizationContext authorizationContext,
-            final Integer version,
-            final String correlationId,
-            final RequestContext ctx,
-            @Nullable final String liveParam,
-            @Nullable final String timeoutParam,
-            final CustomHeadersHandler.RequestType requestType,
+    private Route withDittoHeaders(final CompletionStage<DittoHeaders> dittoHeadersPromise,
             final Function<DittoHeaders, Route> inner) {
 
-        return handleExceptions(exceptionHandler, () ->
-                javaFunctionToRoute(requestContext -> {
-                    final CompletionStage<DittoHeaders> headersFuture =
-                            buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam,
-                                    timeoutParam, requestType);
-                    final CompletionStage<Route> routeFuture = headersFuture.thenApply(dittoHeaders -> {
-                        dittoHeadersSizeChecker.check(dittoHeaders);
-                        return inner.apply(dittoHeaders);
-                    });
-                    return routeFuture.thenCompose(route -> routeToJavaFunction(route).apply(requestContext));
-                }));
+        return handleExceptions(exceptionHandler,
+                () -> javaFunctionToRoute(
+                        requestContext -> dittoHeadersPromise
+                                .thenApply(inner)
+                                .thenCompose(route -> routeToJavaFunction(route).apply(requestContext))));
     }
 
-    private CompletionStage<DittoHeaders> overwriteDittoHeadersForSse(final RequestContext ctx,
-            final DittoHeaders dittoHeaders,
-            final AuthorizationContext authorizationContext) {
+    private static Route javaFunctionToRoute(final Function<akka.http.scaladsl.server.RequestContext,
+            CompletionStage<RouteResult>> function) {
 
-        final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
-
-        return handleCustomHeaders(correlationId, ctx, CustomHeadersHandler.RequestType.SSE, authorizationContext,
-                dittoHeaders);
-    }
-
-    private CompletionStage<DittoHeaders> buildDittoHeaders(final AuthorizationContext authorizationContext,
-            final Integer version,
-            final String correlationId,
-            final RequestContext ctx,
-            @Nullable final String liveParam,
-            @Nullable final String timeoutParam,
-            final CustomHeadersHandler.RequestType requestType) {
-
-        final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder();
-
-        final Map<String, String> externalHeadersMap = getFilteredExternalHeaders(ctx.getRequest(), correlationId);
-        builder.putHeaders(externalHeadersMap);
-
-        final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
-                .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
-
-        builder.authorizationContext(authorizationContext)
-                .schemaVersion(jsonSchemaVersion)
-                .correlationId(correlationId)
-                .timeout(timeoutParam);
-
-        // if the "live" query param was set - no matter what the value was - use live channel
-        if (liveParam != null) {
-            builder.channel(TopicPath.Channel.LIVE.getName());
-        }
-
-        final DittoHeaders dittoDefaultHeaders = builder.build();
-        return handleCustomHeaders(correlationId, ctx, requestType, authorizationContext, dittoDefaultHeaders);
-    }
-
-    private CompletionStage<DittoHeaders> handleCustomHeaders(final String correlationId, final RequestContext ctx,
-            final CustomHeadersHandler.RequestType requestType,
-            final AuthorizationContext authorizationContext,
-            final DittoHeaders dittoDefaultHeaders) {
-
-        return customHeadersHandler.handleCustomHeaders(correlationId, ctx, requestType,
-                authorizationContext, dittoDefaultHeaders);
-    }
-
-    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId) {
-        final Map<String, String> externalHeaders =
-                StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::lowercaseName, HttpHeader::value, (dv1, dv2) -> {
-                            throw GatewayDuplicateHeaderException
-                                    .newBuilder()
-                                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
-                                    .build();
-                        }));
-        return headerTranslator.fromExternalHeaders(externalHeaders);
-    }
-
-    private ExceptionHandler createExceptionHandler() {
-        return ExceptionHandler.newBuilder()
-                .matchAny(throwable -> {
-                    final Optional<DittoRuntimeException> dittoRuntimeExceptionOptional =
-                            convertToDittoRuntimeException(throwable);
-                    if (dittoRuntimeExceptionOptional.isPresent()) {
-                        final DittoRuntimeException dittoRuntimeException = dittoRuntimeExceptionOptional.get();
-                        logException(dittoRuntimeException);
-                        return complete(getHttpResponseFor(dittoRuntimeException));
-                    } else {
-                        LOGGER.error("Unexpected RuntimeException in gateway root route: <{}>!", throwable.getMessage(),
-                                throwable);
-                        return complete(StatusCodes.INTERNAL_SERVER_ERROR);
-                    }
-                })
-                .build();
-    }
-
-    private static Optional<DittoRuntimeException> convertToDittoRuntimeException(@Nullable final Throwable throwable) {
-        if (throwable instanceof DittoRuntimeException) {
-            return Optional.of((DittoRuntimeException) throwable);
-        } else if (throwable instanceof JsonRuntimeException) {
-            return Optional.of(new DittoJsonException((JsonRuntimeException) throwable));
-        } else if (throwable instanceof CompletionException) {
-            return convertToDittoRuntimeException(throwable.getCause());
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    private static void logException(final DittoRuntimeException exception) {
-        final DittoHeaders dittoHeaders = exception.getDittoHeaders();
-
-        final Optional<String> correlationIdOptional = dittoHeaders.getCorrelationId();
-        final String simpleExceptionName = exception.getClass().getSimpleName();
-        final String exceptionMessage = exception.getMessage();
-        final String exceptionDescription = exception.getDescription().orElse(null);
-        if (correlationIdOptional.isEmpty()) {
-            LOGGER.warn("Correlation ID was missing in headers of <{}>: <{}>!", simpleExceptionName, exceptionMessage);
-        } else {
-            LOGGER.withCorrelationId(correlationIdOptional.get())
-                    .info("<{}> occurred in gateway root route: <{} - {}>!", simpleExceptionName, exceptionMessage,
-                            exceptionDescription, exception);
-        }
+        final Function1<akka.http.scaladsl.server.RequestContext, Future<RouteResult>> scalaFunction =
+                new PFBuilder<akka.http.scaladsl.server.RequestContext, Future<RouteResult>>()
+                        .matchAny(scalaRequestContext -> FutureConverters.toScala(function.apply(scalaRequestContext)))
+                        .build();
+        return RouteAdapter.asJava(scalaFunction);
     }
 
     private static Function<akka.http.scaladsl.server.RequestContext, CompletionStage<RouteResult>> routeToJavaFunction(
@@ -501,15 +377,6 @@ public final class RootRoute extends AllDirectives {
 
         return scalaRequestContext ->
                 scala.compat.java8.FutureConverters.toJava(route.asScala().apply(scalaRequestContext));
-    }
-
-    private static Route javaFunctionToRoute(final Function<akka.http.scaladsl.server.RequestContext,
-            CompletionStage<RouteResult>> function) {
-        final Function1<akka.http.scaladsl.server.RequestContext, Future<RouteResult>> scalaFunction =
-                new PFBuilder<akka.http.scaladsl.server.RequestContext, Future<RouteResult>>()
-                        .matchAny(scalaRequestContext -> FutureConverters.toScala(function.apply(scalaRequestContext)))
-                        .build();
-        return RouteAdapter.asJava(scalaFunction);
     }
 
     @NotThreadSafe
@@ -532,7 +399,7 @@ public final class RootRoute extends AllDirectives {
         private GatewayAuthenticationDirective httpAuthenticationDirective;
         private GatewayAuthenticationDirective wsAuthenticationDirective;
         private ExceptionHandler exceptionHandler;
-        private Collection<Integer> supportedSchemaVersions;
+        private final Map<Integer, JsonSchemaVersion> supportedSchemaVersions = new HashMap<>();
         private ProtocolAdapterProvider protocolAdapterProvider;
         private HeaderTranslator headerTranslator;
         private CustomHeadersHandler customHeadersHandler;
@@ -629,8 +496,9 @@ public final class RootRoute extends AllDirectives {
         }
 
         @Override
-        public RootRouteBuilder supportedSchemaVersions(final Collection<Integer> versions) {
-            supportedSchemaVersions = versions;
+        public RootRouteBuilder supportedSchemaVersions(final Collection<JsonSchemaVersion> versions) {
+            checkNotNull(versions, "versions");
+            versions.forEach(schemaVersion -> supportedSchemaVersions.put(schemaVersion.toInt(), schemaVersion));
             return this;
         }
 

@@ -34,8 +34,10 @@ public final class NoopCustomHeadersHandler implements CustomHeadersHandler {
     }
 
     @Override
-    public CompletionStage<DittoHeaders> handleCustomHeaders(final String correlationId, RequestContext requestContext,
-            final RequestType requestType, final AuthorizationContext authorizationContext,
+    public CompletionStage<DittoHeaders> handleCustomHeaders(final CharSequence correlationId,
+            final RequestContext requestContext,
+            final RequestType requestType,
+            final AuthorizationContext authorizationContext,
             final DittoHeaders dittoDefaultHeaders) {
 
         return CompletableFuture.completedFuture(dittoDefaultHeaders);

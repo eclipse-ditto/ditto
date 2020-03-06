@@ -16,6 +16,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.things;
  * An enumeration of the query parameters for the things REST API.
  */
 public enum ThingsParameter {
+
     /**
      * Request parameter for getting only Things with the specified IDs.
      */
@@ -28,7 +29,7 @@ public enum ThingsParameter {
 
     private final String parameterValue;
 
-    ThingsParameter(final String parameterValue) {
+    private ThingsParameter(final String parameterValue) {
         this.parameterValue = parameterValue;
     }
 
@@ -36,4 +37,5 @@ public enum ThingsParameter {
     public String toString() {
         return parameterValue;
     }
+
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.config;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -21,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.actors.DefaultHttpRequestActorPropsFactory;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
@@ -35,7 +37,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
      *
      * @return an unmodifiable unsorted Set containing the schema versions.
      */
-    Set<Integer> getSupportedSchemaVersions();
+    Set<JsonSchemaVersion> getSupportedSchemaVersions();
 
     /**
      * Indicates whether transport encryption via HTTPS should be enforced.
@@ -102,7 +104,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The schema versions the API Gateway should support.
          */
-        SCHEMA_VERSIONS("http.schema-versions", Arrays.asList(1, 2)),
+        SCHEMA_VERSIONS("http.schema-versions", List.of(1, 2)),
 
         /**
          * Determines whether transport encryption via HTTPS should be enforced.

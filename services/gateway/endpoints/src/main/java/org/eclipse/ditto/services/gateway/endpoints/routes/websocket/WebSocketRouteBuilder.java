@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
@@ -85,7 +86,7 @@ public interface WebSocketRouteBuilder {
      * @return the route.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Route build(Integer version,
+    Route build(JsonSchemaVersion version,
             CharSequence correlationId,
             AuthorizationContext connectionAuthContext,
             DittoHeaders additionalHeaders,

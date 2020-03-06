@@ -17,15 +17,15 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
@@ -37,38 +37,41 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 
-
 /**
  * Tests {@link AuthorizationContextVersioningDirective}.
  */
-public class AuthorizationContextVersioningDirectiveTest extends EndpointTestBase {
+public final class AuthorizationContextVersioningDirectiveTest extends EndpointTestBase {
 
     private static final String PATH = "/";
 
     @Test
     public void subjectIdsWithoutPrefixArePrependedForV1() {
         final AuthorizationContext authContextWithPrefixedSubjects = createAuthContextWithPrefixedSubjects();
-        final List<AuthorizationSubject> expectedAuthorizationSubjects = new ArrayList<>();
+        final Collection<AuthorizationSubject> expectedAuthorizationSubjects = new ArrayList<>();
         expectedAuthorizationSubjects.addAll(createAuthSubjectsWithoutPrefixes());
         expectedAuthorizationSubjects.addAll(authContextWithPrefixedSubjects.getAuthorizationSubjects());
         final AuthorizationContext expectedAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(expectedAuthorizationSubjects);
-        assertMapping(1, authContextWithPrefixedSubjects, expectedAuthorizationContext);
+
+        assertMapping(JsonSchemaVersion.V_1, authContextWithPrefixedSubjects, expectedAuthorizationContext);
     }
 
     @Test
     public void subjectIdsWithoutPrefixAreAppendedForV2() {
         final AuthorizationContext authContextWithPrefixedSubjects = createAuthContextWithPrefixedSubjects();
-        final List<AuthorizationSubject> expectedAuthorizationSubjects = new ArrayList<>();
+        final Collection<AuthorizationSubject> expectedAuthorizationSubjects = new ArrayList<>();
         expectedAuthorizationSubjects.addAll(authContextWithPrefixedSubjects.getAuthorizationSubjects());
         expectedAuthorizationSubjects.addAll(createAuthSubjectsWithoutPrefixes());
         final AuthorizationContext expectedAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(expectedAuthorizationSubjects);
-        assertMapping(2, authContextWithPrefixedSubjects, expectedAuthorizationContext);
+
+        assertMapping(JsonSchemaVersion.V_2, authContextWithPrefixedSubjects, expectedAuthorizationContext);
     }
 
-    private void assertMapping(final int apiVersion, final AuthorizationContext authContextWithPrefixedSubjects,
+    private void assertMapping(final JsonSchemaVersion apiVersion,
+            final AuthorizationContext authContextWithPrefixedSubjects,
             final AuthorizationContext expectedAuthorizationContext) {
+
         final int expectedStatusCode = 200;
         final Route root = route(get(
                 () -> complete(HttpResponse.create().withEntity(DEFAULT_DUMMY_ENTITY).withStatus(expectedStatusCode))));
@@ -99,10 +102,9 @@ public class AuthorizationContextVersioningDirectiveTest extends EndpointTestBas
     }
 
     private static Iterable<AuthorizationSubject> createPrefixedAuthSubjectsForAllIssuers() {
-        return Stream.of(SubjectIssuer.GOOGLE)
-                .map(issuer -> SubjectId.newInstance(issuer, createTestSubjectIdWithoutIssuerPrefix(issuer)))
-                .map(AuthorizationModelFactory::newAuthSubject)
-                .collect(Collectors.toList());
+        final SubjectIssuer issuer = SubjectIssuer.GOOGLE;
+        final SubjectId subjectId = SubjectId.newInstance(issuer, createTestSubjectIdWithoutIssuerPrefix(issuer));
+        return List.of(AuthorizationModelFactory.newAuthSubject(subjectId));
     }
 
     private static String createTestSubjectIdWithoutIssuerPrefix(final SubjectIssuer issuer) {

@@ -79,7 +79,6 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
@@ -228,7 +227,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * @return the {@code /ws} route.
      */
     @Override
-    public Route build(final Integer version,
+    public Route build(final JsonSchemaVersion version,
             final CharSequence correlationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
@@ -250,7 +249,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
-            final Integer version,
+            final JsonSchemaVersion version,
             final String connectionCorrelationId,
             final AuthorizationContext authContext,
             final DittoHeaders additionalHeaders,
@@ -315,7 +314,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      *         DittoRuntimeException
      */
     @SuppressWarnings("unchecked")
-    private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final Integer version,
+    private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final JsonSchemaVersion version,
             final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
@@ -413,7 +412,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
     selectStreamControlOrSignal(
-            final Integer version,
+            final JsonSchemaVersion version,
             final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
@@ -450,7 +449,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
-            final int version,
+            final JsonSchemaVersion version,
             final String connectionCorrelationId,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
@@ -468,8 +467,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 publisherActor -> {
                     webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
                     streamingActor.tell(
-                            new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS,
-                                    JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST),
+                            new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS, version,
                                     optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
                             ActorRef.noSender());
                     return NotUsed.getInstance();
@@ -567,18 +565,15 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static Signal buildSignal(final String cmdString,
-            final Integer version,
-            final String connectionCorrelationId,
+            final JsonSchemaVersion version,
+            final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
 
-        final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
-                .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
-
         // initial internal header values
         final DittoHeaders initialInternalHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(jsonSchemaVersion)
+                .schemaVersion(version)
                 .authorizationContext(connectionAuthContext)
                 .correlationId(connectionCorrelationId) // for logging
                 .origin(connectionCorrelationId)

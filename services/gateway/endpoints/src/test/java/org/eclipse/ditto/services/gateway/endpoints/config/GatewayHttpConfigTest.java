@@ -32,6 +32,7 @@ import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig.GatewayHttpConfigValue;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
@@ -59,7 +60,8 @@ public final class GatewayHttpConfigTest {
         assertInstancesOf(GatewayHttpConfig.class,
                 areImmutable(),
                 provided(Pattern.class).isAlsoImmutable(),
-                assumingFields("queryParamsAsHeaders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                assumingFields("queryParamsAsHeaders", "schemaVersions")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
@@ -70,6 +72,52 @@ public final class GatewayHttpConfigTest {
     }
 
     @Test
+    public void getSchemaVersionsReturnsDefaultIfNotSet() {
+        final Set<JsonSchemaVersion> expected = getDefaultSchemaVersions();
+        final GatewayHttpConfig underTest = GatewayHttpConfig.of(ConfigFactory.empty());
+
+        final Set<JsonSchemaVersion> actual = underTest.getSupportedSchemaVersions();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    private static Set<JsonSchemaVersion> getDefaultSchemaVersions() {
+        final Object defaultValue = GatewayHttpConfigValue.SCHEMA_VERSIONS.getDefaultValue();
+        @SuppressWarnings("unchecked") final Collection<Integer> versionNumbers = (Collection<Integer>) defaultValue;
+        return versionNumbers.stream()
+                .map(JsonSchemaVersion::forInt)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+    }
+
+    @Test
+    public void getConfiguredSchemaVersions() {
+        final EnumSet<JsonSchemaVersion> expected = EnumSet.of(JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayHttpTestConfig);
+
+        final Set<JsonSchemaVersion> actual = underTest.getSupportedSchemaVersions();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void tryToGetInstanceWithUnknownSchemaVersions() {
+        final int unknownVersionNumber = -1;
+        final Collection<Integer> knownSchemaVersions =
+                List.of(JsonSchemaVersion.V_1.toInt(), JsonSchemaVersion.V_2.toInt());
+        final Collection<Integer> allSchemaVersions = new ArrayList<>(knownSchemaVersions);
+        allSchemaVersions.add(unknownVersionNumber);
+        final String configPath = "http." + GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath();
+        final Config config = ConfigFactory.parseMap(Maps.newHashMap(configPath, allSchemaVersions));
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> GatewayHttpConfig.of(config))
+                .withMessage("Schema version <%s> is not supported!", unknownVersionNumber)
+                .withNoCause();
+    }
+
+    @Test
     public void getQueryParametersAsHeadersReturnsDefaultIfNotSet() {
         final Set<HeaderDefinition> expected = getDefaultQueryParamsAsHeaders();
         final GatewayHttpConfig underTest = GatewayHttpConfig.of(ConfigFactory.empty());
@@ -77,6 +125,16 @@ public final class GatewayHttpConfigTest {
         final Set<HeaderDefinition> actual = underTest.getQueryParametersAsHeaders();
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    private static Set<HeaderDefinition> getDefaultQueryParamsAsHeaders() {
+        final Object defaultValue = GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getDefaultValue();
+        @SuppressWarnings("unchecked") final Collection<String> headerKeys = (Collection<String>) defaultValue;
+        return headerKeys.stream()
+                .map(DittoHeaderDefinition::forKey)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
     }
 
     @Test
@@ -104,16 +162,6 @@ public final class GatewayHttpConfigTest {
                 .isThrownBy(() -> GatewayHttpConfig.of(config))
                 .withMessage("The query parameter names <%s> do not denote known header keys!", unknownHeaderKeys)
                 .withNoCause();
-    }
-
-    private static Set<HeaderDefinition> getDefaultQueryParamsAsHeaders() {
-        final Object defaultValue = GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getDefaultValue();
-        @SuppressWarnings("unchecked") final Collection<String> headerKeys = (Collection<String>) defaultValue;
-        return headerKeys.stream()
-                .map(DittoHeaderDefinition::forKey)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toSet());
     }
 
 }

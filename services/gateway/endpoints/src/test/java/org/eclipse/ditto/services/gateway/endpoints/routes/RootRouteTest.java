@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
@@ -24,6 +25,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -53,6 +55,7 @@ import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -113,7 +116,7 @@ public final class RootRouteTest extends EndpointTestBase {
     private HttpClientFacade httpClientFacade;
 
     public RootRouteTest() {
-        this.messageDispatcher = Executors.newFixedThreadPool(8);
+        messageDispatcher = Executors.newFixedThreadPool(8);
     }
 
     @Before
@@ -148,7 +151,7 @@ public final class RootRouteTest extends EndpointTestBase {
                                 claimMessageConfig, headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, actorSystem.eventStream()))
-                .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
+                .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
@@ -163,12 +166,14 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getRoot() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(ROOT_PATH))));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
     @Test
     public void getHealthWithoutAuthReturnsOK() {
         final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(HEALTH_PATH)));
+
         result.assertStatusCode(StatusCodes.OK);
     }
 
@@ -176,18 +181,21 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getStatusWithAuth() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
+
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getStatusWithoutAuth() {
         final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(OVERALL_STATUS_PATH)));
+
         result.assertStatusCode(StatusCodes.UNAUTHORIZED);
     }
 
     @Test
     public void getStatusUrlWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(OVERALL_STATUS_PATH));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -195,12 +203,14 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getStatusHealth() {
         // If the endpoint /status/health should be secured do it via webserver for example
         final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(STATUS_HEALTH_PATH)));
+
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getStatusHealthWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(STATUS_HEALTH_PATH));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -208,12 +218,14 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getStatusCluster() {
         // If the endpoint /status/cluster should be secured do it via webserver for example
         final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(STATUS_CLUSTER_PATH)));
+
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getStatusClusterWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(STATUS_CLUSTER_PATH));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -226,20 +238,22 @@ public final class RootRouteTest extends EndpointTestBase {
             idBuilder.append(':').append(UUID.randomUUID());
         }
         pathBuilder.append(idBuilder);
-        final TestRouteResult result =
-                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(pathBuilder.toString()))));
         final ThingIdInvalidException expectedEx = ThingIdInvalidException.newBuilder(idBuilder.toString())
                 .dittoHeaders(DittoHeaders.empty())
                 .build();
+
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(pathBuilder.toString()))));
+
         result.assertEntity(expectedEx.toJsonString());
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
-
     }
 
     @Test
     public void getThingsUrlWithoutIds() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH))));
+
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
@@ -247,18 +261,21 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getThingsUrlWithIds() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS))));
+
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getThings1UrlWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(THINGS_1_PATH));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
     @Test
     public void getThings2UrlWithoutHttps() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(THINGS_2_PATH));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -267,8 +284,10 @@ public final class RootRouteTest extends EndpointTestBase {
         final String thingsUrlWithIdsWithWrongVersionNumber = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
                 "nan" + "/" + ThingsRoute.PATH_THINGS + "?" +
                 ThingsParameter.IDS + "=bumlux";
+
         final TestRouteResult result = rootTestRoute.run(
                 withHttps(withDummyAuthentication(HttpRequest.GET(thingsUrlWithIdsWithWrongVersionNumber))));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -278,8 +297,10 @@ public final class RootRouteTest extends EndpointTestBase {
         final String thingsUrlWithIdsWithNonExistingVersionNumber = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
                 nonExistingVersion + "/" + ThingsRoute.PATH_THINGS + "?" +
                 ThingsParameter.IDS + "=bumlux";
+
         final TestRouteResult result = rootTestRoute.run(
                 withHttps(withDummyAuthentication(HttpRequest.GET(thingsUrlWithIdsWithNonExistingVersionNumber))));
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -288,6 +309,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final HttpRequest request = withHttps(withDummyAuthentication(HttpRequest.GET(THING_SEARCH_2_PATH)));
 
         final TestRouteResult result = rootTestRoute.run(request);
+
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
@@ -296,6 +318,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final HttpRequest request = withHttps(withDummyAuthentication(HttpRequest.GET(UNKNOWN_SEARCH_PATH)));
 
         final TestRouteResult result = rootTestRoute.run(request);
+
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -333,13 +356,29 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionForDuplicateHeaderFields() {
-        final TestRouteResult result =
-                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
-                                .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()))
-                                .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()))
-                        ))
-                );
+        final HttpRequest httpRequest = HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
+                .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()))
+                .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()));
+
+        final TestRouteResult result = rootTestRoute.run(withHttps(withDummyAuthentication(httpRequest)));
+
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void getExceptionForDuplicationHeaderAndQueryParameter() {
+        final String headerKey = DittoHeaderDefinition.TIMEOUT.getKey();
+        HttpRequest httpRequest = HttpRequest.GET(THINGS_1_PATH_WITH_IDS + "&" + headerKey + "=32s");
+        httpRequest = httpRequest.addHeader(akka.http.javadsl.model.HttpHeader.parse(headerKey, "23s"));
+        final GatewayDuplicateHeaderException expectedException = GatewayDuplicateHeaderException.newBuilder()
+                .message(() -> MessageFormat.format(
+                        "<{0}> was provided as header as well as query parameter with divergent values!", headerKey))
+                .build();
+
+        final TestRouteResult result = rootTestRoute.run(withHttps(withDummyAuthentication(httpRequest)));
+
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        result.assertEntity(expectedException.toJsonString());
     }
 
     @Test
@@ -381,18 +420,16 @@ public final class RootRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
     }
 
-    private HttpRequest withHttps(final HttpRequest httpRequest) {
-        return httpRequest.addHeader(RawHeader.create
-                (HttpsEnsuringDirective.X_FORWARDED_PROTO_LBAAS, HTTPS));
+    private static HttpRequest withHttps(final HttpRequest httpRequest) {
+        return httpRequest.addHeader(RawHeader.create(HttpsEnsuringDirective.X_FORWARDED_PROTO_LBAAS, HTTPS));
     }
 
-    private HttpRequest withDummyAuthentication(final HttpRequest httpRequest, final String subject) {
-        return httpRequest.addHeader(RawHeader.create
-                (HttpHeader.X_DITTO_DUMMY_AUTH.getName(), subject));
+    private static HttpRequest withDummyAuthentication(final HttpRequest httpRequest, final String subject) {
+        return httpRequest.addHeader(RawHeader.create(HttpHeader.X_DITTO_DUMMY_AUTH.getName(), subject));
 
     }
 
-    private HttpRequest withDummyAuthentication(final HttpRequest httpRequest) {
+    private static HttpRequest withDummyAuthentication(final HttpRequest httpRequest) {
         return withDummyAuthentication(httpRequest, "some-issuer:foo");
     }
 
