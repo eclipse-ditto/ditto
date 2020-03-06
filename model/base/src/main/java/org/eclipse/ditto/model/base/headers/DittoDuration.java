@@ -88,9 +88,9 @@ final class DittoDuration implements CharSequence {
         }
         if (null == durationValue) {
 
-            // interpret duration as seconds implicit (without suffix) if unit was omitted
+            // implicitly interpret duration as seconds if unit was omitted
             timeUnit = DittoTimeUnit.SECONDS_IMPLICIT;
-            durationValue = parseDurationPlain(duration, "");
+            durationValue = parseDurationPlain(duration, timeUnit.getSuffix());
         }
         return new DittoDuration(durationValue, timeUnit);
     }
