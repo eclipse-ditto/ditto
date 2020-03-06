@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
 import org.eclipse.ditto.services.models.signalenrichment.DefaultCachingSignalEnrichmentFacadeConfig;

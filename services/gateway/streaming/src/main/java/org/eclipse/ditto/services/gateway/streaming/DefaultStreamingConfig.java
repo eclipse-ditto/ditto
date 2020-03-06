@@ -17,8 +17,6 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -33,14 +31,14 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     private final Duration sessionCounterScrapeInterval;
     private final int parallelism;
     private final WebsocketConfig websocketConfig;
-    private final SignalEnrichmentConfig signalEnrichmentConfig;
+    private final GatewaySignalEnrichmentConfig signalEnrichmentConfig;
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         parallelism = scopedConfig.getInt(StreamingConfigValue.PARALLELISM.getConfigPath());
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
-        signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(scopedConfig);
+        signalEnrichmentConfig = DefaultGatewaySignalEnrichmentConfig.of(scopedConfig);
     }
 
     /**
@@ -66,7 +64,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
-    public SignalEnrichmentConfig getSignalEnrichmentConfig() {
+    public GatewaySignalEnrichmentConfig getSignalEnrichmentConfig() {
         return signalEnrichmentConfig;
     }
 

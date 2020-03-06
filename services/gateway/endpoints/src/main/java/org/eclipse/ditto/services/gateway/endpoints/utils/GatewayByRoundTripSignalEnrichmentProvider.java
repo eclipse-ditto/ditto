@@ -12,12 +12,10 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.gateway.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacadeByRoundTripConfig;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
@@ -26,7 +24,7 @@ import akka.http.javadsl.model.HttpRequest;
 /**
  * Provider for gateway-service of signal-enriching facades that make a round-trip for each query.
  */
-public final class GatewayByRoundTripSignalEnrichmentProvider extends GatewaySignalEnrichmentProvider {
+public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
     private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + ConciergeForwarderActor.ACTOR_NAME;
 
@@ -38,14 +36,11 @@ public final class GatewayByRoundTripSignalEnrichmentProvider extends GatewaySig
      * @param actorSystem The actor system for which this provider is instantiated.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
-    @SuppressWarnings("unused")
     public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
-            final SignalEnrichmentConfig signalEnrichmentConfig) {
+            final GatewaySignalEnrichmentConfig signalEnrichmentConfig) {
         final ActorSelection commandHandler = actorSystem.actorSelection(CONCIERGE_FORWARDER);
-        final SignalEnrichmentFacadeByRoundTripConfig config =
-                DefaultSignalEnrichmentFacadeByRoundTripConfig.of(signalEnrichmentConfig.getProviderConfig());
         byRoundTripSignalEnrichmentFacade =
-                ByRoundTripSignalEnrichmentFacade.of(commandHandler, config.getAskTimeout());
+                ByRoundTripSignalEnrichmentFacade.of(commandHandler, signalEnrichmentConfig.getAskTimeout());
     }
 
     @Override
