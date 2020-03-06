@@ -13,6 +13,8 @@
 
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
+import java.util.Collections;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.security.config.DefaultDevOpsConfig;
@@ -52,7 +54,7 @@ public final class DevOpsRouteTest extends EndpointTestBase {
         devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
                 getInsecureDevopsConfig(), adapterProvider.getHttpHeaderTranslator());
 
-        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, null));
+        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, Collections.emptyMap()));
         underTest = testRoute(route);
     }
 

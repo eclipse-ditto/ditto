@@ -101,8 +101,12 @@ public final class DevOpsRoute extends AbstractRoute {
 
     /**
      * @return the {@code /devops} route.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public Route buildDevOpsRoute(final RequestContext ctx, final Map<String, String> queryParameters) {
+        checkNotNull(ctx, "ctx");
+        checkNotNull(queryParameters, "queryParameters");
+
         return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
             final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
