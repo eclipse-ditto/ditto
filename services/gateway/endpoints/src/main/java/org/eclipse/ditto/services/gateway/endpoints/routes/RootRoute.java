@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -228,25 +227,20 @@ public final class RootRoute extends AllDirectives {
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                                apiAuthentication(correlationId, authContextWithPrefixedSubjects ->
-                                        mapAuthorizationContext(
-                                                correlationId,
-                                                apiVersion,
-                                                authContextWithPrefixedSubjects, authContext -> {
-                                                    final CompletionStage<DittoHeaders> dittoHeadersPromise =
-                                                            rootRouteHeadersStepBuilder
-                                                                    .withAuthorizationContext(authContext)
-                                                                    .withSchemaVersion(apiVersion)
-                                                                    .withCorrelationId(correlationId)
-                                                                    .withRequestContext(ctx)
-                                                                    .withQueryParameters(queryParameters)
-                                                                    .build(CustomHeadersHandler.RequestType.API);
+                                apiAuthentication(correlationId, authContext -> {
+                                            final CompletionStage<DittoHeaders> dittoHeadersPromise =
+                                                    rootRouteHeadersStepBuilder
+                                                            .withAuthorizationContext(authContext)
+                                                            .withSchemaVersion(apiVersion)
+                                                            .withCorrelationId(correlationId)
+                                                            .withRequestContext(ctx)
+                                                            .withQueryParameters(queryParameters)
+                                                            .build(CustomHeadersHandler.RequestType.API);
 
-                                                    return withDittoHeaders(dittoHeadersPromise,
-                                                            dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders,
-                                                                    authContext));
-                                                }
-                                        )
+                                            return withDittoHeaders(dittoHeadersPromise,
+                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders,
+                                                            authContext));
+                                        }
                                 )
                         )
                 )
@@ -313,27 +307,24 @@ public final class RootRoute extends AllDirectives {
     private Route ws(final RequestContext ctx, final CharSequence correlationId) {
         return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
-                        wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
-                                mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
-                                        authContext -> {
-                                            final CompletionStage<DittoHeaders> dittoHeadersPromise =
-                                                    rootRouteHeadersStepBuilder
-                                                            .withAuthorizationContext(authContextWithPrefixedSubjects)
-                                                            .withSchemaVersion(wsVersion)
-                                                            .withCorrelationId(correlationId)
-                                                            .withRequestContext(ctx)
-                                                            .withQueryParameters(Collections.emptyMap())
-                                                            .build(CustomHeadersHandler.RequestType.WS);
+                        wsAuthentication(correlationId, authContext -> {
+                                    final CompletionStage<DittoHeaders> dittoHeadersPromise =
+                                            rootRouteHeadersStepBuilder
+                                                    .withAuthorizationContext(authContext)
+                                                    .withSchemaVersion(wsVersion)
+                                                    .withCorrelationId(correlationId)
+                                                    .withRequestContext(ctx)
+                                                    .withQueryParameters(Collections.emptyMap())
+                                                    .build(CustomHeadersHandler.RequestType.WS);
 
-                                            return withDittoHeaders(dittoHeadersPromise, dittoHeaders -> {
-                                                        @Nullable final String userAgent = getUserAgentOrNull(ctx);
-                                                        final ProtocolAdapter chosenProtocolAdapter =
-                                                                protocolAdapterProvider.getProtocolAdapter(userAgent);
-                                                        return websocketRouteBuilder.build(wsVersion, correlationId,
-                                                                authContext, dittoHeaders, chosenProtocolAdapter);
-                                                    });
-                                        }
-                                )
+                                    return withDittoHeaders(dittoHeadersPromise, dittoHeaders -> {
+                                        @Nullable final String userAgent = getUserAgentOrNull(ctx);
+                                        final ProtocolAdapter chosenProtocolAdapter =
+                                                protocolAdapterProvider.getProtocolAdapter(userAgent);
+                                        return websocketRouteBuilder.build(wsVersion, correlationId,
+                                                authContext, dittoHeaders, chosenProtocolAdapter);
+                                    });
+                                }
                         )
                 )
         );

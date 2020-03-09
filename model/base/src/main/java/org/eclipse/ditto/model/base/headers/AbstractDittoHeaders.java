@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,11 +28,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -50,7 +53,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 @SuppressWarnings("squid:S2160")
 public abstract class AbstractDittoHeaders extends AbstractMap<String, String> implements DittoHeaders {
-
+    private static final String ISSUER_DIVIDER = ":";
     private final Map<String, String> headers;
 
     /**
@@ -61,7 +64,28 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
      */
     protected AbstractDittoHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers map");
-        this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
+        final Map<String, String> headersWithOnlyPrefixedSubjects = keepSubjectsWithIssuer(headers);
+        this.headers = Collections.unmodifiableMap(new HashMap<>(headersWithOnlyPrefixedSubjects));
+    }
+
+    private static Map<String, String> keepSubjectsWithIssuer(final Map<String, String> headers) {
+        if (headers.containsKey(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey())) {
+            final Map<String, String> newHeaders = new HashMap<>(headers);
+            final Stream<String> authSubjects = getJsonArrayForDefinition(headers, DittoHeaderDefinition.AUTHORIZATION_SUBJECTS)
+                    .stream()
+                    .map(JsonValue::asString);
+            final String authSubjectsWithoutDups = keepSubjectsWithIssuer(authSubjects)
+                    .map(JsonValue::of)
+                    .collect(JsonCollectors.valuesToArray())
+                    .toString();
+            newHeaders.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsWithoutDups);
+            return newHeaders;
+        }
+        return headers;
+    }
+
+    protected static Stream<String> keepSubjectsWithIssuer(final Stream<String> subjects) {
+        return subjects.filter(authorizationSubject -> authorizationSubject.split(ISSUER_DIVIDER, 2).length == 2);
     }
 
     @Override
@@ -70,7 +94,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     protected Optional<String> getStringForDefinition(final HeaderDefinition definition) {
-        return Optional.ofNullable(headers.get(definition.getKey()));
+        return getStringForDefinition(headers, definition);
     }
 
     @Override
@@ -88,15 +112,34 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public List<String> getAuthorizationSubjects() {
         final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS);
-        return jsonValueArray.stream()
+        final List<String> subjectsWithIssuerPrefix = jsonValueArray.stream()
                 .map(JsonValue::asString)
                 .collect(Collectors.toList());
+        return duplicateSubjectsByStrippingIssuerPrefix(subjectsWithIssuerPrefix);
+    }
+
+    private static List<String> duplicateSubjectsByStrippingIssuerPrefix(
+            final List<String> subjectsWithPrefix) {
+
+        final Set<String> mergedSet = new LinkedHashSet<>(subjectsWithPrefix);
+        subjectsWithPrefix.stream()
+                .map(AbstractDittoHeaders::getSubjectWithoutIssuer)
+                .forEach(mergedSet::add);
+
+        return new ArrayList<>(mergedSet);
+    }
+
+    private static String getSubjectWithoutIssuer(final String subjectId) {
+        final String[] splittedInIssuerAndSubject = subjectId.split(ISSUER_DIVIDER, 2);
+        if (splittedInIssuerAndSubject.length == 2) {
+            return splittedInIssuerAndSubject[1];
+        } else {
+            return subjectId;
+        }
     }
 
     protected JsonArray getJsonArrayForDefinition(final HeaderDefinition definition) {
-        return getStringForDefinition(definition)
-                .map(JsonFactory::newArray)
-                .orElseGet(JsonFactory::newArray);
+        return getJsonArrayForDefinition(headers, definition);
     }
 
     @Override
@@ -344,6 +387,16 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public String toString() {
         return headers.toString();
+    }
+
+    private static JsonArray getJsonArrayForDefinition(final Map<String, String> headers, final HeaderDefinition definition) {
+        return getStringForDefinition(headers, definition)
+                .map(JsonFactory::newArray)
+                .orElseGet(JsonFactory::newArray);
+    }
+
+    private static Optional<String> getStringForDefinition(final Map<String, String> headers, final HeaderDefinition definition) {
+        return Optional.ofNullable(headers.get(definition.getKey()));
     }
 
 }

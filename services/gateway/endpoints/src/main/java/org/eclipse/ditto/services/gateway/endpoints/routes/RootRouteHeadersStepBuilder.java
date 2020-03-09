@@ -124,7 +124,7 @@ final class RootRouteHeadersStepBuilder {
     }
 
     /**
-     * Builder step for setting the correlation IF of the eventual DittoHeaders.
+     * Builder step for setting the correlation ID of the eventual DittoHeaders.
      */
     @NotThreadSafe
     final class CorrelationIdStep {

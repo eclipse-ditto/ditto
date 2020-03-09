@@ -34,6 +34,8 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewayByRoundTripSignalEnrichmentProvider;
+import org.eclipse.ditto.services.gateway.endpoints.utils.GatewayCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
@@ -46,6 +48,7 @@ import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
+import org.eclipse.ditto.services.gateway.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
@@ -229,8 +232,10 @@ final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
+        final GatewaySignalEnrichmentConfig signalEnrichmentConfig =
+                gatewayConfig.getStreamingConfig().getSignalEnrichmentConfig();
         final GatewaySignalEnrichmentProvider signalEnrichmentProvider =
-                GatewaySignalEnrichmentProvider.get(actorSystem);
+                signalEnrichmentProvider(signalEnrichmentConfig, actorSystem);
 
         final StreamingConfig streamingConfig = gatewayConfig.getStreamingConfig();
         final CommandConfig commandConfig = gatewayConfig.getCommandConfig();
@@ -260,6 +265,16 @@ final class GatewayRootActor extends DittoRootActor {
                 .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
                 .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
                 .build();
+    }
+
+    private static GatewaySignalEnrichmentProvider signalEnrichmentProvider(
+            final GatewaySignalEnrichmentConfig signalEnrichmentConfig, final ActorSystem actorSystem) {
+
+        if (signalEnrichmentConfig.isCachingEnabled()) {
+            return new GatewayCachingSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
+        } else {
+            return new GatewayByRoundTripSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
+        }
     }
 
     private ActorRef createHealthCheckActor(final HealthCheckConfig healthCheckConfig) {

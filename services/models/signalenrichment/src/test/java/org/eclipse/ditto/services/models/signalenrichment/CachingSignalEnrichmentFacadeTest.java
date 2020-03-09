@@ -48,6 +48,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             "  maximum-size = 10\n" +
             "  expire-after-create = 2m\n" +
             "}";
+    private static final String ISSUER_PREFIX = "test:";
 
     @Override
     protected SignalEnrichmentFacade createSignalEnrichmentFacadeUnderTest(final TestKit kit,
@@ -95,7 +96,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
-            final String userId = "user";
+            final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationSubjects(userId)
                     .correlationId(UUID.randomUUID().toString()).build();
@@ -104,7 +105,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationSubjects()).contains(userId);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationSubjects())
+                    .contains(userId);
             assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
@@ -169,8 +171,8 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
-            final String userId1 = "user1";
-            final String userId2 = "user2";
+            final String userId1 = ISSUER_PREFIX + "user1";
+            final String userId2 = ISSUER_PREFIX + "user2";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationSubjects(userId1)
                     .correlationId(UUID.randomUUID().toString()).build();
@@ -188,7 +190,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
 
             // WHEN: same thing is asked again with same selector for an event with one revision ahead but other auth subjects
             final DittoHeaders headers2 = headers.toBuilder()
-                    .authorizationSubjects("user2")
+                    .authorizationSubjects(ISSUER_PREFIX + "user2")
                     .build();
             underTest.retrievePartialThing(thingId, SELECTOR, headers2,
                     THING_EVENT.setRevision(THING_EVENT.getRevision() + 1));
@@ -207,7 +209,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.dummy();
-            final String userId = "user1";
+            final String userId = ISSUER_PREFIX + "user1";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationSubjects(userId)
                     .correlationId(UUID.randomUUID().toString()).build();

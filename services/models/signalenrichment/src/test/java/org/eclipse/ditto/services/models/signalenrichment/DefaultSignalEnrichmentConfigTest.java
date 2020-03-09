@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.models.signalenrichment;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -28,7 +28,7 @@ import com.typesafe.config.ConfigValueFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig}.
+ * Tests {@link DefaultSignalEnrichmentConfig}.
  */
 public final class DefaultSignalEnrichmentConfigTest {
 
@@ -74,8 +74,7 @@ public final class DefaultSignalEnrichmentConfigTest {
 
     @Test
     public void renderIsInverseOfConstructor() {
-        final SignalEnrichmentConfig underTest =
-                DefaultSignalEnrichmentConfig.of(signalEnrichmentTestConf);
+        final SignalEnrichmentConfig underTest = DefaultSignalEnrichmentConfig.of(signalEnrichmentTestConf);
 
         softly.assertThat(DefaultSignalEnrichmentConfig.of(underTest.render())).isEqualTo(underTest);
     }

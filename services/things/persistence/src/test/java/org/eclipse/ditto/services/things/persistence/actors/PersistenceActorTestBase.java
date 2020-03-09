@@ -156,8 +156,8 @@ public abstract class PersistenceActorTestBase {
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
 
-        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
-        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, "test:" + AUTH_SUBJECT);
+        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, "test:" + AUTH_SUBJECT);
     }
 
     @After
