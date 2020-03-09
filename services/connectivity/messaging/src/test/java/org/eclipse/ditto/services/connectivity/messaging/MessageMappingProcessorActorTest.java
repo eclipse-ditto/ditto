@@ -17,6 +17,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,7 +66,6 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
-import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -107,6 +107,8 @@ public final class MessageMappingProcessorActorTest {
     private static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
     private static final String ADD_HEADER_MAPPER = AddHeaderMessageMapper.ALIAS;
     private static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES =
+            TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -198,6 +200,7 @@ public final class MessageMappingProcessorActorTest {
             // WHEN: a signal is received with 2 targets, one with enrichment and one without
             final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x", "attributes/y");
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
+            final AuthorizationSubject targetAuthSubjectWithoutIssuer = AuthorizationSubject.newInstance("auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
                     .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
@@ -219,7 +222,7 @@ public final class MessageMappingProcessorActorTest {
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject, targetAuthSubjectWithoutIssuer);
 
             final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
             conciergeForwarderProbe.reply(
@@ -267,6 +270,7 @@ public final class MessageMappingProcessorActorTest {
             final JsonFieldSelector extraFields = JsonFactory.newFieldSelector("attributes/x,attributes/y",
                     JsonParseOptions.newBuilder().withoutUrlDecoding().build());
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
+            final AuthorizationSubject targetAuthSubjectWithoutIssuer = AuthorizationSubject.newInstance("auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
                     .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
@@ -354,7 +358,7 @@ public final class MessageMappingProcessorActorTest {
                     .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
                     .build();
             assertThat(retrieveThing.getSelectedFields()).contains(extraFieldsWithAdditionalCachingSelectedOnes);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject, targetAuthSubjectWithoutIssuer);
             final JsonObject extra = JsonObject.newBuilder()
                     .set("/attributes/x", 5)
                     .build();
@@ -451,7 +455,7 @@ public final class MessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
                 assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(AUTHORIZATION_CONTEXT);
+                        .isEqualTo(AUTHORIZATION_CONTEXT_WITH_DUPLICATES);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
                         .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
@@ -496,14 +500,15 @@ public final class MessageMappingProcessorActorTest {
                 AuthorizationModelFactory.newAuthSubject(
                         "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
 
-        final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
+        final AuthorizationContext expectedAuthContext = TestConstants.Authorization.withUnprefixedSubjects(AuthorizationModelFactory.newAuthContext(
                 AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"),
-                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId));
+                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId)));
 
         testMessageMapping(correlationId, contextWithPlaceholders, ModifyAttribute.class, modifyAttribute -> {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
             assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
-            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjects())
+                    .isEqualTo(expectedAuthContext.getAuthorizationSubjects());
 
             // mapped by source <- {{ request:subjectId }}
             assertThat(modifyAttribute.getDittoHeaders().get("source"))
@@ -551,13 +556,15 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testMessageWithoutCorrelationId(){
 
-        final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
-                AuthorizationModelFactory.newAuthSubject("hub-application/json"),
-                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"));
+        final AuthorizationContext connectionAuthContext = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"),
+                AuthorizationModelFactory.newAuthSubject("integration:hub-application/json"));
 
-        testMessageMappingWithoutCorrelationId(expectedAuthContext, ModifyAttribute.class, modifyAttribute -> {
+        final AuthorizationContext expectedMessageAuthContext = TestConstants.Authorization.withUnprefixedSubjects(connectionAuthContext);
+
+        testMessageMappingWithoutCorrelationId(connectionAuthContext, ModifyAttribute.class, modifyAttribute -> {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
-            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedMessageAuthContext);
 
         });
     }
