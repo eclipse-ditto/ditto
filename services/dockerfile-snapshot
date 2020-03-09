@@ -1,0 +1,32 @@
+FROM adoptopenjdk/openjdk11-openj9:x86_64-alpine-jdk-11.0.5_10_openj9-0.17.0-slim
+
+ARG TARGET_DIR
+ARG SERVICE_STARTER
+ARG SERVICE_VERSION
+
+ENV HTTP_PORT=8080 \
+    HOSTING_ENVIRONMENT=Docker \
+    DITTO_HOME=/opt/ditto
+
+# Http port
+EXPOSE 8080
+
+RUN mkdir -p $DITTO_HOME
+
+COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
+
+RUN set -x \
+    && apk upgrade --update-cache \
+    && apk add --no-cache tini openssl \
+    && apk add --no-cache --virtual .tmp-deps wget ca-certificates shadow \
+    && groupadd --system ditto \
+    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
+    && cd $DITTO_HOME \
+    && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
+    && chown -R ditto:ditto $DITTO_HOME \
+    && apk del .tmp-deps
+
+USER ditto
+WORKDIR $DITTO_HOME
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["java", "-jar", "/opt/ditto/starter.jar"]
