@@ -20,6 +20,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 /**
  * Default implementation of {@link CacheConfig}.
@@ -69,6 +71,15 @@ public final class DefaultCacheConfig implements CacheConfig {
     @Override
     public Duration getExpireAfterCreate() {
         return expireAfterCreate;
+    }
+
+    @Override
+    public Config render() {
+        return ConfigFactory.empty()
+                .withValue(CacheConfigValue.MAXIMUM_SIZE.getConfigPath(), ConfigValueFactory.fromAnyRef(maximumSize))
+                .withValue(CacheConfigValue.EXPIRE_AFTER_CREATE.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterCreate))
+                .withValue(CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterAccess))
+                .withValue(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath(), ConfigValueFactory.fromAnyRef(expireAfterWrite));
     }
 
     @Override

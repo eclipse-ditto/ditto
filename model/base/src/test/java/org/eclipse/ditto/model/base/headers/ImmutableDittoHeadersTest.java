@@ -50,7 +50,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableDittoHeadersTest {
 
-    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("JohnOldman", "FrankGrimes");
+    private static final Collection<String>
+            AUTH_SUBJECTS_WITHOUT_DUPLICATES = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
+    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
@@ -233,7 +235,7 @@ public final class ImmutableDittoHeadersTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject expectedHeadersJsonObject = JsonFactory.newObjectBuilder()
-                .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS))
+                .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES))
                 .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID)
                 .set(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toInt())
                 .set(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL)
@@ -258,6 +260,36 @@ public final class ImmutableDittoHeadersTest {
         final JsonObject actualHeadersJsonObject = underTest.toJson();
 
         assertThat(actualHeadersJsonObject).isEqualTo(expectedHeadersJsonObject);
+    }
+
+    @Test
+    public void removesDuplicatedAuthSubjectsFromHeaderMap() {
+        final String expectedWithoutDups = stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES).toString();
+        final String withDups = stringCollectionToJsonArray(AUTH_SUBJECTS).toString();
+
+        final Map<String, String> headersWithDuplicatedAuthSubjects = new HashMap<>();
+        headersWithDuplicatedAuthSubjects.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), withDups);
+
+        final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headersWithDuplicatedAuthSubjects);
+
+        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey())).isEqualTo(expectedWithoutDups);
+
+    }
+
+    @Test
+    public void removesDuplicatedAuthSubjectsFromJsonRepresentation() {
+        final String withDups = stringCollectionToJsonArray(AUTH_SUBJECTS).toString();
+        final JsonObject expected = JsonFactory.newObjectBuilder()
+                .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES))
+                .build();
+
+        final Map<String, String> headersWithDuplicatedAuthSubjects = new HashMap<>();
+        headersWithDuplicatedAuthSubjects.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), withDups);
+
+        final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headersWithDuplicatedAuthSubjects);
+
+        assertThat(dittoHeaders.toJson()).isEqualTo(expected);
+
     }
 
     @Test
@@ -397,7 +429,7 @@ public final class ImmutableDittoHeadersTest {
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
         result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
-                stringCollectionToJsonArray(AUTH_SUBJECTS).toString());
+                stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES).toString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID);
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);

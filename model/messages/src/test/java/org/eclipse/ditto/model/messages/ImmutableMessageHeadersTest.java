@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +49,10 @@ public final class ImmutableMessageHeadersTest {
     private static final MessageDirection DIRECTION = MessageDirection.TO;
     private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
-    private static final Collection<String> AUTH_SUBJECT_IDS = Lists.list("JohnOldman", "FrankGrimes");
+
+    private static final Collection<String>
+            AUTH_SUBJECTS_WITHOUT_DUPLICATES = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
+    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final AuthorizationSubject KNOWN_READ_SUBJECT = AuthorizationSubject.newInstance("knownReadSubject");
@@ -78,7 +82,7 @@ public final class ImmutableMessageHeadersTest {
         final Map<String, String> expectedHeaderMap = createMapContainingAllKnownHeaders();
 
         final MessageHeaders messageHeaders = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .authorizationSubjects(AUTH_SUBJECT_IDS)
+                .authorizationSubjects(AUTH_SUBJECTS)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
                 .channel(KNOWN_CHANNEL)
@@ -256,7 +260,7 @@ public final class ImmutableMessageHeadersTest {
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), String.valueOf(AUTH_SUBJECT_IDS.stream()
+        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), String.valueOf(AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray())));
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");

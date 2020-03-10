@@ -154,7 +154,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .headerTranslator(headerTranslator)
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
                 .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
-                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 10))
+                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))
                 .build();
 
         rootTestRoute = testRoute(rootRoute);
@@ -345,7 +345,7 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionDueToTooManyAuthSubjects() {
-        final String hugeSubjects = IntStream.range(0, 11)
+        final String hugeSubjects = IntStream.range(0, 22)
                 .mapToObj(i -> "i:foo" + i)
                 .collect(Collectors.joining(","));
         final HttpRequest request =
