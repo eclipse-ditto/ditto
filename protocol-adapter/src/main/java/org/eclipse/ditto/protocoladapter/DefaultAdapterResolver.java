@@ -257,24 +257,43 @@ final class DefaultAdapterResolver implements AdapterResolver {
     /**
      * Compute a fast adapter resolution function from a list of known adapters.
      * <p>
-     * Has potential to construct exponentially many EnumMap objects and iterating on exponentially many adapter lists,
-     * but the Ditto protocol adapters are unambiguous enough such that the total size of all 9 EnumMap objects is 44,
-     * and the total length of iterated adapter lists is 59.
+     * Construct exponentially many EnumMap objects and iterating on exponentially many adapter lists,
+     * The total size of all EnumMap objects is 191, and the total length of iterated adapter lists is 101.
      * Details by return order of {@code dispatchByEnum}:
      * <pre>{@code
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
      * Constructed size-7 EnumMap from 4 adapters for Action
+     * Constructed size-7 EnumMap from 0 adapters for SearchAction
      * Constructed size-5 EnumMap from 5 adapters for Criterion
      * Constructed size-3 EnumMap from 5 adapters for Channel
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
      * Constructed size-7 EnumMap from 4 adapters for Action
-     * Constructed size-5 EnumMap from 6 adapters for Criterion
-     * Constructed size-7 EnumMap from 6 adapters for Action
+     * Constructed size-7 EnumMap from 0 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for Action
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
      * Constructed size-5 EnumMap from 8 adapters for Criterion
-     * Constructed size-3 EnumMap from 8 adapters for Channel
-     * Constructed size-2 EnumMap from 13 adapters for Group
-     * Total EnumMap size: 44
-     * Total adapter list length: 59
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 4 adapters for Action
+     * Constructed size-7 EnumMap from 0 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for Action
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for Action
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-5 EnumMap from 10 adapters for Criterion
+     * Constructed size-3 EnumMap from 10 adapters for Channel
+     * Constructed size-2 EnumMap from 15 adapters for Group
+     * Total EnumMap size: 191
+     * Total adapter list length: 101
      * }</pre>
-     * TODO: recompute after adding search adapters.
      *
      * @param adapters all known adapters.
      * @return a function to find an adapter for an adaptable quickly.
