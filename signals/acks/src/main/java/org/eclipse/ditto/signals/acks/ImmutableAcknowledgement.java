@@ -72,12 +72,12 @@ final class ImmutableAcknowledgement implements Acknowledgement {
      * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     public static ImmutableAcknowledgement of(final AcknowledgementLabel label,
-            final CharSequence entityId,
+            final EntityId entityId,
             final HttpStatusCode statusCode,
             @Nullable final JsonValue payload,
             final DittoHeaders dittoHeaders) {
 
-        return new ImmutableAcknowledgement(label, DefaultEntityId.of(entityId), statusCode, payload, dittoHeaders);
+        return new ImmutableAcknowledgement(label, entityId, statusCode, payload, dittoHeaders);
     }
 
     /**
@@ -122,13 +122,8 @@ final class ImmutableAcknowledgement implements Acknowledgement {
     }
 
     @Override
-    public boolean isFailed() {
-        return !isSuccess() && !isTimeout();
-    }
-
-    @Override
     public boolean isTimeout() {
-        return statusCode == HttpStatusCode.REQUEST_TIMEOUT;
+        return HttpStatusCode.REQUEST_TIMEOUT == statusCode;
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -58,7 +59,7 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
      * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     static Acknowledgement of(final AcknowledgementLabel label,
-            final CharSequence entityId,
+            final EntityId entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
@@ -78,7 +79,7 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
      * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     static Acknowledgement of(final AcknowledgementLabel label,
-            final CharSequence entityId,
+            final EntityId entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
@@ -109,22 +110,14 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
     /**
      * Indicates whether this Acknowledgement is a successful one.
      *
-     * @return {@code true} when this Acknowledgement is successful.
+     * @return {@code true} if this Acknowledgement is successful.
      */
     boolean isSuccess();
 
     /**
-     * Indicates whether this Acknowledgement is a failed one.
-     * Does not resolve to {@code true} when this Acknowledgement represents a {@link #isTimeout() Timeout}.
-     *
-     * @return {@code true} when this Acknowledgement is failed.
-     */
-    boolean isFailed();
-
-    /**
      * Indicates whether this Acknowledgement represents a timeout.
      *
-     * @return {@code true} when this Acknowledgement is timed out.
+     * @return {@code true} if this Acknowledgement is timed out.
      */
     boolean isTimeout();
 

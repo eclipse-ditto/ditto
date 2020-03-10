@@ -96,7 +96,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final HttpRequest httpRequest;
     private final HttpConfig httpConfig;
 
-    private final AcknowledgementAggregator acknowledgements;
     @Nullable private Duration timeout;
     @Nullable private DittoRuntimeException customTimeoutException;
 
@@ -111,7 +110,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         this.httpResponseFuture = httpResponseFuture;
         httpRequest = request;
         this.httpConfig = httpConfig;
-        acknowledgements = AcknowledgementAggregator.getInstance();
         timeout = null;
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
@@ -126,7 +124,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                         // wrap JsonRuntimeExceptions
                         cause = new DittoJsonException((RuntimeException) cause);
                     }
-
                     if (cause instanceof DittoRuntimeException) {
                         handleDittoRuntimeException((DittoRuntimeException) cause);
                     } else if (cause instanceof EntityStreamSizeException) {
@@ -169,14 +166,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         if (command.getDittoHeaders().isResponseRequired()) {
             final UnaryOperator<Command<?>> ackRequestSetter = ThingModifyCommandAckRequestSetter.getInstance();
             final Command<?> commandWithAckLabels = ackRequestSetter.apply(command);
-            final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
-            acknowledgements.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests(),
-                    command.getEntityId(), dittoHeaders);
             proxyActor.tell(commandWithAckLabels, getSelf());
 
             // After a Command was received, this Actor can only receive the correlating CommandResponse:
-            becomeCommandResponseAwaiting();
+            becomeCommandResponseAwaiting(getAcknowledgementAggregator(commandWithAckLabels));
 
+            final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
             timeout = dittoHeaders.getTimeout().orElse(null);
             if (null != timeout) {
                 customTimeoutException = timeoutExceptionCreator.apply(timeout);
@@ -188,7 +183,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
-    private void becomeCommandResponseAwaiting() {
+    private static AcknowledgementAggregator getAcknowledgementAggregator(final Command<?> command) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final String correlationId = dittoHeaders.getCorrelationId().orElseThrow();
+
+        final AcknowledgementAggregator result =
+                AcknowledgementAggregator.getInstance(command.getEntityId(), correlationId);
+        result.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests());
+        return result;
+    }
+
+    private void becomeCommandResponseAwaiting(final AcknowledgementAggregator acknowledgements) {
         final Receive receive = ReceiveBuilder.create()
                 .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's <{}> message.", COMPLETE_MESSAGE))
                 // If an actor downstream replies with an HTTP response, simply forward it.

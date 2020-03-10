@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.acks;
 
-import java.util.Map;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -48,23 +49,30 @@ public interface Acknowledgements extends Iterable<Acknowledgement>, Signal<Ackn
     String TYPE = "acknowledgements";
 
     /**
-     * Returns a new {@code Acknowledgements} combining several passed in {@code Acknowledgement}s with a combined
-     * {@code statusCode}.
+     * Returns a new instance of {@code Acknowledgements} combining several passed in acknowledgements with a combined
+     * status code.
      *
-     * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the aggregated status code (HTTP semantics) of the Acknowledgements.
-     * @param acknowledgements the map of {@link Acknowledgement}s to be included in the aggregated Acknowledgements.
-     * @param dittoHeaders the DittoHeaders of the Acknowledgements.
+     * @param acknowledgements the acknowledgements to be included in the result.
+     * @param dittoHeaders the DittoHeaders of the result.
      * @return the Acknowledgements.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @throws IllegalArgumentException if {@code entityId} is empty.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs of the
+     * given acknowledgements are not equal.
      */
-    static Acknowledgements of(final CharSequence entityId,
-            final HttpStatusCode statusCode,
-            final Map<AcknowledgementLabel, Acknowledgement> acknowledgements,
-            final DittoHeaders dittoHeaders) {
+    static Acknowledgements of(final Collection<Acknowledgement> acknowledgements, final DittoHeaders dittoHeaders) {
+        return AcknowledgementFactory.newAcknowledgements(acknowledgements, dittoHeaders);
+    }
 
-        return AcknowledgementFactory.newAcknowledgements(entityId, statusCode, acknowledgements, dittoHeaders);
+    /**
+     * Returns an empty instance of {@code Acknowledgements} for the given entity ID.
+     *
+     * @param entityId the entity ID for which no acknowledgements were received at all.
+     * @param dittoHeaders the headers of the returned Acknowledgements instance.
+     * @return the Acknowledgements.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    static Acknowledgements empty(final EntityId entityId, final DittoHeaders dittoHeaders) {
+        return AcknowledgementFactory.emptyAcknowledgements(entityId, dittoHeaders);
     }
 
     /**
@@ -73,8 +81,8 @@ public interface Acknowledgements extends Iterable<Acknowledgement>, Signal<Ackn
      * @param jsonObject the JSON object to be parsed.
      * @return the Acknowledgements.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
-     * expected 'Acknowledgements' format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} misses a required field.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an unexpected value type.
      */
     static Acknowledgements fromJson(final JsonObject jsonObject) {
         return AcknowledgementFactory.acknowledgementsFromJson(jsonObject);
@@ -83,33 +91,40 @@ public interface Acknowledgements extends Iterable<Acknowledgement>, Signal<Ackn
     /**
      * Returns the status code of the Acknowledgements:
      * <ul>
-     * <li>When only one {@code Acknowledgement} is included: the {@link Acknowledgement#getStatusCode()} of this Ack
-     * is used as the {@code statusCode}</li>
-     * <li>When several {@code Acknowledgement}s are included:
-     * <ul>
-     * <li>If all contained {@code Acknowledgement}s are successful, the overall statusCode is
-     * {@link HttpStatusCode#OK}</li>
-     * <li>If at least one {@code Acknowledgement} is not, the overall statusCode is
-     * {@link HttpStatusCode#FAILED_DEPENDENCY}</li>
+     *     <li>If only one acknowledgement is included, its status code is returned.</li>
+     *     <li>
+     *         If several acknowledgements are included:
+     *         <ul>
+     *             <li>
+     *                 If all contained acknowledgements are successful, the overall status code is
+     *                 {@link HttpStatusCode#OK}.
+     *             </li>
+     *             <li>
+     *                 If at least one acknowledgement failed, the overall status code is
+     *                 {@link HttpStatusCode#FAILED_DEPENDENCY}.
+     *             </li>
+     *         </ul>
+     *     </li>
      * </ul>
-     * </li>
-     * </ul>
-     *
-     * @return the status code of the Acknowledgements.
+     * @return the status code.
      */
     HttpStatusCode getStatusCode();
 
     /**
-     * Returns the entity as JSON:
+     * Returns the JSON representation of this Acknowledgement's entity.
      * <ul>
-     * <li>When only one {@code Acknowledgement} is included: the {@link Acknowledgement#getEntity(JsonSchemaVersion)}
-     * of this Ack is returned</li>
-     * <li>When several {@code Acknowledgement}s are included: the {@link Acknowledgement#getEntity(JsonSchemaVersion)}
-     * of each Ack is returned in a JsonObject with the {@code AcknowledgementLabel} as key of each Ack entry
+     *     <li>
+     *         If only one acknowledgement is included, the {@link Acknowledgement#getEntity(JsonSchemaVersion)} of this
+     *         Ack is returned.
+     *     </li>
+     *     <li>
+     *         If several acknowledgements are included, the {@link Acknowledgement#getEntity(JsonSchemaVersion)} of
+     *         each Ack is returned in a JsonObject with the AcknowledgementLabel as key of each Ack entry.
+     *     </li>
      * </ul>
      *
      * @param schemaVersion the JsonSchemaVersion in which to return the JSON.
-     * @return the entity as JSON.
+     * @return the entity's JSON representation.
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
@@ -191,10 +206,10 @@ public interface Acknowledgements extends Iterable<Acknowledgement>, Signal<Ackn
         return getType();
     }
 
-
     /**
      * Definition of fields of the JSON representation of an {@link Acknowledgements}.
      */
+    @Immutable
     final class JsonFields {
 
         private JsonFields() {
@@ -230,4 +245,5 @@ public interface Acknowledgements extends Iterable<Acknowledgement>, Signal<Ackn
                         JsonSchemaVersion.V_2);
 
     }
+
 }

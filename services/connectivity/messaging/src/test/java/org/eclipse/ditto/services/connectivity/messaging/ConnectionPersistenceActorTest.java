@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
@@ -23,8 +22,11 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -112,9 +114,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     private static final Set<String> SUBJECTS = Sets.newHashSet(TestConstants.Authorization.SUBJECT_ID,
             TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS =
-            Sets.newHashSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
+            EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES =
-            Sets.newHashSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
+            EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
     private ActorSystem actorSystem;
     private ActorRef pubSubMediator;
     private ActorRef conciergeForwarder;
@@ -199,18 +201,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .liveStatus(ConnectivityStatus.OPEN)
                         .connectedSince(INSTANT)
                         .clientStatus(
-                                asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
+                                List.of(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
                                         "connection is open", INSTANT)))
-                        .sourceStatus(asList(
-                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source1",
-                                        "consumer started"),
-                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2",
-                                        "consumer started")
+                        .sourceStatus(
+                                List.of(ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN,
+                                        "source1", "consumer started"),
+                                        ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN,
+                                                "source2", "consumer started")
                         ))
                         .targetStatus(
-                                asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
-                                        "target1",
-                                        "publisher started")))
+                                List.of(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
+                                        "target1", "publisher started")))
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
         thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
@@ -991,8 +992,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
             assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
 
-            final Acknowledgement acknowledgement = Acknowledgement.of(acknowledgementLabel,
-                    TestConstants.Things.THING_ID.toString(), HttpStatusCode.OK, dittoHeaders);
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                            dittoHeaders);
             underTest.tell(acknowledgement, getRef());
 
             expectMsg(acknowledgement);
@@ -1093,7 +1095,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         latch.await();
     }
 
-    static class TestActor extends AbstractActor {
+    static final class TestActor extends AbstractActor {
 
         private final TestKit probe;
 
@@ -1102,7 +1104,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }
 
         static Props props(final TestKit probe) {
-            return Props.create(TestActor.class, new Creator<TestActor>() {
+            return Props.create(TestActor.class, new Creator<>() {
                 private static final long serialVersionUID = 1L;
 
                 @Override
@@ -1120,14 +1122,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }
     }
 
-    private void expectSubscribe(final Set<StreamingType> streamingTypes, final Set<String> subjects) {
-        verify(dittoProtocolSubMock, timeout(500)).subscribe(
-                argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
-                eq(subjects),
-                any(ActorRef.class));
+    private void expectSubscribe(final Collection<StreamingType> streamingTypes, final Set<String> subjects) {
+        verify(dittoProtocolSubMock, timeout(500))
+                .subscribe(argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
+                        eq(subjects),
+                        any(ActorRef.class));
     }
 
-    private void expectRemoveSubscriber(int howManyTimes) {
+    private void expectRemoveSubscriber(final int howManyTimes) {
         verify(dittoProtocolSubMock, timeout(500).times(howManyTimes)).removeSubscriber(any(ActorRef.class));
     }
 
@@ -1137,4 +1139,5 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     false);
         }
     }
+
 }

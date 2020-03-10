@@ -12,14 +12,16 @@
  */
 package org.eclipse.ditto.signals.acks;
 
-import java.util.Map;
+import java.util.Collection;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -27,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  *
  * @since 1.1.0
  */
+@Immutable
 final class AcknowledgementFactory {
 
     private AcknowledgementFactory() {
@@ -46,7 +49,7 @@ final class AcknowledgementFactory {
      * @throws IllegalArgumentException if {@code entityId} is empty.
      */
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
-            final CharSequence entityId,
+            final EntityId entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
@@ -67,23 +70,31 @@ final class AcknowledgementFactory {
     }
 
     /**
-     * Returns a new {@code Acknowledgements} combining several passed in {@code Acknowledgement}s with a combined
-     * {@code statusCode}.
+     * Returns a new {@link Acknowledgements} combining several passed in {@link Acknowledgement}s.
      *
-     * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the aggregated status code (HTTP semantics) of the Acknowledgements.
-     * @param acknowledgements the map of {@link Acknowledgement}s to be included in the aggregated Acknowledgements.
-     * @param dittoHeaders the DittoHeaders of the Acknowledgements.
+     * @param acknowledgements the map of acknowledgements to be included in the result.
+     * @param dittoHeaders the headers of the returned Acknowledgements instance.
      * @return the Acknowledgements.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @throws IllegalArgumentException if {@code entityId} is empty.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs of the
+     * given acknowledgements are not equal.
      */
-    public static Acknowledgements newAcknowledgements(final CharSequence entityId,
-            final HttpStatusCode statusCode,
-            final Map<AcknowledgementLabel, Acknowledgement> acknowledgements,
+    public static Acknowledgements newAcknowledgements(final Collection<Acknowledgement> acknowledgements,
             final DittoHeaders dittoHeaders) {
 
-        return ImmutableAcknowledgements.of(entityId, statusCode, acknowledgements, dittoHeaders);
+        return ImmutableAcknowledgements.of(acknowledgements, dittoHeaders);
+    }
+
+    /**
+     * Returns an empty instance of {@link Acknowledgements} for the given entity ID.
+     *
+     * @param entityId the entity ID for which no acknowledgements were received at all.
+     * @param dittoHeaders the headers of the returned Acknowledgements instance.
+     * @return the Acknowledgements.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static Acknowledgements emptyAcknowledgements(final EntityId entityId, final DittoHeaders dittoHeaders) {
+        return ImmutableAcknowledgements.empty(entityId, dittoHeaders);
     }
 
     /**
@@ -91,8 +102,8 @@ final class AcknowledgementFactory {
      *
      * @param jsonObject the JSON object.
      * @return the Acknowledgements.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
-     * expected 'Acknowledgements' format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} misses a required field.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an unexpected value.
      */
     public static Acknowledgements acknowledgementsFromJson(final JsonObject jsonObject) {
         return ImmutableAcknowledgements.fromJson(jsonObject);

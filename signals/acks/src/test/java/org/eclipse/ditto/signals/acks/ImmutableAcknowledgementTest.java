@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -72,13 +73,27 @@ public final class ImmutableAcknowledgementTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual = KNOWN_ACK.toJson();
+
         assertThat(actual).isEqualTo(KNOWN_ACK_JSON);
     }
 
+    // TODO
+    @Ignore("Unignore as soon as CR-8394 is done")
     @Test
     public void fromJsonReturnsExpected() {
         final ImmutableAcknowledgement actual = ImmutableAcknowledgement.fromJson(KNOWN_ACK_JSON);
+
         assertThat(actual).isEqualTo(KNOWN_ACK);
+    }
+
+    @Test
+    public void getEntityIdReturnsExpected() {
+        final ThingId entityId = KNOWN_ENTITY_ID;
+        final ImmutableAcknowledgement underTest =
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, entityId, KNOWN_STATUS_CODE, KNOWN_PAYLOAD,
+                        KNOWN_DITTO_HEADERS);
+
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(entityId);
     }
 
 }

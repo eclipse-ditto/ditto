@@ -12,25 +12,32 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.Acknowledgements;
+import org.eclipse.ditto.signals.base.WithId;
 
 /**
- * This class can be used to aggregate the required and actually received acknowledgements for a
- * single request which requested Acknowledgements.
+ * This class can be used to aggregate the required and actually received acknowledgements for a single request which
+ * requested acknowledgements.
+ * The aggregator works in the context of a correlation ID as well as an entity ID; all received acknowledgements have
+ * to comply to these.
  *
  * @since 1.1.0
  */
@@ -39,55 +46,56 @@ public final class AcknowledgementAggregator {
 
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
-    private final Map<AcknowledgementLabel, Acknowledgement> acknowledgements;
+    private final EntityId entityId;
+    private final CharSequence correlationId;
+    private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
 
-    private AcknowledgementAggregator() {
-        acknowledgements = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
+    private AcknowledgementAggregator(final EntityId entityId, final CharSequence correlationId) {
+        this.entityId = entityId;
+        this.correlationId = correlationId;
+        acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
     }
 
     /**
      * Returns an instance of {@code Acknowledgements}.
      *
+     * @param entityId the ID of the entity for which acknowledgements should be correlated and aggregated.
+     * @param correlationId the ID for correlating acknowledgement requests with acknowledgements.
      * @return the instance.
+     * @throws NullPointerException if {@code correlationId} is {@code null}.
+     * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
-    public static AcknowledgementAggregator getInstance() {
-        return new AcknowledgementAggregator();
+    public static AcknowledgementAggregator getInstance(final EntityId entityId, final CharSequence correlationId) {
+        return new AcknowledgementAggregator(checkNotNull(entityId, "entityId"), argumentNotEmpty(correlationId));
     }
 
     /**
      * Adds the given acknowledgement request.
      *
      * @param acknowledgementRequest the acknowledgement request to be added.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @throws NullPointerException if {@code acknowledgementRequest} is {@code null}.
      */
-    public void addAcknowledgementRequest(final AcknowledgementRequest acknowledgementRequest,
-            final CharSequence entityId, final DittoHeaders dittoHeaders) {
+    public void addAcknowledgementRequest(final AcknowledgementRequest acknowledgementRequest) {
         checkNotNull(acknowledgementRequest, "acknowledgementRequest");
-        acknowledgements.put(acknowledgementRequest.getLabel(),
-                buildTimeoutAcknowledgement(acknowledgementRequest.getLabel(), entityId, dittoHeaders));
+        final AcknowledgementLabel ackLabel = acknowledgementRequest.getLabel();
+        acknowledgementMap.put(ackLabel, getTimeoutAcknowledgement(ackLabel));
+    }
+
+    private Acknowledgement getTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
+
+        // This Acknowledgement was not actually received, thus it cannot have "real" DittoHeaders.
+        return Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.REQUEST_TIMEOUT, DittoHeaders.empty());
     }
 
     /**
      * Adds the given acknowledgement requests if they are not already present.
      *
      * @param acknowledgementRequests the acknowledgement requests to be added.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @throws NullPointerException if {@code acknowledgementRequests} is {@code null}.
      */
-    public void addAcknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests,
-            final CharSequence entityId, final DittoHeaders dittoHeaders) {
+    public void addAcknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests) {
         checkNotNull(acknowledgementRequests, "acknowledgementRequests");
-        acknowledgementRequests.forEach(ackReq -> this.acknowledgements.put(ackReq.getLabel(),
-                buildTimeoutAcknowledgement(ackReq.getLabel(), entityId, dittoHeaders)));
-    }
-
-    private static Acknowledgement buildTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel,
-            final CharSequence entityId, final DittoHeaders dittoHeaders) {
-
-        return Acknowledgement.of(acknowledgementLabel,
-                entityId,
-                HttpStatusCode.REQUEST_TIMEOUT,
-                dittoHeaders
-        );
+        acknowledgementRequests.forEach(this::addAcknowledgementRequest);
     }
 
     /**
@@ -99,25 +107,54 @@ public final class AcknowledgementAggregator {
      *
      * @param acknowledgement the acknowledgement to be added.
      * @throws NullPointerException if {@code acknowledgement} is {@code null}.
+     * @throws IllegalArgumentException
+     * <ul>
+     *     <li>if {@code acknowledgement} did not provide a correlation ID at all,</li>
+     *     <li>the provided correlation ID differs from the correlation ID of this aggregator instance or</li>
+     *     <li>if acknowledgement provides an unexpected entity ID.</li>
+     * </ul>
      */
     public void addReceivedAcknowledgment(final Acknowledgement acknowledgement) {
         checkNotNull(acknowledgement, "acknowledgement");
-
+        validateCorrelationId(acknowledgement);
+        validateEntityId(acknowledgement);
         if (isRequested(acknowledgement) && isFirstOfItsLabel(acknowledgement)) {
-            acknowledgements.put(acknowledgement.getLabel(), acknowledgement);
+            acknowledgementMap.put(acknowledgement.getLabel(), acknowledgement);
+        }
+    }
+
+    private void validateCorrelationId(final WithDittoHeaders<Acknowledgement> acknowledgement) {
+        final DittoHeaders dittoHeaders = acknowledgement.getDittoHeaders();
+        final String receivedCorrelationId = dittoHeaders.getCorrelationId()
+                .orElseThrow(() -> {
+                    final String pattern = "The received Acknowledgement did not provide a correlation ID at all but"
+                            + " expected was <{0}>!";
+                    return new IllegalArgumentException(MessageFormat.format(pattern, correlationId));
+                });
+
+        if (!receivedCorrelationId.equals(correlationId.toString())) {
+            final String pattern = "The received Acknowledgement provided correlation ID <{0}> but expected was <{1}>!";
+            throw new IllegalArgumentException(MessageFormat.format(pattern, receivedCorrelationId, correlationId));
+        }
+    }
+
+    private void validateEntityId(final WithId acknowledgement) {
+        final EntityId receivedEntityId = acknowledgement.getEntityId();
+        if (!entityId.equals(receivedEntityId)) {
+            final String pattern = "The received Acknowledgement provided entity ID <{0}> but expected was <{1}>!";
+            throw new IllegalArgumentException(MessageFormat.format(pattern, receivedEntityId, entityId));
         }
     }
 
     private boolean isRequested(final Acknowledgement acknowledgement) {
         final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
-        return acknowledgements.containsKey(ackLabel);
+        return acknowledgementMap.containsKey(ackLabel);
     }
 
     private boolean isFirstOfItsLabel(final Acknowledgement acknowledgement) {
         final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
-        return Optional.ofNullable(acknowledgements.get(ackLabel))
-                .filter(Acknowledgement::isTimeout)
-                .isPresent();
+        @Nullable final Acknowledgement knownAcknowledgement = acknowledgementMap.get(ackLabel);
+        return null != knownAcknowledgement && knownAcknowledgement.isTimeout();
     }
 
     /**
@@ -127,7 +164,8 @@ public final class AcknowledgementAggregator {
      * acknowledgements.
      */
     public boolean receivedAllRequestedAcknowledgements() {
-        return acknowledgements.values().stream()
+        final Collection<Acknowledgement> acknowledgements = acknowledgementMap.values();
+        return acknowledgements.stream()
                 .noneMatch(Acknowledgement::isTimeout);
     }
 
@@ -137,39 +175,44 @@ public final class AcknowledgementAggregator {
      * @return {@code true} if all requested acknowledgements were received and all were successful, {@code false} else.
      */
     public boolean isSuccessful() {
-        return receivedAllRequestedAcknowledgements() &&
-                acknowledgements.values().stream().allMatch(Acknowledgement::isSuccess);
+        boolean result = false;
+        if (receivedAllRequestedAcknowledgements()) {
+            final Collection<Acknowledgement> acknowledgements = acknowledgementMap.values();
+            result = acknowledgements.stream()
+                    .allMatch(Acknowledgement::isSuccess);
+        }
+        return result;
     }
 
     /**
-     * Builds the aggregated {@link Acknowledgements} based on the {@link Acknowledgement} collected in this instance.
+     * Builds the aggregated {@link Acknowledgements} based on the {@link Acknowledgement}s collected in this instance.
      *
-     * @param entityId the {@code EntityId} to include in the built Acknowledgements.
      * @param dittoHeaders the {@code DittoHeaders} to include in the built Acknowledgements.
      * @return the built Acknowledgements.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code dittoHeaders} did contain another correlation ID than the expected one
+     * of this aggregator instance.
      */
-    public Acknowledgements buildAggregatedAcknowledgements(final CharSequence entityId,
-            final DittoHeaders dittoHeaders) {
-        return Acknowledgements.of(entityId, calculateCombinedStatusCode(), acknowledgements, dittoHeaders);
+    public Acknowledgements getAggregatedAcknowledgements(final DittoHeaders dittoHeaders) {
+        validateCorrelationId(checkNotNull(dittoHeaders, "dittoHeaders"));
+        final Collection<Acknowledgement> acknowledgements = acknowledgementMap.values();
+        final Acknowledgements result;
+        if (acknowledgements.isEmpty()) {
+            result = Acknowledgements.empty(entityId, dittoHeaders);
+        } else {
+            result = Acknowledgements.of(acknowledgements, dittoHeaders);
+        }
+
+        return result;
     }
 
-    private HttpStatusCode calculateCombinedStatusCode() {
-
-        if (acknowledgements.size() == 1) {
-            return acknowledgements.values().stream()
-                    .findFirst()
-                    .map(Acknowledgement::getStatusCode)
-                    .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR);
-        } else {
-            final boolean allAcknowledgementsSuccessful = acknowledgements.values().stream()
-                    .allMatch(Acknowledgement::isSuccess);
-
-            if (allAcknowledgementsSuccessful) {
-                return HttpStatusCode.OK;
-            } else {
-                return HttpStatusCode.FAILED_DEPENDENCY;
-            }
-        }
+    private void validateCorrelationId(final DittoHeaders dittoHeaders) {
+        dittoHeaders.getCorrelationId()
+                .filter(ci -> !ci.equals(correlationId.toString()))
+                .ifPresent(ci -> {
+                    final String pattern = "The provided correlation ID <{0}> did not match the expected <{1}>!";
+                    throw new IllegalArgumentException(MessageFormat.format(pattern, ci, correlationId));
+                });
     }
 
 }
