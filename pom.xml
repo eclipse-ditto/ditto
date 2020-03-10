@@ -394,11 +394,6 @@
                     <version>0.8.5</version>
                 </plugin>
                 <plugin>
-                    <groupId>io.fabric8</groupId>
-                    <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.26.0</version>
-                </plugin>
-                <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
                     <version>${japicmp-maven-plugin.version}</version>
