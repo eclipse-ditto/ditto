@@ -518,6 +518,15 @@ public final class PoliciesModelFactory {
     /**
      * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
      *
+     * @return the new builder.
+     */
+    public static PolicyBuilder newPolicyBuilder() {
+        return ImmutablePolicyBuilder.newInstance();
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
+     *
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code id} is invalid.
