@@ -14,8 +14,11 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -59,7 +62,7 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
     protected Adaptable mapSignalToAdaptable(final SubscriptionEvent<?> event, final TopicPath.Channel channel) {
         TopicPath topicPath;
         final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath());
-        final JsonObjectBuilder payloadContentBuilder =JsonFactory.newObjectBuilder();
+        final JsonObjectBuilder payloadContentBuilder = JsonFactory.newObjectBuilder();
 
         final String eventName = event.getClass().getSimpleName().toLowerCase().replace("subscription", "");
         if (event instanceof SubscriptionCreated) {
@@ -95,6 +98,25 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
                 .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(event.getDittoHeaders()))
                 .build();
     }
+
+    @Override
+    public Set<TopicPath.Criterion> getCriteria() {
+        return EnumSet.of(TopicPath.Criterion.SEARCH);
+    }
+
+    @Override
+    public Set<TopicPath.Action> getActions() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public boolean isForResponses() {
+        return false;
+    }
+
+    @Override
+    public Set<TopicPath.SearchAction> getSearchActions() {
+        return EnumSet.of(TopicPath.SearchAction.COMPLETE, TopicPath.SearchAction.HAS_NEXT,
+                TopicPath.SearchAction.FAILED, TopicPath.SearchAction.GENERATED);
+    }
 }
-
-

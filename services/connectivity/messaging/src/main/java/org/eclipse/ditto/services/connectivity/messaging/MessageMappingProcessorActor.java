@@ -56,7 +56,6 @@ import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.query.criteria.Criteria;
@@ -88,7 +87,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
@@ -139,6 +138,7 @@ public final class MessageMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final SourceQueue<ExternalMessage> inboundSourceQueue;
+    private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
@@ -158,11 +158,11 @@ public final class MessageMappingProcessorActor
 
         final DefaultScopedConfig dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
-        limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
+        limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
@@ -172,6 +172,8 @@ public final class MessageMappingProcessorActor
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
         this.processorPoolSize = processorPoolSize;
         inboundSourceQueue = materializeInboundStream(processorPoolSize);
+        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
     }
 
     /**
@@ -244,8 +246,8 @@ public final class MessageMappingProcessorActor
 
     @Override
     protected void handleDittoRuntimeException(final DittoRuntimeException exception) {
-        final ThingErrorResponse errorResponse = convertExceptionToErrorResponse(exception);
-        handleThingErrorResponse(exception, errorResponse, getSender());
+        final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(exception, null);
+        handleErrorResponse(exception, errorResponse, getSender());
     }
 
     @Override
@@ -431,13 +433,13 @@ public final class MessageMappingProcessorActor
         try {
             return mapExternalMessageToSignal(externalMessage);
         } catch (final Exception e) {
-            handleInboundException(e, externalMessage, getAuthorizationContext(externalMessage).orElse(null));
+            handleInboundException(e, externalMessage, null, getAuthorizationContext(externalMessage).orElse(null));
             return Source.empty();
         }
     }
 
     private void handleInboundException(final Exception e, final ExternalMessage message,
-            @Nullable final AuthorizationContext authorizationContext) {
+            @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
 
         if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
@@ -445,11 +447,11 @@ public final class MessageMappingProcessorActor
                     .failure("Got exception {0} when processing external message: {1}",
                             dittoRuntimeException.getErrorCode(),
                             e.getMessage());
-            final ThingErrorResponse thingErrorResponse = convertExceptionToErrorResponse(dittoRuntimeException);
+            final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
             final DittoHeaders mappedHeaders =
-                    applyInboundHeaderMapping(thingErrorResponse, message, authorizationContext,
+                    applyInboundHeaderMapping(errorResponse, message, authorizationContext,
                             message.getTopicPath().orElse(null), message.getInternalHeaders());
-            handleThingErrorResponse(dittoRuntimeException, thingErrorResponse.setDittoHeaders(mappedHeaders),
+            handleErrorResponse(dittoRuntimeException, errorResponse.setDittoHeaders(mappedHeaders),
                     ActorRef.noSender());
         } else {
             responseMappedMonitor.getLogger()
@@ -495,7 +497,8 @@ public final class MessageMappingProcessorActor
                 })
                 .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
                 // skip the inbound stream directly to outbound stream
-                .onException(exception -> handleInboundException(exception, incomingMessage, authorizationContext))
+                .onException((exception, topicPath) -> handleInboundException(exception, incomingMessage, topicPath,
+                        authorizationContext))
                 .inboundMapped(connectionMonitorRegistry.forInboundMapped(connectionId, source))
                 .inboundDropped(connectionMonitorRegistry.forInboundDropped(connectionId, source))
                 .infoProvider(InfoProviderFactory.forExternalMessage(incomingMessage))
@@ -506,7 +509,7 @@ public final class MessageMappingProcessorActor
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, signal, connectionId);
     }
 
-    private void handleThingErrorResponse(final DittoRuntimeException exception, final ThingErrorResponse errorResponse,
+    private void handleErrorResponse(final DittoRuntimeException exception, final ErrorResponse<?> errorResponse,
             final ActorRef sender) {
 
         enhanceLogUtil(exception);
@@ -526,27 +529,10 @@ public final class MessageMappingProcessorActor
         handleCommandResponse(errorResponse, exception, sender);
     }
 
-    private ThingErrorResponse convertExceptionToErrorResponse(final DittoRuntimeException exception) {
-
-        /*
-         * Truncate headers to send in an error response.
-         * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
-         * instance due to cluster routing.
-         */
-        final DittoHeaders truncatedHeaders = exception.getDittoHeaders().truncate(limitsConfig.getHeadersMaxSize());
-        return getThingId(exception)
-                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
-                .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
-    }
-
     private static String stackTraceAsString(final DittoRuntimeException exception) {
         final StringWriter stringWriter = new StringWriter();
         exception.printStackTrace(new PrintWriter(stringWriter));
         return stringWriter.toString();
-    }
-
-    private static Optional<ThingId> getThingId(final DittoRuntimeException e) {
-        return Optional.ofNullable(e.getDittoHeaders().get(MessageHeaderDefinition.THING_ID.getKey())).map(ThingId::of);
     }
 
     private void handleCommandResponse(final CommandResponse<?> response,
@@ -616,7 +602,7 @@ public final class MessageMappingProcessorActor
         final OutboundMappingResultHandler outboundMappingResultHandler = OutboundMappingResultHandler.newBuilder()
                 .onMessageMapped(mappedOutboundSignal -> Source.single(outbound.mapped(mappedOutboundSignal)))
                 .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
-                .onException(exception -> {
+                .onException((exception, topicPath) -> {
                     if (exception instanceof DittoRuntimeException) {
                         final DittoRuntimeException e = (DittoRuntimeException) exception;
                         logger.withCorrelationId(e)
@@ -762,7 +748,7 @@ public final class MessageMappingProcessorActor
                                 signal.getDittoHeaders().toBuilder(),
                                 authorizationContext,
                                 extraInternalHeaders,
-                                !signal.getDittoHeaders().getCorrelationId().isPresent()
+                                signal.getDittoHeaders().getCorrelationId().isEmpty()
                         ).build()
                 );
     }
@@ -776,7 +762,7 @@ public final class MessageMappingProcessorActor
         if (authorizationContext != null) {
             builder.authorizationContext(authorizationContext);
         }
-        if (appendRandomCorrelationId && !extraInternalHeaders.getCorrelationId().isPresent()) {
+        if (appendRandomCorrelationId && extraInternalHeaders.getCorrelationId().isEmpty()) {
             builder.randomCorrelationId();
         }
         return builder;

@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +56,9 @@ public final class AmqpValidator extends AbstractProtocolValidator {
         source.getEnforcement().ifPresent(enforcement -> {
             validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
-                    validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder()));
+                    validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder(),
+                            PlaceholderFactory.newPolicyPlaceholder(),
+                            PlaceholderFactory.newEntityPlaceholder()));
         });
         source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }

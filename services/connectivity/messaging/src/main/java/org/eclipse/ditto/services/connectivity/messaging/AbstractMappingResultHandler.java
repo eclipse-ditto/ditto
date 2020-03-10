@@ -15,13 +15,14 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
+import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 
 /**
@@ -37,12 +38,13 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
 
     private final Function<M, R> onMessageMapped;
     private final Runnable onMessageDropped;
-    private final Consumer<Exception> onException;
+    private final BiConsumer<Exception, TopicPath> onException;
     private final R emptyResult;
     private final BinaryOperator<R> combineResults;
     private final Collection<ConnectionMonitor> mappedMonitors;
     private final Collection<ConnectionMonitor> droppedMonitors;
     private final ConnectionMonitor.InfoProvider infoProvider;
+    private TopicPath topicPath = null;
 
     protected AbstractMappingResultHandler(final AbstractBuilder<M, R, ?> builder) {
         onMessageMapped = checkNotNull(builder.onMessageMapped, "onMessageMapped");
@@ -83,7 +85,7 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
         } else {
             mappedMonitors.forEach(monitor -> monitor.exception(exception));
         }
-        onException.accept(exception);
+        onException.accept(exception, topicPath);
         return emptyResult;
     }
 
@@ -97,6 +99,11 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
         return emptyResult;
     }
 
+    @Override
+    public void onTopicPathResolved(final TopicPath topicPath) {
+        this.topicPath = topicPath;
+    }
+
     @NotThreadSafe
     abstract static class AbstractBuilder<M, R, T extends AbstractBuilder<M, R, T>> {
 
@@ -106,7 +113,7 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
         private ConnectionMonitor.InfoProvider infoProvider;
         private Function<M, R> onMessageMapped;
         private Runnable onMessageDropped;
-        private Consumer<Exception> onException;
+        private BiConsumer<Exception, TopicPath> onException;
         private R emptyResult;
         private BinaryOperator<R> combineResults;
 
@@ -129,7 +136,7 @@ abstract class AbstractMappingResultHandler<M, R> implements MappingResultHandle
             return myself;
         }
 
-        T onException(final Consumer<Exception> onException) {
+        T onException(final BiConsumer<Exception, TopicPath> onException) {
             this.onException = onException;
             return myself;
         }

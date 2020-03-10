@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -23,21 +23,21 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Tests {@link ImmutableThingPlaceholder}.
+ * Tests {@link ImmutablePolicyPlaceholder}.
  */
-public class ImmutableThingPlaceholderTest {
+public class ImmutablePolicyPlaceholderTest {
 
     private static final String NAME = "ditto";
     private static final String NAMESPACE = "eclipse";
-    private static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
-    private static final ThingPlaceholder UNDER_TEST = ImmutableThingPlaceholder.INSTANCE;
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, NAME);
+    private static final PolicyPlaceholder UNDER_TEST = ImmutablePolicyPlaceholder.INSTANCE;
 
     /**
      * Assert immutability.
      */
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableThingPlaceholder.class, MutabilityMatchers.areImmutable());
+        MutabilityAssert.assertInstancesOf(ImmutablePolicyPlaceholder.class, MutabilityMatchers.areImmutable());
     }
 
     /**
@@ -45,30 +45,30 @@ public class ImmutableThingPlaceholderTest {
      */
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableThingPlaceholder.class)
+        EqualsVerifier.forClass(ImmutablePolicyPlaceholder.class)
                 .suppress(Warning.INHERITED_DIRECTLY_FROM_OBJECT)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
-    public void testReplaceThingId() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "id")).contains(THING_ID.toString());
+    public void testReplacePolicyId() {
+        assertThat(UNDER_TEST.resolve(POLICY_ID, "id")).contains(POLICY_ID.toString());
     }
 
     @Test
-    public void testReplaceThingName() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "name")).contains(NAME);
+    public void testReplacePolicyName() {
+        assertThat(UNDER_TEST.resolve(POLICY_ID, "name")).contains(NAME);
     }
 
     @Test
-    public void testReplaceThingNamespace() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "namespace")).contains(NAMESPACE);
+    public void testReplacePolicyNamespace() {
+        assertThat(UNDER_TEST.resolve(POLICY_ID, "namespace")).contains(NAMESPACE);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "thing_id")).isEmpty();
+        assertThat(UNDER_TEST.resolve(POLICY_ID, "policy_id")).isEmpty();
     }
 
 }

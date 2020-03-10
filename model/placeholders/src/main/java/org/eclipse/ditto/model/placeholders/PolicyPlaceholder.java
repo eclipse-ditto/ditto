@@ -10,22 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocoladapter.provider;
+package org.eclipse.ditto.model.placeholders;
 
-import java.util.List;
-
-import org.eclipse.ditto.protocoladapter.Adapter;
 
 /**
- * Provider for all available {@link Adapter}s of a certain type (things or policies).
+ * A {@link Placeholder} that requires a {@code String} (a valid Policy ID) to resolve its placeholders.
  */
-public interface AdapterProvider {
-
-    /**
-     * Retrieve all adapters known to this provider.
-     *
-     * @return the list of adapters.
-     */
-    List<Adapter<?>> getAdapters();
-
+public interface PolicyPlaceholder extends Placeholder<CharSequence> {
 }

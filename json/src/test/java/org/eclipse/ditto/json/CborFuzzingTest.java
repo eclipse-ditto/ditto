@@ -13,9 +13,9 @@
 package org.eclipse.ditto.json;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -25,36 +25,37 @@ public final class CborFuzzingTest {
     private static final int INPUT_LENGTH_MAX = 10;
 
     @Test
-    public void fuzzingTest() throws IOException {
-        for (byte[] bytes : generateInputs()) {
-            testValue(bytes);
-        }
+    public void fuzzingTest() {
+        generateInputs().forEach(this::testValue);
     }
 
-    private void testValue(final byte[] array) throws IOException {
+    private void testValue(final byte[] array) {
         try {
             CborFactory.readFrom(array);
         } catch (final JsonParseException e) {
             // these exceptions are expected
-        } catch (final Exception e){
-            System.out.println(BinaryToHexConverter.toHexString(array));
+        } catch (final Exception e) {
+            try {
+                System.out.println(BinaryToHexConverter.toHexString(array));
+            } catch (final IOException ioException) {
+                System.err.println("Failed to convert to hex string");
+            }
             throw e;
         }
     }
 
-    private List<byte[]> generateInputs(){
+    private Stream<byte[]> generateInputs() {
         final Random random = new Random(generateSeed());
-        final ArrayList<byte[]> inputs = new ArrayList<>(INPUT_COUNT);
-        for (int i = 0; i < INPUT_COUNT; i++) {
-            final int inputLength = random.nextInt(INPUT_LENGTH_MAX);
-            final byte[] bytes = new byte[inputLength];
-            random.nextBytes(bytes);
-            inputs.add(bytes);
-        }
-        return inputs;
+        return IntStream.range(0, INPUT_COUNT)
+                .mapToObj(i -> {
+                    final int inputLength = random.nextInt(INPUT_LENGTH_MAX);
+                    final byte[] bytes = new byte[inputLength];
+                    random.nextBytes(bytes);
+                    return bytes;
+                });
     }
 
-    private long generateSeed(){
+    private long generateSeed() {
         return new Random().nextLong();
     }
 

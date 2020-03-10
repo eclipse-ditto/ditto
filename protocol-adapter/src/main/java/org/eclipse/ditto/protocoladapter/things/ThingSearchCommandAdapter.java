@@ -14,6 +14,10 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -57,5 +61,26 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
 
         return ThingSearchCommand.TYPE_PREFIX + adaptable.getTopicPath().getSearchAction().orElse(null);
 
+    }
+
+    @Override
+    public Set<TopicPath.Criterion> getCriteria() {
+        return EnumSet.of(TopicPath.Criterion.SEARCH);
+    }
+
+    @Override
+    public Set<TopicPath.Action> getActions() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public boolean isForResponses() {
+        return false;
+    }
+
+    @Override
+    public Set<TopicPath.SearchAction> getSearchActions() {
+        return EnumSet.of(TopicPath.SearchAction.SUBSCRIBE, TopicPath.SearchAction.REQUEST,
+                TopicPath.SearchAction.CANCEL);
     }
 }

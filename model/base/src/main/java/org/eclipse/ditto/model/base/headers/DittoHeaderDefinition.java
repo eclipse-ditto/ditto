@@ -159,7 +159,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-originator"}, Java type: {@link String}.
      * </p>
      */
-    ORIGINATOR("ditto-originator", String.class, false, true);
+    ORIGINATOR("ditto-originator", String.class, false, true),
+
+    /**
+     * Header definition for the entity id related to the command/event/response/error.
+     * <p>
+     * Key: {@code "ditto-entity-id"}, Java type: {@link String}.
+     * </p>
+     */
+    ENTITY_ID("ditto-entity-id", String.class, false, false);
 
     /**
      * Map to speed up lookup of header definition by key.

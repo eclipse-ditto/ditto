@@ -42,14 +42,15 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -752,15 +753,18 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private static ThingErrorResponse buildThingErrorResponse(final DittoRuntimeException dittoRuntimeException) {
         final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
-        final String nullableThingId = dittoHeaders.get(MessageHeaderDefinition.THING_ID.getKey());
-        return nullableThingId != null
-                ? ThingErrorResponse.of(ThingId.of(nullableThingId), dittoRuntimeException, dittoHeaders)
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        return nullableEntityId != null
+                ? ThingErrorResponse.of(ThingId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
                 : ThingErrorResponse.of(dittoRuntimeException, dittoHeaders);
     }
 
     private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
         final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
-        return PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders);
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        return nullableEntityId != null
+                ? PolicyErrorResponse.of(PolicyId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
+                : PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders);
     }
 
     private static SearchErrorResponse buildSearchErrorResponse(final DittoRuntimeException dittoRuntimeException) {

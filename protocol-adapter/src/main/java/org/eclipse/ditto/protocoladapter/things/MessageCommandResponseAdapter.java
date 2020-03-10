@@ -14,7 +14,6 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -27,13 +26,13 @@ import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 
 /**
  * Adapter for mapping a {@link MessageCommandResponseAdapter} to and from an {@link Adaptable}.
  */
-final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse<?, ?>> {
+final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse<?, ?>>
+        implements ThingMessageAdapter<MessageCommandResponse<?, ?>> {
 
     private static final SignalMapper<MessageCommandResponse<?, ?>>
             TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandResponseSignalMapper();
@@ -59,11 +58,14 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
+    public boolean isForResponses() {
+        return true;
+    }
+
+    @Override
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessageResponse.TYPE;
-        } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
-            return SendMessageAcceptedResponse.TYPE;
         } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {

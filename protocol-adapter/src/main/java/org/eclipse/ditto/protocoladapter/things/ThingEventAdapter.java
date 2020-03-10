@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.EventAdapter;
 import org.eclipse.ditto.protocoladapter.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -34,7 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 /**
  * Adapter for mapping a {@link ThingEvent} to and from an {@link Adaptable}.
  */
-final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> {
+final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implements EventAdapter<ThingEvent<?>> {
 
     private ThingEventAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getThingEventMappingStrategies(), headerTranslator);

@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.protocoladapter.policies;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -45,27 +48,33 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
         policyQueryCommandResponseAdapter = PolicyQueryCommandResponseAdapter.of(headerTranslator);
     }
 
-    @Override
     public Adapter<PolicyErrorResponse> getErrorResponseAdapter() {
         return policyErrorResponseAdapter;
     }
 
-    @Override
     public Adapter<PolicyModifyCommand<?>> getModifyCommandAdapter() {
         return policyModifyCommandAdapter;
     }
 
-    @Override
     public Adapter<PolicyModifyCommandResponse<?>> getModifyCommandResponseAdapter() {
         return policyModifyCommandResponseAdapter;
     }
 
     @Override
+    public List<Adapter<?>> getAdapters() {
+        return Arrays.asList(
+                policyErrorResponseAdapter,
+                policyModifyCommandAdapter,
+                policyQueryCommandAdapter,
+                policyModifyCommandResponseAdapter,
+                policyQueryCommandResponseAdapter
+        );
+    }
+
     public Adapter<PolicyQueryCommand<?>> getQueryCommandAdapter() {
         return policyQueryCommandAdapter;
     }
 
-    @Override
     public Adapter<PolicyQueryCommandResponse<?>> getQueryCommandResponseAdapter() {
         return policyQueryCommandResponseAdapter;
     }

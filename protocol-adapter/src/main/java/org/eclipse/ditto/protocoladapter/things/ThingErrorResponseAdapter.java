@@ -29,7 +29,8 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 /**
  * Adapter for mapping a {@link ThingErrorResponse} to and from an {@link Adaptable}.
  */
-final class ThingErrorResponseAdapter extends AbstractErrorResponseAdapter<ThingErrorResponse> {
+final class ThingErrorResponseAdapter extends AbstractErrorResponseAdapter<ThingErrorResponse>
+        implements ThingAdapter<ThingErrorResponse> {
 
     private ThingErrorResponseAdapter(final HeaderTranslator headerTranslator,
             final ErrorRegistry<DittoRuntimeException> errorRegistry) {

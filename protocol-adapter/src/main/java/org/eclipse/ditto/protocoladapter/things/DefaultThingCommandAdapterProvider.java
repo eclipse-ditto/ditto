@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -82,6 +85,22 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     @Override
     public Adapter<ThingModifyCommandResponse<?>> getModifyCommandResponseAdapter() {
         return modifyCommandResponseAdapter;
+    }
+
+    @Override
+    public List<Adapter<?>> getAdapters() {
+        return Arrays.asList(
+                queryCommandAdapter,
+                modifyCommandAdapter,
+                queryCommandResponseAdapter,
+                modifyCommandResponseAdapter,
+                messageCommandAdapter,
+                messageCommandResponseAdapter,
+                thingEventAdapter,
+                searchCommandAdapter,
+                subscriptionEventAdapter,
+                errorResponseAdapter
+        );
     }
 
     @Override

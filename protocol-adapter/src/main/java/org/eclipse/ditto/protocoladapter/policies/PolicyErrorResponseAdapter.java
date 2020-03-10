@@ -29,7 +29,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 /**
  * Adapter for mapping a {@link PolicyErrorResponse} to and from an {@link Adaptable}.
  */
-final class PolicyErrorResponseAdapter extends AbstractErrorResponseAdapter<PolicyErrorResponse> {
+final class PolicyErrorResponseAdapter
+        extends AbstractErrorResponseAdapter<PolicyErrorResponse>
+        implements PolicyAdapter<PolicyErrorResponse> {
 
     private PolicyErrorResponseAdapter(final HeaderTranslator headerTranslator,
             final ErrorRegistry<DittoRuntimeException> errorRegistry) {

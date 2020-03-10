@@ -52,6 +52,7 @@ import com.eclipsesource.json.WriterConfig;
  * }
  * </pre>
  */
+@SuppressWarnings("UseOfSystemOutOrSystemErr") // this is a command line tool, System.out is ok
 public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
@@ -107,7 +108,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
                 .findFirst();
     }
 
-    private static Jsonifiable.WithPredicate<JsonObject, JsonField> wrapExceptionInThingErrorResponse(
+    private static Jsonifiable.WithPredicate<JsonObject, JsonField> wrapExceptionInErrorResponse(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
 
         if (jsonifiable instanceof DittoRuntimeException) {
@@ -125,7 +126,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
     }
 
     private Optional<Adaptable> toAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
-        final Jsonifiable.WithPredicate<JsonObject, JsonField> source = wrapExceptionInThingErrorResponse(jsonifiable);
+        final Jsonifiable.WithPredicate<JsonObject, JsonField> source = wrapExceptionInErrorResponse(jsonifiable);
         return findMatchingToAdaptableMethod(source.getClass()).flatMap(m -> invokeToAdaptable(m, source));
     }
 

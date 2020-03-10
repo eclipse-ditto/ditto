@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -198,10 +199,10 @@ public final class MqttValidatorTest {
     }
 
     private static Connection connectionWithSource(final String source) {
+        final Enforcement enforcement = newSourceAddressEnforcement("things/{{ thing:id }}", "things/{{ entity:id }}");
         final Source mqttSource = ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
-                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
-                        TestConstants.asSet("things/{{ thing:id }}")))
+                .enforcement(enforcement)
                 .address(source)
                 .qos(1)
                 .build();

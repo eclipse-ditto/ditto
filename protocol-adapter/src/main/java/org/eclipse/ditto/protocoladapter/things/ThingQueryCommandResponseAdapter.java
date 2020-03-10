@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.QueryCommandResponseAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
@@ -26,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 /**
  * Adapter for mapping a {@link ThingQueryCommandResponse} to and from an {@link Adaptable}.
  */
-final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse<?>> {
+final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse<?>>
+        implements QueryCommandResponseAdapter<ThingQueryCommandResponse<?>> {
 
     private final SignalMapper<RetrieveThingsResponse>
             retrieveThingsSignalMapper =
