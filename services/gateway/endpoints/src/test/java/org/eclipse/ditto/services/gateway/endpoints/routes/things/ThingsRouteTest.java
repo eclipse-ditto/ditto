@@ -24,7 +24,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
@@ -42,6 +44,10 @@ import akka.http.scaladsl.model.HttpEntity;
  */
 public final class ThingsRouteTest extends EndpointTestBase {
 
+    @Rule
+    public final TestName testName = new TestName();
+
+    private DittoHeaders dittoHeaders;
     private ThingsRoute thingsRoute;
 
     private TestRoute underTest;
@@ -54,7 +60,9 @@ public final class ThingsRouteTest extends EndpointTestBase {
         thingsRoute = new ThingsRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig, messageConfig,
                 claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
 
-        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.empty()));
+        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
+        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, dittoHeaders));
         underTest = testRoute(route);
     }
 
@@ -121,7 +129,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final TestRouteResult result = underTest.run(HttpRequest.GET("/things?ids="));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
         final MissingThingIdsException expectedEx = MissingThingIdsException.newBuilder()
-                .dittoHeaders(DittoHeaders.empty())
+                .dittoHeaders(dittoHeaders)
                 .build();
         result.assertEntity(expectedEx.toJsonString());
     }
@@ -129,8 +137,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void getAttributesWithTrailingSlash() {
         final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributes/");
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.OK);
         final String entityString = result.entityString();
         assertThat(entityString).contains(RetrieveAttributes.TYPE);
@@ -139,8 +146,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void getAttributesWithoutSlashButRandomText() {
         final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributesasfsafa");
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -149,8 +155,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String body = "\"bumlux\"";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes//bar")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
@@ -159,8 +164,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String tooLongNumber = "89314404000484999942";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes/attribute")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, tooLongNumber));
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
@@ -169,8 +173,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String attributeJson = "{\"/attributeTest\":\"test\"}";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, attributeJson));
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 

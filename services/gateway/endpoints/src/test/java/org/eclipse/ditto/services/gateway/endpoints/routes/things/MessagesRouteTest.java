@@ -23,7 +23,9 @@ import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
@@ -51,6 +53,9 @@ public final class MessagesRouteTest extends EndpointTestBase {
     private static final String OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH = OUTBOX_MESSAGES_PATH + "/" +
             KNOWN_SUBJECT_WITH_SLASHES;
 
+    @Rule
+    public final TestName testName = new TestName();
+
     private MessagesRoute messagesRoute;
 
     private TestRoute thingsMessagesTestRoute;
@@ -63,11 +68,13 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
         messagesRoute = new MessagesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
                 messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         final Route thingsMessagesRoute = extractRequestContext(
-                ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID));
+                ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders, KNOWN_THING_ID));
         thingsMessagesTestRoute = testRoute(thingsMessagesRoute);
         final Route featuresMessagesRoute = extractRequestContext(
-                ctx -> messagesRoute.buildFeaturesInboxOutboxRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID,
+                ctx -> messagesRoute.buildFeaturesInboxOutboxRoute(ctx, dittoHeaders, KNOWN_THING_ID,
                         KNOWN_FEATURE_ID));
         featuresMessagesTestRoute = testRoute(featuresMessagesRoute);
     }
