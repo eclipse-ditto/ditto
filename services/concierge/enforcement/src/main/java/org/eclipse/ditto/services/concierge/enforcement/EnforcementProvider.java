@@ -92,7 +92,6 @@ public interface EnforcementProvider<T extends Signal> {
             final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
                     builder.add(multiplexer);
 
-            // using parallelism=1 to ensure that authorization-changing commands affect the next command immediately
             final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
                     Flow.fromFunction(contextual -> {
                         final T message = contextual.getMessage();

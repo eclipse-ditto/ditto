@@ -224,11 +224,11 @@ final class EnforcementScheduler extends AbstractActor {
 
         @Nullable
         private Futures onComplete() {
-            final int nextReference = referenceCount - 1;
-            if (nextReference <= 0) {
+            final int nextReferenceCount = referenceCount - 1;
+            if (nextReferenceCount <= 0) {
                 return null;
             } else {
-                return new Futures(authFuture, enforceFuture, nextReference);
+                return new Futures(authFuture, enforceFuture, nextReferenceCount);
             }
         }
 
