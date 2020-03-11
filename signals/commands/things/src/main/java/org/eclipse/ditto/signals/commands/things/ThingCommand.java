@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -37,7 +38,7 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     /**
      * Thing resource type.
      */
-    String RESOURCE_TYPE = "thing";
+    String RESOURCE_TYPE = ThingConstants.ENTITY_TYPE.toString();
 
     @Override
     default String getTypePrefix() {

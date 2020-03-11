@@ -17,6 +17,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -35,7 +36,7 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
     /**
      * Policy resource type.
      */
-    String RESOURCE_TYPE = "policy";
+    String RESOURCE_TYPE = PolicyConstants.ENTITY_TYPE.toString();
 
     @Override
     default String getTypePrefix() {

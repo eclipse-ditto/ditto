@@ -26,13 +26,13 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -155,7 +155,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
     /**
      * Extend a signal by subject headers given with granted and revoked READ access.
-     * The subjects are provided by the given enforcer for the resource type {@value ThingCommand#RESOURCE_TYPE}.
+     * The subjects are provided by the given enforcer for the resource type {@link ThingConstants#ENTITY_TYPE}.
      *
      * @param signal the signal to extend.
      * @param enforcer the enforcer.
@@ -164,7 +164,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
     protected static <T extends Signal> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        final ResourceKey resourceKey = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
+        final ResourceKey resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
         final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
         final DittoHeaders newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
                 .readGrantedSubjects(effectedSubjects.getGranted())
@@ -260,6 +260,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
             final ActorRef receiver) {
+
         return context.withMessage(message).withReceiver(receiver);
     }
 
@@ -273,8 +274,9 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @param <S> the message's type
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
-            final ActorRef receiver, final Function<Object, Object> wrapperFunction) {
+    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message, final ActorRef receiver,
+            final Function<Object, Object> wrapperFunction) {
+
         return context.withMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
     }
 
@@ -324,4 +326,5 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
         return newContext.withMessage(dittoRuntimeException);
     }
+
 }

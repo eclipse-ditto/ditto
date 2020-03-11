@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
@@ -19,7 +20,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoN
 import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -42,7 +42,7 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
-                ThingCommand.RESOURCE_TYPE,
+                ThingConstants.ENTITY_TYPE,
                 namespaceOps,
                 null,
                 persistenceOperationsConfig,

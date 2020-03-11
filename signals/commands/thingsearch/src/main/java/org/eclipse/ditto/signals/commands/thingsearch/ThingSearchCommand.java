@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.thingsearch;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.thingsearch.ThingSearchConstants;
 import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -34,7 +35,7 @@ public interface ThingSearchCommand<T extends ThingSearchCommand> extends Comman
     /**
      * Thing Search resource type.
      */
-    String RESOURCE_TYPE = "thing-search";
+    String RESOURCE_TYPE = ThingSearchConstants.ENTITY_TYPE.toString();
 
     @Override
     default String getTypePrefix() {

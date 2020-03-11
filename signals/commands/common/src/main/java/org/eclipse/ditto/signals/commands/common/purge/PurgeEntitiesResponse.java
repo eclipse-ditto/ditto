@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -45,13 +46,14 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
      */
     public static final String TYPE = TYPE_PREFIX + PurgeEntities.NAME;
 
-    private final String entityType;
+    private final EntityType entityType;
     private final boolean successful;
 
-    private PurgeEntitiesResponse(final CharSequence entityType, final boolean successful,
+    private PurgeEntitiesResponse(final EntityType entityType, final boolean successful,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        this.entityType = checkNotNull(entityType).toString();
+        this.entityType = checkNotNull(entityType);
         this.successful = successful;
     }
 
@@ -62,7 +64,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
      * @param dittoHeaders the headers of the command which caused the returned response.
      * @return a response for a successful purge.
      */
-    public static PurgeEntitiesResponse successful(final CharSequence entityType, final DittoHeaders dittoHeaders) {
+    public static PurgeEntitiesResponse successful(final EntityType entityType, final DittoHeaders dittoHeaders) {
         return new PurgeEntitiesResponse(entityType, true, dittoHeaders);
     }
 
@@ -73,7 +75,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
      * @param dittoHeaders the headers of the command which caused the returned response.
      * @return a response for a failed purge.
      */
-    public static PurgeEntitiesResponse failed(final CharSequence entityType, final DittoHeaders dittoHeaders) {
+    public static PurgeEntitiesResponse failed(final EntityType entityType, final DittoHeaders dittoHeaders) {
         return new PurgeEntitiesResponse(entityType, false, dittoHeaders);
     }
 
@@ -86,7 +88,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
      */
     public static PurgeEntitiesResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
         return new CommandResponseJsonDeserializer<PurgeEntitiesResponse>(TYPE, jsonObject).deserialize(statusCode -> {
-            final String parsedEntityType = jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE);
+            final EntityType parsedEntityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
             final boolean parsedSuccessful = jsonObject.getValueOrThrow(JsonFields.SUCCESSFUL);
 
             return new PurgeEntitiesResponse(parsedEntityType, parsedSuccessful, headers);
@@ -98,7 +100,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
      *
      * @return the type of the entities.
      */
-    public String getEntityType() {
+    public EntityType getEntityType() {
         return entityType;
     }
 
@@ -147,7 +149,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
 
         final Predicate<JsonField> predicate = schemaVersion.and(aPredicate);
 
-        jsonObjectBuilder.set(JsonFields.ENTITY_TYPE, entityType, predicate);
+        jsonObjectBuilder.set(JsonFields.ENTITY_TYPE, entityType.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.SUCCESSFUL, successful, predicate);
     }
 
