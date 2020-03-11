@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.base.acks;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -23,7 +25,7 @@ import javax.annotation.concurrent.Immutable;
  * @since 1.1.0
  */
 @Immutable
-public interface AcknowledgementLabel extends CharSequence {
+public interface AcknowledgementLabel extends Comparable<AcknowledgementLabel>, CharSequence {
 
     /**
      * Returns a new AcknowledgementLabel for the given character sequence.
@@ -36,6 +38,13 @@ public interface AcknowledgementLabel extends CharSequence {
      */
     static AcknowledgementLabel of(final CharSequence label) {
         return AcknowledgementLabels.newLabel(label);
+    }
+
+    @Override
+    default int compareTo(final AcknowledgementLabel o) {
+        checkNotNull(o, "o");
+        final String selfString = toString();
+        return selfString.compareTo(o.toString());
     }
 
     /**

@@ -54,7 +54,7 @@ public final class ImmutableAcknowledgementRequestTest {
         final AcknowledgementLabel label = DittoAcknowledgementLabel.PERSISTED;
         final ImmutableAcknowledgementRequest underTest = ImmutableAcknowledgementRequest.getInstance(label);
 
-        assertThat(underTest.getLabel()).isEqualTo(label);
+        assertThat((CharSequence) underTest.getLabel()).isEqualTo(label);
     }
 
     @Test

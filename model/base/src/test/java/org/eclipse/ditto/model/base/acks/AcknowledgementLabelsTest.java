@@ -63,7 +63,7 @@ public final class AcknowledgementLabelsTest {
             final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabels.newLabel(KNOWN_LABEL_VALUE);
             final AcknowledgementLabel underTest = AcknowledgementLabels.newLabel(acknowledgementLabel);
 
-            assertThat(underTest).isSameAs(acknowledgementLabel);
+            assertThat((CharSequence) underTest).isSameAs(acknowledgementLabel);
         }
 
     }

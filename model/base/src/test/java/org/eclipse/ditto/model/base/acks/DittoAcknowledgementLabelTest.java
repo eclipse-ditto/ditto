@@ -47,7 +47,7 @@ public final class DittoAcknowledgementLabelTest {
         final DittoAcknowledgementLabel underTest = DittoAcknowledgementLabel.PERSISTED;
         final AcknowledgementLabel other = AcknowledgementLabel.of(underTest.toString());
 
-        assertThat(other).isEqualTo(underTest);
+        assertThat((CharSequence) other).isEqualTo(underTest);
     }
 
     @Test

@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,14 +42,14 @@ public final class ImmutableAcknowledgementLabelTest {
 
     @Test
     public void toStringReturnsExpected() {
-        final AcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
+        final ImmutableAcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
 
         assertThat(underTest.toString()).isEqualTo(KNOWN_LABEL_VALUE);
     }
 
     @Test
     public void lengthReturnsExpected() {
-        final AcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
+        final ImmutableAcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
 
         assertThat(underTest.length()).isEqualTo(KNOWN_LABEL_VALUE.length());
     }
@@ -56,7 +57,7 @@ public final class ImmutableAcknowledgementLabelTest {
     @Test
     public void charAtReturnsExpected() {
         final byte charIndex = 3;
-        final AcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
+        final ImmutableAcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
 
         assertThat(underTest.charAt(charIndex)).isEqualTo(KNOWN_LABEL_VALUE.charAt(charIndex));
     }
@@ -65,10 +66,28 @@ public final class ImmutableAcknowledgementLabelTest {
     public void subSequenceReturnsExpected() {
         final byte sequenceStart = 5;
         final byte sequenceEnd = 11;
-        final AcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
+        final ImmutableAcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
 
         assertThat(underTest.subSequence(sequenceStart, sequenceEnd))
                 .isEqualTo(KNOWN_LABEL_VALUE.subSequence(sequenceStart, sequenceEnd));
+    }
+
+    @Test
+    public void compareToWorksAsExpected() {
+        final ImmutableAcknowledgementLabel ackLabelAbc = ImmutableAcknowledgementLabel.of("abc");
+        final ImmutableAcknowledgementLabel ackLabelDef = ImmutableAcknowledgementLabel.of("def");
+
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(ackLabelAbc.compareTo(ackLabelAbc))
+                    .as("compare with equal")
+                    .isZero();
+            softly.assertThat(ackLabelAbc.compareTo(ackLabelDef))
+                    .as("compare with greater")
+                    .isNegative();
+            softly.assertThat(ackLabelDef.compareTo(ackLabelAbc))
+                    .as("compare with less")
+                    .isPositive();
+        }
     }
 
 }

@@ -35,7 +35,7 @@ final class ImmutableAcknowledgementLabel implements AcknowledgementLabel {
      * @throws NullPointerException if {@code label} is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      */
-    static AcknowledgementLabel of(final CharSequence label) {
+    static ImmutableAcknowledgementLabel of(final CharSequence label) {
         return new ImmutableAcknowledgementLabel(label.toString());
     }
 
