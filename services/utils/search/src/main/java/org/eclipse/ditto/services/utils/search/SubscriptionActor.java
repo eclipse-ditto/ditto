@@ -90,6 +90,7 @@ public final class SubscriptionActor extends AbstractActorWithStash {
                 .match(RequestSubscription.class, this::requestSubscription)
                 .match(CancelSubscription.class, this::cancelSubscription)
                 .match(SubscriptionHasNext.class, this::subscriptionHasNext)
+                //TODO: check too early SubscriptionComplete --> Stream finishes premature
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
                 .match(SubscriptionFailed.class, this::subscriptionFailed)
                 .match(Subscription.class, this::onSubscribe)

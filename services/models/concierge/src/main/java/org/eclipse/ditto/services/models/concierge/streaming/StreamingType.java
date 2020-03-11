@@ -20,7 +20,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Enumeration of the different types which can be streamed (e.g. to an open Websocket connection). Each
@@ -29,7 +28,6 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 public enum StreamingType {
 
     EVENTS(ThingEvent.TYPE_PREFIX),
-    SUBSCRIPTION(SubscriptionEvent.TYPE_PREFIX),
     MESSAGES(MessageCommand.TYPE_PREFIX),
     LIVE_COMMANDS("things-live-commands"),
     LIVE_EVENTS("things-live-events");
@@ -91,8 +89,6 @@ public enum StreamingType {
             }
         } else if (signal instanceof ThingEvent) {
             result = EVENTS;
-        } else if (signal instanceof SubscriptionEvent){
-            result = SUBSCRIPTION;
         } else {
             result = null;
         }
