@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
  * @since 1.1.0
  */
 @Immutable
-public interface EntityType extends CharSequence {
+public interface EntityType extends Comparable<EntityType>,  CharSequence {
 
     /**
      * Returns an instance of EntityType based on the given CharSequence.

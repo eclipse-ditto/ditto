@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.base.entity.type;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
@@ -64,6 +65,12 @@ final class DefaultEntityType implements EntityType {
     }
 
     @Override
+    public int compareTo(final EntityType o) {
+        checkNotNull(o, "o");
+        return value.compareTo(o.toString());
+    }
+
+    @Override
     public int length() {
         return value.length();
     }
@@ -80,7 +87,7 @@ final class DefaultEntityType implements EntityType {
 
     @Override
     public String toString() {
-        return value.toString();
+        return value;
     }
 
 }
