@@ -53,6 +53,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -221,30 +222,31 @@ final class StreamingSessionActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        // TODO: forward search events to eventAndResponsePublisher
-        if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
+        if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null)) &&
+                !(signal instanceof SubscriptionEvent)) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
         } else {
             // check if this session is "allowed" to receive the Signal
             @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
-            if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
-                    logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                            signal.getType(), type, signal);
+            if (null != session &&
+                    (isSessionAllowedToReceiveSignal(signal, session) || signal instanceof SubscriptionEvent)) {
+                logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                        signal.getType(), type, signal);
 
-                    final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
-                            .authorizationContext(authorizationContext)
-                            .schemaVersion(jsonSchemaVersion)
-                            .build();
-                    final SessionedJsonifiable sessionedJsonifiable =
-                            SessionedJsonifiable.signal(signal, sessionHeaders, session);
-                    eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
+                final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
+                        .authorizationContext(authorizationContext)
+                        .schemaVersion(jsonSchemaVersion)
+                        .build();
+                final SessionedJsonifiable sessionedJsonifiable =
+                        SessionedJsonifiable.signal(signal, sessionHeaders, session);
+                eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
             }
         }
         logger.setCorrelationId(connectionCorrelationId);
     }
 
-    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal,  final StreamingSession session) {
+    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal, final StreamingSession session) {
         final DittoHeaders headers = signal.getDittoHeaders();
         final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
                 headers.getReadRevokedSubjects());

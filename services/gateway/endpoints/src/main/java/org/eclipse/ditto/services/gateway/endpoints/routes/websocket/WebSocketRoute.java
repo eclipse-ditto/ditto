@@ -88,7 +88,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
