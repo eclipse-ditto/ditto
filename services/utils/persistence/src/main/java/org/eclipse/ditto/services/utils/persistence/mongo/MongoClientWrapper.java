@@ -221,7 +221,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
         return mongoClient.startSession(options);
     }
 
-
     @Override
     public void close() {
         if (null != eventLoopGroup) {
@@ -285,23 +284,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
-            switch (optionsConfig.readPreference()) {
-                case PRIMARY:
-                    builder.setReadPreference(ReadPreference.primary());
-                    break;
-                case PRIMARY_PREFERRED:
-                    builder.setReadPreference(ReadPreference.primaryPreferred());
-                    break;
-                case SECONDARY:
-                    builder.setReadPreference(ReadPreference.secondary());
-                    break;
-                case SECONDARY_PREFERRED:
-                    builder.setReadPreference(ReadPreference.secondaryPreferred());
-                    break;
-                case NEAREST:
-                    builder.setReadPreference(ReadPreference.nearest());
-                    break;
-            }
+            builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
 
             return builder;
         }

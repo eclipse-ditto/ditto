@@ -22,16 +22,22 @@ import java.util.Optional;
  */
 public enum ReadPreference {
 
-    PRIMARY("primary"),
-    PRIMARY_PREFERRED("primaryPreferred"),
-    SECONDARY("secondary"),
-    SECONDARY_PREFERRED("secondaryPreferred"),
-    NEAREST("nearest");
+    PRIMARY("primary", com.mongodb.ReadPreference.primary()),
+    PRIMARY_PREFERRED("primaryPreferred", com.mongodb.ReadPreference.primaryPreferred()),
+    SECONDARY("secondary", com.mongodb.ReadPreference.secondary()),
+    SECONDARY_PREFERRED("secondaryPreferred", com.mongodb.ReadPreference.secondaryPreferred()),
+    NEAREST("nearest", com.mongodb.ReadPreference.nearest());
 
-    private final String readPreference;
+    private final String name;
+    private final com.mongodb.ReadPreference mongoReadPreference;
 
-    ReadPreference(final String readPreference) {
-        this.readPreference = readPreference;
+    ReadPreference(final String name, final com.mongodb.ReadPreference mongoReadPreference) {
+        this.name = name;
+        this.mongoReadPreference = mongoReadPreference;
+    }
+
+    public com.mongodb.ReadPreference getMongoReadPreference() {
+        return mongoReadPreference;
     }
 
     /**
@@ -44,7 +50,7 @@ public enum ReadPreference {
     static Optional<ReadPreference> ofReadPreference(final String readPreference) {
         checkNotNull(readPreference, "readPreference");
         return Arrays.stream(values())
-                .filter(c -> c.readPreference.contentEquals(readPreference))
+                .filter(c -> c.name.contentEquals(readPreference))
                 .findFirst();
     }
 

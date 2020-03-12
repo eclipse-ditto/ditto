@@ -127,7 +127,7 @@ public interface MongoDbConfig {
             SSL_ENABLED("ssl", false),
 
             /**
-             * Determines whether SSL should be enabled for the configured MongoDB source.
+             * Determines the read preference used for MongoDB connections. See {@link ReadPreference} for available options.
              */
             READ_PREFERENCE("readPreference", "primaryPreferred");
 
