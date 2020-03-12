@@ -73,7 +73,7 @@ public final class DittoPublicKeyProviderTest {
     public void setup() {
         actorSystem = ActorSystem.create(getClass().getSimpleName());
         when(httpClientMock.getActorMaterializer()).thenReturn(ActorMaterializer.create(actorSystem));
-        final JwtSubjectIssuersConfig subjectIssuersConfig = new JwtSubjectIssuersConfig(
+        final JwtSubjectIssuersConfig subjectIssuersConfig = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(
                 Collections.singleton(new JwtSubjectIssuerConfig("google.com", SubjectIssuer.GOOGLE)));
         when(cacheConfigMock.getMaximumSize()).thenReturn(100L);
         when(cacheConfigMock.getExpireAfterWrite()).thenReturn(Duration.ofMinutes(3));
