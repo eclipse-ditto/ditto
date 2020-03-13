@@ -26,6 +26,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTim
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
 import org.reactivestreams.Subscriber;
@@ -112,6 +113,9 @@ public final class SubscriptionActor extends AbstractActorWithStash {
             subscription.cancel();
         } else {
             this.subscription = subscription;
+            final String subscriptionId = getSelf().path().name();
+            final SubscriptionCreated subscriptionCreated = SubscriptionCreated.of(subscriptionId, dittoHeaders);
+            sender.tell(subscriptionCreated, ActorRef.noSender());
             unstashAll();
         }
     }

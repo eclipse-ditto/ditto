@@ -170,9 +170,6 @@ public final class SubscriptionManager extends AbstractActor {
         final ActorRef subscriptionActor = getContext().actorOf(props, subscriptionId);
         final Source<JsonArray, NotUsed> pageSource = getPageSource(createSubscription);
         connect(subscriptionActor, pageSource);
-        final SubscriptionCreated subscriptionCreated =
-                SubscriptionCreated.of(subscriptionId, createSubscription.getDittoHeaders());
-        getSender().tell(subscriptionCreated, ActorRef.noSender());
     }
 
     private void connect(final ActorRef subscriptionActor, final Source<JsonArray, NotUsed> pageSource) {
