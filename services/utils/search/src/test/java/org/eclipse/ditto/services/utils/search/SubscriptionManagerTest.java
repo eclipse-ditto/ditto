@@ -56,7 +56,6 @@ public final class SubscriptionManagerTest {
     private ActorMaterializer materializer;
     private TestProbe pubSubMediatorProbe;
     private TestProbe conciergeForwarderProbe;
-    private DittoHeaders dittoHeaders;
 
     @Before
     public void setUp() {
@@ -64,7 +63,6 @@ public final class SubscriptionManagerTest {
         materializer = ActorMaterializer.create(actorSystem);
         pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
         conciergeForwarderProbe = TestProbe.apply("conciergeForwarder", actorSystem);
-        dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
     }
 
     @After

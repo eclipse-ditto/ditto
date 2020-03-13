@@ -90,7 +90,6 @@ public final class SubscriptionActor extends AbstractActorWithStash {
                 .match(RequestSubscription.class, this::requestSubscription)
                 .match(CancelSubscription.class, this::cancelSubscription)
                 .match(SubscriptionHasNext.class, this::subscriptionHasNext)
-                //TODO: check too early SubscriptionComplete --> Stream finishes premature
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
                 .match(SubscriptionFailed.class, this::subscriptionFailed)
                 .match(Subscription.class, this::onSubscribe)
@@ -151,16 +150,28 @@ public final class SubscriptionActor extends AbstractActorWithStash {
     }
 
     private void subscriptionComplete(final SubscriptionComplete event) {
-        log.info("{}", event);
-        sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
-        getContext().stop(getSelf());
+        // just in case: if error overtakes subscription, then there *will* be a subscription.
+        if (subscription == null) {
+            log.withCorrelationId(event).debug("Stashing <{}>", event);
+            stash();
+        } else {
+            log.info("{}", event);
+            sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
+            getContext().stop(getSelf());
+        }
     }
 
     private void subscriptionFailed(final SubscriptionFailed event) {
-        // log at INFO level because user errors may cause subscription failure.
-        log.withCorrelationId(event).info("{}", event);
-        sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
-        getContext().stop(getSelf());
+        // just in case: if error overtakes subscription, then there *will* be a subscription.
+        if (subscription == null) {
+            log.withCorrelationId(event).debug("Stashing <{}>", event);
+            stash();
+        } else {
+            // log at INFO level because user errors may cause subscription failure.
+            log.withCorrelationId(event).info("{}", event);
+            sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
+            getContext().stop(getSelf());
+        }
     }
 
     private static final class SubscriberOps implements Subscriber<JsonArray> {
