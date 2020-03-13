@@ -25,6 +25,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTim
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
 import org.junit.After;
@@ -71,8 +72,8 @@ public final class SubscriptionActorTest {
     @Test
     public void emptyResults() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
-            connect(underTest, Source.empty());
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
+            connect(underTest, Source.empty(), this);
             expectMsg(SubscriptionComplete.of(underTest.path().name(), DittoHeaders.empty()));
             expectTerminated(underTest);
         }};
@@ -81,9 +82,9 @@ public final class SubscriptionActorTest {
     @Test
     public void twoPages() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             final String subscriptionId = underTest.path().name();
-            connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))));
+            connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))), this);
             underTest.tell(RequestSubscription.of(subscriptionId, 2L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(2), DittoHeaders.empty()));
@@ -95,9 +96,9 @@ public final class SubscriptionActorTest {
     @Test
     public void cancellation() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             final String subscriptionId = underTest.path().name();
-            connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))));
+            connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))), this);
             underTest.tell(RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             underTest.tell(CancelSubscription.of(subscriptionId, DittoHeaders.empty()), getRef());
@@ -110,10 +111,10 @@ public final class SubscriptionActorTest {
         // comment the next line to get logs for debugging
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             final DittoRuntimeException error =
                     InvalidRqlExpressionException.fromMessage("mock error", DittoHeaders.empty());
-            connect(underTest, Source.failed(error));
+            connect(underTest, Source.failed(error), this);
             expectMsg(SubscriptionFailed.of(underTest.path().name(), error, DittoHeaders.empty()));
             expectTerminated(underTest);
         }};
@@ -124,7 +125,7 @@ public final class SubscriptionActorTest {
         // comment the next line to get logs for debugging
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), getRef()));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             final String subscriptionId = underTest.path().name();
             final DittoRuntimeException error =
                     InvalidRqlExpressionException.fromMessage("mock error", DittoHeaders.empty());
@@ -133,7 +134,7 @@ public final class SubscriptionActorTest {
                     Source.from(List.of(Source.single(JsonArray.of(1)),
                             Source.lazily(() -> Source.<JsonArray>failed(error))))
                             .flatMapConcat(x -> x);
-            connect(underTest, lazilyFailingSource);
+            connect(underTest, lazilyFailingSource, this);
             underTest.tell(RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             expectMsg(SubscriptionFailed.of(subscriptionId, error, DittoHeaders.empty()));
@@ -143,22 +144,24 @@ public final class SubscriptionActorTest {
     @Test
     public void timeout() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(newSubscriptionActor(Duration.ZERO, getRef()));
-            connect(underTest, Source.single(JsonArray.of(1)));
+            final ActorRef underTest = watch(newSubscriptionActor(Duration.ZERO, this));
+            connect(underTest, Source.single(JsonArray.of(1)), this);
             final SubscriptionFailed subscriptionFailed = expectMsgClass(SubscriptionFailed.class);
             assertThat(subscriptionFailed.getError().getErrorCode()).isEqualTo(SubscriptionTimeoutException.ERROR_CODE);
             expectTerminated(underTest);
         }};
     }
 
-    private ActorRef newSubscriptionActor(final Duration timeout, final ActorRef testKitRef) {
-        final Props propsForTest = SubscriptionActor.props(timeout, testKitRef, DittoHeaders.empty());
+    private ActorRef newSubscriptionActor(final Duration timeout, final TestKit testKit) {
+        final Props propsForTest = SubscriptionActor.props(timeout, testKit.getRef(), DittoHeaders.empty());
         return actorSystem.actorOf(propsForTest, String.valueOf(Integer.MIN_VALUE));
     }
 
-    private void connect(final ActorRef subscriptionActor, final Source<JsonArray, ?> pageSource) {
+    private void connect(final ActorRef subscriptionActor, final Source<JsonArray, ?> pageSource,
+            final TestKit testKit) {
         final Subscriber<JsonArray> subscriber = SubscriptionActor.asSubscriber(subscriptionActor);
         pageSource.runWith(Sink.fromSubscriber(subscriber), materializer);
+        testKit.expectMsgClass(SubscriptionCreated.class);
     }
 
 }

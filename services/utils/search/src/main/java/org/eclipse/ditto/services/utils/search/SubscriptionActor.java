@@ -104,6 +104,9 @@ public final class SubscriptionActor extends AbstractActorWithStash {
         final String subscriptionId = getSelf().path().name();
         final SubscriptionTimeoutException error = SubscriptionTimeoutException.of(subscriptionId, dittoHeaders);
         final SubscriptionFailed subscriptionFailed = SubscriptionFailed.of(subscriptionId, error, dittoHeaders);
+        if (subscription == null) {
+            sender.tell(getSubscriptionCreated(), ActorRef.noSender());
+        }
         sender.tell(subscriptionFailed, ActorRef.noSender());
         getContext().stop(getSelf());
     }
@@ -113,11 +116,13 @@ public final class SubscriptionActor extends AbstractActorWithStash {
             subscription.cancel();
         } else {
             this.subscription = subscription;
-            final String subscriptionId = getSelf().path().name();
-            final SubscriptionCreated subscriptionCreated = SubscriptionCreated.of(subscriptionId, dittoHeaders);
-            sender.tell(subscriptionCreated, ActorRef.noSender());
+            sender.tell(getSubscriptionCreated(), ActorRef.noSender());
             unstashAll();
         }
+    }
+
+    private SubscriptionCreated getSubscriptionCreated() {
+        return SubscriptionCreated.of(getSelf().path().name(), dittoHeaders);
     }
 
     private void setSenderAndDittoHeaders(final ThingSearchCommand<?> command) {
