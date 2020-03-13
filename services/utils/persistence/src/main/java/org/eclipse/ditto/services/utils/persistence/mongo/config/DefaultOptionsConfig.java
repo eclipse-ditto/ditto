@@ -12,11 +12,13 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -25,7 +27,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link MongoDbConfig.OptionsConfig}.
  */
 @Immutable
-public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig{
+public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     /**
      * The supposed path of the OptionsConfig within the MongoDB config object.
@@ -33,9 +35,19 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig{
     static final String CONFIG_PATH = "options";
 
     private final boolean sslEnabled;
+    private final ReadPreference readPreference;
 
     private DefaultOptionsConfig(final ScopedConfig config) {
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
+        final String readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
+        readPreference = ReadPreference.ofReadPreference(readPreferenceString)
+                .orElseThrow(() -> {
+                    final String msg =
+                            MessageFormat.format("Could not parse a ReadPreference from configured string <{0}>",
+                                    readPreferenceString);
+                    return new DittoConfigError(msg);
+                });
+
     }
 
     /**
@@ -53,6 +65,11 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig{
     @Override
     public boolean isSslEnabled() {
         return sslEnabled;
+    }
+
+    @Override
+    public ReadPreference readPreference() {
+        return readPreference;
     }
 
     @Override
