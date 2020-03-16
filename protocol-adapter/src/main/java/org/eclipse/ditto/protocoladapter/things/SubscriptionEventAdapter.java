@@ -19,6 +19,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -63,34 +64,34 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
         TopicPath topicPath;
         final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath());
         final JsonObjectBuilder payloadContentBuilder = JsonFactory.newObjectBuilder();
+        final JsonFieldDefinition<String> subscriptionIdKey = SubscriptionEvent.JsonFields.SUBSCRIPTION_ID;
 
-        final String eventName = event.getClass().getSimpleName().toLowerCase().replace("subscription", "");
         if (event instanceof SubscriptionCreated) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().generated().build();
             SubscriptionCreated createdEvent = (SubscriptionCreated) event;
-            payloadContentBuilder.set("subscriptionId", createdEvent.getSubscriptionId());
+            payloadContentBuilder.set(subscriptionIdKey, createdEvent.getSubscriptionId());
 
         } else if (event instanceof SubscriptionComplete) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().complete().build();
             SubscriptionComplete completedEvent = (SubscriptionComplete) event;
-            payloadContentBuilder.set("subscriptionId", completedEvent.getSubscriptionId());
+            payloadContentBuilder.set(subscriptionIdKey, completedEvent.getSubscriptionId());
 
         } else if (event instanceof SubscriptionFailed) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().failed().build();
             SubscriptionFailed failedEvent = (SubscriptionFailed) event;
             payloadContentBuilder
-                    .set("subscriptionId", failedEvent.getSubscriptionId())
-                    .set("error", failedEvent.getError().toJson());
+                    .set(subscriptionIdKey, failedEvent.getSubscriptionId())
+                    .set(SubscriptionFailed.JsonFields.ERROR, failedEvent.getError().toJson());
 
         } else if (event instanceof SubscriptionHasNext) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().hasNext().build();
             SubscriptionHasNext hasNextEvent = (SubscriptionHasNext) event;
             payloadContentBuilder
-                    .set("subscriptionId", hasNextEvent.getSubscriptionId())
-                    .set("items", hasNextEvent.getItems());
+                    .set(subscriptionIdKey, hasNextEvent.getSubscriptionId())
+                    .set(SubscriptionHasNext.JsonFields.ITEMS, hasNextEvent.getItems());
 
         } else {
-            throw UnknownEventException.newBuilder(eventName).build();
+            throw UnknownEventException.newBuilder(event.getClass().getCanonicalName()).build();
         }
 
         return Adaptable.newBuilder(topicPath)
