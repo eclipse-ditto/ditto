@@ -53,8 +53,6 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * Returns a new empty builder for a {@code Policy}.
      *
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ImmutablePolicyBuilder newInstance() {
         return new ImmutablePolicyBuilder();
