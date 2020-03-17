@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
@@ -30,18 +31,18 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 public enum DittoHeaderDefinition implements HeaderDefinition {
 
     /**
-     * Header definition for Authorization Subjects value.
+     * Header definition for the authorization context value.
      * <p>
-     * Key: {@code "ditto-auth-subjects"}, Java type: {@link JsonArray}.
+     * Key: {@code "ditto-auth-context"}, Java type: {@link JsonObject}.
      * </p>
      */
-    AUTHORIZATION_SUBJECTS("ditto-auth-subjects", JsonArray.class, false, false,
-            HeaderValueValidators.getJsonArrayValidator()),
+    AUTHORIZATION_CONTEXT("ditto-auth-context", JsonObject.class, false, false,
+            HeaderValueValidators.getJsonObjectValidator()),
 
     /**
      * Header definition for correlation Id value.
      * <p>
-     * Key: {@code "correlation-id"}, Java type: String.
+     * Key: {@code "correlation-id"}, Java type: {@link String}.
      * </p>
      */
     CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
@@ -92,7 +93,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for a signal's content-type.
      * <p>
-     * Key: {@code "content-type"}, Java type: String.
+     * Key: {@code "content-type"}, Java type: {@link String}.
      * </p>
      */
     CONTENT_TYPE("content-type", String.class, true, true, HeaderValueValidators.getNoOpValidator()),

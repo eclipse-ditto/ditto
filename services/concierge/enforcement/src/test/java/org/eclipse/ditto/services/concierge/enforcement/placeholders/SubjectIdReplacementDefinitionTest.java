@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
@@ -27,7 +28,8 @@ public class SubjectIdReplacementDefinitionTest {
     public void succeedsWhenHeadersContainSubjectId() {
         final String subjectId = "nginx:first";
         final DittoHeaders validHeaders = DittoHeaders.newBuilder()
-                .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance(subjectId),
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance(subjectId),
                         AuthorizationSubject.newInstance("nginx:second"))).build();
 
         final String actualSubjectId = replacementDefinition.apply(validHeaders);

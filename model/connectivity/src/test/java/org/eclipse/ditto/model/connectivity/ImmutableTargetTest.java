@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -34,7 +35,8 @@ public final class ImmutableTargetTest {
 
     private static final String ADDRESS = "amqp/target1";
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationModelFactory.newAuthContext(
-            AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationModelFactory.newAuthSubject("eclipse"),
+            AuthorizationModelFactory.newAuthSubject("ditto"));
     private static final String CUSTOM_MAPPING = "custom-mapping";
     private static final String DITTO_MAPPING = "ditto-mapping";
 

@@ -18,4 +18,5 @@
  * <p>
  * Objects are obtainable from {@link org.eclipse.ditto.model.base.auth.AuthorizationModelFactory}.
  */
+@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.model.base.auth;

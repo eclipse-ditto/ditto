@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -38,6 +37,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -144,7 +144,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S authorizationContext(@Nullable final AuthorizationContext authorizationContext) {
         if (null != authorizationContext) {
-            return authorizationSubjects(authorizationContext.getAuthorizationSubjectIds());
+            putJsonValue(DittoHeaderDefinition.AUTHORIZATION_CONTEXT, authorizationContext.toJson());
+        } else {
+            removeHeader(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
         }
         return myself;
     }
@@ -175,19 +177,23 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    @Deprecated
     public S authorizationSubjects(final Collection<String> authorizationSubjectIds) {
-        final List<String> onlyWithIssuerPrefix = keepSubjectsWithIssuerPrefix(authorizationSubjectIds);
-        putStringCollection(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS, onlyWithIssuerPrefix);
+        authorizationContext(keepSubjectsWithIssuerPrefix(authorizationSubjectIds));
         return myself;
     }
 
-    private static List<String> keepSubjectsWithIssuerPrefix(
+    private static AuthorizationContext keepSubjectsWithIssuerPrefix(
             final Collection<String> subjectsWithAndWithoutPrefix) {
-        return AbstractDittoHeaders.keepSubjectsWithIssuer(subjectsWithAndWithoutPrefix.stream())
-                .collect(Collectors.toList());
+        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
+                subjectsWithAndWithoutPrefix.stream()
+                        .map(AuthorizationSubject::newInstance)
+                        .collect(Collectors.toList()));
+        return AbstractDittoHeaders.keepAuthContextSubjectsWithIssuer(authorizationContext);
     }
 
     @Override
+    @Deprecated
     public S authorizationSubjects(final CharSequence authorizationSubject,
             final CharSequence... furtherAuthorizationSubjects) {
 

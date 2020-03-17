@@ -78,6 +78,8 @@
                             <exclude>org.eclipse.ditto.model.base.entity.id.DefaultEntityId#of(java.lang.CharSequence)</exclude>
                             <exclude>org.eclipse.ditto.model.base.entity.id.DefaultEntityId#dummy()</exclude>
                             <exclude>org.eclipse.ditto.model.base.entity.id.DefaultEntityId#generateRandom()</exclude>
+                            <!-- removed Ditto internal header in favor of "ditto-auth-context". -->
+                            <exclude>org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#AUTHORIZATION_SUBJECTS</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                         </excludes>
                     </parameter>

@@ -84,21 +84,11 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
 
     public DittoHeadersAssert hasNoAuthorizationSubjects() {
         isNotNull();
-        final List<String> actualAuthorizationSubjects = actual.getAuthorizationSubjects();
+        final List<String> actualAuthorizationSubjects = actual.getAuthorizationContext().getAuthorizationSubjectIds();
         Assertions.assertThat(actualAuthorizationSubjects)
                 .overridingErrorMessage("Expected DittoHeaders not to have authorization subjects but it had <%s>",
                         actualAuthorizationSubjects)
                 .isEmpty();
-        return myself;
-    }
-
-    public DittoHeadersAssert hasAuthorizationSubject(final String expectedAuthorizationSubject,
-            final String... furtherExpectedAuthorizationSubjects) {
-        isNotNull();
-        final List<String> actualAuthorizationSubjects = actual.getAuthorizationSubjects();
-        Assertions.assertThat(actualAuthorizationSubjects)
-                .contains(expectedAuthorizationSubject)
-                .contains(furtherExpectedAuthorizationSubjects);
         return myself;
     }
 

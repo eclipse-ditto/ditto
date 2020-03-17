@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseConnectionSupervisor;
@@ -141,7 +142,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     public void getWithAcceptHeaderAndNoQueryParametersOpensSseConnection() {
         executeRouteTest(HttpRequest.GET(THINGS_ROUTE).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet())).build());
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet())).build());
     }
 
     @Test
@@ -152,7 +154,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet()))
                         .withFilter(filter)
                         .build());
     }
@@ -165,7 +168,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet()))
                 .withNamespaces(namespaces)
                 .build());
     }
@@ -178,7 +182,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet()))
                         .withExtraFields(extraFields)
                         .build());
     }

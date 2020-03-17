@@ -29,11 +29,12 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
@@ -65,7 +66,8 @@ import akka.testkit.javadsl.TestKit;
 public final class SearchActorIT {
 
     private static final AuthorizationContext AUTH_CONTEXT =
-            AuthorizationContext.newInstance(AuthorizationSubject.newInstance("ditto:ditto"));
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("ditto:ditto"));
 
     private static QueryParser queryParser;
     private static MongoDbResource mongoResource;

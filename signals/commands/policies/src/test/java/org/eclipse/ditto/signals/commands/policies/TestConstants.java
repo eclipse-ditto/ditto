@@ -20,6 +20,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -70,7 +73,11 @@ public final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")
+            ))
+            .build();
 
     /**
      * Empty command headers.

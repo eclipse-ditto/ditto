@@ -38,11 +38,22 @@ public interface AuthenticationConfig {
     OAuthConfig getOAuthConfig();
 
     /**
+     * Indicates whether pre-authenticated authentication should be enabled.
+     *
+     * @return {@code true} if pre-authenticated authentication is enabled, {@code false} else.
+     */
+    boolean isPreAuthenticatedAuthenticationEnabled();
+
+    /**
      * Indicates whether dummy authentication should be enabled.
      *
      * @return {@code true} if dummy authentication is enabled, {@code false} else.
+     * @deprecated as of 1.1.0, please use {@link #isPreAuthenticatedAuthenticationEnabled()} instead
      */
-    boolean isDummyAuthenticationEnabled();
+    @Deprecated
+    default boolean isDummyAuthenticationEnabled() {
+        return isPreAuthenticatedAuthenticationEnabled();
+    }
 
     /**
      * Returns the configuration settings of the DevOps resources.
@@ -58,9 +69,9 @@ public interface AuthenticationConfig {
     enum AuthenticationConfigValue implements KnownConfigValue {
 
         /**
-         * Determines whether dummy authentication should be enabled.
+         * Determines whether pre-authenticated authentication should be enabled.
          */
-        DUMMY_AUTH_ENABLED("dummy.enabled", false);
+        PRE_AUTHENTICATION_ENABLED("pre-authentication.enabled", false);
 
         private final String path;
         private final Object defaultValue;

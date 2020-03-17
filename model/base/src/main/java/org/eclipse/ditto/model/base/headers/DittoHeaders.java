@@ -153,7 +153,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * representation. Changes on the returned List are not reflected back to this headers object.
      *
      * @return the authorization subjects for the command.
+     * @deprecated as of 1.1.0, please use {@link #getAuthorizationContext()} instead for retrieving the
+     * {@code authorizationSubjects}
      */
+    @Deprecated
     List<String> getAuthorizationSubjects();
 
     /**

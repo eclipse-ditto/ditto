@@ -28,6 +28,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
@@ -133,7 +136,10 @@ public final class HeaderTranslatorTest {
     public void translateInternalOnlyDittoHeadersToExternal() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .dryRun(true)
-                .authorizationSubjects("foo", "bar")
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("foo"),
+                        AuthorizationSubject.newInstance("bar")
+                ))
                 .channel("no5")
                 .origin("Cthulhu")
                 .build();

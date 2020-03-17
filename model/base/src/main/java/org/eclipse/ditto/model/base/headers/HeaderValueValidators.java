@@ -81,6 +81,15 @@ public final class HeaderValueValidators {
     }
 
     /**
+     * Returns a validator for checking if a CharSequence represents a {@link org.eclipse.ditto.json.JsonObject}.
+     *
+     * @return the validator.
+     */
+    public static ValueValidator getJsonObjectValidator() {
+        return JsonObjectValueValidator.getInstance();
+    }
+
+    /**
      * Returns a validator for checking if a CharSequence is valid according to
      * {@link org.eclipse.ditto.model.base.headers.entitytag.EntityTag#isValid(CharSequence)}.
      *

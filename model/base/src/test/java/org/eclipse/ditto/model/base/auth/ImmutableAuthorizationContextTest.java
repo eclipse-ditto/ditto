@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.base.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -26,7 +27,6 @@ import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -49,10 +49,10 @@ public final class ImmutableAuthorizationContextTest {
     @BeforeClass
     public static void setUpClass() {
         knownJsonRepresentation = JsonObject.newBuilder()
-                .set(AuthorizationContext.JsonFields.JSON_SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
+                .set(AuthorizationContext.JsonFields.TYPE, DittoAuthorizationContextType.UNSPECIFIED.toString())
                 .set(AuthorizationContext.JsonFields.AUTH_SUBJECTS, JsonArray.newBuilder()
-                    .add(SUB_1_1.getId(), SUB_1_2.getId())
-                    .build())
+                        .add(SUB_1_1.getId(), SUB_1_2.getId())
+                        .build())
                 .build();
     }
 
@@ -60,6 +60,7 @@ public final class ImmutableAuthorizationContextTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableAuthorizationContext.class,
                 areImmutable(),
+                provided(AuthorizationContextType.class).isAlsoImmutable(),
                 assumingFields("authorizationSubjects",
                         "authorizationSubjectIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 assumingFields("authorizationSubjectIds").areModifiedAsPartOfAnUnobservableCachingStrategy());
@@ -75,70 +76,80 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void getFirstAuthorizationSubjectReturnsExpectedIfContextIsNotEmpty() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         assertThat(underTest.getFirstAuthorizationSubject()).contains(SUBJECTS_1.get(0));
     }
 
     @Test
     public void getFirstAuthorizationSubjectReturnsEmptyOptionalIfContextIsEmpty() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(Lists.emptyList());
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, Lists.emptyList());
 
         assertThat(underTest.getFirstAuthorizationSubject()).isEmpty();
     }
 
     @Test
     public void getSizeReturnsExpected() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         assertThat(underTest.getSize()).isEqualTo(SUBJECTS_1.size());
     }
 
     @Test
     public void isEmptyReturnsFalseForNonEmptyContext() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         assertThat(underTest.isEmpty()).isFalse();
     }
 
     @Test
     public void isEmptyReturnsTrueForEmptyContext() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(Lists.emptyList());
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, Lists.emptyList());
 
         assertThat(underTest.isEmpty()).isTrue();
     }
 
     @Test
     public void getAuthorizationSubjectsReturnsExpected() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_2);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_2);
 
         assertThat(underTest.getAuthorizationSubjects()).containsExactlyInAnyOrderElementsOf(SUBJECTS_2);
     }
 
     @Test
     public void addHead() {
-        final ImmutableAuthorizationContext initialContext = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext initialContext =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         final AuthorizationContext newContext = initialContext.addHead(SUBJECTS_2);
 
         final List<AuthorizationSubject> expectedAuthSubjects = Lists.newArrayList(SUBJECTS_2);
         expectedAuthSubjects.addAll(SUBJECTS_1);
 
-        final ImmutableAuthorizationContext expectedContext = ImmutableAuthorizationContext.of(expectedAuthSubjects);
+        final ImmutableAuthorizationContext expectedContext =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, expectedAuthSubjects);
 
         assertThat(newContext).isEqualTo(expectedContext);
     }
 
     @Test
     public void addTail() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         final AuthorizationContext newContext = underTest.addTail(SUBJECTS_2);
 
         final List<AuthorizationSubject> expectedAuthSubjects = new ArrayList<>();
         expectedAuthSubjects.addAll(SUBJECTS_1);
         expectedAuthSubjects.addAll(SUBJECTS_2);
-        final AuthorizationContext expectedContext = ImmutableAuthorizationContext.of(expectedAuthSubjects);
+        final AuthorizationContext expectedContext =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, expectedAuthSubjects);
 
         assertThat(newContext).isEqualTo(expectedContext);
     }
@@ -151,7 +162,8 @@ public final class ImmutableAuthorizationContextTest {
                 .map(AuthorizationSubject::getId)
                 .collect(Collectors.toList());
 
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(authorizationSubjects);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authorizationSubjects);
 
         final List<String> authorizationSubjectIds = underTest.getAuthorizationSubjectIds();
 
@@ -160,7 +172,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void tryToCallIsAuthorizedWithNullGranted() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.isAuthorized(null, SUBJECTS_2))
@@ -170,7 +183,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void tryToCallIsAuthorizedWithNullRevoked() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.isAuthorized(SUBJECTS_2, null))
@@ -180,7 +194,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void isNotAuthorizedForEmptyGrantedAndRevoked() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         final boolean authorized = underTest.isAuthorized(Lists.emptyList(), Lists.emptyList());
 
@@ -189,7 +204,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void isNotAuthorizedForEmptyGranted() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         final boolean authorized = underTest.isAuthorized(Lists.emptyList(), SUBJECTS_2);
 
@@ -198,7 +214,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void isAuthorizedIfSubjectIsGrantedAndRevokedIsEmpty() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUB_1_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUB_1_1);
 
         final boolean authorized = underTest.isAuthorized(SUBJECTS_1, Lists.emptyList());
 
@@ -207,7 +224,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void isNotAuthorizedIfSubjectIsGrantedAndRevoked() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUB_1_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUB_1_1);
 
         final boolean authorized = underTest.isAuthorized(SUBJECTS_1, Lists.newArrayList(SUB_1_1));
 
@@ -216,7 +234,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void isAuthorizedIfSubjectIsGrantedAndRevokedIsDisjoint() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUB_1_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUB_1_1);
 
         final boolean authorized = underTest.isAuthorized(SUBJECTS_1, SUBJECTS_2);
 
@@ -225,7 +244,8 @@ public final class ImmutableAuthorizationContextTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final ImmutableAuthorizationContext underTest = ImmutableAuthorizationContext.of(SUBJECTS_1);
+        final ImmutableAuthorizationContext underTest =
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1);
 
         assertThat(underTest.toJson(FieldType.regularOrSpecial())).isEqualTo(knownJsonRepresentation);
     }
@@ -235,7 +255,8 @@ public final class ImmutableAuthorizationContextTest {
         final ImmutableAuthorizationContext authorizationContext =
                 ImmutableAuthorizationContext.fromJson(knownJsonRepresentation);
 
-        assertThat(authorizationContext).isEqualTo(ImmutableAuthorizationContext.of(SUBJECTS_1));
+        assertThat(authorizationContext).isEqualTo(
+                ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, SUBJECTS_1));
     }
 
 }

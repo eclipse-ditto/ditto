@@ -23,6 +23,7 @@ import java.util.Random;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -115,8 +116,8 @@ public abstract class PersistenceActorTestBase {
                 .correlationId(null)
                 .responseRequired(false)
                 .schemaVersion(schemaVersion)
-                .authorizationSubjects(authSubjectsStr)
-                .authorizationContext(AuthorizationModelFactory.newAuthContext(authSubjectsList)).build();
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED, authSubjectsList)).build();
     }
 
     protected static Policy createPolicyWithRandomId() {

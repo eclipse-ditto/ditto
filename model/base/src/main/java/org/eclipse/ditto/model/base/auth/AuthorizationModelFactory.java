@@ -52,7 +52,23 @@ public final class AuthorizationModelFactory {
      * @return the new {@code AuthorizationContext}.
      */
     public static AuthorizationContext emptyAuthContext() {
-        return ImmutableAuthorizationContext.of(Collections.emptyList());
+        return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, Collections.emptyList());
+    }
+
+    /**
+     * Returns a new immutable {@link AuthorizationContext} with the given authorization subjects.
+     *
+     * @param type the mandatory type defining which "kind" of authorization context should be created.
+     * @param authorizationSubject the mandatory authorization subject of the new authorization context.
+     * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
+     * @return the new {@code AuthorizationContext}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    public static AuthorizationContext newAuthContext(final AuthorizationContextType type,
+            final AuthorizationSubject authorizationSubject,
+            final AuthorizationSubject... furtherAuthorizationSubjects) {
+        return ImmutableAuthorizationContext.of(type, authorizationSubject, furtherAuthorizationSubjects);
     }
 
     /**
@@ -62,10 +78,14 @@ public final class AuthorizationModelFactory {
      * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
      * @return the new {@code AuthorizationContext}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0, please use
+     * {@link #newAuthContext(AuthorizationContextType, AuthorizationSubject, AuthorizationSubject...)} instead
      */
+    @Deprecated
     public static AuthorizationContext newAuthContext(final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
-        return ImmutableAuthorizationContext.of(authorizationSubject, furtherAuthorizationSubjects);
+        return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authorizationSubject,
+                furtherAuthorizationSubjects);
     }
 
     /**
@@ -82,13 +102,31 @@ public final class AuthorizationModelFactory {
     /**
      * Returns a new immutable {@link AuthorizationContext} with the given authorization subjects.
      *
+     * @param type the mandatory type defining which "kind" of authorization context should be created.
+     * @param authorizationSubjects the authorization subjects of the new authorization context.
+     * @return the new {@code AuthorizationContext}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    public static AuthorizationContext newAuthContext(final AuthorizationContextType type,
+            final Iterable<AuthorizationSubject> authorizationSubjects) {
+        final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
+        authorizationSubjects.forEach(authSubjectsList::add);
+        return ImmutableAuthorizationContext.of(type, authSubjectsList);
+    }
+
+    /**
+     * Returns a new immutable {@link AuthorizationContext} with the given authorization subjects.
+     *
      * @param authorizationSubjects the authorization subjects of the new authorization context.
      * @return the new {@code AuthorizationContext}.
      * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
+     * @deprecated as of 1.1.0, please use {@link #newAuthContext(AuthorizationContextType, java.lang.Iterable)} instead
      */
+    @Deprecated
     public static AuthorizationContext newAuthContext(final Iterable<AuthorizationSubject> authorizationSubjects) {
         final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
         authorizationSubjects.forEach(authSubjectsList::add);
-        return ImmutableAuthorizationContext.of(authSubjectsList);
+        return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authSubjectsList);
     }
 }

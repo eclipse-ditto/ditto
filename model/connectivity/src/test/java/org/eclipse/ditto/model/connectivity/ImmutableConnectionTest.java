@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -55,7 +56,7 @@ public final class ImmutableConnectionTest {
     private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     private static final String STATUS_MAPPING = "ConnectionStatus";
     private static final String JAVA_SCRIPT_MAPPING = "JavaScript";

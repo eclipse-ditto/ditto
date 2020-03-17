@@ -41,16 +41,59 @@ public interface AuthorizationContext
     /**
      * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
      *
+     * @param type the type of the authorization context to create, predefined in {@link DittoAuthorizationContextType}.
      * @param authorizationSubject the mandatory authorization subject of the new authorization context.
      * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
      * @return the new {@code AuthorizationContext}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
+    static AuthorizationContext newInstance(final AuthorizationContextType type,
+            final AuthorizationSubject authorizationSubject,
+            final AuthorizationSubject... furtherAuthorizationSubjects) {
+
+        return AuthorizationModelFactory.newAuthContext(type, authorizationSubject, furtherAuthorizationSubjects);
+    }
+
+    /**
+     * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
+     *
+     * @param type the type of the authorization context to create, predefined in {@link DittoAuthorizationContextType}.
+     * @param authorizationSubjects the authorization subjects of the new authorization context.
+     * @return the new {@code AuthorizationContext}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    static AuthorizationContext newInstance(final AuthorizationContextType type,
+            final Iterable<AuthorizationSubject> authorizationSubjects) {
+
+        return AuthorizationModelFactory.newAuthContext(type, authorizationSubjects);
+    }
+
+    /**
+     * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
+     *
+     * @param authorizationSubject the mandatory authorization subject of the new authorization context.
+     * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
+     * @return the new {@code AuthorizationContext}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0, please use
+     * {@link #newInstance(AuthorizationContextType, AuthorizationSubject, AuthorizationSubject...)} instead
+     */
+    @Deprecated
     static AuthorizationContext newInstance(final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
 
         return AuthorizationModelFactory.newAuthContext(authorizationSubject, furtherAuthorizationSubjects);
     }
+
+    /**
+     * Returns the type the authorization context was created with, specifying its "kind".
+     *
+     * @return the type of this authorization context.
+     * @since 1.1.0
+     */
+    AuthorizationContextType getType();
 
     /**
      * Returns all authorization subjects of this context.
@@ -153,16 +196,25 @@ public interface AuthorizationContext
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         * @deprecated no longer in use
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the authorization context's type.
+         */
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the authorized subjects as JSON array.
          */
         public static final JsonFieldDefinition<JsonArray> AUTH_SUBJECTS =
-                JsonFactory.newJsonArrayFieldDefinition("authorizedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -21,6 +21,7 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
@@ -35,7 +36,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -291,7 +294,7 @@ public final class ThingCommandEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -332,7 +335,7 @@ public final class ThingCommandEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -400,7 +403,7 @@ public final class ThingCommandEnforcementTest {
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
                 .build();
@@ -458,7 +461,7 @@ public final class ThingCommandEnforcementTest {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
                 .build();
@@ -484,7 +487,7 @@ public final class ThingCommandEnforcementTest {
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
                 .build();
@@ -513,7 +516,7 @@ public final class ThingCommandEnforcementTest {
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
                 .setModified(Instant.now())
@@ -568,7 +571,10 @@ public final class ThingCommandEnforcementTest {
 
     private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
-                .authorizationSubjects(SUBJECT.getId(), String.format("%s:%s", GOOGLE, SUBJECT))
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        SUBJECT,
+                        AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))
+                ))
                 .schemaVersion(schemaVersion)
                 .build();
     }

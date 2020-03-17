@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,7 +39,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableSourceTest {
 
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
-            AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationModelFactory.newAuthSubject("eclipse"),
+            AuthorizationModelFactory.newAuthSubject("ditto"));
 
     private static Map<String, String> mapping = new HashMap<>();
 

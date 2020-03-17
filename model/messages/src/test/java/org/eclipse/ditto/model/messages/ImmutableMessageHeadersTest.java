@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -30,7 +31,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -52,7 +55,17 @@ public final class ImmutableMessageHeadersTest {
 
     private static final Collection<String>
             AUTH_SUBJECTS_WITHOUT_DUPLICATES = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
+    private static final AuthorizationContext AUTH_CONTEXT_WITHOUT_DUPLICATES =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
+                            .map(AuthorizationSubject::newInstance)
+                            .collect(Collectors.toList()));
     private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
+    private static final AuthorizationContext AUTH_CONTEXT =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTH_SUBJECTS.stream()
+                            .map(AuthorizationSubject::newInstance)
+                            .collect(Collectors.toList()));
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final AuthorizationSubject KNOWN_READ_SUBJECT = AuthorizationSubject.newInstance("knownReadSubject");
@@ -82,7 +95,7 @@ public final class ImmutableMessageHeadersTest {
         final Map<String, String> expectedHeaderMap = createMapContainingAllKnownHeaders();
 
         final MessageHeaders messageHeaders = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .authorizationSubjects(AUTH_SUBJECTS)
+                .authorizationContext(AUTH_CONTEXT)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
                 .channel(KNOWN_CHANNEL)
@@ -250,9 +263,7 @@ public final class ImmutableMessageHeadersTest {
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), String.valueOf(AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray())));
+        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);

@@ -92,11 +92,11 @@ public final class JwtAuthenticationFactory {
         return new JwtSubjectIssuersConfig(configItems);
     }
 
-    public JwtAuthorizationContextProvider newJwtAuthorizationContextProvider() {
+    public JwtAuthenticationResultProvider newJwtAuthorizationContextProvider() {
         final DittoJwtAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoJwtAuthorizationSubjectsProvider.of(getJwtSubjectIssuersConfig());
 
-        return DefaultJwtAuthorizationContextProvider.of(authorizationSubjectsProvider);
+        return DefaultJwtAuthenticationResultProvider.of(authorizationSubjectsProvider);
     }
 
 }

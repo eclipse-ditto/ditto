@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +46,10 @@ import akka.http.javadsl.server.RequestContext;
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class AuthenticationChainTest {
+
+    private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
+            .correlationId(UUID.randomUUID().toString())
+            .build();
 
     private static Executor messageDispatcher;
 
@@ -75,10 +80,10 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.successful(mock(AuthorizationContext.class));
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, mock(AuthorizationContext.class));
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(false);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
-        when(authenticationProviderB.authenticate(requestContextMock, correlationId))
+        when(authenticationProviderB.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(expectedAuthenticationResult);
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
@@ -86,12 +91,12 @@ public final class AuthenticationChainTest {
                         messageDispatcher);
 
         final AuthenticationResult authenticationResult =
-                underTest.authenticate(requestContextMock, correlationId).get();
+                underTest.authenticate(requestContextMock, KNOWN_DITTO_HEADERS).get();
 
         verify(authenticationProviderA).isApplicable(requestContextMock);
         verify(authenticationProviderB).isApplicable(requestContextMock);
-        verify(authenticationProviderA, never()).authenticate(requestContextMock, correlationId);
-        verify(authenticationProviderB).authenticate(requestContextMock, correlationId);
+        verify(authenticationProviderA, never()).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
+        verify(authenticationProviderB).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
         assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
     }
 
@@ -102,21 +107,21 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.successful(mock(AuthorizationContext.class));
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, mock(AuthorizationContext.class));
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
-        when(authenticationProviderA.authenticate(requestContextMock, correlationId))
+        when(authenticationProviderA.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(expectedAuthenticationResult);
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
                         authenticationFailureAggregator, messageDispatcher);
 
         final AuthenticationResult authenticationResult =
-                underTest.authenticate(requestContextMock, correlationId).get();
+                underTest.authenticate(requestContextMock, KNOWN_DITTO_HEADERS).get();
 
         verify(authenticationProviderA).isApplicable(requestContextMock);
         verify(authenticationProviderB, never()).isApplicable(requestContextMock);
-        verify(authenticationProviderA).authenticate(requestContextMock, correlationId);
-        verify(authenticationProviderB, never()).authenticate(requestContextMock, correlationId);
+        verify(authenticationProviderA).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
+        verify(authenticationProviderB, never()).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
         assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
     }
 
@@ -136,12 +141,12 @@ public final class AuthenticationChainTest {
                         messageDispatcher);
 
         final AuthenticationResult authenticationResult =
-                underTest.authenticate(requestContextMock, correlationId).get();
+                underTest.authenticate(requestContextMock, KNOWN_DITTO_HEADERS).get();
 
         verify(authenticationProviderA).isApplicable(requestContextMock);
         verify(authenticationProviderB).isApplicable(requestContextMock);
-        verify(authenticationProviderA, never()).authenticate(requestContextMock, correlationId);
-        verify(authenticationProviderB, never()).authenticate(requestContextMock, correlationId);
+        verify(authenticationProviderA, never()).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
+        verify(authenticationProviderB, never()).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(expectedException.getClass());
         assertThat(authenticationResult.getReasonOfFailure()).hasMessage(expectedException.getMessage());
@@ -153,10 +158,10 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.failed(mock(DittoRuntimeException.class));
+                DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, mock(DittoRuntimeException.class));
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(false);
-        when(authenticationProviderA.authenticate(requestContextMock, correlationId))
+        when(authenticationProviderA.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(expectedAuthenticationResult);
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
@@ -164,12 +169,12 @@ public final class AuthenticationChainTest {
                         messageDispatcher);
 
         final AuthenticationResult authenticationResult =
-                underTest.authenticate(requestContextMock, correlationId).get();
+                underTest.authenticate(requestContextMock, KNOWN_DITTO_HEADERS).get();
 
         verify(authenticationProviderA).isApplicable(requestContextMock);
         verify(authenticationProviderB).isApplicable(requestContextMock);
-        verify(authenticationProviderA).authenticate(requestContextMock, correlationId);
-        verify(authenticationProviderB, never()).authenticate(requestContextMock, correlationId);
+        verify(authenticationProviderA).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
+        verify(authenticationProviderB, never()).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
         assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
     }
 
@@ -180,14 +185,14 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final AuthenticationResult failedAuthenticationResult =
-                DefaultAuthenticationResult.failed(mock(DittoRuntimeException.class));
+                DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, mock(DittoRuntimeException.class));
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.successful(mock(AuthorizationContext.class));
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, mock(AuthorizationContext.class));
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
-        when(authenticationProviderA.authenticate(requestContextMock, correlationId))
+        when(authenticationProviderA.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(failedAuthenticationResult);
-        when(authenticationProviderB.authenticate(requestContextMock, correlationId))
+        when(authenticationProviderB.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(expectedAuthenticationResult);
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
@@ -195,12 +200,12 @@ public final class AuthenticationChainTest {
                         messageDispatcher);
 
         final AuthenticationResult authenticationResult =
-                underTest.authenticate(requestContextMock, correlationId).get();
+                underTest.authenticate(requestContextMock, KNOWN_DITTO_HEADERS).get();
 
         verify(authenticationProviderA).isApplicable(requestContextMock);
         verify(authenticationProviderB).isApplicable(requestContextMock);
-        verify(authenticationProviderA).authenticate(requestContextMock, correlationId);
-        verify(authenticationProviderB).authenticate(requestContextMock, correlationId);
+        verify(authenticationProviderA).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
+        verify(authenticationProviderB).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
         assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
     }
 
@@ -213,16 +218,18 @@ public final class AuthenticationChainTest {
 
         // Failure A
         final DittoRuntimeException failureA = mock(DittoRuntimeException.class);
-        final AuthenticationResult failedAuthenticationResultA = DefaultAuthenticationResult.failed(failureA);
+        final AuthenticationResult failedAuthenticationResultA =
+                DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, failureA);
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
-        when(authenticationProviderA.authenticate(requestContextMock, correlationId))
+        when(authenticationProviderA.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(failedAuthenticationResultA);
         // Failure B
         final DittoRuntimeException failureB = mock(DittoRuntimeException.class);
-        final AuthenticationResult failedAuthenticationResultB = DefaultAuthenticationResult.failed(failureB);
+        final AuthenticationResult failedAuthenticationResultB =
+                DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, failureB);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
 
-        when(authenticationProviderB.authenticate(requestContextMock, correlationId)).thenReturn(
+        when(authenticationProviderB.authenticate(requestContextMock, KNOWN_DITTO_HEADERS)).thenReturn(
                 failedAuthenticationResultB);
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
@@ -234,12 +241,12 @@ public final class AuthenticationChainTest {
                 .thenReturn(DittoRuntimeException.newBuilder("test:exception", HttpStatusCode.UNAUTHORIZED).build());
 
         final AuthenticationResult authenticationResult =
-                underTest.authenticate(requestContextMock, correlationId).get();
+                underTest.authenticate(requestContextMock, KNOWN_DITTO_HEADERS).get();
 
         verify(authenticationProviderA).isApplicable(requestContextMock);
         verify(authenticationProviderB).isApplicable(requestContextMock);
-        verify(authenticationProviderA).authenticate(requestContextMock, correlationId);
-        verify(authenticationProviderB).authenticate(requestContextMock, correlationId);
+        verify(authenticationProviderA).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
+        verify(authenticationProviderB).authenticate(requestContextMock, KNOWN_DITTO_HEADERS);
         verify(authenticationFailureAggregator).aggregateAuthenticationFailures(failedAuthenticationResult);
         assertThat(authenticationResult.isSuccess()).isFalse();
     }

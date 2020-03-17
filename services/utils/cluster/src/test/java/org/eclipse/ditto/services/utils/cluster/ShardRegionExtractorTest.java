@@ -15,6 +15,9 @@ package org.eclipse.ditto.services.utils.cluster;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -40,7 +43,9 @@ public final class ShardRegionExtractorTest {
     private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "thingId");
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
-            .authorizationSubjects("authSubject")
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("authSubject")
+            ))
             .correlationId("correlationId")
             .schemaVersion(JsonSchemaVersion.LATEST)
             .build();

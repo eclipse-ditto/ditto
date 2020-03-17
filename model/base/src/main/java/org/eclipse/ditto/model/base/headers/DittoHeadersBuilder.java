@@ -78,7 +78,10 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param authorizationSubjectIds the IDs to be set.
      * @return this builder for Method Chaining.
      * @throws NullPointerException if {@code authorizationSubjectIds} is {@code null}.
+     * @deprecated as of 1.1.0, please use {@link #authorizationContext(AuthorizationContext)} instead for adding the
+     * {@code authorizationSubjects}
      */
+    @Deprecated
     B authorizationSubjects(Collection<String> authorizationSubjectIds);
 
     /**
@@ -88,7 +91,10 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param furtherAuthorizationSubjects further of "authorized subjects" to be set.
      * @return this builder for Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0, please use {@link #authorizationContext(AuthorizationContext)} instead for adding the
+     * {@code authorizationSubjects}
      */
+    @Deprecated
     B authorizationSubjects(CharSequence authorizationSubject, CharSequence... furtherAuthorizationSubjects);
 
     /**

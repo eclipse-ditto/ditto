@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -56,7 +57,18 @@ public final class ImmutableDittoHeadersTest {
 
     private static final Collection<String>
             AUTH_SUBJECTS_WITHOUT_DUPLICATES = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
-    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
+    private static final AuthorizationContext AUTH_CONTEXT_WITHOUT_DUPLICATES =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
+                            .map(AuthorizationSubject::newInstance)
+                            .collect(Collectors.toList()));
+    private static final Collection<String> AUTH_SUBJECTS =
+            Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
+    private static final AuthorizationContext AUTH_CONTEXT =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTH_SUBJECTS.stream()
+                            .map(AuthorizationSubject::newInstance)
+                            .collect(Collectors.toList()));
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final String KNOWN_READ_SUBJECT_WITHOUT_ISSUER = "knownReadSubject";
@@ -103,7 +115,7 @@ public final class ImmutableDittoHeadersTest {
 
         final DittoHeaders underTest = DefaultDittoHeadersBuilder.newInstance()
                 .channel(KNOWN_CHANNEL)
-                .authorizationSubjects(AUTH_SUBJECTS)
+                .authorizationContext(AUTH_CONTEXT)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .readSubjects(KNOWN_READ_SUBJECTS)
                 .readRevokedSubjects(KNOWN_READ_REVOKED_SUBJECTS)
@@ -169,22 +181,23 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
-    public void getAuthorizationSubjectsReturnsExpected() {
-        final DittoHeaders underTest = DittoHeaders.newBuilder().authorizationSubjects(AUTH_SUBJECTS).build();
+    public void getAuthorizationContextReturnsExpected() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder().authorizationContext(AUTH_CONTEXT).build();
 
-        assertThat(underTest.getAuthorizationSubjects()).isEqualTo(AUTH_SUBJECTS);
+        assertThat(underTest.getAuthorizationContext()).isEqualTo(AUTH_CONTEXT);
     }
 
     @Test
-    public void getAuthorizationContextReturnsExpected() {
+    public void getAuthorizationSubjectsReturnsExpected() {
         final List<AuthorizationSubject> authSubjects = AUTH_SUBJECTS.stream()
                 .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());
-        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(authSubjects);
+        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED, authSubjects);
 
         final DittoHeaders underTest = DittoHeaders.newBuilder().authorizationContext(authContext).build();
 
-        assertThat(underTest.getAuthorizationContext()).isEqualTo(authContext);
+        assertThat(underTest.getAuthorizationContext().getAuthorizationSubjectIds()).isEqualTo(AUTH_SUBJECTS);
     }
 
     @Test
@@ -284,7 +297,7 @@ public final class ImmutableDittoHeadersTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject expectedHeadersJsonObject = JsonFactory.newObjectBuilder()
-                .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES))
+                .set(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJson())
                 .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID)
                 .set(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toInt())
                 .set(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL)
@@ -314,27 +327,28 @@ public final class ImmutableDittoHeadersTest {
 
     @Test
     public void removesDuplicatedAuthSubjectsFromHeaderMap() {
-        final String expectedWithoutDups = stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES).toString();
-        final String withDups = stringCollectionToJsonArray(AUTH_SUBJECTS).toString();
+        final String expectedWithoutDups = AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString();
+        final String withDups = AUTH_CONTEXT.toJsonString();
 
         final Map<String, String> headersWithDuplicatedAuthSubjects = new HashMap<>();
-        headersWithDuplicatedAuthSubjects.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), withDups);
+        headersWithDuplicatedAuthSubjects.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), withDups);
 
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headersWithDuplicatedAuthSubjects);
 
-        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey())).isEqualTo(expectedWithoutDups);
+        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey())).isEqualTo(
+                expectedWithoutDups);
 
     }
 
     @Test
     public void removesDuplicatedAuthSubjectsFromJsonRepresentation() {
-        final String withDups = stringCollectionToJsonArray(AUTH_SUBJECTS).toString();
+        final String withDups = AUTH_CONTEXT.toJsonString();
         final JsonObject expected = JsonFactory.newObjectBuilder()
-                .set(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES))
+                .set(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJson())
                 .build();
 
         final Map<String, String> headersWithDuplicatedAuthSubjects = new HashMap<>();
-        headersWithDuplicatedAuthSubjects.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), withDups);
+        headersWithDuplicatedAuthSubjects.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), withDups);
 
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headersWithDuplicatedAuthSubjects);
 
@@ -478,8 +492,7 @@ public final class ImmutableDittoHeadersTest {
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
-                stringCollectionToJsonArray(AUTH_SUBJECTS_WITHOUT_DUPLICATES).toString());
+        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID);
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);

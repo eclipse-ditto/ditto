@@ -22,9 +22,9 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregator;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregators;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationProvider;
-import org.eclipse.ditto.services.gateway.security.authentication.dummy.DummyAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,9 +66,9 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             final Executor authenticationDispatcher) {
 
         final Collection<AuthenticationProvider> authenticationProviders = new ArrayList<>();
-        if (authConfig.isDummyAuthenticationEnabled()) {
-            LOGGER.warn("Dummy authentication is enabled - Do not use this feature in production.");
-            authenticationProviders.add(DummyAuthenticationProvider.getInstance());
+        if (authConfig.isPreAuthenticatedAuthenticationEnabled()) {
+            LOGGER.info("Pre-authenticated authentication is enabled!");
+            authenticationProviders.add(PreAuthenticatedAuthenticationProvider.getInstance());
         }
 
         authenticationProviders.add(

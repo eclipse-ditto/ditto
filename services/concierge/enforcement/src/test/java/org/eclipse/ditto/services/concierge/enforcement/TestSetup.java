@@ -25,15 +25,17 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.DefaultCachesConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.LiveSignalPub;
@@ -72,7 +74,8 @@ public final class TestSetup {
     public static final String POLICY_SUDO = "policy-sudo";
 
     public static final ThingId THING_ID = ThingId.of("thing", "id");
-    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
+    public static final String SUBJECT_ID = "subject";
+    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:" + SUBJECT_ID);
 
     public static final Config RAW_CONFIG = ConfigFactory.load("test");
     public static final CachesConfig CACHES_CONFIG;
@@ -140,7 +143,10 @@ public final class TestSetup {
 
     public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
-                .authorizationSubjects(SUBJECT.getId(), String.format("%s:%s", GOOGLE, SUBJECT))
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        SUBJECT,
+                        AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))
+                ))
                 .schemaVersion(schemaVersion)
                 .build();
     }

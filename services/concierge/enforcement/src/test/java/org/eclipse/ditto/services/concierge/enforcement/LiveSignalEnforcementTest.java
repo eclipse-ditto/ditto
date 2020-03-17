@@ -21,6 +21,7 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
@@ -31,6 +32,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -189,7 +193,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -302,7 +306,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -369,7 +373,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.messageResource("/features/foo/inbox/messages/my-subject"),
                         WRITE.name())
                 .build()
@@ -470,7 +474,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -512,7 +516,10 @@ public final class LiveSignalEnforcementTest {
 
     private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
-                .authorizationSubjects(SUBJECT.getId(), String.format("%s:%s", GOOGLE, SUBJECT))
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        SUBJECT,
+                        AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))
+                ))
                 .channel("live")
                 .schemaVersion(schemaVersion)
                 .correlationId(UUID.randomUUID().toString())

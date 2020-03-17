@@ -164,7 +164,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
      * @return A copy of the signal with the header "ditto-originator" set.
      */
     public static WithDittoHeaders setOriginatorHeader(final WithDittoHeaders originalSignal) {
-        final List<String> authSubjects = originalSignal.getDittoHeaders().getAuthorizationSubjects();
+        final List<String> authSubjects = originalSignal.getDittoHeaders().getAuthorizationContext()
+                .getAuthorizationSubjectIds();
         if (authSubjects.isEmpty()) {
             return originalSignal;
         } else {

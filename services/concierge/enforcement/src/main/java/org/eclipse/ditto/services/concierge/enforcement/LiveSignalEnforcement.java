@@ -307,9 +307,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         .build();
 
         log(command).info(
-                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
+                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationContext: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
-                command.getDittoHeaders().getAuthorizationSubjects());
+                command.getDittoHeaders().getAuthorizationContext());
         return error;
     }
 

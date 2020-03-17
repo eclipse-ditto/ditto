@@ -21,42 +21,44 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
- * Unit test for {@link DefaultJwtAuthorizationContextProvider}.
+ * Unit test for {@link DefaultJwtAuthenticationResultProvider}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class DefaultJwtAuthorizationContextProviderTest {
+public final class DefaultJwtAuthenticationResultProviderTest {
 
     @Mock
     private JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultJwtAuthorizationContextProvider.class,
+        assertInstancesOf(DefaultJwtAuthenticationResultProvider.class,
                 areImmutable(),
                 provided(JwtAuthorizationSubjectsProvider.class).isAlsoImmutable());
     }
 
     @Test
     public void getAuthorizationContext() {
-        final DefaultJwtAuthorizationContextProvider underTest =
-                DefaultJwtAuthorizationContextProvider.of(authorizationSubjectsProvider);
+        final DefaultJwtAuthenticationResultProvider underTest =
+                DefaultJwtAuthenticationResultProvider.of(authorizationSubjectsProvider);
         final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
         final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("myTestSubj");
         when(authorizationSubjectsProvider.getAuthorizationSubjects(jsonWebToken)).thenReturn(
                 Collections.singletonList(myTestSubj));
 
-        final AuthorizationContext authorizationContext = underTest.getAuthorizationContext(jsonWebToken);
+        final AuthenticationResult authorizationResult = underTest.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
 
-        assertThat(authorizationContext.getAuthorizationSubjects()).containsExactly(myTestSubj);
+        assertThat(authorizationResult.getAuthorizationContext().getAuthorizationSubjects())
+                .containsExactly(myTestSubj);
     }
 
 }

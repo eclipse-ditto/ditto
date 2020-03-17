@@ -772,7 +772,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final Set<AuthorizationSubject> authorizedSubjects = authorizationContext.getFirstAuthorizationSubject()
                 .map(Collections::singleton)
                 .orElse(Collections.emptySet());
-        final Enforcer enforcer = new AuthorizedSubjectsEnforcer(authorizedSubjects);
+        final Enforcer enforcer = new AuthorizedSubjectsEnforcer(AuthorizationContext.newInstance(
+                authorizationContext.getType(), authorizedSubjects));
         final CreateThing command = AbstractEnforcement.addEffectedReadSubjectsToThingSignal(createThing, enforcer);
         return Optional.of(new CreateThingWithEnforcer(command, enforcer));
     }

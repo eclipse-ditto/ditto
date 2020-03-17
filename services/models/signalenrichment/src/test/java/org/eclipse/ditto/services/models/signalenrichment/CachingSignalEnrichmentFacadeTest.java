@@ -21,6 +21,9 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
@@ -98,14 +101,16 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final ThingId thingId = ThingId.dummy();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
-                    .authorizationSubjects(userId)
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId)
+                    ))
                     .correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationSubjects())
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds())
                     .contains(userId);
             assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
@@ -174,14 +179,17 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final String userId1 = ISSUER_PREFIX + "user1";
             final String userId2 = ISSUER_PREFIX + "user2";
             final DittoHeaders headers = DittoHeaders.newBuilder()
-                    .authorizationSubjects(userId1)
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId1)
+                    ))
                     .correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationSubjects()).contains(userId1);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds())
+                    .contains(userId1);
             assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
@@ -190,14 +198,17 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
 
             // WHEN: same thing is asked again with same selector for an event with one revision ahead but other auth subjects
             final DittoHeaders headers2 = headers.toBuilder()
-                    .authorizationSubjects(ISSUER_PREFIX + "user2")
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(ISSUER_PREFIX + "user2")
+                    ))
                     .build();
             underTest.retrievePartialThing(thingId, SELECTOR, headers2,
                     THING_EVENT.setRevision(THING_EVENT.getRevision() + 1));
 
             // THEN: a cache lookup should be done containing the other auth subject header
             final RetrieveThing retrieveThing2 = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing2.getDittoHeaders().getAuthorizationSubjects()).contains(userId2);
+            assertThat(retrieveThing2.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds())
+                    .contains(userId2);
             assertThat(retrieveThing2.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
         });
     }
@@ -211,7 +222,9 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             final ThingId thingId = ThingId.dummy();
             final String userId = ISSUER_PREFIX + "user1";
             final DittoHeaders headers = DittoHeaders.newBuilder()
-                    .authorizationSubjects(userId)
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId)
+                    ))
                     .correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
@@ -221,7 +234,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationSubjects()).contains(userId);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds()).contains(userId);
             assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
             // WHEN: response is handled so that it is also added to the cache
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
@@ -234,7 +247,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
 
             // THEN: a cache lookup should be done using the other selector
             final RetrieveThing retrieveThing2 = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing2.getDittoHeaders().getAuthorizationSubjects()).contains(userId);
+            assertThat(retrieveThing2.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds()).contains(userId);
             assertThat(retrieveThing2.getSelectedFields()).contains(actualSelectedFields(selector2));
         });
     }

@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
  * Abstract implementation of an authentication result that results in an authorization context extending
@@ -28,12 +31,15 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 @NotThreadSafe
 public abstract class AbstractAuthenticationResult<C extends AuthorizationContext> implements AuthenticationResult {
 
+    private final DittoHeaders dittoHeaders;
     @Nullable private final C authorizationContext;
     @Nullable private final Throwable reasonOfFailure;
 
-    protected AbstractAuthenticationResult(@Nullable final C authorizationContext,
+    protected AbstractAuthenticationResult(final DittoHeaders dittoHeaders,
+            @Nullable final C authorizationContext,
             @Nullable final Throwable reasonOfFailure) {
 
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
         this.authorizationContext = authorizationContext;
         this.reasonOfFailure = reasonOfFailure;
     }
@@ -41,6 +47,11 @@ public abstract class AbstractAuthenticationResult<C extends AuthorizationContex
     @Override
     public boolean isSuccess() {
         return null != authorizationContext;
+    }
+
+    @Override
+    public DittoHeaders getDittoHeaders() {
+        return dittoHeaders;
     }
 
     @Override
@@ -73,19 +84,21 @@ public abstract class AbstractAuthenticationResult<C extends AuthorizationContex
             return false;
         }
         final AbstractAuthenticationResult that = (AbstractAuthenticationResult) o;
-        return Objects.equals(authorizationContext, that.authorizationContext) &&
+        return Objects.equals(dittoHeaders, that.dittoHeaders) &&
+                Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(reasonOfFailure, that.reasonOfFailure);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(authorizationContext, reasonOfFailure);
+        return Objects.hash(dittoHeaders, authorizationContext, reasonOfFailure);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "authorizationContext=" + authorizationContext +
+                "dittoHeaders=" + dittoHeaders +
+                ", authorizationContext=" + authorizationContext +
                 ", reasonOfFailure=" + reasonOfFailure +
                 ']';
     }

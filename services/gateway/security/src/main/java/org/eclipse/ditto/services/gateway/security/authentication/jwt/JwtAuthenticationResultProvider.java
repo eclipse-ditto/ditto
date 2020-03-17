@@ -12,24 +12,25 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 
 /**
- * Responsible for extraction of an {@link AuthorizationContext authorization context} out of a
+ * Responsible for extraction of an {@link AuthenticationResult} out of a
  * {@link JsonWebToken JSON web token}.
  */
 @FunctionalInterface
-public interface JwtAuthorizationContextProvider {
+public interface JwtAuthenticationResultProvider {
 
     /**
-     * Extracts an {@link AuthorizationContext authorization context} out of a given
-     * {@link JsonWebToken JSON web token}.
+     * Extracts an {@code AuthenticationResult} out of a given {@link JsonWebToken JSON web token}.
      *
      * @param jwt the JSON web token that contains the information to be extracted into an authorization context.
-     * @return the authorization context based on the given JSON web token.
+     * @param dittoHeaders the DittoHeaders to use for the extracted authentication result.
+     * @return the authentication result based on the given JSON web token.
      * @throws NullPointerException if {@code jwt} is {@code null}.
      */
-    AuthorizationContext getAuthorizationContext(JsonWebToken jwt);
+    AuthenticationResult getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
 
 }

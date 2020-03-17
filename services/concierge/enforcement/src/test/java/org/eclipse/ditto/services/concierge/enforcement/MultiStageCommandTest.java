@@ -24,6 +24,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -34,8 +37,8 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -80,7 +83,9 @@ public final class MultiStageCommandTest {
             Subject.newInstance(SubjectIssuer.GOOGLE, "notDefaultSubject");
 
     private static final DittoHeaders DEFAULT_HEADERS = DittoHeaders.newBuilder()
-            .authorizationSubjects(DEFAULT_SUBJECT.getId())
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance(DEFAULT_SUBJECT.getId())
+            ))
             .build();
 
     private static final String THING = ThingCommand.RESOURCE_TYPE;

@@ -26,6 +26,9 @@ import java.util.UUID;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -93,7 +96,9 @@ public class PolicyCommandEnforcementTest {
     private static final EntityIdWithResourceType ENTITY_ID = EntityIdWithResourceType.of(RESOURCE_TYPE, POLICY_ID);
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
-            .authorizationSubjects(AUTH_SUBJECT_ID)
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance(AUTH_SUBJECT_ID)
+            ))
             .correlationId(CORRELATION_ID)
             .build();
 

@@ -57,6 +57,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -265,11 +266,12 @@ public final class TestConstants {
         static final AuthorizationSubject UNAUTHORIZED_SUBJECT =
                 AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID);
 
-        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(SUBJECT);
+        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SUBJECT);
         public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
-                SOURCE_SUBJECT);
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SOURCE_SUBJECT);
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-                UNAUTHORIZED_SUBJECT);
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, UNAUTHORIZED_SUBJECT);
 
 
         public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
@@ -279,7 +281,7 @@ public final class TestConstants {
                     .map(AuthorizationSubject::newInstance)
                     .forEach(mergedSubjects::add);
 
-            return AuthorizationModelFactory.newAuthContext(mergedSubjects);
+            return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), mergedSubjects);
         }
 
     }

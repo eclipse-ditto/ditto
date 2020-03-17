@@ -87,12 +87,14 @@ final class RootRouteHeadersStepBuilder {
     /**
      * Sets the AuthorizationContext of the eventual DittoHeaders.
      *
+     * @param initialDittoHeaders initial DittoHeaders which might be pre-initialized with some header values.
      * @param authContext the authorization context to be set.
      * @return the next builder step.
      * @throws NullPointerException if {@code authContext} is {@code null}.
      */
-    SchemaVersionStep withAuthorizationContext(final AuthorizationContext authContext) {
-        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder();
+    SchemaVersionStep withAuthorizationContext(final DittoHeaders initialDittoHeaders,
+            final AuthorizationContext authContext) {
+        final DittoHeadersBuilder dittoHeadersBuilder = initialDittoHeaders.toBuilder();
         dittoHeadersBuilder.authorizationContext(checkNotNull(authContext));
         return new SchemaVersionStep(dittoHeadersBuilder);
     }

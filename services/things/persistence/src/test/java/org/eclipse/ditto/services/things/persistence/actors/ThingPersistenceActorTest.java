@@ -41,8 +41,10 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -1246,7 +1248,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
 
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                        .authorizationSubjects("authSubject")
+                        .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                AuthorizationSubject.newInstance("authSubject")
+                        ))
                         .correlationId("correlationId")
                         .schemaVersion(JsonSchemaVersion.LATEST)
                         .build();
@@ -1593,7 +1597,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     private static CreateThing createThing(final Thing thing, final JsonSchemaVersion version) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
-                .authorizationSubjects(AUTH_SUBJECT)
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance(AUTH_SUBJECT)
+                ))
                 .build();
 
         return CreateThing.of(thing, null, dittoHeaders);
@@ -1602,7 +1608,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     private static ModifyThing modifyThing(final Thing thing, final JsonSchemaVersion version) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
-                .authorizationSubjects(AUTH_SUBJECT)
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance(AUTH_SUBJECT)
+                ))
                 .build();
         return ModifyThing.of(getIdOrThrow(thing),
                 thing,

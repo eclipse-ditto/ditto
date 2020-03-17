@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -205,15 +206,21 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Route apiAuthentication(final CharSequence correlationId,
-            final Function<AuthorizationContext, Route> inner) {
+            final BiFunction<AuthorizationContext, DittoHeaders, Route> inner) {
 
-        return apiAuthenticationDirective.authenticate(correlationId, inner);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .build();
+        return apiAuthenticationDirective.authenticate(dittoHeaders, inner);
     }
 
     private Route wsAuthentication(final CharSequence correlationId,
-            final Function<AuthorizationContext, Route> inner) {
+            final BiFunction<AuthorizationContext, DittoHeaders, Route> inner) {
 
-        return wsAuthenticationDirective.authenticate(correlationId, inner);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .build();
+        return wsAuthenticationDirective.authenticate(dittoHeaders, inner);
     }
 
     /*
@@ -227,10 +234,10 @@ public final class RootRoute extends AllDirectives {
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                                apiAuthentication(correlationId, authContext -> {
+                                apiAuthentication(correlationId, (authContext, initialHeaders) -> {
                                             final CompletionStage<DittoHeaders> dittoHeadersPromise =
                                                     rootRouteHeadersStepBuilder
-                                                            .withAuthorizationContext(authContext)
+                                                            .withAuthorizationContext(initialHeaders, authContext)
                                                             .withSchemaVersion(apiVersion)
                                                             .withCorrelationId(correlationId)
                                                             .withRequestContext(ctx)
@@ -238,8 +245,7 @@ public final class RootRoute extends AllDirectives {
                                                             .build(CustomHeadersHandler.RequestType.API);
 
                                             return withDittoHeaders(dittoHeadersPromise,
-                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders,
-                                                            authContext));
+                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, authContext));
                                         }
                                 )
                         )
@@ -307,10 +313,10 @@ public final class RootRoute extends AllDirectives {
     private Route ws(final RequestContext ctx, final CharSequence correlationId) {
         return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
-                        wsAuthentication(correlationId, authContext -> {
+                        wsAuthentication(correlationId, (authContext, initialHeaders) -> {
                                     final CompletionStage<DittoHeaders> dittoHeadersPromise =
                                             rootRouteHeadersStepBuilder
-                                                    .withAuthorizationContext(authContext)
+                                                    .withAuthorizationContext(initialHeaders, authContext)
                                                     .withSchemaVersion(wsVersion)
                                                     .withCorrelationId(correlationId)
                                                     .withRequestContext(ctx)

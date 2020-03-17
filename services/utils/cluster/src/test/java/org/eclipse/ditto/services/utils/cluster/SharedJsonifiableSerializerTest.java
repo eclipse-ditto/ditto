@@ -19,6 +19,9 @@ import java.util.Collection;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -65,7 +68,9 @@ public final class SharedJsonifiableSerializerTest {
     public SerializerImplementation serializerClass;
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
-            .authorizationSubjects("authSubject")
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("authSubject")
+            ))
             .correlationId("correlationId")
             .schemaVersion(JsonSchemaVersion.LATEST)
             .build();

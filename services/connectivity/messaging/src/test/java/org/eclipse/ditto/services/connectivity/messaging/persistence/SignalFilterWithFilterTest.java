@@ -25,6 +25,7 @@ import java.util.List;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -62,7 +63,7 @@ public final class SignalFilterWithFilterTest {
         // targetA does filter for namespaces "org.eclipse.ditto" and "foo"
         final Target targetA = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(List.of("org.eclipse.ditto", "foo"))
@@ -72,7 +73,7 @@ public final class SignalFilterWithFilterTest {
         // targetB does filter for namespaces "org.example"
         final Target targetB = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/b")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(List.of("org.example"))
@@ -82,7 +83,7 @@ public final class SignalFilterWithFilterTest {
         // targetC does filter for namespaces "foo", but uses the "UNAUTHORIZED" subjects
         final Target targetC = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/c")
-                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(List.of("foo"))
@@ -118,7 +119,7 @@ public final class SignalFilterWithFilterTest {
         final String filterA = "gt(attributes/test,23)";
         final Target targetA = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_EVENTS)
                         .withNamespaces(allNamespaces)
@@ -130,7 +131,7 @@ public final class SignalFilterWithFilterTest {
         final String filterB = "gt(attributes/test,50)";
         final Target targetB = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/b")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_EVENTS)
                         .withNamespaces(allNamespaces)
@@ -142,7 +143,7 @@ public final class SignalFilterWithFilterTest {
         final String filterC = "gt(attributes/test,50)";
         final Target targetC = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/c")
-                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_EVENTS)
                         .withNamespaces(allNamespaces)
@@ -179,7 +180,7 @@ public final class SignalFilterWithFilterTest {
         final String filterA = "gt(attributes/test,23)";
         final Target targetA = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/a")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(namespacesA)
@@ -192,7 +193,7 @@ public final class SignalFilterWithFilterTest {
         final String filterB = "lt(attributes/test,50)";
         final Target targetB = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/b")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(namespacesB)
@@ -205,7 +206,7 @@ public final class SignalFilterWithFilterTest {
         final String filterC = "eq(attributes/test,42)";
         final Target targetC = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/c")
-                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(namespacesC)
@@ -218,7 +219,7 @@ public final class SignalFilterWithFilterTest {
         final String filterD = "eq(attributes/test,42)";
         final Target targetD = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/d")
-                .authorizationContext(newAuthContext(AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withNamespaces(namespacesD)

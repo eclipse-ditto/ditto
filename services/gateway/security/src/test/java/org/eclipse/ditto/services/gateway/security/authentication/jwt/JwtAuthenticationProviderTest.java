@@ -23,11 +23,14 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import org.assertj.core.api.AssertionsForClassTypes;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.BinaryValidationResult;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
@@ -48,6 +51,9 @@ import akka.http.javadsl.server.RequestContext;
 @RunWith(MockitoJUnitRunner.class)
 public final class JwtAuthenticationProviderTest {
 
+    private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
+            .correlationId(UUID.randomUUID().toString())
+            .build();
     private static final HttpHeader VALID_AUTHORIZATION_HEADER =
             HttpHeader.parse("authorization", "Bearer " + VALID_JWT_TOKEN);
     private static final HttpHeader INVALID_AUTHORIZATION_HEADER =
@@ -55,7 +61,7 @@ public final class JwtAuthenticationProviderTest {
     private JwtAuthenticationProvider underTest;
 
     @Mock
-    private JwtAuthorizationContextProvider authenticationContextProvider;
+    private JwtAuthenticationResultProvider authenticationContextProvider;
 
     @Mock
     private JwtValidator jwtValidator;
@@ -90,12 +96,15 @@ public final class JwtAuthenticationProviderTest {
     public void doExtractAuthentication() {
         when(jwtValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class))).thenReturn(
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("myAuthSubj")));
+        when(authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class),
+                any(DittoHeaders.class))).thenReturn(
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS,
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                AuthorizationSubject.newInstance("myAuthSubj"))));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
         final String correlationId = getRandomUuid();
-        final DefaultAuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, correlationId);
+        final AuthenticationResult authenticationResult =
+                underTest.tryToAuthenticate(requestContext, KNOWN_DITTO_HEADERS);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -104,14 +113,13 @@ public final class JwtAuthenticationProviderTest {
     public void doExtractAuthenticationWhenAuthorizationContextProviderErrors() {
         when(jwtValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class)))
+        when(authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
                 .thenThrow(new RuntimeException("Something happened"));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
-        final String correlationId = getRandomUuid();
-        final DefaultAuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, correlationId);
+        final AuthenticationResult authenticationResult =
+                underTest.tryToAuthenticate(requestContext, KNOWN_DITTO_HEADERS);
 
-        verify(authenticationContextProvider).getAuthorizationContext(any(JsonWebToken.class));
+        verify(authenticationContextProvider).getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class));
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure())
                 .isExactlyInstanceOf(GatewayAuthenticationFailedException.class);
@@ -119,16 +127,16 @@ public final class JwtAuthenticationProviderTest {
                 (GatewayAuthenticationFailedException) authenticationResult.getReasonOfFailure();
         assertThat(reasonOfFailure).hasMessage("The JWT could not be verified.");
         assertThat(reasonOfFailure.getDescription()).contains("Something happened");
-        assertThat(reasonOfFailure.getDittoHeaders().getCorrelationId()).contains(correlationId);
+        assertThat(reasonOfFailure.getDittoHeaders().getCorrelationId()).contains(
+                KNOWN_DITTO_HEADERS.getCorrelationId().get());
     }
 
     @Test
     public void doExtractAuthenticationWithMissingJwt() {
         final RequestContext requestContext = mockRequestContext();
-        final String correlationId = getRandomUuid();
 
-        final DefaultAuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, correlationId);
+        final AuthenticationResult authenticationResult =
+                underTest.tryToAuthenticate(requestContext, KNOWN_DITTO_HEADERS);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(GatewayAuthenticationFailedException.class);
@@ -137,7 +145,8 @@ public final class JwtAuthenticationProviderTest {
         assertThat(reasonOfFailureDre).hasMessage("The JWT was missing.");
         assertThat(reasonOfFailureDre.getErrorCode()).isEqualTo("gateway:authentication.failed");
         assertThat(reasonOfFailureDre.getStatusCode()).isEqualTo(HttpStatusCode.UNAUTHORIZED);
-        assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId()).contains(correlationId);
+        assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId()).contains(
+                KNOWN_DITTO_HEADERS.getCorrelationId().get());
         assertThat(reasonOfFailureDre.getDescription()).contains(
                 "Please provide a valid JWT in the authorization header prefixed with 'Bearer '");
     }
@@ -148,10 +157,9 @@ public final class JwtAuthenticationProviderTest {
                 .thenReturn(CompletableFuture.completedFuture(
                         BinaryValidationResult.invalid(new IllegalStateException("foo"))));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
-        final String correlationId = getRandomUuid();
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, KNOWN_DITTO_HEADERS);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(GatewayAuthenticationFailedException.class);
@@ -160,7 +168,8 @@ public final class JwtAuthenticationProviderTest {
         assertThat(reasonOfFailureDre).hasMessage("The JWT could not be verified.");
         assertThat(reasonOfFailureDre.getErrorCode()).isEqualTo("gateway:authentication.failed");
         assertThat(reasonOfFailureDre.getStatusCode()).isEqualTo(HttpStatusCode.UNAUTHORIZED);
-        assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId()).contains(correlationId);
+        assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId()).contains(
+                KNOWN_DITTO_HEADERS.getCorrelationId().get());
     }
 
     @Test
@@ -171,7 +180,7 @@ public final class JwtAuthenticationProviderTest {
         final IllegalStateException illegalStateException = new IllegalStateException("notExpected", dre);
 
         final Throwable reasonOfFailure =
-                underTest.toFailedAuthenticationResult(illegalStateException, correlationId).getReasonOfFailure();
+                underTest.toFailedAuthenticationResult(illegalStateException, KNOWN_DITTO_HEADERS).getReasonOfFailure();
 
         assertThat(reasonOfFailure).isEqualTo(dre);
     }
@@ -182,14 +191,16 @@ public final class JwtAuthenticationProviderTest {
         final DittoRuntimeException dre =
                 DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
 
-        final AuthenticationResult authenticationResult = underTest.toFailedAuthenticationResult(dre, correlationId);
+        final AuthenticationResult authenticationResult =
+                underTest.toFailedAuthenticationResult(dre, KNOWN_DITTO_HEADERS);
 
         assertThat(authenticationResult.getReasonOfFailure()).isEqualTo(dre);
     }
 
     @Test
     public void getType() {
-        assertThat(underTest.getType()).isEqualTo("JWT");
+        AssertionsForClassTypes.assertThat(underTest.getType(mockRequestContext(VALID_AUTHORIZATION_HEADER)))
+                .isEqualTo(DittoAuthorizationContextType.JWT);
     }
 
     private static String getRandomUuid() {

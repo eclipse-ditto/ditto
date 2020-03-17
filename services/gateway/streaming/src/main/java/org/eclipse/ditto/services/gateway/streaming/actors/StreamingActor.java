@@ -15,14 +15,14 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
@@ -67,7 +67,7 @@ public final class StreamingActor extends AbstractActorWithTimers
     private final ActorRef commandRouter;
     private final Gauge streamingSessionsCounter;
     private final JwtValidator jwtValidator;
-    private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
+    private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
@@ -92,7 +92,7 @@ public final class StreamingActor extends AbstractActorWithTimers
         this.streamingConfig = streamingConfig;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();
-        jwtAuthorizationContextProvider = jwtAuthenticationFactory.newJwtAuthorizationContextProvider();
+        jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthorizationContextProvider();
         scheduleScrapeStreamSessionsCounter();
     }
 
@@ -199,12 +199,12 @@ public final class StreamingActor extends AbstractActorWithTimers
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
                 try {
-                    final AuthorizationContext authorizationContext =
-                            jwtAuthorizationContextProvider.getAuthorizationContext(jsonWebToken);
+                    final AuthenticationResult authorizationResult =
+                            jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
 
                     forwardToSessionActor(connectionCorrelationId,
                             new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
-                                    authorizationContext));
+                                    authorizationResult.getAuthorizationContext()));
                 } catch (final Exception exception) {
                     logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
                             connectionCorrelationId, exception.getMessage());

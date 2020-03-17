@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -92,7 +93,11 @@ public final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")
+            ))
+            .build();
 
     /**
      * Empty command headers.
@@ -149,7 +154,8 @@ public final class TestConstants {
          * An Authorization Context which contains all known Authorization Subjects.
          */
         public static final AuthorizationContext AUTH_CONTEXT =
-                AuthorizationModelFactory.newAuthContext(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
 
         public static final List<AuthorizationSubject> authorizationSubjects =
                 Arrays.asList(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
