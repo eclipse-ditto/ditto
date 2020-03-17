@@ -82,28 +82,14 @@ public interface EnforcementProvider<T extends Signal> {
     ) {
 
         final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
-                multiplexer =
-                Filter.multiplexBy(contextual ->
-                        contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
-                                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
-                                : Optional.empty()));
+                multiplexer = Filter.multiplexBy(contextual -> contextual.tryToMapMessage(this::mapToHandledClass));
 
         return GraphDSL.create(builder -> {
             final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
                     builder.add(multiplexer);
 
             final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
-                    Flow.fromFunction(contextual -> {
-                        final T message = contextual.getMessage();
-                        final EntityId entityId = message.getEntityId();
-                        final boolean changesAuthorization = changesAuthorization(message);
-                        return EnforcementTask.of(entityId, changesAuthorization, () ->
-                                preEnforcer.withErrorHandlingAsync(contextual,
-                                        contextual.withMessage(null).withReceiver(null),
-                                        converted -> createEnforcement(converted).enforceSafely()
-                                )
-                        );
-                    });
+                    Flow.fromFunction(contextual -> buildEnforcementTask(contextual, preEnforcer));
 
             // by default, ignore unhandled messages:
             final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
@@ -115,6 +101,25 @@ public interface EnforcementProvider<T extends Signal> {
 
             return FlowShape.of(fanout.in(), enforcementShape.out());
         });
+    }
+
+    private EnforcementTask buildEnforcementTask(final Contextual<T> contextual, final PreEnforcer preEnforcer) {
+        final T message = contextual.getMessage();
+        final boolean changesAuthorization = changesAuthorization(message);
+        final EntityId entityId = message.getEntityId();
+
+        return EnforcementTask.of(entityId, changesAuthorization, () ->
+                preEnforcer.withErrorHandlingAsync(contextual,
+                        contextual.withMessage(null).withReceiver(null),
+                        converted -> createEnforcement(converted).enforceSafely()
+                )
+        );
+    }
+
+    private Optional<T> mapToHandledClass(final Object message) {
+        return getCommandClass().isInstance(message)
+                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
+                : Optional.empty();
     }
 
 }
