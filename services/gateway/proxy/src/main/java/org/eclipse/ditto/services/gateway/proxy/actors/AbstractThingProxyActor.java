@@ -56,6 +56,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
 
+        // TODO: replace Duration.ofMinutes(1L) by a configured timeout
+        // e. g. gateway.conf:ditto.gateway.request-timeout / HttpConfig#getRequestTimeout()
+        // or a new config path specifically for search protocol idle timeout
         subscriptionManager = getContext().actorOf(SubscriptionManager.props(Duration.ofMinutes(1L), pubSubMediator, conciergeForwarder,
                 materializer),
                 SubscriptionManager.ACTOR_NAME);
@@ -73,6 +76,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 })
 
                 /* handle ThingSearch in a special way */
+                // TODO: the next 3 lines can be replaced by:
+                // .match(ThingSearchCommand.class, c -> subscriptionManager.forward(c, getContext()))
                 .match(CreateSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
                 .match(RequestSubscription.class, rs -> subscriptionManager.forward(rs, getContext()))
                 .match(CancelSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))

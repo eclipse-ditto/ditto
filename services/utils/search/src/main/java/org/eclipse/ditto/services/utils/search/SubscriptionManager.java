@@ -25,15 +25,17 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionNotFoundException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
 import org.reactivestreams.Subscriber;
 
@@ -57,11 +59,8 @@ public final class SubscriptionManager extends AbstractActor {
      */
     public static final String ACTOR_NAME = "subscriptionManager";
 
-    // TODO: unify with other sources of page size limits
-
-    private static final int DEFAULT_PAGE_SIZE = 25;
-    private static final int MAX_PAGE_SIZE = 200;
-    private static final int DEFAULT_MAX_RETRIES = 5; // 32s
+    // attempt silent recovery from upstream errors for 1 + 2 + 4 + 8 + 16 = 31s by default
+    private static final int DEFAULT_MAX_RETRIES = 5;
 
     private final Duration idleTimeout;
     private final int maxRetries;
@@ -69,6 +68,9 @@ public final class SubscriptionManager extends AbstractActor {
     private final ActorRef conciergeForwarder;
     private final ActorMaterializer materializer;
     private final DittoDiagnosticLoggingAdapter log;
+
+    private final int defaultPageSize;
+    private final int maxPageSize;
 
     private int subscriptionIdCounter = 0;
 
@@ -83,6 +85,11 @@ public final class SubscriptionManager extends AbstractActor {
         this.conciergeForwarder = conciergeForwarder;
         this.materializer = materializer;
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
+        final LimitsConfig limitsConfig =
+                DefaultLimitsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
+        defaultPageSize = limitsConfig.getThingsSearchDefaultPageSize();
+        maxPageSize = limitsConfig.getThingsSearchMaxPageSize();
     }
 
     /**
@@ -107,9 +114,9 @@ public final class SubscriptionManager extends AbstractActor {
         return strings.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray());
     }
 
-    private static int getPageSize(@Nullable final String optionString) {
+    private int getPageSize(@Nullable final String optionString) {
         if (optionString == null) {
-            return DEFAULT_PAGE_SIZE;
+            return defaultPageSize;
         } else {
             final int pageSize = RqlOptionParser.parseOptions(optionString)
                     .stream()
@@ -117,13 +124,13 @@ public final class SubscriptionManager extends AbstractActor {
                             ? Stream.of(((SizeOption) option).getSize())
                             : Stream.empty())
                     .findFirst()
-                    .orElse(DEFAULT_PAGE_SIZE);
-            if (pageSize > 0 && pageSize <= MAX_PAGE_SIZE) {
+                    .orElse(defaultPageSize);
+            if (pageSize > 0 && pageSize <= maxPageSize) {
                 return pageSize;
             } else {
                 throw InvalidOptionException.newBuilder()
                         .message("Invalid option: '" + optionString + "'")
-                        .description("size(n) -- n must be between 1 and " + MAX_PAGE_SIZE)
+                        .description("size(n) -- n must be between 1 and " + maxPageSize)
                         .build();
             }
         }
