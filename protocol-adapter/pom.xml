@@ -138,6 +138,12 @@
             <artifactId>jsonassert</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -174,6 +180,9 @@
                                              we don't want to have a slf4j dependency -->
                                         <exclude>org.slf4j</exclude>
                                     </excludes>
+                                    <includes>
+                                        <include>org.slf4j:*:*:jar:test</include>
+                                    </includes>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>

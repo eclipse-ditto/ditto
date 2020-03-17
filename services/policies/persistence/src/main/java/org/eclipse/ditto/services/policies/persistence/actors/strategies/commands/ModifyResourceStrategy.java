@@ -63,15 +63,14 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
                 final ModifyResourceResponse rawResponse;
 
                 if (policyEntry.getResources().getResource(resource.getResourceKey()).isPresent()) {
-                    rawResponse = ModifyResourceResponse.modified(policyId, label, dittoHeaders);
-                    eventToPersist =
-                            ResourceModified.of(policyId, label, resource, nextRevision, getEventTimestamp(),
-                                    dittoHeaders);
+                    rawResponse =
+                            ModifyResourceResponse.modified(policyId, label, resource.getResourceKey(), dittoHeaders);
+                    eventToPersist = ResourceModified.of(policyId, label, resource, nextRevision, getEventTimestamp(),
+                            dittoHeaders);
                 } else {
                     rawResponse = ModifyResourceResponse.created(policyId, label, resource, dittoHeaders);
-                    eventToPersist =
-                            ResourceCreated.of(policyId, label, resource, nextRevision, getEventTimestamp(),
-                                    dittoHeaders);
+                    eventToPersist = ResourceCreated.of(policyId, label, resource, nextRevision, getEventTimestamp(),
+                            dittoHeaders);
                 }
 
                 return ResultFactory.newMutationResult(command, eventToPersist,

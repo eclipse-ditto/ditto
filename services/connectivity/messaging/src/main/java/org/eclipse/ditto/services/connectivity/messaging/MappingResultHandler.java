@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import org.eclipse.ditto.protocoladapter.TopicPath;
+
 /**
  * Interface providing methods for the different outcomes of a mapping - dropped, error and success.
  * As a message may either be the input for multiple mappings or a single mapping may produce multiple results, the
@@ -61,5 +63,11 @@ interface MappingResultHandler<T, R> {
      * @return the empty result.
      */
     R emptyResult();
+
+    /**
+     * Signals that the {@link TopicPath} was successfully resolved and stores it in the handler for later retrieval.
+     * This information is important e.g. for creating meaningful error responses or logs.
+     */
+    void onTopicPathResolved(TopicPath topicPath);
 
 }

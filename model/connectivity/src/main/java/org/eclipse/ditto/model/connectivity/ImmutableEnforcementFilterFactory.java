@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.placeholders.Placeholder;
@@ -29,7 +31,7 @@ final class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilter
 
     private final Enforcement enforcement;
     private final Placeholder<I> inputPlaceholder;
-    private final Placeholder<M> filterPlaceholder;
+    private final List<Placeholder<M>> filterPlaceholder;
 
     /**
      * Instantiates a new {@link ImmutableEnforcementFilterFactory}.
@@ -40,7 +42,7 @@ final class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilter
      */
     ImmutableEnforcementFilterFactory(final Enforcement enforcement,
             final Placeholder<I> inputPlaceholder,
-            final Placeholder<M> filterPlaceholder) {
+            final List<Placeholder<M>> filterPlaceholder) {
         this.enforcement = enforcement;
         this.inputPlaceholder = inputPlaceholder;
         this.filterPlaceholder = filterPlaceholder;
@@ -50,10 +52,7 @@ final class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilter
     public EnforcementFilter<M> getFilter(final I input) {
         final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(),
                 PlaceholderFactory.newExpressionResolver(inputPlaceholder, input));
-        return new ImmutableEnforcementFilter<>(
-                enforcement,
-                filterPlaceholder,
-                inputResolved);
+        return new ImmutableEnforcementFilter<>(enforcement, filterPlaceholder, inputResolved);
     }
 
 }

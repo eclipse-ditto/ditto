@@ -273,7 +273,8 @@ public final class TestConstants {
 
 
         public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
-            final List<AuthorizationSubject> mergedSubjects = new ArrayList<>(authorizationContext.getAuthorizationSubjects());
+            final List<AuthorizationSubject> mergedSubjects =
+                    new ArrayList<>(authorizationContext.getAuthorizationSubjects());
             authorizationContext.getAuthorizationSubjectIds().stream()
                     .map(subject -> subject.split(":", 2)[1])
                     .map(AuthorizationSubject::newInstance)
@@ -448,7 +449,7 @@ public final class TestConstants {
         private static final ConnectionMonitor CONNECTION_MONITOR_MOCK =
                 Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
         public static final LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
-                Instant.now(),
+                Instant.now().minus(Duration.ofSeconds(1)),
                 LogCategory.TARGET,
                 LogType.MAPPED,
                 LogLevel.SUCCESS,

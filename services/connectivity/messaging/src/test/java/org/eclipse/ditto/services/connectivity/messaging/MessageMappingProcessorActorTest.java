@@ -40,6 +40,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -56,7 +57,6 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
@@ -458,7 +458,7 @@ public final class MessageMappingProcessorActorTest {
                         .isEqualTo(AUTHORIZATION_CONTEXT_WITH_DUPLICATES);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
-                        .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
+                        .extracting(headers -> headers.get(DittoHeaderDefinition.ENTITY_ID.getKey()))
                         .isEqualTo(KNOWN_THING_ID.toString());
                 // internal headers added by consumer actors are appended
                 assertThat(modifyAttribute.getDittoHeaders()).containsEntry("ditto-reply-target", "0");
@@ -554,7 +554,7 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
-    public void testMessageWithoutCorrelationId(){
+    public void testMessageWithoutCorrelationId() {
 
         final AuthorizationContext connectionAuthContext = AuthorizationModelFactory.newAuthContext(
                 AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"),
@@ -715,7 +715,7 @@ public final class MessageMappingProcessorActorTest {
                     ThingNotAccessibleException.newBuilder(KNOWN_THING_ID)
                             .dittoHeaders(DittoHeaders.newBuilder()
                                     .correlationId(correlationId)
-                                    .putHeader(MessageHeaderDefinition.THING_ID.getKey(), KNOWN_THING_ID)
+                                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_THING_ID)
                                     .build())
                             .build();
 

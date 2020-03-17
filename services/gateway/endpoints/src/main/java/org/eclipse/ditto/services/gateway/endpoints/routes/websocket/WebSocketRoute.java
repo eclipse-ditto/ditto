@@ -42,19 +42,20 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.exceptions.TooManyRequestsException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -78,14 +79,13 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -616,7 +616,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
             internalHeadersBuilder.putHeaders(signalHeaders);
             // generate correlation ID if it is not set in protocol message
-            if (!signalHeaders.getCorrelationId().isPresent()) {
+            if (signalHeaders.getCorrelationId().isEmpty()) {
                 final String correlationId = UUID.randomUUID().toString();
                 logger.trace("Adding generated correlationId: <{}>.", correlationId);
                 internalHeadersBuilder.correlationId(correlationId);
@@ -639,8 +639,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 );
             }
 
-            final TopicPath.Channel channel = determineChannel(sessionedJsonifiable);
-            final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
+            final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter);
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
             return extraFuture.<Collection<String>>thenApply(extra ->
                     matchesFilter(sessionedJsonifiable, extra)
@@ -648,20 +647,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             : Collections.emptyList())
                     .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable));
         };
-    }
-
-    private static TopicPath.Channel determineChannel(final SessionedJsonifiable sessionedJsonifiable) {
-        return sessionedJsonifiable.getDittoHeaders()
-                .getChannel()
-                // if channel was present in headers, use that one:
-                .map(channel -> TopicPath.Channel.forName(channel).orElse(TopicPath.Channel.TWIN))
-                // otherwise determine the channel from the class of the jsonifiable
-                .orElseGet(() -> {
-                    final Jsonifiable.WithPredicate<?, ?> jsonifiable = sessionedJsonifiable.getJsonifiable();
-                    return (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable))
-                            ? TopicPath.Channel.LIVE
-                            : TopicPath.Channel.TWIN;
-                });
     }
 
     private static Collection<String> reportEnrichmentError(final Throwable error,
@@ -738,34 +723,40 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return protocolMessage + PROTOCOL_CMD_ACK_SUFFIX;
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return StreamingType.isLiveSignal(signal);
-    }
-
     private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
-            final TopicPath.Channel channel, final ProtocolAdapter adapter) {
+            final ProtocolAdapter adapter) {
         final Adaptable adaptable;
-        if (jsonifiable instanceof Command) {
-            adaptable = adapter.toAdaptable((Command) jsonifiable, channel);
-        } else if (jsonifiable instanceof Event) {
-            adaptable = adapter.toAdaptable((Event) jsonifiable, channel);
-        } else if (jsonifiable instanceof CommandResponse) {
-            adaptable = adapter.toAdaptable((CommandResponse) jsonifiable, channel);
+        if (jsonifiable instanceof Signal) {
+            adaptable = adapter.toAdaptable((Signal<?>) jsonifiable);
         } else if (jsonifiable instanceof DittoRuntimeException) {
-            final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) jsonifiable;
-            final DittoHeaders enhancedHeaders = dittoRuntimeException.getDittoHeaders().toBuilder()
-                    .channel(channel.getName())
-                    .build();
-            final String nullableThingId = enhancedHeaders.get(MessageHeaderDefinition.THING_ID.getKey());
-            final ThingErrorResponse errorResponse = nullableThingId != null
-                    ? ThingErrorResponse.of(ThingId.of(nullableThingId), dittoRuntimeException, enhancedHeaders)
-                    : ThingErrorResponse.of(dittoRuntimeException, enhancedHeaders);
-            adaptable = adapter.toAdaptable(errorResponse, channel);
+            final Signal<?> signal;
+            if (jsonifiable instanceof PolicyException) {
+                signal = buildPolicyErrorResponse((DittoRuntimeException) jsonifiable);
+            } else {
+                signal = buildThingErrorResponse((DittoRuntimeException) jsonifiable);
+            }
+            adaptable = adapter.toAdaptable(signal);
         } else {
-            throw new IllegalArgumentException("Jsonifiable was neither Command nor CommandResponse nor"
-                    + " Event nor DittoRuntimeException: " + jsonifiable.getClass().getSimpleName());
+            throw new IllegalArgumentException("Jsonifiable was neither Signal nor DittoRuntimeException: " +
+                    jsonifiable.getClass().getSimpleName());
         }
         return adaptable;
+    }
+
+    private static ThingErrorResponse buildThingErrorResponse(final DittoRuntimeException dittoRuntimeException) {
+        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        return nullableEntityId != null
+                ? ThingErrorResponse.of(ThingId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
+                : ThingErrorResponse.of(dittoRuntimeException, dittoHeaders);
+    }
+
+    private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
+        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        return nullableEntityId != null
+                ? PolicyErrorResponse.of(PolicyId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
+                : PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders);
     }
 
     private static Optional<JsonWebToken> extractJwtFromRequestIfPresent(final HttpRequest request) {
