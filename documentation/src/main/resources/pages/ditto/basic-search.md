@@ -39,7 +39,7 @@ and return the first 5 results:
 ```
 Filter:     eq(attributes/location,"living-room")
 Sorting:    sort(+thingId)
-Paging:     limit(0,5)
+Paging:     size(5),cursor(CURSOR_ID)
 ```
 
 

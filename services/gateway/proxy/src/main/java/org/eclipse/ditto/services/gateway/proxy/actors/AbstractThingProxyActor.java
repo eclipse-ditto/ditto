@@ -22,7 +22,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -61,7 +60,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         subscriptionManager =
                 getContext().actorOf(
-                        SubscriptionManager.props(gatewayConfig.getHttpConfig().getRequestTimeout(), pubSubMediator, conciergeForwarder,
+                        SubscriptionManager.props(gatewayConfig.getHttpConfig().getRequestTimeout(),
+                                pubSubMediator,
+                                conciergeForwarder,
                                 materializer),
                         SubscriptionManager.ACTOR_NAME);
     }

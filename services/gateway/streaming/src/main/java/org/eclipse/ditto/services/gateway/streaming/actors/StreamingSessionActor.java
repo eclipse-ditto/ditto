@@ -226,8 +226,7 @@ final class StreamingSessionActor extends AbstractActor {
             logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                     signal.getType(), type, signal);
             eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent) signal), getSelf());
-        }
-        else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
+        } else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
         } else {
