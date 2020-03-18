@@ -10,12 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.routes.things;
+package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -27,20 +28,18 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseConnectionSupervisor;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -51,16 +50,20 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit test for the route built with {@link ThingsSseRouteBuilder}.
+ * Unit test for the route built with {@link org.eclipse.ditto.services.gateway.endpoints.routes.sse.ThingsSseRouteBuilder}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     private static final String THINGS_ROUTE = "/things";
+    private static final String SEARCH_ROUTE = "/search/things";
 
     private static ActorSystem actorSystem;
     private static HttpHeader acceptHeader;
@@ -73,6 +76,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     private String connectionCorrelationId;
     private TestProbe streamingActor;
     private TestRoute underTest;
+    private TestProbe proxyActor;
 
     @BeforeClass
     public static void setUpClass() {
@@ -87,11 +91,11 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        streamingActor = TestProbe.apply(actorSystem);
+        streamingActor = TestProbe.apply("streaming", actorSystem);
+        proxyActor = TestProbe.apply("proxy", actorSystem);
 
         final SseConnectionSupervisor sseConnectionSupervisor =
-                (sseConnectionActor, connectionCorrelationId, dittoHeaders) -> publisherActorReference.set(
-                        sseConnectionActor);
+                (sseActor, correlationId, headers) -> publisherActorReference.set(sseActor);
 
         connectionCorrelationId = testName.getMethodName();
 
@@ -103,7 +107,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         };
 
         final ThingsSseRouteBuilder sseRouteBuilder =
-                ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig);
+                ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig, proxyActor.ref());
+        sseRouteBuilder.withProxyActor(proxyActor.ref());
         sseRouteBuilder.withSseConnectionSupervisor(sseConnectionSupervisor);
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);
@@ -111,30 +116,32 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @Test
     public void getWithoutAcceptHeaderFails() {
-        final TestRouteResult testResult = underTest.run(HttpRequest.GET(THINGS_ROUTE));
-
-        testResult.assertStatusCode(StatusCodes.NOT_FOUND);
+        underTest.run(HttpRequest.GET(THINGS_ROUTE)).assertStatusCode(StatusCodes.NOT_FOUND);
+        underTest.run(HttpRequest.GET(SEARCH_ROUTE)).assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
     @Test
     public void putWithAcceptHeaderFails() {
-        final TestRouteResult testResult = underTest.run(HttpRequest.PUT(THINGS_ROUTE).addHeader(acceptHeader));
-
-        testResult.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+        underTest.run(HttpRequest.PUT(THINGS_ROUTE).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+        underTest.run(HttpRequest.PUT(SEARCH_ROUTE).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 
     @Test
     public void postWithAcceptHeaderFails() {
-        final TestRouteResult testResult = underTest.run(HttpRequest.POST(THINGS_ROUTE).addHeader(acceptHeader));
-
-        testResult.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+        underTest.run(HttpRequest.POST(THINGS_ROUTE).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+        underTest.run(HttpRequest.POST(SEARCH_ROUTE).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 
     @Test
     public void deleteWithAcceptHeaderFails() {
-        final TestRouteResult testResult = underTest.run(HttpRequest.DELETE(THINGS_ROUTE).addHeader(acceptHeader));
-
-        testResult.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+        underTest.run(HttpRequest.DELETE(THINGS_ROUTE).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
+        underTest.run(HttpRequest.DELETE(SEARCH_ROUTE).addHeader(acceptHeader))
+                .assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 
     @Test
@@ -142,6 +149,40 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         executeRouteTest(HttpRequest.GET(THINGS_ROUTE).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(Collections.emptySet())).build());
+    }
+
+    @Test
+    public void searchWithoutQueryParameters() {
+        final TestRouteResult routeResult = underTest.run(HttpRequest.GET(SEARCH_ROUTE).addHeader(acceptHeader));
+        final CompletableFuture<Void> assertions =
+                CompletableFuture.runAsync(() -> {
+                    routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
+                    routeResult.assertStatusCode(StatusCodes.OK);
+                });
+        proxyActor.expectMsgClass(StreamThings.class);
+        replySourceRef(proxyActor, Source.lazily(Source::empty));
+        assertions.join();
+    }
+
+    @Test
+    public void searchWithQueryParameters() {
+        final String filter = "not(exists(thingId))";
+        final String option = "sort(-policyId)";
+        final String namespaces = "a,b,c";
+        final String url = SEARCH_ROUTE + "?filter=" + filter + "&option=" + option + "&namespaces=" + namespaces;
+        final TestRouteResult routeResult = underTest.run(HttpRequest.GET(url).addHeader(acceptHeader));
+        final CompletableFuture<Void> assertions =
+                CompletableFuture.runAsync(() -> {
+                    routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
+                    routeResult.assertStatusCode(StatusCodes.OK);
+                });
+        final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
+        replySourceRef(proxyActor, Source.lazily(Source::empty));
+        assertions.join();
+        assertThat(streamThings.getFilter()).contains(filter);
+        assertThat(streamThings.getNamespaces()).contains(Set.of("a", "b", "c"));
+        // sort options are parsed and appended with +/thingId
+        assertThat(streamThings.getSort()).contains("sort(-/policyId,+/thingId)");
     }
 
     @Test
@@ -166,8 +207,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
-                .withNamespaces(namespaces)
-                .build());
+                        .withNamespaces(namespaces)
+                        .build());
     }
 
     @Test
@@ -218,4 +259,12 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         }};
     }
 
+    private static void replySourceRef(final TestProbe testProbe, final Source<?, ?> source) {
+        testProbe.reply(
+                source.toMat(StreamRefs.sourceRef(), Keep.right())
+                        .run(ActorMaterializer.create(actorSystem))
+                        .toCompletableFuture()
+                        .join()
+        );
+    }
 }

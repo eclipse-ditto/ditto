@@ -30,7 +30,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRout
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
@@ -149,7 +149,7 @@ final class GatewayRootActor extends DittoRootActor {
         }
 
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
-                healthCheckActor, healthCheckConfig, jwtAuthenticationFactory);
+                healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
@@ -201,6 +201,7 @@ final class GatewayRootActor extends DittoRootActor {
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
+            final ActorRef pubSubMediator,
             final HealthCheckConfig healthCheckConfig,
             final JwtAuthenticationFactory jwtAuthenticationFactory) {
 
@@ -241,7 +242,7 @@ final class GatewayRootActor extends DittoRootActor {
                         new CachingHealthRoute(statusAndHealthProvider, gatewayConfig.getPublicHealthConfig()))
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig)
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig, pubSubMediator)
                         .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),

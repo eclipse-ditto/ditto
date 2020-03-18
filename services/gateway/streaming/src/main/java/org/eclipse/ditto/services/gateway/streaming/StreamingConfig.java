@@ -47,6 +47,13 @@ public interface StreamingConfig {
     WebsocketConfig getWebsocketConfig();
 
     /**
+     * Returns the SSE config.
+     *
+     * @return the SSE config.
+     */
+    SseConfig getSseConfig();
+
+    /**
      * Returns the signal-enrichment config.
      *
      * @return the signal-enrichment config.

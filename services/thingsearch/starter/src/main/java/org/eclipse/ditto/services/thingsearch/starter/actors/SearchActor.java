@@ -215,7 +215,7 @@ public final class SearchActor extends AbstractActor {
             return createQuerySource(queryParser::parse, streamThings).flatMapConcat(parsedQuery -> {
                 final Query query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                 stopTimer(queryParsingTimer);
-                final StartedTimer databaseAccessTimer = searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
+                searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                 final List<String> subjectIds = streamThings.getDittoHeaders().getAuthorizationSubjects();
                 final CompletionStage<SourceRef<String>> sourceRefFuture =
                         searchPersistence.findAllUnlimited(query, subjectIds, namespaces)

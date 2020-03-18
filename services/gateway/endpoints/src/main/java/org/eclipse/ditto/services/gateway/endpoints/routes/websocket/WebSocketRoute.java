@@ -57,6 +57,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -329,7 +330,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return Flow.fromGraph(GraphDSL.create(builder -> {
 
             final FlowShape<Message, String> strictify =
-                    builder.add(getStrictifyFlow(request, connectionCorrelationId).via(throttle(websocketConfig)));
+                    builder.add(getStrictifyFlow(request, connectionCorrelationId)
+                            .via(AbstractRoute.throttleByConfig(websocketConfig.getThrottlingConfig())));
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
@@ -563,12 +565,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             }
             return builder.build();
         });
-    }
-
-    private static <T> Flow<T, T, NotUsed> throttle(final WebsocketConfig websocketConfig) {
-        return Flow.<T>create()
-                .throttle(websocketConfig.getThrottlingConfig().getLimit(),
-                        websocketConfig.getThrottlingConfig().getInterval());
     }
 
     private static Signal buildSignal(final String cmdString,

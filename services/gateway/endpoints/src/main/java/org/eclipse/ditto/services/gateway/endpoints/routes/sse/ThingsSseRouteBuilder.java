@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.routes.things;
+package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -45,9 +45,7 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseAuthorizationEnforcer;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseConnectionSupervisor;
-import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -74,10 +72,10 @@ import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteDirectives;
-import akka.japi.JavaPartialFunction;
-import akka.stream.javadsl.Flow;
+import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
+import scala.PartialFunction;
 
 /**
  * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} routes.
@@ -85,17 +83,25 @@ import akka.stream.javadsl.Source;
 @NotThreadSafe
 public final class ThingsSseRouteBuilder extends RouteDirectives implements SseRouteBuilder {
 
+    private static final String PATH_SEARCH = "search";
     private static final String PATH_THINGS = "things";
 
     private static final String STREAMING_TYPE_SSE = "SSE";
 
     private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_FIELDS = "fields";
+    private static final String PARAM_OPTION = "option";
     private static final String PARAM_NAMESPACES = "namespaces";
     private static final String PARAM_EXTRA_FIELDS = "extraFields";
+    private static final PartialFunction<HttpHeader, Accept> ACCEPT_HEADER_EXTRACTOR = newAcceptHeaderExtractor();
+
+    private static final Counter THINGS_SSE_COUNTER = getCounterFor(PATH_THINGS);
+    private static final Counter SEARCH_SSE_COUNTER = getCounterFor(PATH_SEARCH);
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+    private final ActorRef pubSubMediator;
 
     private SseAuthorizationEnforcer sseAuthorizationEnforcer;
     private SseConnectionSupervisor sseConnectionSupervisor;
@@ -105,11 +111,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private ThingsSseRouteBuilder(final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
-            final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
+            final QueryFilterCriteriaFactory queryFilterCriteriaFactory,
+            final ActorRef pubSubMediator) {
 
         this.streamingActor = streamingActor;
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
+        this.pubSubMediator = pubSubMediator;
         sseAuthorizationEnforcer = new NoOpSseAuthorizationEnforcer();
         sseConnectionSupervisor = new NoOpSseConnectionSupervisor();
         eventSniffer = EventSniffer.noOp();
@@ -120,16 +128,18 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      *
      * @param streamingActor is used for actual event streaming.
      * @param streamingConfig the streaming configuration.
+     * @param pubSubMediator akka pub-sub mediator for error reporting by the search source.
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
     public static ThingsSseRouteBuilder getInstance(final ActorRef streamingActor,
-            final StreamingConfig streamingConfig) {
+            final StreamingConfig streamingConfig,
+            final ActorRef pubSubMediator) {
         checkNotNull(streamingActor, "streamingActor");
         final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
                 new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
 
-        return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory);
+        return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
     }
 
     @Override
@@ -172,14 +182,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     public Route build(final RequestContext ctx, final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
         return concat(
                 rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
-                        () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(AcceptHeaderExtractor.INSTANCE,
+                        () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(ACCEPT_HEADER_EXTRACTOR,
                                 accept -> {
                                     final CompletionStage<DittoHeaders> dittoHeadersCompletionStage =
                                             dittoHeadersSupplier.get()
                                                     .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
                                     return buildThingsSseRoute(ctx, dittoHeadersCompletionStage);
                                 })))),
-                // TODO: move this to "thingsearch" package? Or move the SseRouteBuilder to own package?
                 buildSearchSseRoute(ctx, dittoHeadersSupplier)
         );
     }
@@ -187,9 +196,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private Route buildSearchSseRoute(final RequestContext ctx,
             final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
 
-        // TODO: refactor the path literals
-        return rawPathPrefix(PathMatchers.slash().concat("search").slash().concat("things"),
-                () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(AcceptHeaderExtractor.INSTANCE,
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH).slash().concat(PATH_THINGS),
+                () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(ACCEPT_HEADER_EXTRACTOR,
                         accept -> {
                             final CompletionStage<DittoHeaders> dittoHeaders = dittoHeadersSupplier.get()
                                     .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
@@ -228,10 +236,6 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                     sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
 
-                    final Counter messageCounter = DittoMetrics.counter("streaming_messages")
-                            .tag("type", "sse")
-                            .tag("direction", "out");
-
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
@@ -266,13 +270,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
                                     postprocess(jsonifiable, facade, targetThingIds, namespaces, fields))
                             .mapConcat(jsonObjects -> jsonObjects)
-                            .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
-                            .via(Flow.fromFunction(msg -> {
-                                messageCounter.increment();
-                                return msg;
-                            }))
+                            .map(jsonValue -> {
+                                THINGS_SSE_COUNTER.increment();
+                                return ServerSentEvent.create(jsonValue.toString());
+                            })
+                            .log("SSE " + PATH_THINGS)
                             // sniffer shouldn't sniff heartbeats
-                            .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.left())
+                            .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
                 });
 
@@ -289,22 +293,24 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
                 dittoHeadersStage.thenApply(dittoHeaders -> {
                     sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
-                    // TODO: count results?
 
                     final SearchSource searchSource = SearchSource.newBuilder()
-                            .pubSubMediator(null) // TODO set pubSubMediator for feedback
+                            .pubSubMediator(pubSubMediator)
                             .conciergeForwarder(proxyActor)
-                            .fields(parameters.get("fields"))
-                            .option(parameters.get("option"))
                             .filter(parameters.get(PARAM_FILTER))
+                            .option(parameters.get(PARAM_OPTION))
+                            .fields(parameters.get(PARAM_FIELDS))
                             .namespaces(parameters.get(PARAM_NAMESPACES))
                             .dittoHeaders(dittoHeaders)
                             .build();
 
                     return searchSource.start()
-                            .map(JsonObject::toString)
-                            .map(ServerSentEvent::create)
-                            .log("search SSE")
+                            .via(AbstractRoute.throttleByConfig(streamingConfig.getSseConfig().getThrottlingConfig()))
+                            .map(jsonValue -> {
+                                SEARCH_SSE_COUNTER.increment();
+                                return ServerSentEvent.create(jsonValue.toString());
+                            })
+                            .log("SSE " + PATH_SEARCH)
                             .via(eventSniffer.toAsyncFlow(ctx.getRequest()));
                 });
 
@@ -400,33 +406,23 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         return thingEvent.getEntityId().getNamespace();
     }
 
-    private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {
+    private static PartialFunction<HttpHeader, Accept> newAcceptHeaderExtractor() {
+        return new PFBuilder<HttpHeader, Accept>()
+                .match(Accept.class, ThingsSseRouteBuilder::matchesTextEventStream, accept -> accept)
+                .build();
+    }
 
-        private static final AcceptHeaderExtractor INSTANCE = new AcceptHeaderExtractor();
+    private static boolean matchesTextEventStream(final Accept accept) {
+        return StreamSupport.stream(accept.getMediaRanges().spliterator(), false)
+                .filter(mr -> !"*".equals(mr.mainType()))
+                .anyMatch(mr -> mr.matches(MediaTypes.TEXT_EVENT_STREAM));
+    }
 
-        private AcceptHeaderExtractor() {
-            super();
-        }
-
-        @Override
-        @Nullable
-        public Accept apply(final HttpHeader x, final boolean isCheck) {
-            if (x instanceof Accept) {
-                if (isCheck) {
-                    return null;
-                } else if (matchesTextEventStream((Accept) x)) {
-                    return (Accept) x;
-                }
-            }
-            throw noMatch();
-        }
-
-        private static boolean matchesTextEventStream(final Accept accept) {
-            return StreamSupport.stream(accept.getMediaRanges().spliterator(), false)
-                    .filter(mr -> !"*".equals(mr.mainType()))
-                    .anyMatch(mr -> mr.matches(MediaTypes.TEXT_EVENT_STREAM));
-        }
-
+    private static Counter getCounterFor(final String path) {
+        return DittoMetrics.counter("streaming_messages")
+                .tag("type", "sse")
+                .tag("direction", "out")
+                .tag("path", path);
     }
 
     /**
@@ -453,6 +449,4 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             // Does nothing.
         }
     }
-
-
 }

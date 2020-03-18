@@ -33,6 +33,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     private final Duration sessionCounterScrapeInterval;
     private final int parallelism;
     private final WebsocketConfig websocketConfig;
+    private final SseConfig sseConfig;
     private final SignalEnrichmentConfig signalEnrichmentConfig;
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
@@ -40,6 +41,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         parallelism = scopedConfig.getInt(StreamingConfigValue.PARALLELISM.getConfigPath());
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
+        sseConfig = DefaultSseConfig.of(scopedConfig);
         signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(scopedConfig);
     }
 
@@ -63,6 +65,11 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     @Override
     public WebsocketConfig getWebsocketConfig() {
         return websocketConfig;
+    }
+
+    @Override
+    public SseConfig getSseConfig() {
+        return sseConfig;
     }
 
     @Override
