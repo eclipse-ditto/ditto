@@ -107,8 +107,8 @@ final class RootRouteExceptionHandler {
         }
 
         // We do not want to print stack trace of exception thus exception must not be last argument of logger call.
-        final String message =
-                MessageFormat.format("<{0}> occurred in gateway root route: <{1}>!", simpleExceptionName, exception);
+        final String message = MessageFormat.format("<{0}> occurred in gateway root route: <{1}>!", simpleExceptionName,
+                exception.toString());
         LOGGER.withCorrelationId(dittoHeaders).info(message);
     }
 
