@@ -23,9 +23,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
@@ -58,7 +57,7 @@ import scala.concurrent.duration.FiniteDuration;
 @RunWith(MockitoJUnitRunner.class)
 public final class AcknowledgementForwarderActorStarterTest {
 
-    private static final EntityId KNOWN_ENTITY_ID = DefaultEntityId.of("foo:bar");
+    private static final ThingId KNOWN_ENTITY_ID = ThingId.generateRandom();
 
     private static ActorSystem actorSystem;
     private static AcknowledgementConfig acknowledgementConfig;

@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
@@ -46,13 +47,13 @@ public final class AcknowledgementAggregator {
 
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
-    private final EntityId entityId;
+    private final EntityIdWithType entityId;
     private final CharSequence correlationId;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
 
-    private AcknowledgementAggregator(final EntityId entityId, final CharSequence correlationId) {
-        this.entityId = entityId;
-        this.correlationId = correlationId;
+    private AcknowledgementAggregator(final EntityIdWithType entityId, final CharSequence correlationId) {
+        this.entityId = checkNotNull(entityId, "entityId");
+        this.correlationId = argumentNotEmpty(correlationId);
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
     }
 
@@ -62,11 +63,13 @@ public final class AcknowledgementAggregator {
      * @param entityId the ID of the entity for which acknowledgements should be correlated and aggregated.
      * @param correlationId the ID for correlating acknowledgement requests with acknowledgements.
      * @return the instance.
-     * @throws NullPointerException if {@code correlationId} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
-    public static AcknowledgementAggregator getInstance(final EntityId entityId, final CharSequence correlationId) {
-        return new AcknowledgementAggregator(checkNotNull(entityId, "entityId"), argumentNotEmpty(correlationId));
+    public static AcknowledgementAggregator getInstance(final EntityIdWithType entityId,
+            final CharSequence correlationId) {
+
+        return new AcknowledgementAggregator(entityId, correlationId);
     }
 
     /**

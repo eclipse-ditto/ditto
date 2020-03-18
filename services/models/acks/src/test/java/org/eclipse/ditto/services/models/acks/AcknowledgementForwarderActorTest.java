@@ -27,9 +27,8 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
@@ -122,7 +121,7 @@ public final class AcknowledgementForwarderActorTest {
                 .randomCorrelationId()
                 .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                 .build();
-        final EntityId entityId = DefaultEntityId.of("foo:bar");
+        final ThingId entityId = ThingId.generateRandom();
         final Acknowledgement acknowledgement =
                 Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.ACCEPTED, dittoHeaders);
 

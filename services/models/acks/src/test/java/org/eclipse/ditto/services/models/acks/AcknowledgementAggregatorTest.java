@@ -28,9 +28,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.Acknowledgements;
 import org.junit.Before;
@@ -44,7 +43,7 @@ import org.mockito.Mockito;
  */
 public final class AcknowledgementAggregatorTest {
 
-    private static final EntityId ENTITY_ID = DefaultEntityId.of("foo:bar");
+    private static final ThingId ENTITY_ID = ThingId.generateRandom();
 
     @Rule
     public final TestName testName = new TestName();
@@ -137,7 +136,7 @@ public final class AcknowledgementAggregatorTest {
     @Test
     public void onlyRegardFirstReceivedAcknowledgementForSameLabel() {
         final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
-        final EntityId entityId = DefaultEntityId.generateRandom();
+        final ThingId entityId = ThingId.generateRandom();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         final Acknowledgement failedAcknowledgement =
                 Acknowledgement.of(ackLabel, entityId, HttpStatusCode.UNAUTHORIZED, dittoHeaders);
@@ -202,7 +201,7 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void tryToAddReceivedAcknowledgementWithDifferentEntityId() {
-        final DefaultEntityId unexpectedEntityId = DefaultEntityId.generateRandom();
+        final ThingId unexpectedEntityId = ThingId.generateRandom();
         final Acknowledgement acknowledgement =
                 Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED, unexpectedEntityId, HttpStatusCode.NO_CONTENT,
                         dittoHeaders);

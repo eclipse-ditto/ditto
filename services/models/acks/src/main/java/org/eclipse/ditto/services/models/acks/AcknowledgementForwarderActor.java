@@ -17,7 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -135,7 +135,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Optional<ActorRef> startAcknowledgementForwarder(final akka.actor.ActorContext context,
-            final EntityId entityId,
+            final EntityIdWithType entityId,
             final DittoHeaders dittoHeaders,
             final AcknowledgementConfig acknowledgementConfig) {
 
