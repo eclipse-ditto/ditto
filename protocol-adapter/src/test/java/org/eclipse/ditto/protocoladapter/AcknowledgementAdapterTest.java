@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -63,7 +64,7 @@ public final class AcknowledgementAdapterTest implements ProtocolAdapterTest {
                         .build())
                 .build();
 
-        final Acknowledgement expected = Acknowledgement.of(KNOWN_CUSTOM_LABEL,
+        final Acknowledgement expected = ThingAcknowledgementFactory.newAcknowledgement(KNOWN_CUSTOM_LABEL,
                 TestConstants.THING_ID,
                 status,
                 dittoHeaders,
@@ -80,7 +81,7 @@ public final class AcknowledgementAdapterTest implements ProtocolAdapterTest {
         final JsonValue customAckPayload = JsonObject.newBuilder().set("foo", "bar").build();
         final HttpStatusCode status = HttpStatusCode.BAD_REQUEST;
 
-        final Acknowledgement acknowledgement = Acknowledgement.of(KNOWN_CUSTOM_LABEL,
+        final Acknowledgement acknowledgement = ThingAcknowledgementFactory.newAcknowledgement(KNOWN_CUSTOM_LABEL,
                 TestConstants.THING_ID,
                 status,
                 dittoHeaders,

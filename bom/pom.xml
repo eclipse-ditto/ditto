@@ -589,7 +589,12 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-acks</artifactId>
+                <artifactId>ditto-signals-acks-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-acks-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

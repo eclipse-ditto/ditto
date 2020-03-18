@@ -52,7 +52,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-acks</artifactId>
+            <artifactId>ditto-signals-acks-things</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

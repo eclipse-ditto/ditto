@@ -28,7 +28,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-acks</artifactId>
+            <artifactId>ditto-signals-acks-base</artifactId>
         </dependency>
     </dependencies>
 

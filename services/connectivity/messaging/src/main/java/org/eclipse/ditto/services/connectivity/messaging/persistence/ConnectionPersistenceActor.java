@@ -104,6 +104,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -448,10 +449,13 @@ public final class ConnectionPersistenceActor
     protected void matchAnyAfterInitialization(final Object message) {
         if (message instanceof Acknowledgement) {
             handleAcknowledgement((Acknowledgement) message);
+        } else if (message instanceof ThingCommand) {
+            final ThingCommand<?> thingCommand = (ThingCommand<?>) message;
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingCommand.getEntityId(),
+                    thingCommand.getDittoHeaders(), config.getAcknowledgementConfig());
+            forwardSignalToClientActors(thingCommand);
         } else if (message instanceof Signal) {
             final Signal<?> signal = (Signal<?>) message;
-            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), signal.getEntityId(),
-                    signal.getDittoHeaders(), config.getAcknowledgementConfig());
             forwardSignalToClientActors(signal);
         } else if (message == CheckLoggingActive.INSTANCE) {
             checkLoggingEnabled();

@@ -22,8 +22,13 @@
     </parent>
 
     <artifactId>ditto-signals-acks</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>pom</packaging>
     <name>Eclipse Ditto :: Signals :: ACKs</name>
+
+    <modules>
+        <module>base</module>
+        <module>things</module>
+    </modules>
 
     <dependencies>
         <!-- ### Compile ### -->
@@ -39,47 +44,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-things</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Import-Package>
-                            org.atteo.classindex,
-                            !org.eclipse.ditto.utils.jsr305.annotations,
-                            org.eclipse.ditto.*
-                        </Import-Package>
-                        <Export-Package>
-                            org.eclipse.ditto.signals.acks.*
-                        </Export-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip> <!-- TODO Ditto 1.1.0: enable once released for the first time -->
-                    <parameter>
-                        <excludes>
-                            <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
-                        </excludes>
-                    </parameter>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>

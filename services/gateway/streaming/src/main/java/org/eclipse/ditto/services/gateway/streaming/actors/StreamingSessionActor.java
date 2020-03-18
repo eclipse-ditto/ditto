@@ -55,6 +55,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.AbstractActor;
@@ -140,6 +141,7 @@ final class StreamingSessionActor extends AbstractActor {
                     eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
                 })
                 .match(Acknowledgement.class, this::handleAcknowledgement)
+                .match(ThingCommand.class, this::handleThingCommand)
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
                     logger.withCorrelationId(cre)
@@ -238,11 +240,16 @@ final class StreamingSessionActor extends AbstractActor {
                 );
     }
 
+    private void handleThingCommand(final ThingCommand<?> thingCommand) {
+        final DittoHeaders dittoHeaders = thingCommand.getDittoHeaders();
+        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingCommand.getEntityId(),
+                dittoHeaders, acknowledgementConfig);
+        handleSignal(thingCommand);
+    }
+
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), signal.getEntityId(),
-                dittoHeaders, acknowledgementConfig);
         if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
