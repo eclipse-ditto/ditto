@@ -13,13 +13,13 @@
 package org.eclipse.ditto.services.gateway.util.config;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
-import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
-import org.eclipse.ditto.services.gateway.security.config.CachesConfig;
-import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.PublicHealthConfig;
+import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.CachesConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
 
 /**
