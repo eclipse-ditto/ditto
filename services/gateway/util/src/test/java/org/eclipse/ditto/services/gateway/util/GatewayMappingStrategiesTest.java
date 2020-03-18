@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
@@ -49,26 +48,26 @@ import org.junit.Test;
  */
 public final class GatewayMappingStrategiesTest {
 
-    private MappingStrategies underTest;
+    private GatewayMappingStrategies underTest;
 
     @Before
     public void setUp() {
-        underTest = new GatewayMappingStrategies();
+        underTest = GatewayMappingStrategies.getInstance();
     }
 
     @Test
     public void allThingSearchStrategiesAreKnown() {
-        assertThatStrategy().knowsAllOf(new ThingSearchMappingStrategies());
+        assertThatStrategy().knowsAllOf(ThingSearchMappingStrategies.getInstance());
     }
 
     @Test
     public void allPoliciesMappingStrategiesAreKnown() {
-        assertThatStrategy().knowsAllOf(new PoliciesMappingStrategies());
+        assertThatStrategy().knowsAllOf(PoliciesMappingStrategies.getInstance());
     }
 
     @Test
     public void allThingsMappingStrategiesAreKnown() {
-        assertThatStrategy().knowsAllOf(new ThingsMappingStrategies());
+        assertThatStrategy().knowsAllOf(ThingsMappingStrategies.getInstance());
     }
 
     @Test
@@ -108,8 +107,8 @@ public final class GatewayMappingStrategiesTest {
     private static final class StrategyAssert
             extends AbstractMapAssert<StrategyAssert, Map<String, MappingStrategy>, String, MappingStrategy> {
 
-        StrategyAssert(final MappingStrategies strategies) {
-            super(strategies.getStrategies(), StrategyAssert.class);
+        StrategyAssert(final Map<String, MappingStrategy> strategies) {
+            super(strategies, StrategyAssert.class);
         }
 
         StrategyAssert knows(final String key) {
@@ -120,10 +119,8 @@ public final class GatewayMappingStrategiesTest {
             return myself;
         }
 
-        StrategyAssert knowsAllOf(final MappingStrategies mappingStrategies) {
-            final Map<String, ?> determinedStrategy = mappingStrategies.getStrategies();
-
-            determinedStrategy.keySet().forEach(this::knows);
+        StrategyAssert knowsAllOf(final Map<String, MappingStrategy> mappingStrategies) {
+            mappingStrategies.keySet().forEach(this::knows);
             return myself;
         }
 

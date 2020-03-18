@@ -16,11 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -35,7 +36,7 @@ import org.mutabilitydetector.internal.com.google.common.collect.Sets;
 public final class MappingStrategiesBuilderTest {
 
     private static final JsonObject KNOWN_OBJECT = JsonFactory.newObject(MyJsonifiable.INSTANCE.toJsonString());
-    private static final Jsonifiable KNOWN_JSONIFIABLE = MyJsonifiable.INSTANCE;
+    private static final Jsonifiable<JsonObject> KNOWN_JSONIFIABLE = MyJsonifiable.INSTANCE;
     private static final DittoHeaders KNOWN_HEADERS = DittoHeaders.empty();
     private static final Class<MyJsonifiable> KNOWN_CLASS = MyJsonifiable.class;
     private static final String KNOWN_TYPE = KNOWN_CLASS.getSimpleName();
@@ -43,7 +44,7 @@ public final class MappingStrategiesBuilderTest {
     @Test
     public void addJsonParsableRegistry() {
         final String[] types = new String[]{"a", "b", "c"};
-        final JsonParsableRegistry registry = new JsonParsableRegistry() {
+        final JsonParsableRegistry<? extends Jsonifiable> registry = new JsonParsableRegistry() {
             @Override
             public Set<String> getTypes() {
                 return Sets.newHashSet(types);
@@ -59,7 +60,7 @@ public final class MappingStrategiesBuilderTest {
                 .add(registry)
                 .build();
 
-        assertThat(strategies.getStrategies()).containsKeys(types);
+        assertThat(strategies).containsKeys(types);
     }
 
     @Test
@@ -68,11 +69,15 @@ public final class MappingStrategiesBuilderTest {
                 .add(KNOWN_CLASS, MyJsonifiable::fromJson)
                 .build();
 
-        assertThat(strategies.containsMappingStrategyFor(KNOWN_TYPE)).isTrue();
-        assertThat(strategies.getMappingStrategyFor(KNOWN_TYPE)
-                .get()
-                .map(KNOWN_OBJECT, KNOWN_HEADERS))
-                .isEqualTo(KNOWN_JSONIFIABLE);
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(strategies)
+                    .as("contains key")
+                    .containsKey(KNOWN_TYPE);
+            softly.assertThat(strategies.get(KNOWN_TYPE))
+                    .as("contains expected mapping strategy")
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                            .isEqualTo(KNOWN_JSONIFIABLE));
+        }
     }
 
     @Test
@@ -81,11 +86,15 @@ public final class MappingStrategiesBuilderTest {
                 .add(KNOWN_TYPE, MyJsonifiable::fromJson)
                 .build();
 
-        assertThat(strategies.containsMappingStrategyFor(KNOWN_TYPE)).isTrue();
-        assertThat(strategies.getMappingStrategyFor(KNOWN_TYPE)
-                .get()
-                .map(KNOWN_OBJECT, KNOWN_HEADERS))
-                .isEqualTo(KNOWN_JSONIFIABLE);
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(strategies)
+                    .as("contains key")
+                    .containsKey(KNOWN_TYPE);
+            softly.assertThat(strategies.get(KNOWN_TYPE))
+                    .as("contains expected mapping strategy")
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                            .isEqualTo(KNOWN_JSONIFIABLE));
+        }
     }
 
     @Test
@@ -94,11 +103,15 @@ public final class MappingStrategiesBuilderTest {
                 .add(KNOWN_CLASS, MyJsonifiable::fromJsonWithHeaders)
                 .build();
 
-        assertThat(strategies.containsMappingStrategyFor(KNOWN_TYPE)).isTrue();
-        assertThat(strategies.getMappingStrategyFor(KNOWN_TYPE)
-                .get()
-                .map(KNOWN_OBJECT, KNOWN_HEADERS))
-                .isEqualTo(KNOWN_JSONIFIABLE);
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(strategies)
+                    .as("contains key")
+                    .containsKey(KNOWN_TYPE);
+            softly.assertThat(strategies.get(KNOWN_TYPE))
+                    .as("contains expected mapping strategy")
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                            .isEqualTo(KNOWN_JSONIFIABLE));
+        }
     }
 
     @Test
@@ -107,34 +120,36 @@ public final class MappingStrategiesBuilderTest {
                 .add(KNOWN_TYPE, MyJsonifiable::fromJsonWithHeaders)
                 .build();
 
-        assertThat(strategies.containsMappingStrategyFor(KNOWN_TYPE)).isTrue();
-        assertThat(strategies.getMappingStrategyFor(KNOWN_TYPE)
-                .get()
-                .map(KNOWN_OBJECT, KNOWN_HEADERS))
-                .isEqualTo(KNOWN_JSONIFIABLE);
-
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(strategies)
+                    .as("contains key")
+                    .containsKey(KNOWN_TYPE);
+            softly.assertThat(strategies.get(KNOWN_TYPE))
+                    .as("contains expected mapping strategy")
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                            .isEqualTo(KNOWN_JSONIFIABLE));
+        }
     }
 
     @Test
     public void defaultStrategies() {
         final MappingStrategies strategies = MappingStrategiesBuilder.newInstance().build();
-        assertThat(strategies.getStrategies()).containsOnlyKeys(
-                DittoHeaders.class.getSimpleName(),
-                ShardedMessageEnvelope.class.getSimpleName(),
-                SimpleCommand.class.getSimpleName(),
-                SimpleCommandResponse.class.getSimpleName(),
-                StatusInfo.class.getSimpleName(),
-                Acknowledgement.TYPE,
-                Acknowledgements.TYPE,
-                StreamAck.class.getSimpleName());
+
+        assertThat(strategies)
+                .containsOnlyKeys(DittoHeaders.class.getSimpleName(),
+                        ShardedMessageEnvelope.class.getSimpleName(),
+                        SimpleCommand.class.getSimpleName(),
+                        SimpleCommandResponse.class.getSimpleName(),
+                        StatusInfo.class.getSimpleName(),
+                        Acknowledgement.getType(ThingConstants.ENTITY_TYPE),
+                        Acknowledgements.getType(ThingConstants.ENTITY_TYPE),
+                        StreamAck.class.getSimpleName());
     }
 
-
-    private static final class MyJsonifiable implements Jsonifiable {
+    private static final class MyJsonifiable implements Jsonifiable<JsonObject> {
 
         private static final MyJsonifiable INSTANCE = new MyJsonifiable();
-        private static final JsonValue INNER_VALUE =
-                JsonFactory.newObject().setValue("text", "I am JSON value");
+        private static final JsonObject INNER_VALUE = JsonObject.newBuilder().set("text", "I am JSON value").build();
 
         private static MyJsonifiable fromJson(final JsonObject jsonObject) {
             assertThat(INNER_VALUE).isEqualTo(jsonObject);
@@ -147,7 +162,7 @@ public final class MappingStrategiesBuilderTest {
         }
 
         @Override
-        public JsonValue toJson() {
+        public JsonObject toJson() {
             return INNER_VALUE;
         }
 

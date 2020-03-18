@@ -12,15 +12,53 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import java.util.Collections;
+import java.util.Map;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-@Immutable
-public final class GlobalMappingStrategies extends AbstractGlobalMappingStrategies {
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
-    protected GlobalMappingStrategies() {
-        super(Collections.emptyMap());
+@Immutable
+public final class GlobalMappingStrategies extends MappingStrategies {
+
+    @Nullable private static GlobalMappingStrategies instance = null;
+
+    private GlobalMappingStrategies(final Map<String, MappingStrategy> mappingStrategies) {
+        super(mappingStrategies);
+    }
+
+    /**
+     * Constructs a new GlobalMappingStrategies object.
+     */
+    public GlobalMappingStrategies() {
+        this(getGlobalStrategies());
+    }
+
+    /**
+     * Returns an instance of GlobalMappingStrategies.
+     *
+     * @return the instance.
+     */
+    public static GlobalMappingStrategies getInstance() {
+        GlobalMappingStrategies result = instance;
+        if (null == result) {
+            result = new GlobalMappingStrategies(getGlobalStrategies());
+            instance = result;
+        }
+        return result;
+    }
+
+    private static MappingStrategies getGlobalStrategies() {
+        return MappingStrategiesBuilder.newInstance()
+                .add(GlobalErrorRegistry.getInstance())
+                .add(GlobalCommandRegistry.getInstance())
+                .add(GlobalCommandResponseRegistry.getInstance())
+                .add(GlobalEventRegistry.getInstance())
+                .build();
     }
 
 }

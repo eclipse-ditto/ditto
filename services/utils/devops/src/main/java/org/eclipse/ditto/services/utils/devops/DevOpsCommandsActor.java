@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -34,6 +36,8 @@ import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
@@ -80,7 +84,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     private static final String TOPIC_HEADER = "topic";
     private static final String IS_GROUP_TOPIC_HEADER = "is-group-topic";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final LoggingFacade loggingFacade;
 
@@ -132,7 +136,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     private Receive matchAnyUnhandled() {
         return ReceiveBuilder.create()
                 .matchAny(m -> {
-                    log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
+                    logger.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                     unhandled(m);
                 }).build();
     }
@@ -153,7 +157,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      * @param command the initial DevOpsCommand to handle
      */
     private void handleInitialDevOpsCommand(final DevOpsCommand<?> command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        logger.setCorrelationId(command);
 
         final Supplier<ActorRef> responseCorrelationActor = () -> getContext().actorOf(
                 DevOpsCommandResponseCorrelationActor.props(getSender(), command),
@@ -162,13 +166,13 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         if (isExecutePiggybackCommandToPubSubMediator(command)) {
             tryInterpretAsDirectPublication(command, publish -> {
-                log.info("Publishing <{}> into cluster on topic <{}> with sendOneMessageToEachGroup=<{}>",
+                logger.info("Publishing <{}> into cluster on topic <{}> with sendOneMessageToEachGroup=<{}>",
                         publish.msg().getClass().getCanonicalName(),
                         publish.topic(),
                         publish.sendOneMessageToEachGroup());
                 pubSubMediator.tell(publish, responseCorrelationActor.get());
             }, devOpsErrorResponse -> {
-                log.warning("Dropping publishing command <{}>. Reason: <{}>", command,
+                logger.warning("Dropping publishing command <{}>. Reason: <{}>", command,
                         devOpsErrorResponse.getDittoRuntimeException());
                 getSender().tell(devOpsErrorResponse, getSelf());
             });
@@ -192,10 +196,11 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             } else {
                 msg = DistPubSubAccess.publish(topic, command);
             }
-            log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}> with " +
+            logger.info("Publishing DevOpsCommand <{}> into cluster on topic <{}> with " +
                     "sendOneMessageToEachGroup=<{}>", command.getType(), msg.topic(), msg.sendOneMessageToEachGroup());
             pubSubMediator.tell(msg, responseCorrelationActor.get());
         }
+        logger.discardCorrelationId();
     }
 
     private boolean isExecutePiggybackCommandToPubSubMediator(final DevOpsCommand<?> command) {
@@ -278,47 +283,41 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void handleExecutePiggyBack(final ExecutePiggybackCommand command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-
         deserializePiggybackCommand(command,
                 jsonifiable -> {
-                    log.info("Received PiggybackCommand: <{}> - telling to: <{}>", jsonifiable,
-                            command.getTargetActorSelection());
-                    getContext().actorSelection(command.getTargetActorSelection())
-                            .forward(jsonifiable, getContext());
+                    logger.withCorrelationId(command)
+                            .info("Received PiggybackCommand: <{}> - telling to: <{}>", jsonifiable,
+                                    command.getTargetActorSelection());
+                    getContext().actorSelection(command.getTargetActorSelection()).forward(jsonifiable, getContext());
                 },
                 dittoRuntimeException -> getSender().tell(dittoRuntimeException, getSelf()));
     }
 
     private void deserializePiggybackCommand(final ExecutePiggybackCommand command,
-            final Consumer<Jsonifiable<?>> onSuccess,
-            final Consumer<DittoRuntimeException> onError) {
+            final Consumer<Jsonifiable<?>> onSuccess, final Consumer<DittoRuntimeException> onError) {
 
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
-        final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE).orElse(null);
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        final Optional<MappingStrategy> mappingFunction =
-                serviceMappingStrategy.getMappingStrategyFor(piggybackCommandType);
-
-        if (mappingFunction.isPresent()) {
+        @Nullable final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE)
+                .orElse(null);
+        final Consumer<MappingStrategy> action = mappingStrategy -> {
             try {
-                final Jsonifiable jsonifiable = mappingFunction.get()
-                        .map(piggybackCommandJson, command.getDittoHeaders());
-                onSuccess.accept(jsonifiable);
+                onSuccess.accept(mappingStrategy.map(piggybackCommandJson, command.getDittoHeaders()));
             } catch (final DittoRuntimeException e) {
-                log.warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!", piggybackCommandType,
-                        e);
+                logger.withCorrelationId(command)
+                        .warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!",
+                                piggybackCommandType, e);
                 onError.accept(e);
             }
-        } else {
-            final String message =
-                    String.format("ExecutePiggybackCommand with PiggybackCommand <%s> cannot be executed " +
-                            "by this service as there is no mapping strategy for it!", piggybackCommandType);
-            log.warning(message);
-            final JsonTypeNotParsableException typeNotMappableException =
-                    JsonTypeNotParsableException.fromMessage(message, command.getDittoHeaders());
-            onError.accept(typeNotMappableException);
-        }
+        };
+        final Runnable emptyAction = () -> {
+            final String msgPattern = "ExecutePiggybackCommand with PiggybackCommand <%s> cannot be executed by this"
+                    + " service as there is no mapping strategy for it!";
+            final String message = String.format(msgPattern, piggybackCommandType);
+            logger.withCorrelationId(command).warning(message);
+            onError.accept(JsonTypeNotParsableException.fromMessage(message, command.getDittoHeaders()));
+        };
+        serviceMappingStrategy.getMappingStrategy(piggybackCommandType)
+                .ifPresentOrElse(action, emptyAction);
     }
 
     private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {

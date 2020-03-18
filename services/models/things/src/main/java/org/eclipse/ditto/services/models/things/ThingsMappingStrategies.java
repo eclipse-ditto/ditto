@@ -14,31 +14,59 @@ package org.eclipse.ditto.services.models.things;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Things service containing all {@link Jsonifiable} types known to Things.
+ * {@link MappingStrategies} for the Things service containing all {@link Jsonifiable} types known to Things.
  */
-public final class ThingsMappingStrategies extends AbstractGlobalMappingStrategies {
+@Immutable
+public final class ThingsMappingStrategies extends MappingStrategies {
 
-    public ThingsMappingStrategies() {
-        super(getThingsMappingStrategies());
+    @Nullable private static ThingsMappingStrategies instance = null;
+
+    private ThingsMappingStrategies(final Map<String, MappingStrategy> mappingStrategies) {
+        super(mappingStrategies);
     }
 
-    private static Map<String, MappingStrategy> getThingsMappingStrategies() {
+    /**
+     * Constructs a new ThingsMappingStrategies object.
+     */
+    public ThingsMappingStrategies() {
+        this(getThingsMappingStrategies());
+    }
+
+    /**
+     * Returns an instance of ThingsMappingStrategies.
+     *
+     * @return the instance.
+     */
+    public static ThingsMappingStrategies getInstance() {
+        ThingsMappingStrategies result = instance;
+        if (null == result) {
+            result = new ThingsMappingStrategies(getThingsMappingStrategies());
+            instance = result;
+        }
+        return result;
+    }
+
+    private static MappingStrategies getThingsMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
-                .add(Thing.class,
-                        (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
+                .add(Thing.class, jsonObject -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ThingTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
-                .build().getStrategies();
+                .putAll(GlobalMappingStrategies.getInstance())
+                .build();
     }
 
 }
