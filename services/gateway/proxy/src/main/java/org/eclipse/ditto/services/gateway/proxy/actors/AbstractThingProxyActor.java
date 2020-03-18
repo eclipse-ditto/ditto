@@ -24,6 +24,9 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -75,7 +78,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 })
 
                 /* handle ThingSearch in a special way */
-                .match(ThingSearchCommand.class, cs -> subscriptionManager.forward(cs, getContext()))
+                .match(CreateSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
+                .match(RequestSubscription.class, rs -> subscriptionManager.forward(rs, getContext()))
+                .match(CancelSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
                 /* handle RetrieveThings in a special way */
                 .match(RetrieveThings.class, rt -> aggregatorProxyActor.forward(rt, getContext()))
                 .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))
