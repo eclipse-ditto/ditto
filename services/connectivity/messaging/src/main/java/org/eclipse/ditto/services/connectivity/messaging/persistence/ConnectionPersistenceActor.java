@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -104,7 +105,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -449,14 +449,8 @@ public final class ConnectionPersistenceActor
     protected void matchAnyAfterInitialization(final Object message) {
         if (message instanceof Acknowledgement) {
             handleAcknowledgement((Acknowledgement) message);
-        } else if (message instanceof ThingCommand) {
-            final ThingCommand<?> thingCommand = (ThingCommand<?>) message;
-            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingCommand.getEntityId(),
-                    thingCommand.getDittoHeaders(), config.getAcknowledgementConfig());
-            forwardSignalToClientActors(thingCommand);
         } else if (message instanceof Signal) {
-            final Signal<?> signal = (Signal<?>) message;
-            forwardSignalToClientActors(signal);
+            handleSignal((Signal<?>) message);
         } else if (message == CheckLoggingActive.INSTANCE) {
             checkLoggingEnabled();
         } else {
@@ -466,18 +460,22 @@ public final class ConnectionPersistenceActor
 
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
         final ActorContext context = getContext();
+        final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
+        final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)
+                .info("Received Acknowledgement but no AcknowledgementForwarderActor was present: <{}>",
+                        acknowledgement);
+
         context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
-                .ifPresentOrElse(
-                        forwarder -> forwarder.forward(acknowledgement, context),
-                        () -> log.withCorrelationId(acknowledgement)
-                                .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
-                                        "was present: <{}>", acknowledgement)
-                );
+                .ifPresentOrElse(action, emptyAction);
     }
 
-    private void checkLoggingEnabled() {
-        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
-        broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
+    private void handleSignal(final Signal signal) {
+        if (signal instanceof WithThingId) {
+            final WithThingId withThingId = (WithThingId) signal;
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), withThingId.getThingEntityId(),
+                    signal.getDittoHeaders(), config.getAcknowledgementConfig());
+        }
+        forwardSignalToClientActors(signal);
     }
 
     private void forwardSignalToClientActors(final Signal<?> signal) {
@@ -508,6 +506,11 @@ public final class ConnectionPersistenceActor
         final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(outbound,
                 outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
+    }
+
+    private void checkLoggingEnabled() {
+        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
+        broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
 
     private void prepareForSignalForwarding(final StagedCommand command) {
