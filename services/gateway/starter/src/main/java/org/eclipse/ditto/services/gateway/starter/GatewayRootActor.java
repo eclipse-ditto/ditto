@@ -44,7 +44,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
-import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
+import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
@@ -63,7 +63,6 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 
 import akka.Done;
 import akka.actor.ActorRef;

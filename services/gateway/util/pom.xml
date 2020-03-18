@@ -103,6 +103,44 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-protocol</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-gateway-endpoints</artifactId>
+            <version>1.0.0-bosch-5</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-gateway-security</artifactId>
+            <version>1.0.0-bosch-5</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-gateway-health</artifactId>
+            <version>1.0.0-bosch-5</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-gateway-endpoints</artifactId>
+            <version>1.0.0-bosch-5</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-gateway-security</artifactId>
+            <version>1.0.0-bosch-5</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 </project>

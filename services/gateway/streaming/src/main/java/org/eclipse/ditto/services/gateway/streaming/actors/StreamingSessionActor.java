@@ -222,19 +222,18 @@ final class StreamingSessionActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null)) &&
-                !(signal instanceof SubscriptionEvent)) {
+        if (signal instanceof SubscriptionEvent) {
+            logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                    signal.getType(), type, signal);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent) signal), getSelf());
+        }
+        else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
         } else {
             // check if this session is "allowed" to receive the Signal
-            // TODO: SubscriptionEvent is given the streaming type LIVE_COMMAND,
-            // meaning that subscription events are not published unless the session also subscribes for live commands,
-            // and signal enrichment will be performed in vain for subscription events.
-            // Consider publishing SubscriptionEvent as SessionedResponseErrorOrAck so that no signal enrichment occurs.
             @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
-            if (null != session &&
-                    (isSessionAllowedToReceiveSignal(signal, session) || signal instanceof SubscriptionEvent)) {
+            if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
                 logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                         signal.getType(), type, signal);
 

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.starter.config;
+package org.eclipse.ditto.services.gateway.util.config;
 
 import javax.annotation.concurrent.Immutable;
 

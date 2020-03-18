@@ -12,20 +12,20 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import java.time.Duration;
-
+import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -41,7 +41,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef conciergeForwarder;
     private final ActorRef aggregatorProxyActor;
     private final ActorRef subscriptionManager;
-    private final ActorMaterializer materializer;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -51,17 +50,19 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.conciergeForwarder = conciergeForwarder;
-        this.materializer = ActorMaterializer.create(getContext());
+        final ActorMaterializer materializer = ActorMaterializer.create(getContext());
 
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
 
-        // TODO: replace Duration.ofMinutes(1L) by a configured timeout
-        // e. g. gateway.conf:ditto.gateway.request-timeout / HttpConfig#getRequestTimeout()
-        // or a new config path specifically for search protocol idle timeout
-        subscriptionManager = getContext().actorOf(SubscriptionManager.props(Duration.ofMinutes(1L), pubSubMediator, conciergeForwarder,
-                materializer),
-                SubscriptionManager.ACTOR_NAME);
+        final DittoGatewayConfig gatewayConfig =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
+
+        subscriptionManager =
+                getContext().actorOf(
+                        SubscriptionManager.props(gatewayConfig.getHttpConfig().getRequestTimeout(), pubSubMediator, conciergeForwarder,
+                                materializer),
+                        SubscriptionManager.ACTOR_NAME);
     }
 
     @Override
@@ -76,11 +77,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 })
 
                 /* handle ThingSearch in a special way */
-                // TODO: the next 3 lines can be replaced by:
-                // .match(ThingSearchCommand.class, c -> subscriptionManager.forward(c, getContext()))
-                .match(CreateSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
-                .match(RequestSubscription.class, rs -> subscriptionManager.forward(rs, getContext()))
-                .match(CancelSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
+                .match(ThingSearchCommand.class, cs -> subscriptionManager.forward(cs, getContext()))
                 /* handle RetrieveThings in a special way */
                 .match(RetrieveThings.class, rt -> aggregatorProxyActor.forward(rt, getContext()))
                 .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))
