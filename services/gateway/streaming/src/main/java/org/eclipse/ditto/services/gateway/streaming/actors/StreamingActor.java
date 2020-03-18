@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -201,10 +202,12 @@ public final class StreamingActor extends AbstractActorWithTimers
                 try {
                     final AuthenticationResult authorizationResult =
                             jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
+                    final AuthorizationContext authorizationContext =
+                            authorizationResult.getDittoHeaders().getAuthorizationContext();
 
                     forwardToSessionActor(connectionCorrelationId,
                             new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
-                                    authorizationResult.getAuthorizationContext()));
+                                    authorizationContext));
                 } catch (final Exception exception) {
                     logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
                             connectionCorrelationId, exception.getMessage());

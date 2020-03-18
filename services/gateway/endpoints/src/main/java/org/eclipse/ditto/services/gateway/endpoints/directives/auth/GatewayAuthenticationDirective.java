@@ -16,12 +16,11 @@ import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
@@ -74,12 +73,11 @@ public final class GatewayAuthenticationDirective {
     /**
      * Depending on the request headers, one of the supported authentication mechanisms is applied.
      *
-     * @param dittoHeaders the DittoHeaders which will be added to the log.
-     * @param inner the inner route which will be wrapped with the {@link AuthorizationContext}.
+     * @param dittoHeaders the DittoHeaders containing already gathered context information.
+     * @param inner the inner route which will be wrapped with the {@link DittoHeaders}.
      * @return the inner route.
      */
-    public Route authenticate(final DittoHeaders dittoHeaders,
-            final BiFunction<AuthorizationContext, DittoHeaders, Route> inner) {
+    public Route authenticate(final DittoHeaders dittoHeaders, final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
         return extractRequestContext(requestContext -> {
             final Uri requestUri = requestContext.getRequest().getUri();
 
@@ -97,12 +95,12 @@ public final class GatewayAuthenticationDirective {
     private Route handleAuthenticationTry(final Try<AuthenticationResult> authenticationResultTry,
             final Uri requestUri,
             final DittoHeaders dittoHeaders,
-            final BiFunction<AuthorizationContext, DittoHeaders, Route> inner) {
+            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
 
         if (authenticationResultTry.isSuccess()) {
             final AuthenticationResult authenticationResult = authenticationResultTry.get();
             if (authenticationResult.isSuccess()) {
-                return inner.apply(authenticationResult.getAuthorizationContext(), authenticationResult.getDittoHeaders());
+                return inner.apply(authenticationResult.getDittoHeaders().toBuilder());
             }
             return handleFailedAuthentication(authenticationResult.getReasonOfFailure(), requestUri, dittoHeaders);
         }

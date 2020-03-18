@@ -28,6 +28,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -50,6 +52,10 @@ public final class AuthenticationChainTest {
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(UUID.randomUUID().toString())
             .build();
+    private static final AuthorizationContext KNOWN_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            DittoAuthorizationContextType.UNSPECIFIED,
+            AuthorizationSubject.newInstance("issuer:subject")
+    );
 
     private static Executor messageDispatcher;
 
@@ -80,7 +86,7 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, mock(AuthorizationContext.class));
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, KNOWN_AUTHORIZATION_CONTEXT);
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(false);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
@@ -107,7 +113,7 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, mock(AuthorizationContext.class));
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, KNOWN_AUTHORIZATION_CONTEXT);
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderA.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))
                 .thenReturn(expectedAuthenticationResult);
@@ -187,7 +193,7 @@ public final class AuthenticationChainTest {
         final AuthenticationResult failedAuthenticationResult =
                 DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, mock(DittoRuntimeException.class));
         final AuthenticationResult expectedAuthenticationResult =
-                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, mock(AuthorizationContext.class));
+                DefaultAuthenticationResult.successful(KNOWN_DITTO_HEADERS, KNOWN_AUTHORIZATION_CONTEXT);
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderA.authenticate(requestContextMock, KNOWN_DITTO_HEADERS))

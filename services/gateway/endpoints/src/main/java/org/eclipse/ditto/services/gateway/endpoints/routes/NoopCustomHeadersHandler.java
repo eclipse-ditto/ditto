@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
@@ -37,7 +36,6 @@ public final class NoopCustomHeadersHandler implements CustomHeadersHandler {
     public CompletionStage<DittoHeaders> handleCustomHeaders(final CharSequence correlationId,
             final RequestContext requestContext,
             final RequestType requestType,
-            final AuthorizationContext authorizationContext,
             final DittoHeaders dittoDefaultHeaders) {
 
         return CompletableFuture.completedFuture(dittoDefaultHeaders);

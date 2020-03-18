@@ -229,17 +229,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     @Override
     public Route build(final JsonSchemaVersion version,
             final CharSequence correlationId,
-            final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
         return Directives.extractUpgradeToWebSocket(
                 upgradeToWebSocketHeader -> Directives.extractRequest(
                         request -> {
-                            authorizationEnforcer.checkAuthorization(request, connectionAuthContext, additionalHeaders);
+                            authorizationEnforcer.checkAuthorization(dittoHeaders);
                             return Directives.completeWithFuture(
                                     createWebSocket(upgradeToWebSocketHeader, version, correlationId.toString(),
-                                            connectionAuthContext, additionalHeaders, chosenProtocolAdapter, request));
+                                            dittoHeaders, chosenProtocolAdapter, request));
                         }));
     }
 
@@ -251,23 +250,23 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
             final JsonSchemaVersion version,
             final String connectionCorrelationId,
-            final AuthorizationContext authContext,
-            final DittoHeaders additionalHeaders,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
         @Nullable final SignalEnrichmentFacade signalEnrichmentFacade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
 
+        final AuthorizationContext authContext = dittoHeaders.getAuthorizationContext();
         LOGGER.withCorrelationId(connectionCorrelationId)
                 .info("Creating WebSocket for connection authContext: <{}>", authContext);
 
         return retrieveWebsocketConfig().thenApply(websocketConfig -> {
             final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                    createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
+                    createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
                             websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                    createOutgoing(version, connectionCorrelationId, additionalHeaders, adapter, request,
+                    createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
                             websocketConfig, signalEnrichmentFacade);
 
             return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
@@ -317,7 +316,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final JsonSchemaVersion version,
             final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig) {
@@ -329,7 +328,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
-                            additionalHeaders, adapter));
+                            dittoHeaders, adapter));
 
             final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
@@ -595,7 +594,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             throw e.setDittoHeaders(e.getDittoHeaders().toBuilder().origin(connectionCorrelationId).build());
         }
 
-        final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> internalHeadersBuilder = DittoHeaders.newBuilder();
 
         try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(connectionCorrelationId)) {
             logger.debug("WebSocket message has been converted to signal <{}>.", signal);
@@ -611,7 +610,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
             internalHeadersBuilder.putHeaders(signalHeaders);
             // generate correlation ID if it is not set in protocol message
-            if (!signalHeaders.getCorrelationId().isPresent()) {
+            if (signalHeaders.getCorrelationId().isEmpty()) {
                 final String correlationId = UUID.randomUUID().toString();
                 logger.trace("Adding generated correlationId: <{}>.", correlationId);
                 internalHeadersBuilder.correlationId(correlationId);
@@ -776,8 +775,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final HttpRequest request, final AuthorizationContext authorizationContext,
-                final DittoHeaders dittoHeaders) {
+        public void checkAuthorization(final DittoHeaders dittoHeaders) {
 
             // Does nothing.
         }

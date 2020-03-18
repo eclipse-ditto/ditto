@@ -23,11 +23,9 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
@@ -85,70 +83,15 @@ final class RootRouteHeadersStepBuilder {
     }
 
     /**
-     * Sets the AuthorizationContext of the eventual DittoHeaders.
+     * Sets the initial DittoHeaders builder.
      *
-     * @param initialDittoHeaders initial DittoHeaders which might be pre-initialized with some header values.
-     * @param authContext the authorization context to be set.
+     * @param initialDittoHeadersBuilder initial DittoHeaders builder which might be pre-initialized with some header
+     * values.
      * @return the next builder step.
-     * @throws NullPointerException if {@code authContext} is {@code null}.
+     * @throws NullPointerException if {@code initialDittoHeadersBuilder} is {@code null}.
      */
-    SchemaVersionStep withAuthorizationContext(final DittoHeaders initialDittoHeaders,
-            final AuthorizationContext authContext) {
-        final DittoHeadersBuilder dittoHeadersBuilder = initialDittoHeaders.toBuilder();
-        dittoHeadersBuilder.authorizationContext(checkNotNull(authContext));
-        return new SchemaVersionStep(dittoHeadersBuilder);
-    }
-
-    /**
-     * Builder step for setting the schema version of the eventual DittoHeaders.
-     */
-    @NotThreadSafe
-    final class SchemaVersionStep {
-
-        private final DittoHeadersBuilder dittoHeadersBuilder;
-
-        private SchemaVersionStep(final DittoHeadersBuilder dittoHeadersBuilder) {
-            this.dittoHeadersBuilder = dittoHeadersBuilder;
-        }
-
-        /**
-         * Sets the JsonSchemaVersion of the eventual DittoHeaders.
-         *
-         * @param schemaVersion the schema version to be set.
-         * @return the next builder step.
-         * @throws NullPointerException if {@code schemaVersion} is {@code null}.
-         */
-        RootRouteHeadersStepBuilder.CorrelationIdStep withSchemaVersion(final JsonSchemaVersion schemaVersion) {
-            dittoHeadersBuilder.schemaVersion(checkNotNull(schemaVersion, "schemaVersion"));
-            return new CorrelationIdStep(dittoHeadersBuilder);
-        }
-
-    }
-
-    /**
-     * Builder step for setting the correlation ID of the eventual DittoHeaders.
-     */
-    @NotThreadSafe
-    final class CorrelationIdStep {
-
-        private final DittoHeadersBuilder dittoHeadersBuilder;
-
-        private CorrelationIdStep(final DittoHeadersBuilder dittoHeadersBuilder) {
-            this.dittoHeadersBuilder = dittoHeadersBuilder;
-        }
-
-        /**
-         * Sets the correlation ID of the eventual DittoHeaders.
-         *
-         * @param correlationId the correlation ID to be set.
-         * @return the next builder step.
-         * @throws NullPointerException if {@code correlationId} is {@code null}.
-         */
-        RootRouteHeadersStepBuilder.RequestContextStep withCorrelationId(final CharSequence correlationId) {
-            dittoHeadersBuilder.correlationId(checkNotNull(correlationId, "correlationId"));
-            return new RequestContextStep(dittoHeadersBuilder, correlationId);
-        }
-
+    RequestContextStep withInitialDittoHeadersBuilder(final DittoHeadersBuilder initialDittoHeadersBuilder) {
+        return new RequestContextStep(checkNotNull(initialDittoHeadersBuilder, "initialDittoHeadersBuilder"));
     }
 
     /**
@@ -158,11 +101,9 @@ final class RootRouteHeadersStepBuilder {
     final class RequestContextStep {
 
         private final DittoHeadersBuilder dittoHeadersBuilder;
-        private final CharSequence correlationId;
 
-        private RequestContextStep(final DittoHeadersBuilder dittoHeadersBuilder, final CharSequence correlationId) {
+        private RequestContextStep(final DittoHeadersBuilder dittoHeadersBuilder) {
             this.dittoHeadersBuilder = dittoHeadersBuilder;
-            this.correlationId = correlationId;
         }
 
         /**
@@ -177,7 +118,7 @@ final class RootRouteHeadersStepBuilder {
         RootRouteHeadersStepBuilder.QueryParametersStep withRequestContext(final RequestContext requestContext) {
             checkNotNull(requestContext, "requestContext");
             final DittoHeaders filteredExternalHeaders = getFilteredExternalHeaders(requestContext.getRequest());
-            return new QueryParametersStep(dittoHeadersBuilder, correlationId, requestContext, filteredExternalHeaders);
+            return new QueryParametersStep(dittoHeadersBuilder, requestContext, filteredExternalHeaders);
         }
 
         private DittoHeaders getFilteredExternalHeaders(final HttpMessage httpRequest) {
@@ -185,7 +126,7 @@ final class RootRouteHeadersStepBuilder {
             final Map<String, String> externalHeaders = StreamSupport.stream(headers.spliterator(), false)
                     .collect(Collectors.toMap(HttpHeader::lowercaseName, HttpHeader::value, (dv1, dv2) -> {
                         throw GatewayDuplicateHeaderException.newBuilder()
-                                .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                                .dittoHeaders(dittoHeadersBuilder.build())
                                 .build();
                     }));
             return headerTranslator.fromExternalHeaders(externalHeaders);
@@ -200,17 +141,14 @@ final class RootRouteHeadersStepBuilder {
     final class QueryParametersStep {
 
         private final DittoHeadersBuilder dittoHeadersBuilder;
-        private final CharSequence correlationId;
         private final RequestContext requestContext;
         private final DittoHeaders filteredExternalHeaders;
 
         private QueryParametersStep(final DittoHeadersBuilder dittoHeadersBuilder,
-                final CharSequence correlationId,
                 final RequestContext requestContext,
                 final DittoHeaders filteredExternalHeaders) {
 
             this.dittoHeadersBuilder = dittoHeadersBuilder;
-            this.correlationId = correlationId;
             this.requestContext = requestContext;
             this.filteredExternalHeaders = filteredExternalHeaders;
         }
@@ -249,7 +187,7 @@ final class RootRouteHeadersStepBuilder {
             final String msgPattern = "<{0}> was provided as header as well as query parameter with divergent values!";
             return GatewayDuplicateHeaderException.newBuilder()
                     .message(MessageFormat.format(msgPattern, headerKey))
-                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                    .dittoHeaders(dittoHeadersBuilder.build())
                     .build();
         }
 
@@ -294,14 +232,12 @@ final class RootRouteHeadersStepBuilder {
 
             final DittoHeaders dittoDefaultHeaders = dittoHeadersBuilder.build();
 
-            // At this point it is ensured that a correlation ID and an authorization context was set.
+            // At this point it is ensured that a correlation ID was set
             final String correlationId = dittoDefaultHeaders.getCorrelationId().orElseThrow();
-            final AuthorizationContext authorizationContext = dittoDefaultHeaders.getAuthorizationContext();
 
             CompletionStage<DittoHeaders> result = customHeadersHandler.handleCustomHeaders(correlationId,
                     requestContext,
                     requestType,
-                    authorizationContext,
                     dittoDefaultHeaders);
 
             result = result.thenApply(dittoHeaders -> {

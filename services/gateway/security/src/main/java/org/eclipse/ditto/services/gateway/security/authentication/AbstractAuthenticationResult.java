@@ -39,7 +39,15 @@ public abstract class AbstractAuthenticationResult<C extends AuthorizationContex
             @Nullable final C authorizationContext,
             @Nullable final Throwable reasonOfFailure) {
 
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
+        checkNotNull(dittoHeaders, "dittoHeaders");
+        if (null != authorizationContext) {
+            // merge present authorizationContext into dittoHeaders:
+            this.dittoHeaders = dittoHeaders.toBuilder()
+                    .authorizationContext(authorizationContext)
+                    .build();
+        } else {
+            this.dittoHeaders = dittoHeaders;
+        }
         this.authorizationContext = authorizationContext;
         this.reasonOfFailure = reasonOfFailure;
     }

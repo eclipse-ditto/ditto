@@ -12,10 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
-import akka.http.javadsl.model.HttpRequest;
 
 /**
  * Enforces authorization in order to establish a WebSocket connection.
@@ -25,14 +22,13 @@ import akka.http.javadsl.model.HttpRequest;
 public interface WebSocketAuthorizationEnforcer {
 
     /**
-     * Ensures that the establishment of a WebSocket connection is authorized for the given arguments.
+     * Ensures that the establishment of a WebSocket connection is authorized for the given DittoHeaders of the initial
+     * WebSocket request.
      *
-     * @param authorizationContext
-     * @param request
-     * @param dittoHeaders
+     * @param dittoHeaders the DittoHeaders containing already gathered context information.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the check failed
      */
-    void checkAuthorization(HttpRequest request, AuthorizationContext authorizationContext, DittoHeaders dittoHeaders);
+    void checkAuthorization(DittoHeaders dittoHeaders);
 
 }

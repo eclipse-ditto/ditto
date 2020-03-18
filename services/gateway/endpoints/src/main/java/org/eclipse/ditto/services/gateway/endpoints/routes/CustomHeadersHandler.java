@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
@@ -37,14 +36,12 @@ public interface CustomHeadersHandler {
      * @param correlationId the correlation ID.
      * @param requestContext the request context.
      * @param requestType the request type.
-     * @param authorizationContext the authorization context.
      * @param dittoDefaultHeaders the headers ditto created by default.
      * @return a new future instance of {@link DittoHeaders} containing both new custom headers and default headers.
      */
     CompletionStage<DittoHeaders> handleCustomHeaders(CharSequence correlationId,
             RequestContext requestContext,
             RequestType requestType,
-            AuthorizationContext authorizationContext,
             DittoHeaders dittoDefaultHeaders);
 
 }
