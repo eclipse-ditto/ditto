@@ -92,9 +92,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resource, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, Label, Resource, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyResourceResponse created(final String policyId,
@@ -132,9 +130,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyResourceResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
@@ -164,12 +160,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     *
-     *
-     *
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyResourceResponse modified(final String policyId, final Label label,
@@ -232,6 +223,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
                     .map(ResourceKey::newInstance);
 
+            @Nullable
             final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
                     .map(JsonValue::asObject)
                     .flatMap(obj -> extractedResourceKey.map(resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)))

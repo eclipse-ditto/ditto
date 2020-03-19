@@ -93,9 +93,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #created(org.eclipse.ditto.model.policies.PolicyId,
-     * org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)} instead.
+     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, Label, Subject, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifySubjectResponse created(final String policyId,
@@ -133,9 +131,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifySubjectResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
@@ -167,9 +163,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifySubjectResponse modified(final String policyId, final Label label, final SubjectId subjectId,
@@ -226,6 +220,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
 
             final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID);
 
+            @Nullable
             final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
                     .map(JsonValue::asObject)
                     .flatMap(obj -> extractedSubjectId.map(subjectId -> PoliciesModelFactory.newSubject(subjectId, obj)))

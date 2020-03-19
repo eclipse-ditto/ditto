@@ -84,10 +84,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.PolicyEntry,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, PolicyEntry, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyPolicyEntryResponse created(final String policyId, final PolicyEntry policyEntryCreated,
@@ -119,10 +116,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy Id is now Typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy Id is now Typed. Use {@link #modified(PolicyId, Label, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyPolicyEntryResponse modified(final String policyId, final DittoHeaders dittoHeaders) {
@@ -191,6 +185,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Optional<String> readLabel = jsonObject.getValue(JSON_LABEL);
 
+                    @Nullable
                     final PolicyEntry extractedPolicyEntryCreated = jsonObject.getValue(JSON_POLICY_ENTRY)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
