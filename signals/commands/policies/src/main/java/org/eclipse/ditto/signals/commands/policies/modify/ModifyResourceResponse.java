@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifyResource} command.
@@ -65,12 +66,12 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
 
     private final PolicyId policyId;
     private final Label label;
-    private final ResourceKey resourceKey;
+    @Nullable private final ResourceKey resourceKey;
     @Nullable private final Resource resourceCreated;
 
     private ModifyResourceResponse(final PolicyId policyId,
             final Label label,
-            final ResourceKey resourceKey,
+            @Nullable final ResourceKey resourceKey,
             @Nullable final Resource resourceCreated,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
@@ -78,7 +79,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
-        this.resourceKey = checkNotNull(resourceKey, "resourceKey");
+        this.resourceKey = resourceKey;
         this.resourceCreated = resourceCreated;
     }
 
@@ -128,6 +129,38 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      *
      * @param policyId the Policy ID of the modified resource.
      * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyResourceResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyResource} command.
+     *
+     * @param policyId the Policy ID of the modified resource.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static ModifyResourceResponse modified(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
+    }
+    /**
+     * Creates a response to a {@code ModifyResource} command.
+     *
+     * @param policyId the Policy ID of the modified resource.
+     * @param label the Label of the PolicyEntry.
+     * @param resourceKey the resource key of the modified resource
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
@@ -189,21 +222,22 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     public static ModifyResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyResourceResponse>(TYPE, jsonObject).deserialize(statusCode -> {
             final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
             final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
             final Label label = PoliciesModelFactory.newLabel(stringLabel);
 
-            final ResourceKey extractedResourceKey =
-                    ResourceKey.newInstance(jsonObject.getValueOrThrow(JSON_RESOURCE_KEY));
+            final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
+                    .map(ResourceKey::newInstance);
 
             final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
                     .map(JsonValue::asObject)
-                    .map(obj -> PoliciesModelFactory.newResource(extractedResourceKey, obj))
+                    .flatMap(obj -> extractedResourceKey.map(resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)))
                     .orElse(null);
 
-            return new ModifyResourceResponse(policyId, label, extractedResourceKey, extractedResourceCreated,
+            return new ModifyResourceResponse(policyId, label,
+                    extractedResourceKey.map(ResourceKey::newInstance).orElse(null), extractedResourceCreated,
                     statusCode, dittoHeaders);
         });
     }
@@ -247,10 +281,12 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
                 predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
+        if (null != resourceKey) {
+            jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
+        }
         if (null != resourceCreated) {
             jsonObjectBuilder.set(JSON_RESOURCE, resourceCreated.toJson(schemaVersion, thePredicate), predicate);
         }
