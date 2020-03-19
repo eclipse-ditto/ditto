@@ -255,7 +255,6 @@ public final class PoliciesModelFactory {
     }
 
     /**
-     * TODO test both [type:]/[path] and [type:/path]
      * Returns a {@link ResourceKey} for the given {@link JsonPointer}.
      *
      * @param pointer the json pointer representing a resource key e.g. /thing:/path1/path2/...
