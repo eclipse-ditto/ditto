@@ -142,24 +142,6 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     public static ModifyPolicyEntryResponse modified(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return modified(policyId, null, dittoHeaders);
     }
-    /**
-     * Creates a response to a {@code ModifyPolicyEntry} command.
-     *
-     * @param policyId the Policy ID of the modified policy entry.
-     * @param label the label of the modified policy entry.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy Id is now Typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyEntryResponse modified(final String policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
-        return modified(PolicyId.of(policyId), label, dittoHeaders);
-    }
 
     /**
      * Creates a response to a {@code ModifyPolicyEntry} command.
@@ -169,6 +151,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
     public static ModifyPolicyEntryResponse modified(final PolicyId policyId,
             final Label label, final DittoHeaders dittoHeaders) {

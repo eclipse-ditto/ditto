@@ -187,6 +187,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
     public static ModifyResourceResponse modified(final PolicyId policyId, final Label label,
             final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {

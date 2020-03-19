@@ -187,6 +187,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
     public static ModifySubjectResponse modified(final PolicyId policyId, final Label label, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
