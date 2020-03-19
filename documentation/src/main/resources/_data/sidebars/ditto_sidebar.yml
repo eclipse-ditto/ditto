@@ -530,7 +530,9 @@ entries:
         - title: Error responses
           url: /protocol-examples-policies-errorresponses.html
           output: web
-
+    - title: → Search examples
+      url: /protocol-examples-search.html
+      output: web
   - title: Sandbox
     url: /sandbox.html
     output: web

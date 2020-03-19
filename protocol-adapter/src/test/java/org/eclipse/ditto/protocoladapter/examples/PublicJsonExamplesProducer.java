@@ -94,7 +94,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
      */
     public static void main(final String... args) throws IOException {
         if (args.length != 1) {
-            System.err.println("Exactly 1 argument required: the target folder in which to generate the JSON files");
+            System.err.println("Exactly 1 argument required: <target-folder>/<file-type(only \"markdown\" supported)>");
             System.exit(-1);
         }
         final String[] writePath = args[0].split("/");

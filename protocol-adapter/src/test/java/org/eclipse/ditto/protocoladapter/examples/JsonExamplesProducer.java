@@ -244,10 +244,14 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyEntriesModified;
@@ -296,6 +300,10 @@ import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
 
 class JsonExamplesProducer {
 
@@ -428,6 +436,7 @@ class JsonExamplesProducer {
         produceSearchModel(rootPath.resolve("search"));
         produceSearchCommands(rootPath.resolve("search"));
         produceSearchCommandResponses(rootPath.resolve("search"));
+        produceSearchEvents(rootPath.resolve("search"));
         produceSearchExceptions(rootPath.resolve("search"));
 
         produceMessageExceptions(rootPath.resolve("messages"));
@@ -1188,7 +1197,7 @@ class JsonExamplesProducer {
 
         final PolicyIdCreated policyIdCreated =
                 PolicyIdCreated.of(THING_ID, POLICY_ID, REVISION_NUMBER,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
         final PolicyIdModified policyIdModified =
@@ -1501,10 +1510,12 @@ class JsonExamplesProducer {
 
         final SearchQuery searchQuery =
                 SearchModelFactory.newSearchQueryBuilder(SearchModelFactory.property("attributes/temperature").eq(32))
-                        .limit(0, 10).build();
+                        .build();
+
+        final String optionString = "size(10),sort(+thingId)";
 
         final QueryThings queryThingsCommand = QueryThings.of(searchQuery.getFilterAsString(),
-                Collections.singletonList(searchQuery.getOptionsAsString()),
+                Collections.singletonList(optionString),
                 JsonFactory.newFieldSelector("attributes", JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
                         .build()),
@@ -1517,6 +1528,20 @@ class JsonExamplesProducer {
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("count-things-command.json")), countThingsCommand);
+
+        final CreateSubscription createSubscriptionCommand = CreateSubscription.of(searchQuery.getFilterAsString(),
+                optionString,
+                JsonFactory.newFieldSelector("attributes", JsonFactory.newParseOptionsBuilder()
+                        .withoutUrlDecoding()
+                        .build()),
+                knownNamespaces,
+                DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("create-subscription-command.json")), createSubscriptionCommand);
+        final RequestSubscription requestSubscriptionCommand =
+                RequestSubscription.of("24601", 3, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("request-subscription-command.json")), requestSubscriptionCommand);
+        final CancelSubscription cancelSubscriptionCommand = CancelSubscription.of("24601", DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("cancel-subscription-command.json")), cancelSubscriptionCommand);
     }
 
     private void produceSearchCommandResponses(final Path rootPath) throws IOException {
@@ -1543,6 +1568,49 @@ class JsonExamplesProducer {
 
         final CountThingsResponse countThingsResponse = CountThingsResponse.of(42, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("count-things-response.json")), countThingsResponse);
+    }
+
+    private void produceSearchEvents(final Path rootPath) throws IOException {
+        final Path commandsDir = rootPath.resolve(Paths.get("events"));
+        Files.createDirectories(commandsDir);
+
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(ThingId.of("default", "thing1"))
+                .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
+                .build();
+        final Thing thing2 = ThingsModelFactory.newThingBuilder()
+                .setId(ThingId.of("default", "thing2"))
+                .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
+                .build();
+        final JsonArray array = JsonFactory.newArrayBuilder()
+                .add(thing.toJson())
+                .add(thing2.toJson())
+                .build();
+
+        final SubscriptionCreated subscriptionCreatedEvent = SubscriptionCreated.of("24601", DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("subscription-created-event.json")), subscriptionCreatedEvent);
+
+        final SubscriptionHasNext subscriptionHasNextEvent =
+                SubscriptionHasNext.of("24601", array, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("subscription-has-next-event.json")), subscriptionHasNextEvent);
+
+        final SubscriptionComplete subscriptionCompleteEvent = SubscriptionComplete.of("24601", DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("subscription-complete-event.json")), subscriptionCompleteEvent);
+
+        final SubscriptionFailed subscriptionFailedEvent = SubscriptionFailed.of(
+                "24601",
+                SubscriptionProtocolErrorException.newBuilder()
+                        .message("Rule 3.9: While the Subscription is not cancelled, Subscription.request(long n) " +
+                                "MUST signal onError with a java.lang.IllegalArgumentException if the argument is " +
+                                "<= 0. The cause message SHOULD explain that non-positive request signals are illegal.")
+                        .description("The intent of this rule is to prevent faulty implementations to proceed " +
+                                "operation without any exceptions being raised. Requesting a negative or 0 number of " +
+                                "elements, since requests are additive, most likely to be the result of an erroneous " +
+                                "calculation on the behalf of the Subscriber.")
+                        .build(),
+                DittoHeaders.empty()
+        );
+        writeJson(commandsDir.resolve(Paths.get("subscription-failed-event.json")), subscriptionFailedEvent);
     }
 
     private void produceSearchExceptions(final Path rootPath) throws IOException {
