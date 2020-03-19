@@ -60,6 +60,7 @@ public final class SearchSource {
     private final int maxRetries;
     private final Duration recovery;
     private final boolean thingIdOnly;
+    private final String lastThingId;
 
     SearchSource(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -71,7 +72,8 @@ public final class SearchSource {
             final Duration minBackoff,
             final Duration maxBackoff,
             final int maxRetries,
-            final Duration recovery) {
+            final Duration recovery,
+            final String lastThingId) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.thingsAskTimeout = thingsAskTimeout;
@@ -85,6 +87,7 @@ public final class SearchSource {
         this.recovery = recovery;
         this.thingIdOnly = fields != null && fields.getSize() == 1 &&
                 fields.getPointers().contains(Thing.JsonFields.ID.getPointer());
+        this.lastThingId = lastThingId;
     }
 
     /**
@@ -118,17 +121,33 @@ public final class SearchSource {
             final Duration maxBackoff,
             final int maxRetries,
             final Duration recovery) {
-        final Source<Pair<String, JsonObject>, NotUsed> resumeSource = ResumeSource.onFailureWithBackoff(
+
+        return startAsPair(minBackoff, maxBackoff, maxRetries, recovery).map(Pair::second);
+    }
+
+    /**
+     * Start a robust source of search results paired with their IDs.
+     *
+     * @return source of pair of ID-result pairs where the ID can be used for resumption.
+     */
+    public Source<Pair<String, JsonObject>, NotUsed> startAsPair() {
+        return startAsPair(minBackoff, maxBackoff, maxRetries, recovery);
+    }
+
+    private Source<Pair<String, JsonObject>, NotUsed> startAsPair(final Duration minBackoff,
+            final Duration maxBackoff,
+            final int maxRetries,
+            final Duration recovery) {
+        return ResumeSource.onFailureWithBackoff(
                 minBackoff,
                 maxBackoff,
                 maxRetries,
                 recovery,
-                "",
+                lastThingId,
                 this::resume,
                 1,
                 this::nextSeed
         );
-        return resumeSource.map(Pair::second);
     }
 
     private String nextSeed(final List<Pair<String, JsonObject>> finalElements) {
@@ -173,7 +192,7 @@ public final class SearchSource {
                             new PFBuilder<Throwable, Graph<SourceShape<Pair<String, JsonObject>>, NotUsed>>()
                                     .match(ThingNotAccessibleException.class, thingNotAccessible -> {
                                         // out-of-sync thing detected
-                                        // TODO: log & publish UpdateThing
+                                        // TODO: log & publish UpdateThings
                                         return Source.empty();
                                     })
                                     .build()

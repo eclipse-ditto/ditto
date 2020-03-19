@@ -33,15 +33,15 @@ Similarly, the search protocol messages related to one query are identified by a
 Each search protocol message corresponds to a reactive-streams _signal_ and are bound
 by the same rules in the [reactive-streams specification](https://github.com/reactive-streams/reactive-streams-jvm/blob/v1.0.3/README.md).
 
-| Reactive-streams signal      | Search protocol message topic      | Message direction |
-|------------------------------|------------------------------------|-------------------|
-| [Publisher#subscribe][ps]    | `_/_/things/twin/search/subscribe` | Client to Ditto   |
-| [Subscription#request][nr]   | `_/_/things/twin/search/request`   | Client to Ditto   |
-| [Subscription#cancel][nc]    | `_/_/things/twin/search/cancel`    | Client to Ditto   |
-| [Subscriber#onSubscribe][ss] | `_/_/things/twin/search/created`   | Ditto to Client   |
-| [Subscriber#onNext][sn]      | `_/_/things/twin/search/hasNext`   | Ditto to Client   |
-| [Subscriber#onComplete][sc]  | `_/_/things/twin/search/complete`  | Ditto to Client   |
-| [Subscriber#onError][se]     | `_/_/things/twin/search/failed`    | Ditto to Client   |
+| Reactive-streams signal      | Search protocol message topic                     | Message direction |
+|------------------------------|---------------------------------------------------|-------------------|
+| [Publisher#subscribe][ps]    | [`_/_/things/twin/search/subscribe`](#subscribe)  | Client to Ditto   |
+| [Subscription#request][nr]   | [`_/_/things/twin/search/request`](#request)      | Client to Ditto   |
+| [Subscription#cancel][nc]    | [`_/_/things/twin/search/cancel`](#cancel)        | Client to Ditto   |
+| [Subscriber#onSubscribe][ss] | [`_/_/things/twin/search/created`](#created)      | Ditto to Client   |
+| [Subscriber#onNext][sn]      | [`_/_/things/twin/search/hasNext`](#hasnext)      | Ditto to Client   |
+| [Subscriber#onComplete][sc]  | [`_/_/things/twin/search/complete`](#complete)    | Ditto to Client   |
+| [Subscriber#onError][se]     | [`_/_/things/twin/search/failed`](#failed)        | Ditto to Client   |
 
 ## Messages from Client to Ditto
 

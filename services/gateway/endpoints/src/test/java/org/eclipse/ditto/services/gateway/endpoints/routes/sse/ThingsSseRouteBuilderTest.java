@@ -24,15 +24,21 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.assertj.core.util.Lists;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -146,7 +152,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @Test
     public void getWithAcceptHeaderAndNoQueryParametersOpensSseConnection() {
-        executeRouteTest(HttpRequest.GET(THINGS_ROUTE).addHeader(acceptHeader),
+        executeThingsRouteTest(HttpRequest.GET(THINGS_ROUTE).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(Collections.emptySet())).build());
     }
@@ -186,12 +192,38 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
+    public void searchWithResumption() {
+        final String lastEventId = "my:lastEventId";
+        final HttpHeader lastEventIdHeader = HttpHeader.parse("Last-Event-ID", lastEventId);
+        final TestRouteResult routeResult = underTest.run(
+                HttpRequest.GET(SEARCH_ROUTE)
+                        .addHeader(acceptHeader)
+                        .addHeader(lastEventIdHeader)
+        );
+        final CompletableFuture<Void> assertions =
+                CompletableFuture.runAsync(() -> {
+                    routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
+                    routeResult.assertStatusCode(StatusCodes.OK);
+                });
+        final RetrieveThing retrieveThing = proxyActor.expectMsgClass(RetrieveThing.class);
+        final Thing thing = Thing.newBuilder().setId(ThingId.of(lastEventId)).build();
+        proxyActor.reply(RetrieveThingResponse.of(ThingId.of(lastEventId),
+                thing,
+                retrieveThing.getDittoHeaders()
+        ));
+        final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
+        replySourceRef(proxyActor, Source.lazily(Source::empty));
+        assertions.join();
+        assertThat(streamThings.getSortValues()).contains(JsonArray.of(JsonValue.of(lastEventId)));
+    }
+
+    @Test
     public void getWithAcceptHeaderAndFilterParameterOpensSseConnection() {
         final String filter = "eq(attributes/manufacturer,\"ACME\")";
 
         final String requestUrl = THINGS_ROUTE + "?filter=" + filter;
 
-        executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
                         .withFilter(filter)
@@ -204,7 +236,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         final String requestUrl = THINGS_ROUTE + "?namespaces=" + String.join(",", namespaces);
 
-        executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
                         .withNamespaces(namespaces)
@@ -217,7 +249,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         final String requestUrl = THINGS_ROUTE + "?extraFields=" + extraFields;
 
-        executeRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                         AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
                         .withExtraFields(extraFields)
@@ -229,7 +261,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
      * The order of statements and everything else is crucial as SSE route testing is not provided by Akka HTTP
      * route test kit.
      */
-    private void executeRouteTest(final HttpRequest httpRequest, final StartStreaming expectedStartStreaming) {
+    private void executeThingsRouteTest(final HttpRequest httpRequest, final StartStreaming expectedStartStreaming) {
         new TestKit(actorSystem) {{
             final TestRouteResult routeResult = underTest.run(httpRequest);
 

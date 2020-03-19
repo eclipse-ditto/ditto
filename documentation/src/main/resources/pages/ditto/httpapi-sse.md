@@ -6,23 +6,18 @@ permalink: httpapi-sse.html
 ---
 
 HTML5 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.sse}}">SSEs</a> may be used in order 
-to get notified when the state of **digital twins** change.
-
-This is the second mechanism of Ditto in order to get [change notifications](basic-changenotifications.html).
-The benefit of this mechanism in contrary to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is that it is
-even easier to open a SSE connection from the client than a WebSocket and that in Ditto's interpretation of SSEs the
-events sent back from the backend have the same JSON structure as the HTTP API on which they are invoked. 
+to get notified when the state of **digital twins** change, or to stream [search results](basic-search.html) robustly.
 
 ## Server-Sent Events
 
 Different as WebSockets, Server-Sent Events are unidirectional originating from the back-end towards the client. Via SSEs
-the client can only be notified, it cannot send data back (it can use plain HTTP therefore).
+the client can only be notified, it cannot send data back (it can use plain HTTP for that).
 
 For a detailed introduction into SSEs, please visit 
 the [HTML5 specification](https://html.spec.whatwg.org/multipage/server-sent-events.html).
 
-{% include warning.html content="Although SSEs are a HTML5 standard, they still cannot be used in every browser: 
-    see [caniuse.com](https://caniuse.com/#search=Server-sent%20events) - Microsoft IE11 and Edge browser still doesn't support them." %}
+{% include warning.html content="Although SSEs are a HTML5 standard, they still cannot be used with the Microsoft
+Internet Explorer on the client side or anything behind a Microsoft Azure Application Gateway on the server side." %}
 
 ### SSEs in JavaScript
 
@@ -30,18 +25,22 @@ Using the `EventSource` object in JavaScript is also well covered in the [HTML5 
 
 ## SSE API `/things`
 
-Currently the only supported HTTP API for receiving <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.sse}}">SSEs</a>
-is the `/things` endpoint:
+The SSE API for receiving [change notifications](basic-changenotifications.html) is the `/things` endpoint:
 ```
 http://localhost:8080/api/<1|2>/things
 ```
 
-When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, an Server-Sent Event stream of
+This is the second mechanism of Ditto in order to get [change notifications](basic-changenotifications.html).
+The benefit of this mechanism in contrary to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is that it is
+even easier to open a SSE connection from the client than a WebSocket and that in Ditto's interpretation of SSEs the
+events sent back from the backend have the same JSON structure as the HTTP API on which they are invoked. 
+
+When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, a Server-Sent Event stream of
 [change notifications](basic-changenotifications.html) is created by Ditto and for each notification for which the caller
 has READ permissions (see [authorization](basic-auth.html#authorization)), a message is sent to the client.
 
 The format of the message at the `/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
-(in API 1 format or API 2 format depending on which edpoint the SSE was created).
+(in API 1 format or API 2 format depending on which endpoint the SSE was created).
 
 For partial updates to a `Thing` however, only the changed part is sent back via the SSE, not the complete `Thing`.
 
@@ -169,4 +168,92 @@ The JavaScript snippet would log to console:
     }
   }
 }
+```
+
+## SSE API `/search/things`
+
+The SSE API to stream search results is the `/search/things` endpoint:
+```
+http://localhost:8080/api/<1|2>/search/things
+```
+
+This is the second mechanism of Ditto in order to get [search results](basic-search.html).
+The benefits of this mechanism over the [search protocol](protocol-specification-things-search.html) are:
+- The client side is easy to implement; it needs not abide by the reactive-streams rules.
+- SSE permits [resuming a stream from the last received ID](#resuming-by-last-event-id) after connection interruptions.
+
+The drawback is that SSE has no application-layer flow control and must rely on the transport layer (TCP) for
+back-pressure. In contrast, the [search protocol](protocol-specification-things-search.html) supports back-pressure
+and cancellation over any transport layer by reactive-streams means.
+
+When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, a Server-Sent Event stream of
+things is created by Ditto and for each thing matching the search filter for which the caller has READ permissions
+(see [authorization](basic-auth.html#authorization)), a message is sent to the client.
+
+The format of the message at the `/search/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
+(in API 1 format or API 2 format depending on which endpoint the SSE was created).
+
+### Filtering by RQL expression
+
+Specify the `filter` parameter with an [RQL expression](basic-rql.html) to restrict the search results to things
+matching the RQL expression. For example, the SSE stream below emits only things whose `counter` attributes have the
+value `42`:
+```
+http://localhost:8080/api/<1|2>/search/things?filter=eq(attributes/counter,42)
+```
+
+### Filtering by namespaces
+
+Specify the `namespaces` parameter to restrict search to the namespaces given as a comma separated list. For example:
+```
+http://localhost:8080/api/<1|2>/search/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
+```
+
+### Sorting by RQL sort option
+
+Specify the `option` parameter with an [RQL sort option](basic-rql.html#rql-sorting) to stream things in a certain
+order. For example, the SSE stream below emits things according to the timestamp of their last updates with the newest
+appearing first:
+```
+http://localhost:8080/api/<1|2>/search/things?option=sort(-_modified)
+```
+
+#### Fields projection
+
+Use the `fields` parameter to retrieve only specific parts of things in search results, e.g.:
+```
+http://localhost:8080/api/<1|2>/search/things?fields=thingId,attributes
+```
+
+### Resuming by `Last-Event-ID`
+
+The [HTML5 SSE specification](https://html.spec.whatwg.org/multipage/server-sent-events.html)
+permits clients to resume from interrupted streams by sending a header `Last-Event-ID`.
+Each thing in the search result has its thing ID set as the event ID.
+To resume the stream from the point of its interruption,
+start another SSE stream with _identical_ query parameters and the `Last-Event-ID` header set to the last received
+event ID.
+Specification-conform SSE clients perform resumption automatically, making SSE a simple way to export large numbers
+of things over a slow connection for long periods of time. Example:
+
+Request
+```
+GET http://localhost:8080/api/2/search/things?fields=thingId&option=sort(+thingId) HTTP/1.1
+Accept:        text/event-stream
+Last-Event-ID: ditto:device7152
+```
+
+Response
+```
+HTTTP/1.1 200 OK
+Content-Type: text/event-stream
+
+data:{"thingId":"ditto:device7153"}
+id:ditto:device7153
+
+data:{"thingId":"ditto:device7154"}
+id:ditto:device7154
+
+data:{"thingId":"ditto:device7155"}
+id:ditto:device7155
 ```

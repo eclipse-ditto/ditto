@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -65,6 +67,7 @@ public final class SearchSourceBuilder {
     private Duration maxBackoff = Duration.ofSeconds(30L);
     private int maxRetries = 5; // failure message after 32s on back-end error
     private Duration recovery = Duration.ofSeconds(90L);
+    private String lastThingId = "";
 
     /**
      * Create a search-source from this builder.
@@ -80,7 +83,7 @@ public final class SearchSourceBuilder {
         final StreamThings streamThings = constructStreamThings();
         validate(streamThings);
         return new SearchSource(pubSubMediator, conciergeForwarder, thingsAskTimeout, searchAskTimeout, fields,
-                sortFields, streamThings, minBackoff, maxBackoff, maxRetries, recovery);
+                sortFields, streamThings, minBackoff, maxBackoff, maxRetries, recovery, lastThingId);
     }
 
     /**
@@ -300,6 +303,17 @@ public final class SearchSourceBuilder {
      */
     public SearchSourceBuilder recovery(final Duration recovery) {
         this.recovery = recovery;
+        return this;
+    }
+
+    /**
+     * Set the last thing ID to resume from.
+     *
+     * @param lastThingId the last thing ID.
+     * @return this builder.
+     */
+    public SearchSourceBuilder lastThingId(final String lastThingId) {
+        this.lastThingId = checkNotNull(lastThingId, "lastThingId");
         return this;
     }
 

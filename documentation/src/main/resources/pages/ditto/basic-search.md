@@ -6,6 +6,13 @@ permalink: basic-search.html
 ---
 
 Ditto provides a search functionality as one of the services around its managed **digital twins**.
+The functionality is available for the following APIs.
+
+| API | Access Method | Characteristics |
+|-----|---------------|-----------------|
+|[HTTP](httpapi-search.html)|HTTP request-response|Stateless|
+|[Ditto protocol](protocol-specification-things-search.html)|[Websocket](httpapi-protocol-bindings-websocket.html) and [connections](basic-connections.html)| [Reactive-streams](https://reactive-streams.org) compatible |
+|[Server-sent events](httpapi-sse.html#sse-api-searchthings)|[HTML5 server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html)|Streaming with resumption|
 
 ## Search index
 

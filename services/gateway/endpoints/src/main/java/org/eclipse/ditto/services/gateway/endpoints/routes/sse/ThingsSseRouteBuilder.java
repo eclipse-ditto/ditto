@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -50,14 +51,15 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.search.SearchSource;
+import org.eclipse.ditto.services.utils.search.SearchSourceBuilder;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
@@ -87,6 +89,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final String PATH_THINGS = "things";
 
     private static final String STREAMING_TYPE_SSE = "SSE";
+    private static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
 
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_FIELDS = "fields";
@@ -294,21 +297,30 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 dittoHeadersStage.thenApply(dittoHeaders -> {
                     sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
 
-                    final SearchSource searchSource = SearchSource.newBuilder()
+                    final SearchSourceBuilder searchSourceBuilder = SearchSource.newBuilder()
                             .pubSubMediator(pubSubMediator)
                             .conciergeForwarder(proxyActor)
                             .filter(parameters.get(PARAM_FILTER))
                             .option(parameters.get(PARAM_OPTION))
                             .fields(parameters.get(PARAM_FIELDS))
                             .namespaces(parameters.get(PARAM_NAMESPACES))
-                            .dittoHeaders(dittoHeaders)
-                            .build();
+                            .dittoHeaders(dittoHeaders);
 
-                    return searchSource.start()
+                    // ctx.getRequest().getHeader(LastEventId.class) is not working
+                    ctx.getRequest()
+                            .getHeader(LAST_EVENT_ID_HEADER)
+                            .ifPresent(lastEventId -> searchSourceBuilder.lastThingId(lastEventId.value()));
+
+                    return searchSourceBuilder.build()
+                            .startAsPair()
                             .via(AbstractRoute.throttleByConfig(streamingConfig.getSseConfig().getThrottlingConfig()))
-                            .map(jsonValue -> {
+                            .map(pair -> {
                                 SEARCH_SSE_COUNTER.increment();
-                                return ServerSentEvent.create(jsonValue.toString());
+                                return ServerSentEvent.create(pair.second().toString(),
+                                        Optional.empty(),
+                                        Optional.of(pair.first()),
+                                        OptionalInt.empty()
+                                );
                             })
                             .log("SSE " + PATH_SEARCH)
                             .via(eventSniffer.toAsyncFlow(ctx.getRequest()));
@@ -375,14 +387,6 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             return Arrays.asList(namespacesParameter.split(","));
         }
         return Collections.emptyList();
-    }
-
-    private static @Nullable
-    List<String> splitCommaSeparatedValues(@Nullable final String queryParamValue) {
-        if (null != queryParamValue) {
-            return Arrays.asList(queryParamValue.split(","));
-        }
-        return null;
     }
 
     private static List<ThingId> getThingIds(@Nullable final String thingIdString) {
