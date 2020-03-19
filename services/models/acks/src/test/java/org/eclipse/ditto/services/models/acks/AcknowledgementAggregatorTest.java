@@ -194,7 +194,7 @@ public final class AcknowledgementAggregatorTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The received Acknowledgement provided correlation ID <%s> but expected was <%s>!",
+                .withMessage("The received Acknowledgement's correlation ID <%s> differs from the expected <%s>!",
                         unexpectedCorrelationId, correlationId)
                 .withNoCause();
     }
@@ -210,7 +210,7 @@ public final class AcknowledgementAggregatorTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The received Acknowledgement provided entity ID <%s> but expected was <%s>!",
+                .withMessage("The received Acknowledgement's entity ID <%s> differs from the expected <%s>!",
                         unexpectedEntityId, ENTITY_ID)
                 .withNoCause();
     }
@@ -371,7 +371,7 @@ public final class AcknowledgementAggregatorTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> underTest.getAggregatedAcknowledgements(
                         dittoHeadersWithDifferentCorrelationId))
-                .withMessage("The provided correlation ID <%s> did not match the expected <%s>!",
+                .withMessage("The provided correlation ID <%s> differs from the expected <%s>!",
                         differentCorrelationId, correlationId)
                 .withNoCause();
     }
