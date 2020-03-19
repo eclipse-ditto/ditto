@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.policies;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
 
 /**
@@ -26,8 +27,12 @@ public final class PoliciesModelFactoryTest {
     public void resourceKeysFromDifferentInstantiationsAreEqual() {
         final ResourceKey key1 = PoliciesModelFactory.newResourceKey("thing:/foo/bar");
         final ResourceKey key2 = PoliciesModelFactory.newResourceKey("thing", JsonFactory.newPointer("/foo/bar"));
+        final ResourceKey key3 = PoliciesModelFactory.newResourceKey(JsonPointer.of("thing:/foo/bar"));
+        final ResourceKey key4 = PoliciesModelFactory.newResourceKey(JsonPointer.of("thing:").append(JsonPointer.of("foo/bar")));
 
         assertThat(key1).isEqualTo(key2);
+        assertThat(key1).isEqualTo(key3);
+        assertThat(key1).isEqualTo(key4);
     }
 
 }
