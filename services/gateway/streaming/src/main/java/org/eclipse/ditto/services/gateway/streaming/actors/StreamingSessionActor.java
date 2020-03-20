@@ -42,12 +42,10 @@ import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
-import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
@@ -68,7 +66,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -90,9 +87,10 @@ final class StreamingSessionActor extends AbstractActor {
     private AuthorizationContext authorizationContext;
 
     @SuppressWarnings("unused")
-    private StreamingSessionActor(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder) {
+    private StreamingSessionActor(final Connect connect,
+            final DittoProtocolSub dittoProtocolSub,
+            final ActorRef eventAndResponsePublisher,
+            final Props subscriptionManagerProps) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
         connectionCorrelationId = connect.getConnectionCorrelationId();
@@ -107,14 +105,8 @@ final class StreamingSessionActor extends AbstractActor {
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
-        final DittoGatewayConfig gatewayConfig =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
         this.subscriptionManager =
-                getContext().actorOf(
-                        SubscriptionManager.props(gatewayConfig.getHttpConfig().getRequestTimeout(),
-                                pubSubMediator,
-                                conciergeForwarder,
-                                ActorMaterializer.create(getContext())), SubscriptionManager.ACTOR_NAME);
+                getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -124,16 +116,17 @@ final class StreamingSessionActor extends AbstractActor {
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
-     * @param eventAndResponsePublisher the {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher}
-     * actor.
+     * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
+     * @param subscriptionManagerProps Props of the subscription manager for search protocol.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder) {
+    static Props props(final Connect connect,
+            final DittoProtocolSub dittoProtocolSub,
+            final ActorRef eventAndResponsePublisher,
+            final Props subscriptionManagerProps) {
 
         return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher,
-                pubSubMediator, conciergeForwarder);
+                subscriptionManagerProps);
     }
 
     @Override

@@ -32,6 +32,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
 
     private final Duration sessionCounterScrapeInterval;
     private final int parallelism;
+    private final Duration searchIdleTimeout;
     private final WebsocketConfig websocketConfig;
     private final SseConfig sseConfig;
     private final SignalEnrichmentConfig signalEnrichmentConfig;
@@ -40,6 +41,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         sessionCounterScrapeInterval =
                 scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
         parallelism = scopedConfig.getInt(StreamingConfigValue.PARALLELISM.getConfigPath());
+        searchIdleTimeout = scopedConfig.getDuration(StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath());
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
         signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(scopedConfig);
@@ -83,6 +85,11 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
+    public Duration getSearchIdleTimeout() {
+        return searchIdleTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -92,6 +99,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         }
         final DefaultStreamingConfig that = (DefaultStreamingConfig) o;
         return parallelism == that.parallelism &&
+                Objects.equals(searchIdleTimeout, that.searchIdleTimeout) &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig) &&
@@ -101,7 +109,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     @Override
     public int hashCode() {
         return Objects.hash(parallelism, sessionCounterScrapeInterval, signalEnrichmentConfig, websocketConfig,
-                sseConfig);
+                sseConfig, searchIdleTimeout);
     }
 
     @Override
@@ -109,6 +117,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         return getClass().getSimpleName() + " [" +
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
                 ", parallelism=" + parallelism +
+                ", searchIdleTimeout=" + searchIdleTimeout +
                 ", signalEnrichmentConfig=" + signalEnrichmentConfig +
                 ", websocketConfig=" + websocketConfig +
                 ", sseConfig=" + sseConfig +

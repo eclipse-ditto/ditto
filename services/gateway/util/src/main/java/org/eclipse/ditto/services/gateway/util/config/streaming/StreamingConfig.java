@@ -68,6 +68,13 @@ public interface StreamingConfig {
     int getParallelism();
 
     /**
+     * Returns how long to wait before closing an idle search stream.
+     *
+     * @return the search idle timeout.
+     */
+    Duration getSearchIdleTimeout();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
@@ -77,6 +84,7 @@ public interface StreamingConfig {
         map.put(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath(),
                 getSessionCounterScrapeInterval().toMillis() + "ms");
         map.put(StreamingConfigValue.PARALLELISM.getConfigPath(), getParallelism());
+        map.put(StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath(), getSearchIdleTimeout());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
                 .withFallback(getSignalEnrichmentConfig().render())
@@ -97,7 +105,12 @@ public interface StreamingConfig {
         /**
          * Maximum number of stream elements to process in parallel.
          */
-        PARALLELISM("parallelism", 64);
+        PARALLELISM("parallelism", 64),
+
+        /**
+         * How long to wait before closing an idle search stream.
+         */
+        SEARCH_IDLE_TIMEOUT("search-idle-timeout", Duration.ofSeconds(45));
 
         private final String path;
         private final Object defaultValue;
