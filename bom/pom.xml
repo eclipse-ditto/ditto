@@ -65,7 +65,7 @@
         <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
         <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
 
-        <jsr302.version>3.0.1</jsr302.version>
+        <jsr305.version>3.0.2</jsr305.version>
 
         <rhino.version>1.7.12</rhino.version>
         <!--
@@ -832,7 +832,7 @@
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
-                <version>${jsr302.version}</version>
+                <version>${jsr305.version}</version>
             </dependency>
 
             <dependency>
