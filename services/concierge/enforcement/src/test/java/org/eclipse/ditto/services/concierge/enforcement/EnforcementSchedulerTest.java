@@ -14,13 +14,14 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -95,8 +96,8 @@ public class EnforcementSchedulerTest {
             final ModifyPolicyId modifyPolicyId2 =
                     ModifyPolicyId.of(thingId, policyId2, DittoHeaders.empty());
 
-            final CompletableFuture<Contextual<RetrieveThing>> delayedRetrieveThing =
-                    CompletableFuture.supplyAsync(() -> {
+            final Supplier<CompletionStage<Contextual<RetrieveThing>>> delayedRetrieveThing =
+                    () -> CompletableFuture.supplyAsync(() -> {
                         try {
                             TimeUnit.SECONDS.sleep(3);
 
@@ -106,8 +107,8 @@ public class EnforcementSchedulerTest {
                         }
                     });
 
-            final CompletableFuture<Contextual<ModifyPolicyId>> delayedModifyPolicyId =
-                    CompletableFuture.supplyAsync(() -> {
+            final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> delayedModifyPolicyId =
+                    () -> CompletableFuture.supplyAsync(() -> {
                         try {
                             TimeUnit.SECONDS.sleep(3);
 
@@ -117,22 +118,26 @@ public class EnforcementSchedulerTest {
                         }
                     });
 
-            final EnforcementTask retrieveThing1Task = EnforcementTask.of(thingId, false, () -> delayedRetrieveThing);
+            final Supplier<CompletionStage<Contextual<RetrieveThing>>> immediateRetrieveThing =
+                    () -> CompletableFuture.completedFuture(
+                            baseContextual.withMessage(retrieveThing2).withReceiver(receiverProbe.ref())
+                    );
+
+            final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> immediateModifyPolicyId =
+                    () -> CompletableFuture.completedFuture(
+                            baseContextual.withMessage(modifyPolicyId2).withReceiver(receiverProbe.ref())
+                    );
+
+            final EnforcementTask retrieveThing1Task = EnforcementTask.of(thingId, false, delayedRetrieveThing);
             final EnforcementTask retrieveThing1TaskSpy = Mockito.spy(retrieveThing1Task);
 
-            final EnforcementTask modifyPolicyId1Task = EnforcementTask.of(thingId, true, () -> delayedModifyPolicyId);
+            final EnforcementTask modifyPolicyId1Task = EnforcementTask.of(thingId, true, delayedModifyPolicyId);
             final EnforcementTask modifyPolicyId1TaskSpy = Mockito.spy(modifyPolicyId1Task);
 
-            final EnforcementTask retrieveThing2Task =
-                    EnforcementTask.of(thingId, false, () -> CompletableFuture.completedFuture(
-                            baseContextual.withMessage(retrieveThing2).withReceiver(receiverProbe.ref())
-                    ));
+            final EnforcementTask retrieveThing2Task = EnforcementTask.of(thingId, false, immediateRetrieveThing);
             final EnforcementTask retrieveThing2TaskSpy = Mockito.spy(retrieveThing2Task);
 
-            final EnforcementTask modifyPolicyId2Task =
-                    EnforcementTask.of(thingId, true, () -> CompletableFuture.completedFuture(
-                            baseContextual.withMessage(modifyPolicyId2).withReceiver(receiverProbe.ref())
-                    ));
+            final EnforcementTask modifyPolicyId2Task = EnforcementTask.of(thingId, true, immediateModifyPolicyId);
             final EnforcementTask modifyPolicyId2TaskSpy = Mockito.spy(modifyPolicyId2Task);
 
             final InOrder inOrder =
