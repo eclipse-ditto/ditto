@@ -39,13 +39,6 @@ public interface EnforcementConfig {
     int getBufferSize();
 
     /**
-     * Returns the parallelism used for processing messages in parallel in enforcer actor.
-     *
-     * @return the parallelism.
-     */
-    int getParallelism();
-
-    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
@@ -59,13 +52,7 @@ public interface EnforcementConfig {
         /**
          * The buffer size used for the queue in the enforcer actor.
          */
-        BUFFER_SIZE("buffer-size", 1_000),
-
-        /**
-         * The parallelism used for processing messages in parallel in enforcer actor.
-         */
-        PARALLELISM("parallelism", 100)
-        ;
+        BUFFER_SIZE("buffer-size", 1_000);
 
         private final String path;
         private final Object defaultValue;

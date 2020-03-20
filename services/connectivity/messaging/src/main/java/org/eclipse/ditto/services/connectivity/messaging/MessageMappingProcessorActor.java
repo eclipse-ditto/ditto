@@ -187,17 +187,13 @@ public final class MessageMappingProcessorActor
             final int processorPoolSize) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
-                connectionId, processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+                connectionId, processorPoolSize)
+                .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
-    }
-
-    @Override
-    protected int getParallelism() {
-        return mappingConfig.getParallelism();
     }
 
     @Override

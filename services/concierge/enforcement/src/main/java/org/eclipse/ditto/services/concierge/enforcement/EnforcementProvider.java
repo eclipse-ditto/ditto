@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -26,7 +27,6 @@ import akka.stream.SinkShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
@@ -61,40 +61,65 @@ public interface EnforcementProvider<T extends Signal> {
     AbstractEnforcement<T> createEnforcement(Contextual<T> context);
 
     /**
-     * Convert this enforcement provider into a stream of contextual messages.
+     * Check whether a signal will change authorization of subsequent signals when dispatched.
      *
+     * @param signal the signal.
+     * @return whether the signal will change authorization.
+     */
+    default boolean changesAuthorization(final T signal) {
+        return false;
+    }
+
+    /**
+     * Convert this enforcement provider into a stream of enforcement tasks.
+     *
+     * @param preEnforcer failable future to execute before the actual enforcement.
      * @return the stream.
      */
-    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
+    @SuppressWarnings("unchecked") // due to GraphDSL usage
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> createEnforcementTask(
+            final PreEnforcer preEnforcer
+    ) {
 
         final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
-                multiplexer =
-                Filter.multiplexBy(contextual ->
-                        contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
-                                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
-                                : Optional.empty()));
+                multiplexer = Filter.multiplexBy(contextual -> contextual.tryToMapMessage(this::mapToHandledClass));
 
         return GraphDSL.create(builder -> {
             final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
                     builder.add(multiplexer);
 
-            final Flow<Contextual<T>, Contextual<WithDittoHeaders>, NotUsed> enforcementFlow =
-                    Flow.<Contextual<T>>create()
-                            .flatMapConcat(contextual ->
-                                    Source.fromCompletionStage(createEnforcement(contextual).enforceSafely())
-                            );
+            final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
+                    Flow.fromFunction(contextual -> buildEnforcementTask(contextual, preEnforcer));
 
             // by default, ignore unhandled messages:
             final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
 
-            final FlowShape<Contextual<T>, Contextual<WithDittoHeaders>> enforcementShape =
-                    builder.add(enforcementFlow);
+            final FlowShape<Contextual<T>, EnforcementTask> enforcementShape = builder.add(enforcementFlow);
 
             builder.from(fanout.out0()).toInlet(enforcementShape.in());
             builder.from(fanout.out1()).to(unhandledSink);
 
             return FlowShape.of(fanout.in(), enforcementShape.out());
         });
+    }
+
+    private EnforcementTask buildEnforcementTask(final Contextual<T> contextual, final PreEnforcer preEnforcer) {
+        final T message = contextual.getMessage();
+        final boolean changesAuthorization = changesAuthorization(message);
+        final EntityId entityId = message.getEntityId();
+
+        return EnforcementTask.of(entityId, changesAuthorization, () ->
+                preEnforcer.withErrorHandlingAsync(contextual,
+                        contextual.withMessage(null).withReceiver(null),
+                        converted -> createEnforcement(converted).enforceSafely()
+                )
+        );
+    }
+
+    private Optional<T> mapToHandledClass(final Object message) {
+        return getCommandClass().isInstance(message)
+                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
+                : Optional.empty();
     }
 
 }
