@@ -25,12 +25,12 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationContextProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
@@ -40,6 +40,9 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 
 import com.typesafe.config.Config;
 
@@ -65,6 +68,8 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
+    private final ActorRef pubSubMediator;
+    private final ActorRef conciergeForwarder;
     private final Gauge streamingSessionsCounter;
     private final JwtValidator jwtValidator;
     private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
@@ -85,10 +90,13 @@ public final class StreamingActor extends AbstractActorWithTimers
     private StreamingActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
-            final StreamingConfig streamingConfig) {
+            final StreamingConfig streamingConfig, final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
+        this.pubSubMediator = pubSubMediator;
+        this.conciergeForwarder = conciergeForwarder;
         this.streamingConfig = streamingConfig;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();
@@ -107,10 +115,12 @@ public final class StreamingActor extends AbstractActorWithTimers
     public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
-            final StreamingConfig streamingConfig) {
+            final StreamingConfig streamingConfig, final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
         return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory,
-                streamingConfig);
+                streamingConfig,
+                pubSubMediator, conciergeForwarder);
     }
 
     @Override
@@ -127,7 +137,8 @@ public final class StreamingActor extends AbstractActorWithTimers
                     eventAndResponsePublisher.forward(connect, getContext());
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
-                            StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher),
+                            StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,
+                                    pubSubMediator, conciergeForwarder),
                             connectionCorrelationId);
                 })
                 .match(StartStreaming.class,
@@ -152,7 +163,12 @@ public final class StreamingActor extends AbstractActorWithTimers
                                 if (sessionActor.isPresent()) {
                                     final ActorRef sender = dittoHeaders.isResponseRequired() ? sessionActor.get() :
                                             ActorRef.noSender();
-                                    commandRouter.tell(signal, sender);
+                                    if (signal instanceof CreateSubscription || signal instanceof RequestSubscription ||
+                                            signal instanceof CancelSubscription) {
+                                        sessionActor.get().tell(signal, sender);
+                                    } else {
+                                        commandRouter.tell(signal, sender);
+                                    }
                                 } else {
                                     logger.withCorrelationId(signal)
                                             .debug("No session actor found for origin <{}>.", origin);

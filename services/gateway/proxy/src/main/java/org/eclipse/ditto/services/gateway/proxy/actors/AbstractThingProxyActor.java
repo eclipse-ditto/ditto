@@ -40,7 +40,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef devOpsCommandsActor;
     private final ActorRef conciergeForwarder;
     private final ActorRef aggregatorProxyActor;
-    private final ActorRef subscriptionManager;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -50,21 +49,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.conciergeForwarder = conciergeForwarder;
-        final ActorMaterializer materializer = ActorMaterializer.create(getContext());
 
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
-
-        final DittoGatewayConfig gatewayConfig =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
-
-        subscriptionManager =
-                getContext().actorOf(
-                        SubscriptionManager.props(gatewayConfig.getHttpConfig().getRequestTimeout(),
-                                pubSubMediator,
-                                conciergeForwarder,
-                                materializer),
-                        SubscriptionManager.ACTOR_NAME);
     }
 
     @Override
@@ -77,11 +64,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                             command.getType());
                     devOpsCommandsActor.forward(command, getContext());
                 })
-
-                /* handle ThingSearch in a special way */
-                .match(CreateSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
-                .match(RequestSubscription.class, rs -> subscriptionManager.forward(rs, getContext()))
-                .match(CancelSubscription.class, cs -> subscriptionManager.forward(cs, getContext()))
                 /* handle RetrieveThings in a special way */
                 .match(RetrieveThings.class, rt -> aggregatorProxyActor.forward(rt, getContext()))
                 .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))

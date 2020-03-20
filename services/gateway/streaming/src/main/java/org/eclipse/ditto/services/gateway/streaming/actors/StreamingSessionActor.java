@@ -42,16 +42,22 @@ import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
@@ -62,6 +68,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.ActorMaterializer;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -74,6 +81,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
+    private final ActorRef subscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
     private final DittoDiagnosticLoggingAdapter logger;
@@ -83,7 +91,8 @@ final class StreamingSessionActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher) {
+            final ActorRef eventAndResponsePublisher, final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
         connectionCorrelationId = connect.getConnectionCorrelationId();
@@ -98,6 +107,14 @@ final class StreamingSessionActor extends AbstractActor {
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
+        final DittoGatewayConfig gatewayConfig =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
+        this.subscriptionManager =
+                getContext().actorOf(
+                        SubscriptionManager.props(gatewayConfig.getHttpConfig().getRequestTimeout(),
+                                pubSubMediator,
+                                conciergeForwarder,
+                                ActorMaterializer.create(getContext())), SubscriptionManager.ACTOR_NAME);
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -112,9 +129,11 @@ final class StreamingSessionActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher) {
+            final ActorRef eventAndResponsePublisher, final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
-        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher);
+        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher,
+                pubSubMediator, conciergeForwarder);
     }
 
     @Override
@@ -222,6 +241,10 @@ final class StreamingSessionActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        if (signal instanceof CreateSubscription || signal instanceof RequestSubscription ||
+                signal instanceof CancelSubscription) {
+            subscriptionManager.tell(signal, getSelf());
+        }
         if (signal instanceof SubscriptionEvent) {
             logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                     signal.getType(), type, signal);

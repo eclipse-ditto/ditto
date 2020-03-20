@@ -136,7 +136,7 @@ final class GatewayRootActor extends DittoRootActor {
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory,
-                        gatewayConfig.getStreamingConfig()));
+                        gatewayConfig.getStreamingConfig(), pubSubMediator, conciergeForwarder));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
