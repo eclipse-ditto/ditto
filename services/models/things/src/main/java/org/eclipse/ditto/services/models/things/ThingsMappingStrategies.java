@@ -41,6 +41,7 @@ public final class ThingsMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new ThingsMappingStrategies object.
      */
+    @SuppressWarnings("unused") // used via reflection
     public ThingsMappingStrategies() {
         this(getThingsMappingStrategies());
     }

@@ -48,7 +48,8 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new ConnectivityMappingStrategies object.
      */
-    private ConnectivityMappingStrategies() {
+    @SuppressWarnings("unused") // used via reflection
+    public ConnectivityMappingStrategies() {
         this(getConnectivityMappingStrategies());
     }
 

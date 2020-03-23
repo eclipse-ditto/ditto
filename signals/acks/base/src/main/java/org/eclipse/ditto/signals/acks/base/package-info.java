@@ -17,4 +17,4 @@
  * @since 1.1.0
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.signals.acks;
+package org.eclipse.ditto.signals.acks.base;

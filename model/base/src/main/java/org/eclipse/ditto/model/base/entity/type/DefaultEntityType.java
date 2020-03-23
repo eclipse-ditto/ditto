@@ -21,8 +21,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * This class represents the type of an Entity.
- * <em>Implementations of this class are required to be immutable!</em>
+ * Default implementation of {@link EntityType}.
  *
  * @since 1.1.0
  */

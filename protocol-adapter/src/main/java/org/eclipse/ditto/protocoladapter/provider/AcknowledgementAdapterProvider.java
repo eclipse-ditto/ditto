@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocoladapter.provider;
 
 import org.eclipse.ditto.protocoladapter.Adapter;
-import org.eclipse.ditto.signals.acks.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 /**
  * Provider for all Acknowledgement adapters.

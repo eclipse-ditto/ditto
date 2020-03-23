@@ -22,8 +22,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.acks.Acknowledgement;
-import org.eclipse.ditto.signals.acks.AcknowledgementJsonParser;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementJsonParser;
 
 /**
  * This class provides factory methods for getting instances of {@link Acknowledgement} in the context of Thing entity.

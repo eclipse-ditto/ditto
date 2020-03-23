@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.signals.acks.Acknowledgement;
-import org.eclipse.ditto.signals.acks.Acknowledgements;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 /**
  * This class can be used to aggregate the required and actually received acknowledgements for a single request which

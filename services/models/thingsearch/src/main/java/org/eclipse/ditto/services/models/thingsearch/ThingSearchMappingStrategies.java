@@ -42,6 +42,7 @@ public final class ThingSearchMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new ThingSearchMappingStrategies object.
      */
+    @SuppressWarnings("unused") // used via reflection
     public ThingSearchMappingStrategies() {
         this(getThingSearchMappingStrategies());
     }

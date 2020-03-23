@@ -41,6 +41,7 @@ public final class PoliciesMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new policiesMappingStrategies object.
      */
+    @SuppressWarnings("unused") // used via reflection
     public PoliciesMappingStrategies() {
         this(getPoliciesMappingStrategies());
     }

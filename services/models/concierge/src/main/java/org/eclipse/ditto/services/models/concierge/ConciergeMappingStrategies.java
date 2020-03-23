@@ -42,6 +42,7 @@ public final class ConciergeMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new ConciergeMappingStrategies object.
      */
+    @SuppressWarnings("unused") // used via reflection
     public ConciergeMappingStrategies() {
         this(getConciergeMappingStrategies());
     }

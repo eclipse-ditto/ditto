@@ -22,8 +22,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.acks.Acknowledgement;
-import org.eclipse.ditto.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

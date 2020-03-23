@@ -34,6 +34,7 @@ public final class GlobalMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new GlobalMappingStrategies object.
      */
+    @SuppressWarnings("unused") // used via reflection
     public GlobalMappingStrategies() {
         this(getGlobalStrategies());
     }

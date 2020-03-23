@@ -10,9 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.acks;
+package org.eclipse.ditto.signals.acks.base;
 
 import java.net.URI;
+import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -27,36 +28,38 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown if an {@code Acknowledgement} did not contain a {@code correlation-id} as part of its {@code DittoHeaders}.
- * In such a case, the Acknowledgement can't be forwarded to the original requester of the Acknowledgement.
+ * Thrown if an {@code AcknowledgementRequest} used a {@code correlation-id} as part of its {@code DittoHeaders} which
+ * was already used for a previous very recent (minutes) AcknowledgementRequest.
  *
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableException(errorCode = AcknowledgementCorrelationIdMissingException.ERROR_CODE)
-public final class AcknowledgementCorrelationIdMissingException extends DittoRuntimeException
+@JsonParsableException(errorCode = AcknowledgementRequestDuplicateCorrelationIdException.ERROR_CODE)
+public final class AcknowledgementRequestDuplicateCorrelationIdException extends DittoRuntimeException
         implements AcknowledgementException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "correlation-id.missing";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "request.duplicate.correlation-id";
 
-    static final String DEFAULT_MESSAGE = "Correlation-id header for acknowledgement is missing.";
+    static final String MESSAGE_TEMPLATE = "Correlation-id <{0}> for acknowledgement request was already used very " +
+            "recently.";
 
     static final String DEFAULT_DESCRIPTION =
-            "Please provide the mandatory header 'correlation-id' as part of your acknowledgement";
+            "Please provide unique correlation-ids when requesting acknowledgements, at least unique within at least " +
+                    "several minutes.";
 
-    private static final long serialVersionUID = 5893456783453452366L;
+    private static final long serialVersionUID = -8902347821367123893L;
 
-    private AcknowledgementCorrelationIdMissingException(final DittoHeaders dittoHeaders,
+    private AcknowledgementRequestDuplicateCorrelationIdException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
         super(ERROR_CODE,
-                HttpStatusCode.BAD_REQUEST,
+                HttpStatusCode.CONFLICT,
                 dittoHeaders,
                 message,
                 description,
@@ -65,17 +68,18 @@ public final class AcknowledgementCorrelationIdMissingException extends DittoRun
     }
 
     /**
-     * A mutable builder for a {@code AcknowledgementCorrelationIdMissingException}.
+     * A mutable builder for a {@code AcknowledgementRequestDuplicateCorrelationIdException}.
      *
+     * @param correlationId the duplicate correlation-id which was already used for another AcknowledgementRequest.
      * @return the builder.
      */
-    public static AcknowledgementCorrelationIdMissingException.Builder newBuilder() {
-        return new AcknowledgementCorrelationIdMissingException.Builder();
+    public static AcknowledgementRequestDuplicateCorrelationIdException.Builder newBuilder(final String correlationId) {
+        return new AcknowledgementRequestDuplicateCorrelationIdException.Builder(correlationId);
     }
 
     /**
-     * Constructs a new {@code AcknowledgementCorrelationIdMissingException} object with the exception message extracted
-     * from the given JSON object.
+     * Constructs a new {@code AcknowledgementRequestDuplicateCorrelationIdException} object with the exception message
+     * extracted from the given JSON object.
      *
      * @param jsonObject the JSON object representation of the returned exception.
      * @param dittoHeaders the headers of the command which resulted in this exception.
@@ -84,10 +88,10 @@ public final class AcknowledgementCorrelationIdMissingException extends DittoRun
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} misses a required field.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an unexpected value type.
      */
-    public static AcknowledgementCorrelationIdMissingException fromJson(final JsonObject jsonObject,
+    public static AcknowledgementRequestDuplicateCorrelationIdException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new AcknowledgementCorrelationIdMissingException(dittoHeaders,
+        return new AcknowledgementRequestDuplicateCorrelationIdException(dittoHeaders,
                 readMessage(jsonObject),
                 readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION),
                 null,
@@ -95,24 +99,26 @@ public final class AcknowledgementCorrelationIdMissingException extends DittoRun
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link AcknowledgementCorrelationIdMissingException}.
+     * A mutable builder with a fluent API for a {@link AcknowledgementRequestDuplicateCorrelationIdException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementCorrelationIdMissingException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<AcknowledgementRequestDuplicateCorrelationIdException> {
 
-        private Builder() {
-            message(DEFAULT_MESSAGE);
+        private Builder(final String correlationId) {
+            message(MessageFormat.format(MESSAGE_TEMPLATE, correlationId));
             description(DEFAULT_DESCRIPTION);
         }
 
         @Override
-        protected AcknowledgementCorrelationIdMissingException doBuild(final DittoHeaders dittoHeaders,
+        protected AcknowledgementRequestDuplicateCorrelationIdException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            
-            return new AcknowledgementCorrelationIdMissingException(dittoHeaders, message, description, cause, href);
+
+            return new AcknowledgementRequestDuplicateCorrelationIdException(dittoHeaders, message, description, cause,
+                    href);
         }
     }
 

@@ -42,6 +42,7 @@ public final class GatewayMappingStrategies extends MappingStrategies {
     /**
      * Constructs a new GatewayMappingStrategies object.
      */
+    @SuppressWarnings("unused") // used via reflection
     public GatewayMappingStrategies() {
         this(getGatewayMappingStrategies());
     }
