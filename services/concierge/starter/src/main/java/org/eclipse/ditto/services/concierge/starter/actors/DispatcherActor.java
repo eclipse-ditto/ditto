@@ -18,12 +18,15 @@ import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstant
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
+import org.eclipse.ditto.services.concierge.enforcement.PreEnforcer;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
@@ -34,6 +37,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -45,7 +49,6 @@ import akka.stream.SinkShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
@@ -101,11 +104,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected int getParallelism() {
-        return enforcementConfig.getParallelism();
-    }
-
-    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         // no-op
     }
@@ -117,10 +115,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param enforcerActor address of the enforcer actor.
      * @return the Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final ActorRef enforcerActor) {
-
-        return props(pubSubMediator, enforcerActor, Flow.create());
+    public static Props props(final ActorRef pubSubMediator, final ActorRef enforcerActor) {
+        return props(pubSubMediator, enforcerActor, CompletableFuture::completedFuture);
     }
 
     /**
@@ -133,15 +129,12 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
-            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
+            final PreEnforcer preEnforcer) {
 
-        final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow =
-                createDispatchFlow(pubSubMediator);
+        final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> dispatchFlow =
+                Flow.fromGraph(createDispatchFlow(pubSubMediator, preEnforcer));
 
-        final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler = asContextualFlow(preEnforcer)
-                .via(dispatchFlow);
-
-        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, handler);
+        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, dispatchFlow);
     }
 
     /**
@@ -151,7 +144,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @return stream to dispatch search and thing commands.
      */
     private static Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> createDispatchFlow(
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final PreEnforcer preEnforcer) {
 
         return GraphDSL.create(builder -> {
             final FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch> multiplexSearch =
@@ -160,9 +154,11 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             final FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch> multiplexRetrieveThings =
                     builder.add(multiplexBy(RetrieveThings.class, SudoRetrieveThings.class));
 
-            final SinkShape<ImmutableDispatch> forwardToSearchActor = builder.add(searchActorSink(pubSubMediator));
+            final SinkShape<ImmutableDispatch> forwardToSearchActor =
+                    builder.add(searchActorSink(pubSubMediator, preEnforcer));
 
-            final SinkShape<ImmutableDispatch> forwardToThingsAggregator = builder.add(thingsAggregatorSink());
+            final SinkShape<ImmutableDispatch> forwardToThingsAggregator =
+                    builder.add(thingsAggregatorSink(preEnforcer));
 
             builder.from(multiplexSearch.out0()).to(forwardToSearchActor);
             builder.from(multiplexRetrieveThings.out0()).to(forwardToThingsAggregator);
@@ -181,22 +177,32 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
                         : Optional.empty());
     }
 
-    private static Sink<ImmutableDispatch, ?> searchActorSink(final ActorRef pubSubMediator) {
-        return Sink.foreach(dispatch -> pubSubMediator.tell(
-                DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
-                dispatch.getSender()));
+    private static Sink<ImmutableDispatch, ?> searchActorSink(final ActorRef pubSubMediator,
+            final PreEnforcer preEnforcer) {
+        return Sink.foreach(dispatchToPreEnforce ->
+                preEnforce(dispatchToPreEnforce, preEnforcer, dispatch ->
+                        pubSubMediator.tell(
+                                DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
+                                dispatch.getSender())
+                )
+        );
     }
 
-    private static Sink<ImmutableDispatch, ?> thingsAggregatorSink() {
-        return Sink.foreach(
-                dispatch -> dispatch.thingsAggregatorActor.tell(dispatch.getMessage(), dispatch.getSender()));
+    private static Sink<ImmutableDispatch, ?> thingsAggregatorSink(final PreEnforcer preEnforcer) {
+        return Sink.foreach(dispatchToPreEnforce ->
+                preEnforce(dispatchToPreEnforce, preEnforcer, dispatch ->
+                        dispatch.thingsAggregatorActor.tell(dispatch.getMessage(), dispatch.getSender())
+                )
+        );
     }
 
-    private static Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> asContextualFlow(
-            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
-
-        return Flow.<ImmutableDispatch>create().flatMapConcat(dispatch ->
-                Source.<WithSender>single(dispatch).via(preEnforcer).map(dispatch::replaceMessage));
+    private static void preEnforce(final ImmutableDispatch dispatch,
+            final PreEnforcer preEnforcer,
+            final Consumer<ImmutableDispatch> andThen) {
+        preEnforcer.withErrorHandlingAsync(dispatch, Done.done(), newDispatch -> {
+            andThen.accept(newDispatch);
+            return CompletableFuture.completedStage(Done.done());
+        });
     }
 
     private static void initActor(final ActorRef self, final ActorRef pubSubMediator) {
@@ -258,12 +264,11 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             return sender;
         }
 
-        private ImmutableDispatch replaceMessage(final WithSender withSender) {
-            return new ImmutableDispatch(withSender.getMessage(), sender, thingsAggregatorActor);
+        private ImmutableDispatch replaceMessage(final WithDittoHeaders<?> message) {
+            return new ImmutableDispatch(message, sender, thingsAggregatorActor);
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public <S extends WithDittoHeaders> WithSender<S> withMessage(final S newMessage) {
             return (WithSender<S>) new ImmutableDispatch(newMessage, sender, thingsAggregatorActor);
         }

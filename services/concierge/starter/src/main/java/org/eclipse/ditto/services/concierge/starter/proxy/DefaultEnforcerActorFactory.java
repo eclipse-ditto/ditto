@@ -19,8 +19,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -35,6 +33,7 @@ import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
+import org.eclipse.ditto.services.concierge.enforcement.PreEnforcer;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
@@ -114,8 +113,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
+        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context);
 
@@ -130,7 +128,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
                         conciergeConfig.getClusterConfig().getNumberOfShards());
 
-        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
+        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter),
+                DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
@@ -177,7 +176,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         }
     }
 
-    private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
+    private static PreEnforcer newPreEnforcer(
             final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders ->

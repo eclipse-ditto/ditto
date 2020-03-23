@@ -19,9 +19,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -29,7 +27,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
@@ -66,10 +63,10 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 public final class TestSetup {
 
-    public static final String THING = "thing";
     public static final String THING_SUDO = "thing-sudo";
     public static final String POLICY_SUDO = "policy-sudo";
 
@@ -96,14 +93,14 @@ public final class TestSetup {
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            @Nullable final PreEnforcer preEnforcer) {
 
         return newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor, preEnforcer);
     }
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            @Nullable final PreEnforcer preEnforcer) {
 
         final ActorRef conciergeForwarder =
                 new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
@@ -112,13 +109,11 @@ public final class TestSetup {
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
-                CaffeineCache.of(Caffeine.newBuilder(),
-                policyEnforcerCacheLoader);
+                CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
-                CaffeineCache.of(Caffeine.newBuilder(),
-                aclEnforcerCacheLoader);
+                CaffeineCache.of(Caffeine.newBuilder(), aclEnforcerCacheLoader);
         final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
@@ -134,12 +129,13 @@ public final class TestSetup {
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder,
                 preEnforcer, null, null, null);
-        return system.actorOf(props, THING + ":" + THING_ID);
+        return system.actorOf(props, EnforcerActor.ACTOR_NAME);
     }
 
     private static String createUniqueName(final String prefix) {
         return prefix + UUID.randomUUID().toString();
     }
+
 
     public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
@@ -175,8 +171,9 @@ public final class TestSetup {
      * @return the message
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
-        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(3, TimeUnit.SECONDS),
-                clazz.getName(), clazz::isInstance);
+        return clazz.cast(
+                testKit.fishForMessage(FiniteDuration.apply(3, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance)
+        );
     }
 
     private static final class DummyLiveSignalPub implements LiveSignalPub {
