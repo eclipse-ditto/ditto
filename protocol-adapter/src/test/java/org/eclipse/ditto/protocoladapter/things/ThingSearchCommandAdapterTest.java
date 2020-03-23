@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
@@ -105,6 +107,17 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
         final Adaptable actual = underTest.toAdaptable(createSubscription, TopicPath.Channel.TWIN);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void createSubscriptionFilterOnlyToAdaptable() {
+        final String filter = "exists(attributes/test)";
+        final CreateSubscription createSubscription =
+                CreateSubscription.of(filter, null, null, null, DittoHeaders.empty());
+        final Adaptable actual = underTest.toAdaptable(createSubscription);
+        assertThat(actual.getPayload().getValue()).contains(JsonObject.newBuilder()
+                .set("filter", filter)
+                .build());
     }
 
     @Test

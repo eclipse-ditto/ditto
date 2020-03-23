@@ -127,10 +127,10 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
             if (createCommand.getSelectedFields().isPresent()) {
                 payloadBuilder.withFields(createCommand.getSelectedFields().orElse(null));
             }
-            if (createCommand.getOptions().isPresent()) {
+            if (createCommand.getFilter().isPresent()) {
                 payloadContentBuilder.set("filter", createCommand.getFilter().orElse(null));
             }
-            if (createCommand.getFilter().isPresent()) {
+            if (createCommand.getOptions().isPresent()) {
                 payloadContentBuilder.set("options", createCommand.getOptions().orElse(null));
             }
         } else if (command instanceof CancelSubscription) {
