@@ -12,10 +12,16 @@
  */
 package org.eclipse.ditto.protocoladapter.provider;
 
+import org.eclipse.ditto.protocoladapter.Adapter;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
+
 /**
- * Provider for all Acknowledgement adapters. This interface only defines the generic type arguments.
+ * Provider for all Acknowledgement adapters.
  */
 public interface AcknowledgementAdapterProvider extends AdapterProvider {
 
-
+    /**
+     * @return the acknowledgement adapter.
+     */
+    Adapter<Acknowledgement> getAcknowledgementAdapter();
 }

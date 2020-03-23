@@ -10,12 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocoladapter;
+package org.eclipse.ditto.protocoladapter.acknowledgements;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -26,11 +29,19 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.Adapter;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.Payload;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
+import org.eclipse.ditto.protocoladapter.UnknownTopicPathException;
 import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 
 /**
- * Adapter for mapping a {@link Acknowledgement} to and from an {@link Adaptable}.
+ * Adapter for mapping a {@link Acknowledgement} to and from an {@link org.eclipse.ditto.protocoladapter.Adaptable}.
  *
  * @since 1.1.0
  */
@@ -88,6 +99,31 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
                 .withPayload(getPayload(acknowledgement))
                 .withHeaders(getExternalHeaders(acknowledgement.getDittoHeaders()))
                 .build();
+    }
+
+    @Override
+    public Set<TopicPath.Group> getGroups() {
+        return EnumSet.of(TopicPath.Group.THINGS);
+    }
+
+    @Override
+    public Set<TopicPath.Channel> getChannels() {
+        return EnumSet.of(TopicPath.Channel.TWIN, TopicPath.Channel.LIVE);
+    }
+
+    @Override
+    public Set<TopicPath.Criterion> getCriteria() {
+        return EnumSet.of(TopicPath.Criterion.ACKS);
+    }
+
+    @Override
+    public Set<TopicPath.Action> getActions() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public boolean isForResponses() {
+        return false;
     }
 
     private static TopicPath getTopicPath(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {

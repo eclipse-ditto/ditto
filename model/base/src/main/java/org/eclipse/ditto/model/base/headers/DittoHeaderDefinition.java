@@ -85,6 +85,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "read-revoked-subjects"}, Java type: {@link JsonArray}.
      * </p>
+     *
      * @since 1.1.0
      */
     READ_REVOKED_SUBJECTS("ditto-read-revoked-subjects", JsonArray.class, false, false,
@@ -172,6 +173,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "requested-acks"}, Java type: {@link JsonArray}.
      * </p>
+     *
      * @since 1.1.0
      */
     REQUESTED_ACKS("requested-acks", JsonArray.class, true, true, HeaderValueValidators.getJsonArrayValidator()),
@@ -181,6 +183,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "timeout"}, Java type: {@code String}.
      * </p>
+     *
      * @since 1.1.0
      */
     TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
@@ -191,9 +194,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "ditto-entity-id"}, Java type: {@link String}.
      * </p>
+     *
      * @since 1.1.0
      */
-    ENTITY_ID("ditto-entity-id", String.class, false, false);
+    ENTITY_ID("ditto-entity-id", String.class, false, false,
+            HeaderValueValidators.getNoOpValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

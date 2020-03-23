@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.protocoladapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
@@ -33,12 +34,14 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
     private final Function<Adaptable, Adapter<?>> resolver;
 
-    public DefaultAdapterResolver(ThingCommandAdapterProvider thingsAdapters,
-            PolicyCommandAdapterProvider policiesAdapters) {
+    public DefaultAdapterResolver(final ThingCommandAdapterProvider thingsAdapters,
+            final PolicyCommandAdapterProvider policiesAdapters,
+            final AcknowledgementAdapterProvider acknowledgementAdapters) {
         final List<Adapter<?>> adapters =
                 new ArrayList<>(thingsAdapters.getAdapters().size() + policiesAdapters.getAdapters().size());
         adapters.addAll(thingsAdapters.getAdapters());
         adapters.addAll(policiesAdapters.getAdapters());
+        adapters.addAll(acknowledgementAdapters.getAdapters());
         resolver = computeResolver(adapters);
     }
 

@@ -994,6 +994,13 @@
                 <artifactId>system-rules</artifactId>
                 <version>${system-rules.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <!-- replaced by newer JUnit version -->
+                        <groupId>junit</groupId>
+                        <artifactId>junit-dep</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- ### Testing - own artifacts ### -->

@@ -12,16 +12,18 @@
  */
 package org.eclipse.ditto.protocoladapter.acknowledgements;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.provider.AcknowledgementAdapterProvider;
+import org.eclipse.ditto.signals.acks.Acknowledgement;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 
 /**
- * TODO TJ add javadoc
+ * Instantiates and provides {@link Adapter}s used to process Acknowledgements.
  */
 public final class DefaultAcknowledgementsAdapterProvider implements AcknowledgementAdapterProvider {
 
@@ -34,6 +36,11 @@ public final class DefaultAcknowledgementsAdapterProvider implements Acknowledge
 
     @Override
     public List<Adapter<?>> getAdapters() {
-        return null;
+        return Collections.singletonList(acknowledgementAdapter);
+    }
+
+    @Override
+    public Adapter<Acknowledgement> getAcknowledgementAdapter() {
+        return acknowledgementAdapter;
     }
 }
