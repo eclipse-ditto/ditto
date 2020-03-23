@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.search;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -22,6 +23,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
@@ -104,10 +107,15 @@ public final class SearchSourceTest {
         conciergeForwarderProbe.reply(ThingNotAccessibleException.newBuilder(ThingId.of("t:2")).build());
         conciergeForwarderProbe.expectMsg(retrieveThing("t:1", fields));
         conciergeForwarderProbe.reply(retrieveThingResponse(1));
-        // TODO: pubSubProbe should be notified of out-of-sync search index entry "t:2"
+
+        // successfully retrieved things are found
         sinkProbe.expectNext(getThing(3).toJson())
                 .expectNext(getThing(1).toJson())
                 .expectComplete();
+
+        // out-of-sync thing is reported
+        pubSubMediatorProbe.expectMsg(DistPubSubAccess.publishViaGroup(UpdateThings.TYPE,
+                UpdateThings.of(Collections.singletonList(ThingId.of("t:2")), DittoHeaders.empty())));
     }
 
     @Test

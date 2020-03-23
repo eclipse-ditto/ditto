@@ -218,7 +218,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
             @Nullable final Set<String> namespaces) {
 
         final Integer limit = query.getLimit() == Integer.MAX_VALUE ? null : query.getLimit();
-        // TODO: consider reporting sort values for resumption
         return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null)
                 .map(MongoThingsSearchPersistence::toId)
                 .idleTimeout(maxQueryTime);

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.search;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
@@ -26,7 +27,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
@@ -192,7 +196,13 @@ public final class SearchSource {
                             new PFBuilder<Throwable, Graph<SourceShape<Pair<String, JsonObject>>, NotUsed>>()
                                     .match(ThingNotAccessibleException.class, thingNotAccessible -> {
                                         // out-of-sync thing detected
-                                        // TODO: log & publish UpdateThings
+                                        final UpdateThings updateThings =
+                                                UpdateThings.of(Collections.singletonList(ThingId.of(thingId)),
+                                                        DittoHeaders.empty());
+
+                                        pubSubMediator.tell(
+                                                DistPubSubAccess.publishViaGroup(UpdateThings.TYPE, updateThings),
+                                                ActorRef.noSender());
                                         return Source.empty();
                                     })
                                     .build()
