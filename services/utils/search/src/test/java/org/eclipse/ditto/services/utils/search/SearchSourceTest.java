@@ -23,12 +23,12 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -114,8 +114,8 @@ public final class SearchSourceTest {
                 .expectComplete();
 
         // out-of-sync thing is reported
-        pubSubMediatorProbe.expectMsg(DistPubSubAccess.publishViaGroup(UpdateThings.TYPE,
-                UpdateThings.of(Collections.singletonList(ThingId.of("t:2")), DittoHeaders.empty())));
+        pubSubMediatorProbe.expectMsg(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE,
+                ThingsOutOfSync.of(Collections.singletonList(ThingId.of("t:2")), dittoHeaders)));
     }
 
     @Test

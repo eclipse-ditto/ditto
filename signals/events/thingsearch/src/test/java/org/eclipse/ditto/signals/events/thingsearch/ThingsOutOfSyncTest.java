@@ -10,15 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
+package org.eclipse.ditto.signals.events.thingsearch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -27,20 +27,21 @@ import org.mutabilitydetector.unittesting.MutabilityMatchers;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link UpdateThings}.
+ * Tests {@link ThingsOutOfSync}.
  */
-public final class UpdateThingsTest {
+public final class ThingsOutOfSyncTest {
 
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(UpdateThings.class, MutabilityMatchers.areImmutable(),
+        MutabilityAssert.assertInstancesOf(ThingsOutOfSync.class, MutabilityMatchers.areImmutable(),
+                AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),
                 AllowedReason.assumingFields("thingIds")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(UpdateThings.class)
+        EqualsVerifier.forClass(ThingsOutOfSync.class)
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .verify();
@@ -49,10 +50,13 @@ public final class UpdateThingsTest {
     @Test
     public void testSerialization() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final UpdateThings command = UpdateThings.of(List.of(ThingId.of("namespace", "name")), dittoHeaders);
-        final String jsonString = command.toJsonString();
-        final UpdateThings deserializedCommand = UpdateThings.fromJson(JsonObject.of(jsonString), dittoHeaders);
-        assertThat(deserializedCommand).isEqualTo(command);
+        final ThingsOutOfSync underTest = ThingsOutOfSync.of(
+                Collections.singletonList(DefaultNamespacedEntityId.of("namespace", "name")),
+                dittoHeaders
+        );
+        final String jsonString = underTest.toJsonString();
+        final ThingsOutOfSync deserializedCommand = ThingsOutOfSync.fromJson(JsonObject.of(jsonString), dittoHeaders);
+        assertThat(deserializedCommand).isEqualTo(underTest);
     }
 
 }

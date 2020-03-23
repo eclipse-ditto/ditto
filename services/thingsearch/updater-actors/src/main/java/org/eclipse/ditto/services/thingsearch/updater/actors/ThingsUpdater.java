@@ -21,18 +21,16 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -47,6 +45,7 @@ import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -100,7 +99,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             getSelf().tell(Clock.REBALANCE_TICK, getSelf());
         }
 
-        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(UpdateThings.TYPE, ACTOR_NAME, getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingsOutOfSync.TYPE, ACTOR_NAME, getSelf()), getSelf());
     }
 
     /**
@@ -135,11 +134,10 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .matchEquals(Clock.REBALANCE_TICK, this::retrieveShardIds)
                 .match(ShardRegion.ShardRegionStats.class, this::updateSubscriptions)
-                .match(UpdateThings.class, this::updateThings)
+                .match(ThingsOutOfSync.class, this::updateThings)
                 .match(UpdateThing.class, this::updateThing)
-                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
-                    log.debug("Got <{}>", subscribeAck);
-                })
+                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
+                        log.debug("Got <{}>", subscribeAck))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -175,13 +173,13 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         forwardJsonifiableToShardRegion(thingTag, ThingTag::getEntityId);
     }
 
-    private void updateThings(final UpdateThings updateThings) {
+    private void updateThings(final ThingsOutOfSync updateThings) {
         // log all thing IDs because getting this command implies out-of-sync things.
         log.withCorrelationId(updateThings)
                 .warning("Out-of-sync things are reported: <{}>", updateThings);
         updateThings.getThingIds().forEach(thingId ->
                 forwardToShardRegion(
-                        UpdateThing.of(thingId, updateThings.getDittoHeaders()),
+                        UpdateThing.of(ThingId.of(thingId), updateThings.getDittoHeaders()),
                         UpdateThing::getEntityId,
                         UpdateThing::getType,
                         UpdateThing::toJson,
