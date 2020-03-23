@@ -474,7 +474,7 @@ public final class ThingCommandEnforcementTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(), WRITE.name())
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
