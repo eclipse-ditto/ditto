@@ -14,10 +14,6 @@ package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
@@ -77,19 +73,9 @@ public final class JwtAuthenticationFactory {
 
     private JwtSubjectIssuersConfig getJwtSubjectIssuersConfig() {
         if (null == jwtSubjectIssuersConfig) {
-            jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig(oAuthConfig);
+            jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
         }
         return jwtSubjectIssuersConfig;
-    }
-
-    private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig(final OAuthConfig config) {
-        final Set<JwtSubjectIssuerConfig> configItems =
-                Stream.concat(config.getOpenIdConnectIssuers().entrySet().stream(),
-                        config.getOpenIdConnectIssuersExtension().entrySet().stream())
-                        .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
-                        .collect(Collectors.toSet());
-
-        return new JwtSubjectIssuersConfig(configItems);
     }
 
     public JwtAuthorizationContextProvider newJwtAuthorizationContextProvider() {

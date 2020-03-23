@@ -55,6 +55,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -270,6 +271,18 @@ public final class TestConstants {
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
                 UNAUTHORIZED_SUBJECT);
 
+
+        public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
+            final List<AuthorizationSubject> mergedSubjects =
+                    new ArrayList<>(authorizationContext.getAuthorizationSubjects());
+            authorizationContext.getAuthorizationSubjectIds().stream()
+                    .map(subject -> subject.split(":", 2)[1])
+                    .map(AuthorizationSubject::newInstance)
+                    .forEach(mergedSubjects::add);
+
+            return AuthorizationModelFactory.newAuthContext(mergedSubjects);
+        }
+
     }
 
     public static final class Sources {
@@ -436,7 +449,7 @@ public final class TestConstants {
         private static final ConnectionMonitor CONNECTION_MONITOR_MOCK =
                 Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
         public static final LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
-                Instant.now(),
+                Instant.now().minus(Duration.ofSeconds(1)),
                 LogCategory.TARGET,
                 LogType.MAPPED,
                 LogLevel.SUCCESS,

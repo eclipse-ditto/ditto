@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.util.config.streaming;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -20,14 +19,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.base.config.DefaultSignalEnrichmentConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -49,7 +46,7 @@ public final class DefaultStreamingConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(Config.class, WebsocketConfig.class, SseConfig.class, DefaultSignalEnrichmentConfig.class)
+                provided(Config.class, WebsocketConfig.class, SseConfig.class, GatewaySignalEnrichmentConfig.class)
                         .areAlsoImmutable());
     }
 
@@ -88,27 +85,15 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSearchIdleTimeout())
                 .as(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofHours(7L));
-        softly.assertThat(underTest.getSignalEnrichmentConfig().getProvider())
-                .as("signal-enrichment.provider")
-                .isEqualTo("MyEnrichmentProvider");
-        softly.assertThat(underTest.getSignalEnrichmentConfig().getProviderConfig().root())
-                .as("signal-enrichment.provider-config")
-                .containsOnlyKeys("key")
-                .containsValue(ConfigValueFactory.fromAnyRef("value"));
+        softly.assertThat(underTest.getSignalEnrichmentConfig().isCachingEnabled())
+                .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath())
+                .isFalse();
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getLimit())
                 .as("websocket.throttling.limit")
                 .isEqualTo(9);
-    }
-
-    @Test
-    public void render() {
-        final StreamingConfig underTest = DefaultStreamingConfig.of(streamingTestConfig);
-        final Config rendered = underTest.render();
-        final StreamingConfig reconstructed = DefaultStreamingConfig.of(rendered);
-        assertThat(reconstructed).isEqualTo(underTest);
     }
 
 }

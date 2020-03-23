@@ -60,7 +60,8 @@ public final class DefaultMappingConfigTest {
     public void toStringContainsExpected() {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
-        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
+        softly.assertThat(underTest.toString())
+                .contains(underTest.getClass().getSimpleName())
                 .contains("javaScriptConfig", "mapperLimitsConfig", "bufferSize", "parallelism");
     }
 

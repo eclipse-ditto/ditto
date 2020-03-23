@@ -13,10 +13,12 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -46,8 +48,16 @@ import akka.pattern.AskTimeoutException;
  */
 public abstract class AbstractEnforcement<T extends Signal> {
 
+    /**
+     * Context of the enforcement step: sender, self, signal and so forth.
+     */
     private final Contextual<T> context;
 
+    /**
+     * Create an enforcement step from its context.
+     *
+     * @param context the context of the enforcement step.
+     */
     protected AbstractEnforcement(final Contextual<T> context) {
         this.context = context;
     }
@@ -74,19 +84,28 @@ public abstract class AbstractEnforcement<T extends Signal> {
         return enforce().handle(handleEnforcementCompletion());
     }
 
+    /**
+     * Handle error for a future message such that failed futures become a completed future with DittoRuntimeException.
+     *
+     * @param throwable error of the future on failure.
+     * @return the DittoRuntimeException.
+     */
+    private DittoRuntimeException convertError(@Nullable final Throwable throwable) {
+        final Throwable error = throwable instanceof CompletionException
+                ? throwable.getCause()
+                : throwable != null
+                ? throwable
+                : new NullPointerException("Result and error are both null");
+        return reportError("Error thrown during enforcement", error);
+    }
+
     private BiFunction<Contextual<WithDittoHeaders>, Throwable, Contextual<WithDittoHeaders>> handleEnforcementCompletion() {
         return (result, throwable) -> {
             context.getStartedTimer()
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
-            if (throwable != null) {
-                final Throwable error = throwable instanceof CompletionException
-                        ? throwable.getCause()
-                        : throwable;
-                return withMessageToReceiver(reportError("Error thrown during enforcement", error), sender());
-            } else {
-                return result;
-            }
+            return Objects.requireNonNullElseGet(result,
+                    () -> withMessageToReceiver(convertError(throwable), sender()));
         };
     }
 
@@ -262,6 +281,29 @@ public abstract class AbstractEnforcement<T extends Signal> {
             final ActorRef receiver) {
         return context.withMessage(message).withReceiver(receiver);
     }
+
+    /**
+     * Insert the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context},
+     * then insert {@code askFutureWithoutErrorHandling} after appending error handling logic to it.
+     *
+     * @param message the message to log when executing the contextual; usually the message to ask.
+     * @param receiver the final receiver of the ask result.
+     * @param askFutureWithoutErrorHandling supplier of a future that performs an ask-operation with command-order
+     * guarantee, whose result is to be piped to {@code receiver}.
+     * @param <T> type of messages produced by the ask future.
+     * @return a copy of the context with message, receiver and ask-future including error handling.
+     */
+    protected <T> Contextual<WithDittoHeaders> withMessageToReceiverViaAskFuture(final WithDittoHeaders message,
+            final ActorRef receiver,
+            final Supplier<CompletionStage<T>> askFutureWithoutErrorHandling) {
+
+        return withMessageToReceiver(message, receiver)
+                .withAskFuture(() -> askFutureWithoutErrorHandling.get()
+                        .<Object>thenApply(x -> x)
+                        .exceptionally(this::convertError)
+                );
+    }
+
 
     /**
      * Inserts the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context}

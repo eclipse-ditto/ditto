@@ -11,7 +11,7 @@
 # SPDX-License-Identifier: EPL-2.0
 cd ../../
 mvn dependency:list dependency:resolve-plugins -DoutputFile=plugins.txt
-find . -name plugins.txt|while read i; do cat $i;done|grep '.*:.*:runtime$'|sort|uniq > legal/3rd-party-dependencies/maven-plugins.txt
+find . -name plugins.txt|while read i; do cat $i;done|grep '.*:.*:runtime$'| tr -d '[:blank:]'|sort|uniq > legal/3rd-party-dependencies/maven-plugins.txt
 find . -name plugins.txt|while read i; do rm $i;done
 cd legal/3rd-party-dependencies/
 

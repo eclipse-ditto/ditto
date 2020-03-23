@@ -255,7 +255,6 @@ public final class PoliciesModelFactory {
     }
 
     /**
-     * TODO test both [type:]/[path] and [type:/path]
      * Returns a {@link ResourceKey} for the given {@link JsonPointer}.
      *
      * @param pointer the json pointer representing a resource key e.g. /thing:/path1/path2/...
@@ -513,6 +512,15 @@ public final class PoliciesModelFactory {
     public static Iterable<PolicyEntry> newPolicyEntries(final String jsonString) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return newPolicyEntries(jsonObject);
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
+     *
+     * @return the new builder.
+     */
+    public static PolicyBuilder newPolicyBuilder() {
+        return ImmutablePolicyBuilder.newInstance();
     }
 
     /**

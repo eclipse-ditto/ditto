@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
@@ -273,4 +274,15 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(dittoHeaders).hasSize(0);
     }
 
+    @Test
+    public void removesDuplicatedAuthSubjects() {
+        final Collection<String> authSubjectsWithDuplicates = Arrays.asList("test:sub", "sub");
+        final String authSubjectsWithoutDuplicates = JsonArray.of(JsonValue.of("test:sub")).toString();
+        final DittoHeaders dittoHeaders = underTest
+                .authorizationSubjects(authSubjectsWithDuplicates)
+                .build();
+
+        assertThat(dittoHeaders.getAuthorizationSubjects()).isEqualTo(authSubjectsWithDuplicates);
+        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey())).isEqualTo(authSubjectsWithoutDuplicates);
+    }
 }

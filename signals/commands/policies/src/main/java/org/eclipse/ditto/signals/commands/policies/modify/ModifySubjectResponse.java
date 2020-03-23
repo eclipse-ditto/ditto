@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifySubject} command.
@@ -66,19 +67,19 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
 
     private final PolicyId policyId;
     private final Label label;
-    private final SubjectId subjectId;
+    @Nullable private final SubjectId subjectId;
     @Nullable private final Subject subjectCreated;
 
     private ModifySubjectResponse(final PolicyId policyId,
             final Label label,
-            final SubjectId subjectId,
+            @Nullable final SubjectId subjectId,
             @Nullable final Subject subjectCreated,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
-        this.subjectId = checkNotNull(subjectId, "subjectId");
+        this.subjectId = subjectId;
         this.label = checkNotNull(label, "label");
         this.subjectCreated = subjectCreated;
     }
@@ -92,9 +93,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #created(org.eclipse.ditto.model.policies.PolicyId,
-     * org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)} instead.
+     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, Label, Subject, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifySubjectResponse created(final String policyId,
@@ -129,13 +128,42 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      *
      * @param policyId the Policy ID of the modified subject.
      * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static ModifySubjectResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+
+        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifySubject} command.
+     *
+     * @param policyId the Policy ID of the modified subject.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static ModifySubjectResponse modified(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return new ModifySubjectResponse(policyId, label, null, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifySubject} command.
+     *
+     * @param policyId the Policy ID of the modified subject.
+     * @param label the Label of the PolicyEntry.
      * @param subjectId the subject id of the modified subject
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifySubjectResponse modified(final String policyId, final Label label, final SubjectId subjectId,
@@ -153,6 +181,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
     public static ModifySubjectResponse modified(final PolicyId policyId, final Label label, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
@@ -185,18 +214,21 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     public static ModifySubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifySubjectResponse>(TYPE, jsonObject).deserialize(statusCode -> {
             final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-            final SubjectId extractedSubjectId = SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
+            final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID);
 
+            @Nullable
             final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
                     .map(JsonValue::asObject)
-                    .map(obj -> PoliciesModelFactory.newSubject(extractedSubjectId, obj))
+                    .flatMap(obj -> extractedSubjectId.map(subjectId -> PoliciesModelFactory.newSubject(subjectId, obj)))
                     .orElse(null);
 
-            return new ModifySubjectResponse(policyId, label, extractedSubjectId, extractedSubjectCreated, statusCode,
+            return new ModifySubjectResponse(policyId, label,
+                    extractedSubjectId.map(SubjectId::newInstance).orElse(null),
+                    extractedSubjectCreated, statusCode,
                     dittoHeaders);
         });
     }
@@ -231,6 +263,9 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
 
     @Override
     public JsonPointer getResourcePath() {
+        if (null == subjectId) {
+            return JsonPointer.empty();
+        }
         final String path = "/entries/" + label + "/subjects/" + subjectId;
         return JsonPointer.of(path);
     }
@@ -240,10 +275,12 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
                 predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
+        if (null != subjectId) {
+            jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
+        }
         if (null != subjectCreated) {
             jsonObjectBuilder.set(JSON_SUBJECT, subjectCreated.toJson(schemaVersion, thePredicate), predicate);
         }

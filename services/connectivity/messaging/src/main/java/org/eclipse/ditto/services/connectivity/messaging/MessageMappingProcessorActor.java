@@ -129,7 +129,6 @@ public final class MessageMappingProcessorActor
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final ActorRef connectionActor;
-    private final LimitsConfig limitsConfig;
     private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
@@ -162,7 +161,7 @@ public final class MessageMappingProcessorActor
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
-        limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
@@ -172,7 +171,6 @@ public final class MessageMappingProcessorActor
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
         this.processorPoolSize = processorPoolSize;
         inboundSourceQueue = materializeInboundStream(processorPoolSize);
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
     }
 
@@ -195,17 +193,13 @@ public final class MessageMappingProcessorActor
             final int processorPoolSize) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
-                connectionId, connectionActor, processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+                connectionId, connectionActor, processorPoolSize)
+                .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
-    }
-
-    @Override
-    protected int getParallelism() {
-        return mappingConfig.getParallelism();
     }
 
     @Override
@@ -723,9 +717,8 @@ public final class MessageMappingProcessorActor
                             .entrySet()
                             .stream()
                             .flatMap(e -> PlaceholderFilter.applyOrElseDelete(e.getValue(), expressionResolver)
-                                    .map(resolvedValue ->
-                                            Stream.of(new AbstractMap.SimpleEntry<>(e.getKey(), resolvedValue)))
-                                    .orElseGet(Stream::empty)
+                                    .stream()
+                                    .map(resolvedValue -> new AbstractMap.SimpleEntry<>(e.getKey(), resolvedValue))
                             )
                             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                     dittoHeadersBuilder.putHeaders(messageMappingProcessor.getHeaderTranslator()

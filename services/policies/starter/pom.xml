@@ -214,50 +214,6 @@
                     </dependency>
                 </dependencies>
             </plugin>
-
-            <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <configuration>
-                    <autoPull>always</autoPull> <!-- always pull latest BaseImage -->
-                    <images>
-                        <image>
-                            <alias>${policies.docker.image.name}</alias>
-                            <name>
-                                ${docker.repository}/${policies.docker.image.name}:${project.version}
-                            </name>
-                            <build>
-                                <from>${docker.image.jdk}</from>
-                                <tags>
-                                    <tag>${docker.image.additional.tag}</tag>
-                                </tags>
-                                <ports>
-                                    <port>${docker.image.port}</port>
-                                </ports>
-                                <env>
-                                    <HTTP_PORT>${docker.image.port}</HTTP_PORT>
-                                    <HOSTING_ENVIRONMENT>Docker</HOSTING_ENVIRONMENT>
-                                </env>
-                                <workdir>/opt/ditto</workdir>
-                                <entryPoint>
-                                    <exec>
-                                        <arg>java</arg>
-                                        <arg>-jar</arg>
-                                        <arg>/opt/ditto/starter.jar</arg>
-                                    </exec>
-                                </entryPoint>
-                                <assembly>
-                                    <basedir>/</basedir>
-                                    <descriptor>assembly.xml</descriptor>
-                                </assembly>
-                                <runCmds>
-                                    <runCmd>ln -s /opt/ditto/${project.build.finalName}-allinone.jar /opt/ditto/starter.jar</runCmd>
-                                </runCmds>
-                            </build>
-                        </image>
-                    </images>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 

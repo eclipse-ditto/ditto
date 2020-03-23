@@ -14,10 +14,8 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 
 import java.util.concurrent.Executor;
 
-import org.eclipse.ditto.services.base.config.SignalEnrichmentConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
-import org.eclipse.ditto.services.models.signalenrichment.DefaultCachingSignalEnrichmentFacadeConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.actor.ActorSystem;
@@ -27,7 +25,7 @@ import akka.http.javadsl.model.HttpRequest;
  * Provider for gateway-service of signal-enriching facades that uses an async Caffeine cache in order to load
  * extra data to enrich.
  */
-public final class GatewayCachingSignalEnrichmentProvider extends GatewaySignalEnrichmentProvider {
+public final class GatewayCachingSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
     private static final String CACHE_LOADER_DISPATCHER = "signal-enrichment-cache-dispatcher";
 
@@ -39,17 +37,14 @@ public final class GatewayCachingSignalEnrichmentProvider extends GatewaySignalE
      * @param actorSystem The actor system for which this provider is instantiated.
      * @param signalEnrichmentConfig Configuration for this provider.
      */
-    @SuppressWarnings("unused")
     public GatewayCachingSignalEnrichmentProvider(final ActorSystem actorSystem,
-            final SignalEnrichmentConfig signalEnrichmentConfig) {
+            final GatewaySignalEnrichmentConfig signalEnrichmentConfig) {
         final GatewayByRoundTripSignalEnrichmentProvider cacheLoaderProvider =
                 new GatewayByRoundTripSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
-        final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig =
-                DefaultCachingSignalEnrichmentFacadeConfig.of(signalEnrichmentConfig.getProviderConfig());
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_LOADER_DISPATCHER);
         cachingSignalEnrichmentFacade = CachingSignalEnrichmentFacade.of(
                 cacheLoaderProvider.getByRoundTripSignalEnrichmentFacade(),
-                cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
+                signalEnrichmentConfig.getCacheConfig(),
                 cacheLoaderExecutor,
                 "gateway"
         );

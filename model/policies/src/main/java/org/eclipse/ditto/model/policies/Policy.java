@@ -68,6 +68,15 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     }
 
     /**
+     * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
+     *
+     * @return the new builder.
+     */
+    static PolicyBuilder newBuilder() {
+        return PoliciesModelFactory.newPolicyBuilder();
+    }
+
+    /**
      * Returns a mutable builder with a fluent API for an immutable {@code Policy}. The builder is initialised
      * with the Policy entries of this instance.
      *
@@ -84,6 +93,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @deprecated
      */
     @Deprecated
+    @Override
     default Optional<String> getId() {
         return getEntityId().map(String::valueOf);
     }

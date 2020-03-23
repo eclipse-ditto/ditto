@@ -60,7 +60,9 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable) {
-        return newAdaptableBuilder(existingAdaptable, existingAdaptable.getTopicPath());
+        return ImmutableAdaptableBuilder.of(existingAdaptable.getTopicPath())
+                .withPayload(existingAdaptable.getPayload())
+                .withHeaders(existingAdaptable.getHeaders().orElse(null));
     }
 
     /**
@@ -70,9 +72,10 @@ public final class ProtocolFactory {
      * @param existingAdaptable the existingAdaptable to initialize the AdaptableBuilder with.
      * @param overwriteTopicPath the specific {@code TopicPath} to set as overwrite.
      * @return the builder.
+     * @deprecated since 1.1.0, please use {@link #newAdaptableBuilder(Adaptable)} instead.
      */
-    public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable,
-            final TopicPath overwriteTopicPath) {
+    @Deprecated
+    public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable, final TopicPath overwriteTopicPath) {
         return ImmutableAdaptableBuilder.of(overwriteTopicPath).withPayload(existingAdaptable.getPayload())
                 .withHeaders(existingAdaptable.getHeaders().orElse(null));
     }

@@ -308,6 +308,15 @@ public final class ImmutablePolicyTest {
     @Test
     public void newPolicyIsEmpty() {
         final Policy policy = Policy.newBuilder(POLICY_ID).build();
+        assertThat(policy.getEntityId()).contains(POLICY_ID);
+        assertThat(policy.isEmpty()).isTrue();
+        assertThat(policy.getSize()).isEqualTo(0);
+    }
+
+    @Test
+    public void newPolicyWithoutID() {
+        final Policy policy = Policy.newBuilder().build();
+        assertThat(policy.getEntityId()).isEmpty();
         assertThat(policy.isEmpty()).isTrue();
         assertThat(policy.getSize()).isEqualTo(0);
     }

@@ -72,7 +72,7 @@ public final class DefaultMongoDbConfigTest {
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
                 .contains("maxQueryTime", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
-                "circuitBreakerConfig", "monitoringConfig");
+                        "circuitBreakerConfig", "monitoringConfig");
     }
 
     @Test
@@ -80,7 +80,8 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
-        softly.assertThat(underTest.getMongoDbUri()).isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=false");
+        softly.assertThat(underTest.getMongoDbUri())
+                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&readPreference=secondaryPreferred&ssl=false");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
@@ -116,11 +117,16 @@ public final class DefaultMongoDbConfigTest {
         softly.assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).as("ssl").isFalse();
+            softly.assertThat(optionsConfig.readPreference())
+                    .as("readPreference")
+                    .isEqualTo(ReadPreference.PRIMARY_PREFERRED);
         });
         softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
             softly.assertThat(connectionPoolConfig.getMaxSize()).as("maxSize").isEqualTo(100);
             softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).as("maxWaitQueueSize").isEqualTo(100);
-            softly.assertThat(connectionPoolConfig.getMaxWaitTime()).as("maxWaitTime").isEqualTo(Duration.ofSeconds(30L));
+            softly.assertThat(connectionPoolConfig.getMaxWaitTime())
+                    .as("maxWaitTime")
+                    .isEqualTo(Duration.ofSeconds(30L));
             softly.assertThat(connectionPoolConfig.isJmxListenerEnabled()).as("jmxListenerEnabled").isFalse();
         });
         softly.assertThat(underTest.getCircuitBreakerConfig()).satisfies(circuitBreakerConfig -> {

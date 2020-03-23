@@ -26,13 +26,10 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.writeCo
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -165,8 +162,7 @@ public final class PreEnforcementTest {
         }};
     }
 
-    private ActorRef newEnforcerActor(final ActorRef testActorRef,
-            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+    private ActorRef newEnforcerActor(final ActorRef testActorRef, final PreEnforcer preEnforcer) {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor, preEnforcer);
     }
 

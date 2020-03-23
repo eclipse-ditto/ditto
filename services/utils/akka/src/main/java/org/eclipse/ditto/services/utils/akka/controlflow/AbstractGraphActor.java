@@ -33,15 +33,10 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.ActorMaterializerSettings;
 import akka.stream.Attributes;
-import akka.stream.FlowShape;
-import akka.stream.Graph;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.Supervision;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Merge;
-import akka.stream.javadsl.Partition;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
@@ -130,12 +125,6 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      */
     protected abstract int getBufferSize();
 
-    /**
-     * @return parallelism to use for processing messages in parallel. When configured too low, throughput of
-     * messages which perform blocking operations will be bad.
-     */
-    protected abstract int getParallelism();
-
     @Override
     public Receive createReceive() {
         final SourceQueueWithComplete<T> sourceQueue = getSourceQueue(materializer);
@@ -180,9 +169,8 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 .via(Flow.fromFunction(this::beforeProcessMessage))
                 .log("graph-actor-stream-2-preprocessed", logger)
                 .withAttributes(streamLogLevels)
-                // partition by the message's ID in order to maintain order per ID
-                .via(partitionById(processMessageFlow(), getParallelism()))
-                .log("graph-actor-stream-3-partitioned", logger)
+                .via(processMessageFlow())
+                .log("graph-actor-stream-3-processed", logger)
                 .withAttributes(streamLogLevels)
                 .to(processedMessageSink())
                 .run(materializer);
@@ -191,36 +179,6 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     private <E> E incrementDequeueCounter(final E element) {
         dequeueCounter.increment();
         return element;
-    }
-
-    /**
-     * Partitions the passed in {@code flowToPartition} based on the flowing through IDs of {@link WithId} messages.
-     * That means that e.g. each Thing-ID gets its own partition, so messages to that Thing are sequentially processed
-     * and thus the order is maintained.
-     *
-     * @param flowToPartition the Flow to apply the partitioning on.
-     * @param parallelism the parallelism to use (how many partitions to process in parallel) - which should be based
-     * on the amount of available CPUs.
-     * @return the partitioning flow
-     */
-    private static <T> Flow<T, T, NotUsed> partitionById(final Graph<FlowShape<T, T>, NotUsed> flowToPartition,
-            final int parallelism) {
-
-        final int parallelismWithSpecialLane = parallelism + 1;
-
-        final IdPartitioner<T> partitioner = IdPartitioner.of(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, parallelism);
-
-        return Flow.fromGraph(GraphDSL.create(Partition.<T>create(parallelismWithSpecialLane, partitioner),
-                Merge.<T>create(parallelismWithSpecialLane, true),
-                (nA, nB) -> nA,
-                (builder, partition, merge) -> {
-                    for (int i = 0; i < parallelismWithSpecialLane; i++) {
-                        builder.from(partition.out(i))
-                                .via(builder.add(flowToPartition))
-                                .toInlet(merge.in(i));
-                    }
-                    return FlowShape.of(partition.in(), merge.out());
-                }));
     }
 
     /**

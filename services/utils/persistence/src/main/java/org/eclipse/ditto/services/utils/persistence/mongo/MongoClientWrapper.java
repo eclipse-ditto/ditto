@@ -221,7 +221,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
         return mongoClient.startSession(options);
     }
 
-
     @Override
     public void close() {
         if (null != eventLoopGroup) {
@@ -246,7 +245,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
         private MongoClientWrapperBuilder() {
             mongoClientSettingsBuilder = MongoClientSettings.builder();
-            mongoClientSettingsBuilder.readPreference(ReadPreference.secondaryPreferred());
+            mongoClientSettingsBuilder.readPreference(ReadPreference.primaryPreferred());
             dittoMongoClientSettingsBuilder = DittoMongoClientSettings.getBuilder();
             connectionString = null;
             defaultDatabaseName = null;
@@ -285,6 +284,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
+            builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
 
             return builder;
         }
@@ -382,6 +382,12 @@ public final class MongoClientWrapper implements DittoMongoClient {
                 mongoClientSettingsBuilder.applyToConnectionPoolSettings(
                         builder -> builder.addConnectionPoolListener(connectionPoolListener));
             }
+            return this;
+        }
+
+        @Override
+        public GeneralPropertiesStep setReadPreference(final ReadPreference readPreference) {
+            mongoClientSettingsBuilder.readPreference(readPreference);
             return this;
         }
 
