@@ -14,7 +14,6 @@ package org.eclipse.ditto.protocoladapter.provider;
 
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Interface providing the modify command adapter and the modify command response adapter.

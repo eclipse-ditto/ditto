@@ -33,7 +33,6 @@ final class ImmutableTopicPath implements TopicPath {
     private static final String PROP_NAME_GROUP = "group";
     private static final String PROP_NAME_CHANNEL = "channel";
     private static final String PROP_NAME_CRITERION = "criterion";
-    private static final String PROP_NAME_SUBJECT = "subject";
 
     private final String namespace;
     private final String id;

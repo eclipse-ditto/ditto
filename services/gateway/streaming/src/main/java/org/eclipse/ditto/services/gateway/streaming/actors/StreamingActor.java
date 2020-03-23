@@ -68,8 +68,6 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
-    private final ActorRef pubSubMediator;
-    private final ActorRef conciergeForwarder;
     private final Gauge streamingSessionsCounter;
     private final JwtValidator jwtValidator;
     private final JwtAuthorizationContextProvider jwtAuthorizationContextProvider;
@@ -96,8 +94,6 @@ public final class StreamingActor extends AbstractActorWithTimers
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
-        this.pubSubMediator = pubSubMediator;
-        this.conciergeForwarder = conciergeForwarder;
         this.streamingConfig = streamingConfig;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();

@@ -12,24 +12,17 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 
 /**
  * Abstract implementation of {@link AbstractProxyActor} for all {@link org.eclipse.ditto.signals.commands.base.Command}s

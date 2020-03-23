@@ -27,13 +27,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

@@ -175,7 +175,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                         TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
         final Adaptable actual = underTest.toAdaptable(createSubscription, TopicPath.Channel.TWIN);
 
-        actual.equals(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test

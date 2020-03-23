@@ -21,8 +21,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
-;
-
 /**
  * Provides configuration settings of the Gateway service's HTTP behaviour.
  */
