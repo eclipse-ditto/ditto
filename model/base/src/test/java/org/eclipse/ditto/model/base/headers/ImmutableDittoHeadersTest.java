@@ -96,6 +96,7 @@ public final class ImmutableDittoHeadersTest {
     private static final AcknowledgementRequest KNOWN_ACK_REQUEST =
             AcknowledgementRequest.of(AcknowledgementLabel.of("ack-label-1"));
     private static final List<AcknowledgementRequest> KNOWN_ACK_REQUESTS = Lists.list(KNOWN_ACK_REQUEST);
+    private static final String KNOWN_ENTITY_ID = "known:entityId";
 
     @Test
     public void assertImmutability() {
@@ -129,6 +130,7 @@ public final class ImmutableDittoHeadersTest {
                 .contentType(KNOWN_CONTENT_TYPE)
                 .replyTarget(Integer.valueOf(KNOWN_REPLY_TARGET))
                 .inboundPayloadMapper(KNOWN_MAPPER)
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .timeout(KNOWN_TIMEOUT)
@@ -316,6 +318,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
                 .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
+                .set(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -513,6 +516,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
                 ackRequestsToJsonArray(KNOWN_ACK_REQUESTS).toString());
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
+        result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID);
 
         return result;
     }

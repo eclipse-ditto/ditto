@@ -17,6 +17,7 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.mongodb.ReadPreference;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 
@@ -151,6 +152,14 @@ public interface DittoMongoClientBuilder {
          * @return this builder instance to allow method chaining.
          */
         GeneralPropertiesStep addConnectionPoolListener(@Nullable ConnectionPoolListener connectionPoolListener);
+
+        /**
+         * Sets the read preference that should be used for the mongo client.
+         *
+         * @param readPreference the read preference.
+         * @return this builder instance with the updated read preference.
+         */
+        GeneralPropertiesStep setReadPreference(ReadPreference readPreference);
 
         /**
          * Creates a new instance of {@code DittoMongoClient} with the properties of this builder.

@@ -21,11 +21,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.gateway.security.config.OAuthConfig;
 
 /**
  * Configuration for subject issuers.
@@ -42,12 +45,26 @@ public final class JwtSubjectIssuersConfig {
      *
      * @param configItems the items (configurations for each subject issuer)
      */
-    public JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems) {
+    private JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems) {
         requireNonNull(configItems);
         final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
 
         configItems.forEach(configItem -> addConfigToMap(configItem, modifiableSubjectIssuerConfigMap));
         subjectIssuerConfigMap = Collections.unmodifiableMap(modifiableSubjectIssuerConfigMap);
+    }
+
+    public static JwtSubjectIssuersConfig fromJwtSubjectIssuerConfigs(final Iterable<JwtSubjectIssuerConfig> configItems) {
+        return new JwtSubjectIssuersConfig(configItems);
+    }
+
+    public static JwtSubjectIssuersConfig fromOAuthConfig(final OAuthConfig config) {
+        final Set<JwtSubjectIssuerConfig> configItems =
+                // merge the default and extension config
+                Stream.concat(config.getOpenIdConnectIssuers().entrySet().stream(),
+                        config.getOpenIdConnectIssuersExtension().entrySet().stream())
+                        .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
+                        .collect(Collectors.toSet());
+        return fromJwtSubjectIssuerConfigs(configItems);
     }
 
     private static void addConfigToMap(final JwtSubjectIssuerConfig config,

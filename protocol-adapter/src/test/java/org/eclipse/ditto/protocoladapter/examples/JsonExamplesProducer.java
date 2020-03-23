@@ -77,6 +77,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -193,6 +194,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
@@ -213,6 +216,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
@@ -286,6 +291,9 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
+import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
@@ -326,6 +334,7 @@ class JsonExamplesProducer {
      * Thing
      */
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, "xdk_53");
+    private static final ThingDefinition THING_DEFINITION = ThingsModelFactory.newDefinition("com.acme:XDKmodel:1.0.0");
     private static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final AuthorizationSubject AUTH_SUBJECT_1 =
             newAuthSubject("the_auth_subject");
@@ -357,12 +366,14 @@ class JsonExamplesProducer {
             .build();
 
     private static final Feature FLUX_CAPACITOR = ThingsModelFactory.newFeatureBuilder()
+            .definition(FEATURE_DEFINITION)
             .properties(FEATURE_PROPERTIES)
             .withId(FEATURE_ID)
             .build();
     private static final Features FEATURES = ThingsModelFactory.newFeatures(FLUX_CAPACITOR);
     private static final Thing THING = ThingsModelFactory.newThingBuilder()
             .setId(THING_ID)
+            .setDefinition(THING_DEFINITION)
             .setRevision(THING_REVISION)
             .setAttributes(ATTRIBUTES)
             .setFeatures(FEATURES)
@@ -385,6 +396,12 @@ class JsonExamplesProducer {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
+    /**
+     * Generates *.json examples. If you want to create examples for ditto-documentation use {@link
+     * PublicJsonExamplesProducer}.
+     *
+     * @param args expected one argument: the folder where the examples should be stored, e.g. "generated-examples"
+     */
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
     }
@@ -555,7 +572,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyEntriesResponse.json")), modifyPolicyEntriesResponse);
 
         final ModifyPolicyEntryResponse modifyPolicyEntryResponse =
-                ModifyPolicyEntryResponse.modified(POLICY_ID, DITTO_HEADERS);
+                ModifyPolicyEntryResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyEntryResponse.json")), modifyPolicyEntryResponse);
 
         final ModifyPolicyEntryResponse modifyPolicyEntryResponseCreated =
@@ -572,7 +589,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifySubjectsResponse.json")), modifySubjectsResponse);
 
         final ModifySubjectResponse modifySubjectResponse =
-                ModifySubjectResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
+                ModifySubjectResponse.modified(POLICY_ID, LABEL, SUBJECT_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifySubjectResponse.json")), modifySubjectResponse);
 
         final ModifySubjectResponse modifySubjectResponseCreated =
@@ -589,7 +606,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifyResourcesResponse.json")), modifyResourcesResponse);
 
         final ModifyResourceResponse modifyResourceResponse =
-                ModifyResourceResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
+                ModifyResourceResponse.modified(POLICY_ID, LABEL, RESOURCE_KEY, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyResourceResponse.json")), modifyResourceResponse);
 
         final ModifyResourceResponse modifyResourceResponseCreated =
@@ -925,6 +942,13 @@ class JsonExamplesProducer {
         final DeleteThing deleteThing = DeleteThing.of(THING_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteThing.json")), deleteThing);
 
+        final ModifyThingDefinition modifyThingDefinition =
+                ModifyThingDefinition.of(THING_ID, ThingsModelFactory.newDefinition(THING_DEFINITION), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("modifyThingDefinition.json")), modifyThingDefinition);
+
+        final DeleteThingDefinition deleteThingDefinition = DeleteThingDefinition.of(THING_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("deleteThingDefinition.json")), deleteThingDefinition);
+
         final ModifyAclEntry modifyAclEntry = ModifyAclEntry.of(THING_ID, ACL_ENTRY_1, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyAclEntry.json")), modifyAclEntry, JsonSchemaVersion.V_1);
 
@@ -1003,8 +1027,22 @@ class JsonExamplesProducer {
         final DeleteThingResponse deleteThingResponse = DeleteThingResponse.of(THING_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteThingResponse.json")), deleteThingResponse);
 
+        final ModifyThingDefinitionResponse modifyThingDefinitionResponse =
+                ModifyThingDefinitionResponse.modified(THING_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("modifyThingDefinitionResponse.json")), modifyThingDefinitionResponse);
+
+        final ModifyThingDefinitionResponse modifyThingDefinitionResponseCreated =
+                ModifyThingDefinitionResponse.created(THING_ID, THING_DEFINITION, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("modifyThingDefinitionResponseCreated.json")),
+                modifyThingDefinitionResponseCreated);
+
+        final DeleteThingDefinitionResponse deleteThingDefinitionResponse =
+                DeleteThingDefinitionResponse.of(THING_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("deleteThingDefinitionResponse.json")),
+                deleteThingDefinitionResponse);
+
         final ModifyPolicyIdResponse modifyPolicyIdResponseCreated =
-                ModifyPolicyIdResponse.modified(THING_ID, DITTO_HEADERS);
+                ModifyPolicyIdResponse.created(THING_ID, POLICY_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyIdResponseCreated.json")), modifyPolicyIdResponseCreated);
 
         final ModifyPolicyIdResponse modifyPolicyIdResponseModified =
@@ -1121,6 +1159,18 @@ class JsonExamplesProducer {
         final ThingDeleted thingDeleted = ThingDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("thingDeleted.json")), thingDeleted);
 
+        final ThingDefinitionCreated thingDefinitionCreated =
+                ThingDefinitionCreated.of(THING_ID, THING_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("thingDefinitionCreated.json")), thingDefinitionCreated);
+
+        final ThingDefinitionModified thingDefinitionModified =
+                ThingDefinitionModified.of(THING_ID, THING_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("thingDefinitionModified.json")), thingDefinitionModified);
+
+        final ThingDefinitionDeleted thingDefinitionDeleted =
+                ThingDefinitionDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
+        writeJson(eventsDir.resolve(Paths.get("thingDefinitionDeleted.json")), thingDefinitionDeleted);
+
         final AclEntryCreated aclEntryCreated = AclEntryCreated.of(THING_ID, ACL_ENTRY_1, REVISION_NUMBER,
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("aclEntryCreated.json")), aclEntryCreated, JsonSchemaVersion.V_1);
@@ -1137,12 +1187,12 @@ class JsonExamplesProducer {
         writeJson(eventsDir.resolve(Paths.get("aclEntryDeleted.json")), aclEntryDeleted, JsonSchemaVersion.V_1);
 
         final PolicyIdCreated policyIdCreated =
-                PolicyIdCreated.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER,
+                PolicyIdCreated.of(THING_ID, POLICY_ID, REVISION_NUMBER,
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
         final PolicyIdModified policyIdModified =
-                PolicyIdModified.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
+                PolicyIdModified.of(THING_ID, POLICY_ID, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdModified.json")), policyIdModified);
 
         final AttributesCreated attributesCreated = AttributesCreated.of(THING_ID, ATTRIBUTES, REVISION_NUMBER,
@@ -1587,4 +1637,5 @@ class JsonExamplesProducer {
         System.out.println("Writing file: " + path.toAbsolutePath());
         Files.write(path, jsonString.getBytes());
     }
+
 }

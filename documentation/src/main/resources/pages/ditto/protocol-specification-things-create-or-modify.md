@@ -21,7 +21,7 @@ set to true will be created.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/create`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/create`     |
 | **path**  | `/`     |
 | **value** | The complete thing as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -29,7 +29,7 @@ set to true will be created.
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/create` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/create` |
 | **path**   |        | `/`                      |
 | **value**  |        | The created Thing as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 | **status** | *code* |                          | 
@@ -43,7 +43,7 @@ The event emitted by Ditto after a thing was created.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/`     |
 | **value** | The created thing as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
@@ -58,7 +58,7 @@ This command modifies the thing specified by the `<namespace>` and `<thingId>` i
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/`     |
 | **value** | The complete thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
@@ -71,7 +71,7 @@ If the thing does not yet exist, the same rules apply as described for the [crea
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/`                      |
 | **value**  |        | The created Thing as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the Thing already existed. |
 | **status** | _code_ |    
@@ -87,7 +87,7 @@ The event emitted by Ditto after a thing was modified.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/`     |
 | **value** | The modified Thing as JSON<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -104,7 +104,7 @@ The Attributes will be replaced by the JSON in the `value`.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/attributes`     |
 | **value** | The attributes of the thing as JSON, see property `attributes` of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -112,7 +112,7 @@ The Attributes will be replaced by the JSON in the `value`.
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/attributes`                      |
 | **value**  |        | The created attributes as JSON, see property `attributes` of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload). This field is not available, if the thing already contained attributes. |
 | **status** | _code_ |                          | 
@@ -129,7 +129,7 @@ event will be emitted.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/attributes`     |
 | **value** | The modified attributes of the thing as JSON, see property `attributes` of the Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -139,7 +139,7 @@ If the thing did not yet contain attributes before the command was applied, a `c
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/attributes`     |
 | **value** | The created Attributes of the Thing as JSON, see property `attributes` of the Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -155,7 +155,7 @@ The attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/attributes/<attributePath>`     |
 | **value** | The specific attribute of the Thing as JSON. |
 
@@ -163,7 +163,7 @@ The attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/attributes/<attributePath>`                      |
 | **value**  |        | The created attribute as JSON. This field is not available, if the attribute already existed. |
 | **status** | _code_ |                          | 
@@ -180,7 +180,7 @@ If the attribute already existed before the command was applied and it was thus 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/attributes/<attributePath>`     |
 | **value** | The modified Attribute of the Thing as JSON value. |
 
@@ -190,7 +190,7 @@ If the attribute did not yet exist before the command was applied, a `created` e
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/attributes/<attributePath>`     |
 | **value** | The created Attribute of the Thing as JSON value. |
 
@@ -205,7 +205,7 @@ The definition will be created in case it doesn't exist yet, otherwise the thing
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/definition`     |
 | **value** | The specific definition of the Thing as JSON string value. |
 
@@ -213,7 +213,7 @@ The definition will be created in case it doesn't exist yet, otherwise the thing
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/definition`                      |
 | **value**  |        | The created definition as JSON string value. This field is not available, if the definition already existed. |
 | **status** | _code_ |                          | 
@@ -230,7 +230,7 @@ If the definition already existed before the command was applied and it was thus
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/definition`     |
 | **value** | The modified definition of the Thing as JSON string value. |
 
@@ -240,7 +240,7 @@ If the definition did not yet exist before the command was applied, a `created` 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/definition`     |
 | **value** | The created definition of the Thing as JSON string value. |
 
@@ -255,7 +255,7 @@ The list of Features will be replaced by the JSON in the `value`.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/features`     |
 | **value** | All Features of the Thing as JSON, see property `features` of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -263,11 +263,11 @@ The list of Features will be replaced by the JSON in the `value`.
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/features`                      |
 | **value**  |        | The created Features as JSON, see property `features` of Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the thing already contained features. |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the Features were created successfully.       |
+|            | `201`  | Success - The Features were created successfully.       |
 |            | `204`  | Success - The Features were modified successfully.       |
 |            | `403`  | Not Modifiable - The Features could not be modified as the requester had insufficient permissions ('WRITE' is required).          |
 |            | `404`  | Not Found - The Thing or Features were not found or requester had insufficient permissions.  |
@@ -280,7 +280,7 @@ If the thing already contained Features before the command was applied and they 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/features`     |
 | **value** | All Features of the Thing as JSON, see property `features` of the Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -290,7 +290,7 @@ If the thing did not yet contain Features before the command was applied, a `cre
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/features`     |
 | **value** | All Features of the Thing as JSON, see property `features` of the Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -304,7 +304,7 @@ Create or modify a specific Feature (identified by the Feature ID in the `path`)
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/features/<featureId>`     |
 | **value** | The specific Feature of the Thing as JSON. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -312,11 +312,11 @@ Create or modify a specific Feature (identified by the Feature ID in the `path`)
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>`                      |
 | **value**  |        | The created Feature as JSON. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the Feature already existed. |
 | **status** | _code_ |                          | 
-|            | `201`  | Success - the Feature was created successfully.       |
+|            | `201`  | Success - The Feature was created successfully.       |
 |            | `204`  | Success - the Feature was modified successfully.       |
 |            | `403`  | Not Modifiable - The Feature could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
 |            | `404`  | Not Found - The Thing or Feature was not found or requester had insufficient permissions.   |
@@ -329,7 +329,7 @@ If the Feature already existed before the command was applied and it was thus ov
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>`     |
 | **value** | The modified Feature of the Thing as JSON. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -339,7 +339,7 @@ If the Feature did not yet exist before the command was applied, a `created` eve
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/features/<featureId>`     |
 | **value** | The created Feature of the Thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -353,7 +353,7 @@ Create or modify the Definition of a Feature (identified by the Feature ID in th
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/features/<featureId>/definition`     |
 | **value** | The Definition of the Feature as JSON array, see property `definition` of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -361,7 +361,7 @@ Create or modify the Definition of a Feature (identified by the Feature ID in th
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>/definition`                      |
 | **value**  |        | The created Definition of the Feature as JSON array, see property `definition` of Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if the Definition already existed. |
 | **status** | _code_ |                          | 
@@ -378,7 +378,7 @@ If the Feature Definition already existed before the command was applied and it 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>/definition`     |
 | **value** | The modified Definition of the Feature as JSON array, see property `properties` of the Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -388,7 +388,7 @@ If the Feature Definition did not yet exist before the command was applied, a `c
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/features/<featureId>/definition`     |
 | **value** | The created Definition of the Feature as JSON array, see property `definition` of the Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -403,7 +403,7 @@ Create or modify the Properties of a Feature (identified by the Feature ID in th
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/features/<featureId>/properties`     |
 | **value** | The Properties of the Feature as JSON, see property `properties` of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -411,7 +411,7 @@ Create or modify the Properties of a Feature (identified by the Feature ID in th
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>/properties`                      |
 | **value**  |        | The created Properties of the Feature as JSON object, see property `properties` of Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if Feature already contained Properties. |
 | **status** | *code* |                          | 
@@ -428,7 +428,7 @@ command, a `modified` event will be emitted.
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>/properties`     |
 | **value** | The modified Properties of the Feature as JSON, see property `properties` of the Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -438,7 +438,7 @@ If the Feature did not yet contain Properties before the command was applied, a 
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/features/<featureId>/properties`     |
 | **value** | The created Properties of the Feature as JSON object, see property `properties` of the Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 
@@ -455,7 +455,7 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/commands/modify`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
 | **value** | The specific Property of the Feature as JSON. |
 
@@ -463,7 +463,7 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 
 | Field      |        | Value                    |
 |------------|--------|--------------------------|
-| **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
 | **path**   |        | `/features/<featureId>/properties/<propertyPath>`                      |
 | **value**  |        | The created Property of the Feature as JSON. This field is not available, if the Property already existed. |
 | **status** | *code* |                          | 
@@ -480,7 +480,7 @@ If the Feature Property already existed before the command was applied and it wa
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/modified`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
 | **value** | The modified Property of the Thing as JSON. |
 
@@ -490,7 +490,7 @@ If the Feature Property did not yet exist before the command was applied, a `cre
 
 | Field     | Value                   |
 |-----------|-------------------------|
-| **topic** | `<namespace>/<thingId>/things/<channel>/events/created`     |
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
 | **value** | The created Property of the Thing as JSON. |
 

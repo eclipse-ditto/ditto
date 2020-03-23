@@ -184,7 +184,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 1.1.0
      */
     TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
-            HeaderValueValidators.getDittoDurationValidator());
+            HeaderValueValidators.getDittoDurationValidator()),
+
+    /**
+     * Header definition for the entity id related to the command/event/response/error.
+     * <p>
+     * Key: {@code "ditto-entity-id"}, Java type: {@link String}.
+     * </p>
+     * @since 1.1.0
+     */
+    ENTITY_ID("ditto-entity-id", String.class, false, false);
 
     /**
      * Map to speed up lookup of header definition by key.

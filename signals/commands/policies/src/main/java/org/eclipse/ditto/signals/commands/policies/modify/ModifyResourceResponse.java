@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifyResource} command.
@@ -65,10 +66,12 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
 
     private final PolicyId policyId;
     private final Label label;
+    @Nullable private final ResourceKey resourceKey;
     @Nullable private final Resource resourceCreated;
 
     private ModifyResourceResponse(final PolicyId policyId,
             final Label label,
+            @Nullable final ResourceKey resourceKey,
             @Nullable final Resource resourceCreated,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
@@ -76,6 +79,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
+        this.resourceKey = resourceKey;
         this.resourceCreated = resourceCreated;
     }
 
@@ -88,9 +92,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resource, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, Label, Resource, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyResourceResponse created(final String policyId,
@@ -116,7 +118,8 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Resource resourceCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId, label, resourceCreated, HttpStatusCode.CREATED, dittoHeaders);
+        return new ModifyResourceResponse(policyId, label, resourceCreated.getResourceKey(), resourceCreated,
+                HttpStatusCode.CREATED, dittoHeaders);
     }
 
     /**
@@ -127,15 +130,43 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static ModifyResourceResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyResource} command.
+     *
+     * @param policyId the Policy ID of the modified resource.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static ModifyResourceResponse modified(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
+    }
+    /**
+     * Creates a response to a {@code ModifyResource} command.
+     *
+     * @param policyId the Policy ID of the modified resource.
+     * @param label the Label of the PolicyEntry.
+     * @param resourceKey the resource key of the modified resource
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
      */
     @Deprecated
     public static ModifyResourceResponse modified(final String policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
+            final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
 
-        return modified(PolicyId.of(policyId), label, dittoHeaders);
+        return modified(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
     }
 
     /**
@@ -143,14 +174,16 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      *
      * @param policyId the Policy ID of the modified resource.
      * @param label the Label of the PolicyEntry.
+     * @param resourceKey the resource key of the modified resource
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
     public static ModifyResourceResponse modified(final PolicyId policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
+            final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId, label, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new ModifyResourceResponse(policyId, label, resourceKey, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -181,7 +214,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     public static ModifyResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyResourceResponse>(TYPE, jsonObject).deserialize(statusCode -> {
             final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
             final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
@@ -190,13 +223,15 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
                     .map(ResourceKey::newInstance);
 
+            @Nullable
             final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
                     .map(JsonValue::asObject)
-                    .map(obj -> extractedResourceKey.map(
-                            resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)).orElse(null))
+                    .flatMap(obj -> extractedResourceKey.map(resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)))
                     .orElse(null);
 
-            return new ModifyResourceResponse(policyId, label, extractedResourceCreated, statusCode, dittoHeaders);
+            return new ModifyResourceResponse(policyId, label,
+                    extractedResourceKey.map(ResourceKey::newInstance).orElse(null), extractedResourceCreated,
+                    statusCode, dittoHeaders);
         });
     }
 
@@ -230,7 +265,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/entries/" + label + "/resources/" + resourceCreated.getResourceKey();
+        final String path = "/entries/" + label + "/resources/" + resourceKey;
         return JsonPointer.of(path);
     }
 
@@ -239,11 +274,13 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
                 predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
+        if (null != resourceKey) {
+            jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
+        }
         if (null != resourceCreated) {
-            jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceCreated.getFullQualifiedPath(), predicate);
             jsonObjectBuilder.set(JSON_RESOURCE, resourceCreated.toJson(schemaVersion, thePredicate), predicate);
         }
     }
@@ -252,7 +289,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     public ModifyResourceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return null != resourceCreated
                 ? created(policyId, label, resourceCreated, dittoHeaders)
-                : modified(policyId, label, dittoHeaders);
+                : modified(policyId, label, resourceKey, dittoHeaders);
     }
 
     @Override
@@ -273,18 +310,19 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
                 Objects.equals(resourceCreated, that.resourceCreated) &&
+                Objects.equals(resourceKey, that.resourceKey) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, resourceCreated);
+        return Objects.hash(super.hashCode(), policyId, label, resourceCreated, resourceKey);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + ", label=" + label +
-                ", resourceCreated=" + resourceCreated + "]";
+                ", resourceCreated=" + resourceCreated + ", resourceKey=" + resourceKey + "]";
     }
 
 }

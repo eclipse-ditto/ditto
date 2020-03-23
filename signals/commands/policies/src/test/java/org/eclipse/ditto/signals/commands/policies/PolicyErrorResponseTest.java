@@ -40,7 +40,6 @@ public class PolicyErrorResponseTest {
                     TestConstants.Policy.POLICY_NOT_ACCESSIBLE_EXCEPTION.toJson(FieldType.regularOrSpecial()))
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(PolicyErrorResponse.class,
@@ -68,13 +67,36 @@ public class PolicyErrorResponseTest {
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final PolicyErrorResponse underTest =
                 PolicyErrorResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
+    }
+
+    @Test
+    public void createInstanceFromUnregisteredException() {
+        final JsonObject genericExceptionJson = KNOWN_JSON.toBuilder()
+                .set(PolicyCommandResponse.JsonFields.PAYLOAD,
+                        DittoRuntimeException
+                                .newBuilder("some.error", HttpStatusCode.VARIANT_ALSO_NEGOTIATES)
+                                .description("the description")
+                                .message("the message")
+                                .build().toJson(FieldType.regularOrSpecial()))
+                .build();
+
+        final PolicyErrorResponse underTest =
+                PolicyErrorResponse.fromJson(genericExceptionJson, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getDittoRuntimeException()).isNotNull();
+        assertThat(underTest.getDittoRuntimeException().getErrorCode()).isEqualTo("some.error");
+        assertThat(underTest.getDittoRuntimeException().getDescription()).contains("the description");
+        assertThat(underTest.getDittoRuntimeException().getMessage()).isEqualTo("the message");
+        assertThat(underTest.getDittoRuntimeException().getStatusCode()).isEqualTo(
+                HttpStatusCode.VARIANT_ALSO_NEGOTIATES);
+        assertThat(underTest.getStatusCode()).isEqualTo(HttpStatusCode.VARIANT_ALSO_NEGOTIATES);
     }
 
 }

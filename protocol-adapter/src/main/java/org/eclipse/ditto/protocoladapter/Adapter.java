@@ -12,17 +12,21 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.util.Set;
+
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * An {@code Adapter} maps objects of type {@link T} to an {@link Adaptable} and vice versa.
  *
  * @param <T> the type mapped by this {@code Adapter}.
+ * @since 1.1.0
  */
-public interface Adapter<T extends Jsonifiable> {
+public interface Adapter<T extends Jsonifiable<?>> {
 
     /**
-     * Maps the given {@code adaptable} to it's corresponding {@code T}.
+     * Maps the given {@code adaptable} to its corresponding {@code T}.
      *
      * @param adaptable the adaptable to map.
      * @return the mapped object.
@@ -43,14 +47,48 @@ public interface Adapter<T extends Jsonifiable> {
     }
 
     /**
-     * Maps the given {@code t} to it's corresponding {@code Adaptable}.
+     * Maps the given {@code t} to its corresponding {@code Adaptable}.
      *
      * @param t the object to map.
-     * @param channel the Channel (Twin/Live) to use.
+     * @param channel the channel that was used to send the signal
      * @return the mapped adaptable.
      * @throws NullPointerException if {@code t} is {@code null}.
      * @throws IllegalArgumentException if {@code channel} is unknown.
      */
     Adaptable toAdaptable(T t, TopicPath.Channel channel);
 
+    /**
+     * Retrieve the set of groups supported by this adapter.
+     *
+     * @return the supported groups.
+     */
+    Set<TopicPath.Group> getGroups();
+
+    /**
+     * Retrieve the set of channels supported by this adapter.
+     *
+     * @return the supported channels.
+     */
+    Set<TopicPath.Channel> getChannels();
+
+    /**
+     * Retrieve the set of criteria supported by this adapter.
+     *
+     * @return the supported criteria.
+     */
+    Set<TopicPath.Criterion> getCriteria();
+
+    /**
+     * Retrieve the set of actions supported by this adapter.
+     *
+     * @return the set of actions.
+     */
+    Set<TopicPath.Action> getActions();
+
+    /**
+     * Retrieve whether this adapter is for responses.
+     *
+     * @return whether this adapter is for responses.
+     */
+    boolean isForResponses();
 }

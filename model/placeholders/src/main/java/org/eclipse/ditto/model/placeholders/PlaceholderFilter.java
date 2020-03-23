@@ -12,24 +12,17 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
-import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A filter implementation to replace defined placeholders with their values.
@@ -63,42 +56,6 @@ public final class PlaceholderFilter {
                 .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());
         return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), subjects);
-    }
-
-    /**
-     * Apply {@link ThingPlaceholder}s to addresses and collect the result as a map.
-     *
-     * @param addresses addresses to apply placeholder substitution.
-     * @param thingId the thing ID.
-     * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
-     * @return map from successfully filtered addresses to the result of placeholder substitution.
-     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
-     */
-    public static Map<String, String> applyThingPlaceholderToAddresses(final Collection<String> addresses,
-            final ThingId thingId,
-            final Consumer<String> unresolvedPlaceholderListener) {
-
-        return addresses.stream()
-                .flatMap(address -> {
-                    final String filteredAddress =
-                            applyThingPlaceholder(address, thingId, unresolvedPlaceholderListener);
-                    return filteredAddress == null
-                            ? Stream.empty()
-                            : Stream.of(new AbstractMap.SimpleEntry<>(address, filteredAddress));
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    @Nullable
-    private static String applyThingPlaceholder(final String address, final ThingId thingId,
-            final Consumer<String> unresolvedPlaceholderListener) {
-        try {
-            return apply(address,
-                    PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newThingPlaceholder(), thingId));
-        } catch (final UnresolvedPlaceholderException e) {
-            unresolvedPlaceholderListener.accept(address);
-            return null;
-        }
     }
 
     /**

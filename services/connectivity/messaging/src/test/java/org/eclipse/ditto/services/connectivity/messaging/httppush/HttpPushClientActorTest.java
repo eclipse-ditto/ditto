@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -242,7 +241,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                     .toCompletableFuture()
                     .join()
                     .getData()
-                    .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable(thingModifiedEvent, TWIN)));
+                    .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable(thingModifiedEvent)));
         }};
     }
 

@@ -199,6 +199,7 @@ public final class MessageMappingProcessor {
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
         enhanceLogFromAdaptable(adaptable);
+        resultHandler.onTopicPathResolved(adaptable.getTopicPath());
 
         R result = resultHandler.emptyResult();
         for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
@@ -256,6 +257,7 @@ public final class MessageMappingProcessor {
                 } else {
                     for (final Adaptable adaptable : adaptables) {
                         enhanceLogFromAdaptable(adaptable);
+                        handler.onTopicPathResolved(adaptable.getTopicPath());
                         final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
                         dittoHeadersSizeChecker.check(signal.getDittoHeaders());
                         final DittoHeaders dittoHeaders = signal.getDittoHeaders();

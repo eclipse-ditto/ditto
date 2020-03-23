@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -33,7 +34,8 @@ public final class DittoSearchConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DittoSearchConfig.class,
                 areImmutable(),
-                provided(DefaultHealthCheckConfig.class, DittoServiceConfig.class, DefaultUpdaterConfig.class)
+                provided(DefaultHealthCheckConfig.class, DittoServiceConfig.class, DefaultUpdaterConfig.class,
+                        DefaultMongoDbConfig.class)
                         .areAlsoImmutable());
     }
 

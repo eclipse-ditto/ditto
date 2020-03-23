@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -155,7 +154,7 @@ public abstract class AbstractPublisherActorTest {
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("payload").build();
         final Adaptable adaptable =
-                DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+                DittoProtocolAdapter.newInstance().toAdaptable(source);
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 
@@ -174,7 +173,7 @@ public abstract class AbstractPublisherActorTest {
                         .asResponse(true)
                         .build();
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, Collections.emptyList());
-        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 

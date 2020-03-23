@@ -67,10 +67,26 @@ public final class RabbitMQValidatorTest {
     }
 
     @Test
-    public void testValidationOfEnforcement() {
+    public void testValidationOfEnforcementWithThingIdFilter() {
+        testValidationOfEnforcement("thing");
+    }
+
+    @Test
+    public void testValidationOfEnforcementWithEntityIdFilter() {
+        testValidationOfEnforcement("entity");
+    }
+
+    @Test
+    public void testValidationOfEnforcementWithPolicyIdFilter() {
+        testValidationOfEnforcement("entity");
+    }
+
+    private void testValidationOfEnforcement(final String filterPrefix) {
         final Source source = newSourceBuilder()
                 .enforcement(ConnectivityModelFactory.newEnforcement(
-                        "{{ header:device_id }}", "{{ thing:id }}", "{{ thing:name }}", "{{ thing:namespace }}"))
+                        "{{ header:device_id }}",
+                        "{{ " + filterPrefix + ":id }}",
+                        "{{ " + filterPrefix + ":name }}", "{{ " + filterPrefix + ":namespace }}"))
                 .build();
 
         UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");

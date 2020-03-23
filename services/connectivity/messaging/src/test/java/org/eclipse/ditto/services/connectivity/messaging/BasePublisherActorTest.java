@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -85,7 +84,7 @@ public final class BasePublisherActorTest {
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
                 List.of(target));
         final Adaptable adaptable =
-                DittoProtocolAdapter.newInstance().toAdaptable(thingModifiedEvent, TopicPath.Channel.TWIN);
+                DittoProtocolAdapter.newInstance().toAdaptable(thingModifiedEvent);
         final OutboundSignal.Mapped mappedOutboundSignal =
                 OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 

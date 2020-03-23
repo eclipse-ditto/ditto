@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 /**
  * Super class of protocol adapter tests.
  */
-interface ProtocolAdapterTest {
+public interface ProtocolAdapterTest {
 
     /**
      * Make equality assertions on {@link org.eclipse.ditto.model.base.headers.WithDittoHeaders} comparing only

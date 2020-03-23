@@ -110,6 +110,13 @@ public interface MongoDbConfig {
         boolean isSslEnabled();
 
         /**
+         * Gets the desired read preference that should be used for accessing MongoDB.
+         *
+         * @return the desired read preference.
+         */
+        ReadPreference readPreference();
+
+        /**
          * An enumeration of known value paths and associated default values of the OptionsConfig.
          */
         enum OptionsConfigValue implements KnownConfigValue {
@@ -117,7 +124,12 @@ public interface MongoDbConfig {
             /**
              * Determines whether SSL should be enabled for the configured MongoDB source.
              */
-            SSL_ENABLED("ssl", false);
+            SSL_ENABLED("ssl", false),
+
+            /**
+             * Determines the read preference used for MongoDB connections. See {@link ReadPreference} for available options.
+             */
+            READ_PREFERENCE("readPreference", "primaryPreferred");
 
             private final String path;
             private final Object defaultValue;

@@ -31,7 +31,6 @@ public interface TopicPathBuilder {
      */
     TopicPathBuilder policies();
 
-
     /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#COMMANDS}. A previously set criterion is
      * replaced.
@@ -55,6 +54,14 @@ public interface TopicPathBuilder {
      * @return this builder to allow method chaining.
      */
     TopicPathBuilder live();
+
+    /**
+     * Sets the {@code Channel} of this builder to {@link TopicPath.Channel#NONE}. A previously set channel is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    TopicPathBuilder none();
 
     /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#EVENTS}. A previously set criterion is

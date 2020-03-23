@@ -22,6 +22,7 @@ import static org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions.
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -219,6 +220,12 @@ public final class ImmutablePolicyBuilderTest {
         assertThat(policy).hasResourceEffectedPermissionsFor(endUserLabel, RESOURCE_TYPE, JsonPointer.empty(),
                 EffectedPermissions.newInstance(Collections.singleton(PERMISSION_READ),
                         Collections.singleton(PERMISSION_WRITE)));
+    }
+
+    @Test
+    public void buildPolicyWithoutPolicyId() {
+        final Policy policyWithoutPolicyId = ImmutablePolicyBuilder.newInstance().build();
+        assertThat(policyWithoutPolicyId.getEntityId()).isEqualTo(Optional.empty());
     }
 
 }
