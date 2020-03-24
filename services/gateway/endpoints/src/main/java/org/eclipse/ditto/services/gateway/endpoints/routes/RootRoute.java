@@ -45,7 +45,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -63,6 +63,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -238,31 +239,36 @@ public final class RootRoute extends AllDirectives {
     private Route api(final RequestContext ctx, final String correlationId) {
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                        customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                                apiAuthentication(correlationId,
-                                        authContextWithPrefixedSubjects ->
-                                                mapAuthorizationContext(
-                                                        correlationId,
-                                                        apiVersion,
-                                                        authContextWithPrefixedSubjects,
-                                                        authContext ->
-                                                                parameterOptional(TopicPath.Channel.LIVE.getName(),
-                                                                        liveParam ->
-                                                                                withDittoHeaders(
-                                                                                        authContext,
-                                                                                        apiVersion,
-                                                                                        correlationId,
-                                                                                        ctx,
-                                                                                        liveParam.orElse(null),
-                                                                                        CustomHeadersHandler.RequestType.API,
-                                                                                        dittoHeaders ->
-                                                                                                buildApiSubRoutes(ctx,
-                                                                                                        dittoHeaders,
-                                                                                                        authContext)
+                        ContentTypeValidationDirective.ensureValidContentType(correlationId, ctx,
+                                () -> customApiRoutesProvider.unauthorized(apiVersion, correlationId)
+                                        .orElse(
+                                                apiAuthentication(correlationId,
+                                                        authContextWithPrefixedSubjects ->
+                                                                mapAuthorizationContext(
+                                                                        correlationId,
+                                                                        apiVersion,
+                                                                        authContextWithPrefixedSubjects,
+                                                                        authContext ->
+                                                                                parameterOptional(
+                                                                                        TopicPath.Channel.LIVE.getName(),
+                                                                                        liveParam ->
+                                                                                                withDittoHeaders(
+                                                                                                        authContext,
+                                                                                                        apiVersion,
+                                                                                                        correlationId,
+                                                                                                        ctx,
+                                                                                                        liveParam.orElse(
+                                                                                                                null),
+                                                                                                        CustomHeadersHandler.RequestType.API,
+                                                                                                        dittoHeaders ->
+                                                                                                                buildApiSubRoutes(
+                                                                                                                        ctx,
+                                                                                                                        dittoHeaders,
+                                                                                                                        authContext)
+                                                                                                )
                                                                                 )
                                                                 )
-                                                )
-                                ))
+                                                )))
                 )
         );
     }
