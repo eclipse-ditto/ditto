@@ -134,38 +134,6 @@ public final class SearchSourceTest {
     }
 
     @Test
-    public void cursorDeleted() {
-        startTestSearchSource(null, null);
-        sinkProbe.request(200L);
-        conciergeForwarderProbe.expectMsg(streamThings(null));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
-
-        // GIVEN: first search result goes through
-        sourceProbe.expectRequest();
-        sourceProbe.sendNext("t:3");
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", null));
-        conciergeForwarderProbe.reply(retrieveThingResponse(3));
-        sinkProbe.expectNext(getThing(3).toJson());
-
-        // WHEN: search persistence deleted the cursor
-        sourceProbe.sendError(new IllegalStateException("Mock cursor-not-found error"));
-
-        // THEN: the final thing is retrieved again to compute the cursor
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", SORT_FIELDS));
-        conciergeForwarderProbe.reply(retrieveThingResponse(3));
-
-        // THEN: stream resumes from the last result
-        conciergeForwarderProbe.expectMsg(streamThings(JsonArray.of(997, "t:3")));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
-        sourceProbe.expectRequest();
-        sourceProbe.sendNext("t:2").sendComplete();
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:2", null));
-        conciergeForwarderProbe.reply(retrieveThingResponse(2));
-        sinkProbe.expectNext(getThing(2).toJson())
-                .expectComplete();
-    }
-
-    @Test
     public void askTimeoutDuringResumption() {
         startTestSearchSource(null, null);
         sinkProbe.request(200L);

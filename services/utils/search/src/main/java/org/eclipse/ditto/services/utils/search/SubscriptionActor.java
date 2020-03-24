@@ -17,6 +17,7 @@ import java.time.Duration;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -41,7 +42,12 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Actor that translates subscription commands into stream operations and stream signals into subscription events.
  */
-public final class SubscriptionActor extends AbstractActorWithStash {
+public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
+
+    /**
+     * A slight delay of completion, since it happens before all "onNext" calls are complete.
+     */
+    private static final Duration COMPLETION_DELAY = Duration.ofMillis(100L);
 
     private final DittoDiagnosticLoggingAdapter log;
 
@@ -94,8 +100,15 @@ public final class SubscriptionActor extends AbstractActorWithStash {
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
                 .match(SubscriptionFailed.class, this::subscriptionFailed)
                 .match(Subscription.class, this::onSubscribe)
+                .matchEquals(Control.COMPLETE, this::scheduleSubscriptionComplete)
                 .matchEquals(ReceiveTimeout.getInstance(), this::idleTimeout)
                 .build();
+    }
+
+    private void scheduleSubscriptionComplete(final Control completeFlag) {
+        // sometimes complete signal arrives too early. schedule actual completion after a slight delay.
+        final SubscriptionComplete event = SubscriptionComplete.of(getSelf().path().name(), dittoHeaders);
+        getTimers().startSingleTimer(completeFlag, event, COMPLETION_DELAY);
     }
 
     private void idleTimeout(final ReceiveTimeout receiveTimeout) {
@@ -222,8 +235,11 @@ public final class SubscriptionActor extends AbstractActorWithStash {
 
         @Override
         public void onComplete() {
-            final SubscriptionComplete event = SubscriptionComplete.of(subscriptionId, DittoHeaders.empty());
-            subscriptionActor.tell(event, ActorRef.noSender());
+            subscriptionActor.tell(Control.COMPLETE, ActorRef.noSender());
         }
+    }
+
+    private enum Control {
+        COMPLETE
     }
 }
