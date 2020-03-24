@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -98,27 +99,34 @@ final class EnforcementScheduler extends AbstractActor {
 
     private Void dispatchEnforcedMessage(final Contextual<?> enforcementResult) {
         final DittoDiagnosticLoggingAdapter logger = enforcementResult.getLog();
-        logger.setCorrelationId(enforcementResult.getMessage());
-        final Optional<ActorRef> receiverOpt = enforcementResult.getReceiver();
-        final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = enforcementResult.getAskFuture();
-        if (askFutureOpt.isPresent() && receiverOpt.isPresent()) {
-            final ActorRef receiver = receiverOpt.get();
-            logger.debug("About to pipe contextual message <{}> after ask-step to receiver: <{}>",
-                    enforcementResult.getMessage(), receiver);
-            // It does not disrupt command order guarantee to run the ask-future here if the ask-future
-            // is initiated by a call to Patterns.ask(), because Patterns.ask() calls ActorRef.tell()
-            // in the calling thread.
-            Patterns.pipe(askFutureOpt.get().get(), getContext().dispatcher()).to(receiver);
-        } else if (receiverOpt.isPresent()) {
-            final ActorRef receiver = receiverOpt.get();
-            final Object wrappedMsg =
-                    enforcementResult.getReceiverWrapperFunction().apply(enforcementResult.getMessage());
-            logger.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);
-            receiver.tell(wrappedMsg, enforcementResult.getSender());
+        final Optional<? extends WithDittoHeaders> messageOpt = enforcementResult.getMessageOptional();
+        if (messageOpt.isPresent()) {
+            final WithDittoHeaders<?> message = messageOpt.get();
+            logger.setCorrelationId(message);
+            final Optional<ActorRef> receiverOpt = enforcementResult.getReceiver();
+            final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = enforcementResult.getAskFuture();
+            if (askFutureOpt.isPresent() && receiverOpt.isPresent()) {
+                final ActorRef receiver = receiverOpt.get();
+                logger.debug("About to pipe contextual message <{}> after ask-step to receiver: <{}>",
+                        message, receiver);
+                // It does not disrupt command order guarantee to run the ask-future here if the ask-future
+                // is initiated by a call to Patterns.ask(), because Patterns.ask() calls ActorRef.tell()
+                // in the calling thread.
+                Patterns.pipe(askFutureOpt.get().get(), getContext().dispatcher()).to(receiver);
+            } else if (receiverOpt.isPresent()) {
+                final ActorRef receiver = receiverOpt.get();
+                final Object wrappedMsg =
+                        enforcementResult.getReceiverWrapperFunction().apply(message);
+                logger.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);
+                receiver.tell(wrappedMsg, enforcementResult.getSender());
+            } else {
+                logger.debug("No receiver found in Contextual - as a result just ignoring it: <{}>", enforcementResult);
+            }
+            logger.discardCorrelationId();
         } else {
-            logger.debug("No receiver found in Contextual - as a result just ignoring it: <{}>", enforcementResult);
+            // message does not exist; nothing to dispatch
+            logger.debug("Not dispatching due to lack of message: {}", enforcementResult);
         }
-        logger.discardCorrelationId();
         return null;
     }
 
