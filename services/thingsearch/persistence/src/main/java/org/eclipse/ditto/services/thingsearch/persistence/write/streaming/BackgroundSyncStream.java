@@ -198,7 +198,15 @@ public final class BackgroundSyncStream {
         return compareThingIds(metadata1.getThingId(), metadata2.getThingId());
     }
 
-    private static int compareThingIds(final ThingId thingId1, final ThingId thingId2) {
+    /**
+     * Compare 2 thing IDs according to the processing order of this stream.
+     *
+     * @param thingId1 the first thing ID.
+     * @param thingId2 the second thing ID.
+     * @return a positive integer if the first thing ID is bigger, a negative integer if the second
+     * thing ID is bigger, and 0 if both are equal.
+     */
+    public static int compareThingIds(final ThingId thingId1, final ThingId thingId2) {
         final int dummyComparison = Boolean.compare(thingId1.isDummy(), thingId2.isDummy());
         return dummyComparison != 0 ? dummyComparison : thingId1.compareTo(thingId2);
     }

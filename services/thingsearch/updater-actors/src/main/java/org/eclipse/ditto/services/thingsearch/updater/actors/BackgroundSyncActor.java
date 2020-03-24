@@ -55,7 +55,8 @@ public final class BackgroundSyncActor
     private final BackgroundSyncStream backgroundSyncStream;
     private final ActorRef thingsUpdater;
 
-    private ThingId thingIdToBookmark;
+    private ThingId progressPersisted = ThingId.dummy();
+    private ThingId progressIndexed = ThingId.dummy();
 
     private BackgroundSyncActor(final BackgroundSyncConfig backgroundSyncConfig,
             final ThingsMetadataSource thingsMetadataSource,
@@ -69,7 +70,6 @@ public final class BackgroundSyncActor
         this.backgroundSyncPersistence = backgroundSyncPersistence;
         this.backgroundSyncStream = backgroundSyncStream;
         this.thingsUpdater = thingsUpdater;
-        thingIdToBookmark = ThingId.dummy();
 
         getTimers().startPeriodicTimer(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
     }
@@ -117,13 +117,14 @@ public final class BackgroundSyncActor
 
     @Override
     protected void preEnhanceStreamingBehavior(final ReceiveBuilder streamingReceiveBuilder) {
-        streamingReceiveBuilder.match(ThingId.class, thingId -> thingIdToBookmark = thingId)
+        streamingReceiveBuilder.match(ProgressReport.class, this::setProgress)
                 .matchEquals(Control.BOOKMARK_THING_ID, this::bookmarkThingId);
     }
 
     @Override
     protected void postEnhanceStatusReport(final JsonObjectBuilder statusReportBuilder) {
-        statusReportBuilder.set("progress", thingIdToBookmark.toString());
+        statusReportBuilder.set("progressPersisted", progressPersisted.toString());
+        statusReportBuilder.set("progressIndexed", progressIndexed.toString());
     }
 
     @Override
@@ -135,7 +136,8 @@ public final class BackgroundSyncActor
     protected void streamTerminated(final Event streamTerminated) {
         super.streamTerminated(streamTerminated);
         // reset progress for the next round
-        thingIdToBookmark = ThingId.dummy();
+        progressPersisted = ThingId.dummy();
+        progressIndexed = ThingId.dummy();
         doBookmarkThingId("");
     }
 
@@ -153,7 +155,19 @@ public final class BackgroundSyncActor
         return backgroundSyncStream.filterForInconsistencies(persistedMetadata, indexedMetadata);
     }
 
+    private void setProgress(ProgressReport progress) {
+        if (progress.persisted) {
+            progressPersisted = progress.thingId;
+        } else {
+            progressIndexed = progress.thingId;
+        }
+    }
+
     private void bookmarkThingId(final Control bookmarkRequest) {
+        // bookmark the smaller ID between progressed and indexed according to background sync stream processing order
+        final ThingId thingIdToBookmark = BackgroundSyncStream.compareThingIds(progressIndexed, progressPersisted) <= 0
+                ? progressIndexed
+                : progressPersisted;
         if (!thingIdToBookmark.isDummy()) {
             doBookmarkThingId(thingIdToBookmark.toString());
         }
@@ -184,11 +198,14 @@ public final class BackgroundSyncActor
 
     private Source<Metadata, NotUsed> getPersistedMetadataSourceWithProgressReporting(final ThingId lowerBound) {
         return wrapAsResumeSource(lowerBound, thingsMetadataSource::createSource)
-                .wireTap(persisted -> getSelf().tell(persisted.getThingId(), ActorRef.noSender()));
+                .wireTap(persisted ->
+                        getSelf().tell(new ProgressReport(persisted.getThingId(), true), ActorRef.noSender()));
     }
 
     private Source<Metadata, NotUsed> getIndexedMetadataSource(final ThingId lowerBound) {
-        return wrapAsResumeSource(lowerBound, thingsSearchPersistence::sudoStreamMetadata);
+        return wrapAsResumeSource(lowerBound, thingsSearchPersistence::sudoStreamMetadata)
+                .wireTap(indexed ->
+                        getSelf().tell(new ProgressReport(indexed.getThingId(), false), ActorRef.noSender()));
     }
 
     private Source<Metadata, NotUsed> wrapAsResumeSource(final ThingId lowerBound,
@@ -233,6 +250,17 @@ public final class BackgroundSyncActor
         @Override
         public String toString() {
             return description;
+        }
+    }
+
+    private static final class ProgressReport {
+
+        private final ThingId thingId;
+        private final boolean persisted;
+
+        private ProgressReport(final ThingId thingId, final boolean persisted) {
+            this.thingId = thingId;
+            this.persisted = persisted;
         }
     }
 
