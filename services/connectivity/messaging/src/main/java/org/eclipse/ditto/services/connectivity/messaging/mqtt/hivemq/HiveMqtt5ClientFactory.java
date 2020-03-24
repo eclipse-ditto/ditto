@@ -10,8 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-/* Copyright (c) 2011-2018 Bosch Software Innovations GmbH, Germany. All rights reserved. */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import javax.annotation.Nullable;
@@ -24,9 +22,10 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 
 /**
  * Factory used to create {@link Mqtt5Client}s.
+ *
+ * @since 1.1.0
  */
 public interface HiveMqtt5ClientFactory {
-
 
     /**
      * Creates a new {@link Mqtt5Client}.

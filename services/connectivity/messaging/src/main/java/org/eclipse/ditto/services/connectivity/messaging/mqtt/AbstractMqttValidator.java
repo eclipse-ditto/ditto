@@ -67,51 +67,39 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     private static final String INVALID_TOPIC_FORMAT = "The provided topic ''{0}'' is not valid: {1}";
     private static final String QOS = "qos";
 
-    protected static final Collection<String> ACCEPTED_SCHEMES =
-            Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
+    protected static final Collection<String> ACCEPTED_SCHEMES = List.of("tcp", "ssl");
     protected static final Collection<String> SECURE_SCHEMES = Collections.unmodifiableList(
             Collections.singletonList("ssl"));
 
-    private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for mqtt enforcement. Valid" +
+    private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for MQTT enforcement. Valid" +
             " values are: ''{1}''.";
 
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
         final Optional<Integer> qos = source.getQos();
-        if (!(qos.isPresent())) {
+        if (qos.isEmpty()) {
             final String message =
-                    MessageFormat.format("MQTT Source {0} must contain QoS value.", sourceDescription.get());
+                    MessageFormat.format("MQTT Source <{0}> must contain QoS value.", sourceDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
 
-        if (source.getHeaderMapping().isPresent()) {
-            throw ConnectionConfigurationInvalidException.newBuilder("Header mapping is not supported for MQTT " +
-                    "sources.").dittoHeaders(dittoHeaders).build();
-        }
-
         validateSourceQoS(qos.get(), dittoHeaders, sourceDescription);
         validateSourceEnforcement(source.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
-        validateConsumerCount(source, dittoHeaders);
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
         final Optional<Integer> qos = target.getQos();
-        if (!(qos.isPresent())) {
+        if (qos.isEmpty()) {
             final String message =
-                    MessageFormat.format("MQTT Target {0} must contain QoS value.", targetDescription.get());
+                    MessageFormat.format("MQTT Target <{0}> must contain QoS value.", targetDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
-        }
-
-        if (target.getHeaderMapping().isPresent()) {
-            throw ConnectionConfigurationInvalidException.newBuilder("Header mapping is not supported for MQTT " +
-                    "targets.").dittoHeaders(dittoHeaders).build();
         }
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
@@ -165,7 +153,8 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
     protected static void validateEnforcementInput(final Enforcement enforcement,
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
-        final SourceAddressPlaceholder sourceAddressPlaceholder = ConnectivityModelFactory.newSourceAddressPlaceholder();
+        final SourceAddressPlaceholder sourceAddressPlaceholder =
+                ConnectivityModelFactory.newSourceAddressPlaceholder();
         try {
             EnforcementFactoryFactory
                     .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
@@ -246,28 +235,6 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
             throw errorProducer.apply(e.getMessage());
         }
 
-    }
-
-    protected void validateClientCount(final Connection connection,
-            final DittoHeaders dittoHeaders) {
-        if (connection.getClientCount() > 1) {
-            throw ConnectionConfigurationInvalidException
-                    .newBuilder("Client count limited to 1 for MQTT connections.")
-                    .description("MQTT does not support load-balancing; starting more than 1 client will only " +
-                            "result in duplicate incoming messages.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
-
-    protected void validateConsumerCount(final Source source,
-            final DittoHeaders dittoHeaders) {
-        if (source.getConsumerCount() > 1) {
-            throw ConnectionConfigurationInvalidException
-                    .newBuilder("Consumer count limited to 1 for MQTT connections.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     private static ConnectionConfigurationInvalidException.Builder invalidValueForConfig(final Object value,

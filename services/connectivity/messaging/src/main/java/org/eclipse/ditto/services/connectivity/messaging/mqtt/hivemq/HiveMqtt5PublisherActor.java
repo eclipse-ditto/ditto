@@ -30,8 +30,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt5Validator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -48,7 +48,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor responsible for publishing messages to an MQTT broker using the given {@link Mqtt5Client}.
+ * Actor responsible for publishing messages to an MQTT 5 broker using the given {@link Mqtt5Client}.
+ *
+ * @since 1.1.0
  */
 public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublishTarget> {
 
@@ -121,7 +123,7 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
             return MqttQos.AT_MOST_ONCE;
         } else {
             final int qos = target.getQos().orElse(DEFAULT_TARGET_QOS);
-            return Mqtt5Validator.getHiveQoS(qos);
+            return AbstractMqttValidator.getHiveQoS(qos);
         }
     }
 
@@ -138,10 +140,12 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
             }
             client.publish(mqttMessage).whenComplete((mqtt5Publish, throwable) -> {
                 if (null == throwable) {
-                    log().debug("Successfully published to message of type <{}> to target address <{}>", mqttMessage.getType(), publishTarget.getTopic());
+                    log().debug("Successfully published to message of type <{}> to target address <{}>",
+                            mqttMessage.getType(), publishTarget.getTopic());
                     publishedMonitor.success(message);
                 } else {
-                    final String logMessage = MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
+                    final String logMessage =
+                            MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
                     log().info(logMessage);
                     publishedMonitor.exception(message, logMessage);
                 }
@@ -156,7 +160,7 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
             final ExternalMessage externalMessage) {
 
         final Charset charset = getCharsetFromMessage(externalMessage);
-        
+
         final ByteBuffer payload;
         if (externalMessage.isTextMessage()) {
             payload = externalMessage
@@ -184,18 +188,18 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
                 .stream()
                 .filter(header -> !MQTT_HEADER_MAPPING.contains(header.getKey()))
                 .forEach(entry -> mqttUserPropertiesBuilder.add(entry.getKey(), entry.getValue()));
-        
+
         final Mqtt5UserProperties userProperties = mqttUserPropertiesBuilder.build();
 
         return Mqtt5Publish.builder()
-            .topic(mqttTarget.getTopic())
-            .qos(qos)
-            .payload(payload)
-            .correlationData(correlationData)
-            .responseTopic(responseTopic)
-            .contentType(contentType)
-            .userProperties(userProperties)
-            .build();
+                .topic(mqttTarget.getTopic())
+                .qos(qos)
+                .payload(payload)
+                .correlationData(correlationData)
+                .responseTopic(responseTopic)
+                .contentType(contentType)
+                .userProperties(userProperties)
+                .build();
     }
 
     private Charset getCharsetFromMessage(final ExternalMessage message) {

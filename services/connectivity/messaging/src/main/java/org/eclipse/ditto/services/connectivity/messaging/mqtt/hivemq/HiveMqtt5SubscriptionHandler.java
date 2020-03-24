@@ -41,7 +41,9 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * Handles subscriptions of MQTT connections.
+ * Handles subscriptions of MQTT 5 connections.
+ *
+ * @since 1.1.0
  */
 final class HiveMqtt5SubscriptionHandler {
 
@@ -74,7 +76,7 @@ final class HiveMqtt5SubscriptionHandler {
         isConnected = false;
     }
 
-    void handleMqttConsumer(final MqttConsumer consumer) {
+    void handleMqttConsumer(final Mqtt5Consumer consumer) {
         consumerActors.put(consumer.getSource(), consumer.getConsumerActor());
         subscribeIfReady();
     }
@@ -186,18 +188,18 @@ final class HiveMqtt5SubscriptionHandler {
     /**
      * Wraps a {@link Source} and the associated consumer actor.
      */
-    static class MqttConsumer {
+    static class Mqtt5Consumer {
 
         private final Source source;
         private final ActorRef consumerActor;
 
-        private MqttConsumer(final Source source, final ActorRef consumerActor) {
+        private Mqtt5Consumer(final Source source, final ActorRef consumerActor) {
             this.consumerActor = consumerActor;
             this.source = source;
         }
 
-        static MqttConsumer of(final Source source, final ActorRef consumerActor) {
-            return new MqttConsumer(source, consumerActor);
+        static Mqtt5Consumer of(final Source source, final ActorRef consumerActor) {
+            return new Mqtt5Consumer(source, consumerActor);
         }
 
         private Source getSource() {

@@ -86,14 +86,14 @@ public final class Mqtt5ValidatorTest {
     }
 
     @Test
-    public void testInvalidClientCount() {
-        final Connection connectionWithInvalidClientCount =
+    public void testClientCountGreaterOneIsPossible() {
+        final Connection connectionWithClientCount2 =
                 connectionWithSource("valid").toBuilder().clientCount(2).build();
-        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithInvalidClientCount);
+        Mqtt5Validator.newInstance().validate(connectionWithClientCount2, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
-    public void testInvalidConsumerCount() {
+    public void testConsumerCountGreaterOneIsPossible() {
         final Source sourceWithInvalidConsumerCount =
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -101,9 +101,9 @@ public final class Mqtt5ValidatorTest {
                         .qos(1)
                         .consumerCount(2)
                         .build();
-        final Connection connectionWithInvalidConsumerCount =
+        final Connection connectionWithConsumerCount2 =
                 connectionWithSource(sourceWithInvalidConsumerCount).toBuilder().clientCount(2).build();
-        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithInvalidConsumerCount);
+        Mqtt5Validator.newInstance().validate(connectionWithConsumerCount2, DittoHeaders.empty(), actorSystem);
     }
 
     @Test

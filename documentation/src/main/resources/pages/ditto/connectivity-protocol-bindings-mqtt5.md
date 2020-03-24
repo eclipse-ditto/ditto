@@ -1,11 +1,11 @@
 ---
 title: MQTT 5 protocol binding
-keywords: binding, protocol, mqtt
+keywords: binding, protocol, mqtt, mqtt5
 tags: [protocol, connectivity]
-permalink: connectivity-protocol-bindings-mqtt.html
+permalink: connectivity-protocol-bindings-mqtt5.html
 ---
 
-Consume messages from MQTT brokers via [sources](#source-format) and send messages to MQTT brokers via 
+Consume messages from MQTT 5 brokers via [sources](#source-format) and send messages to MQTT 5 brokers via 
 [targets](#target-format).
 
 ## Content-type
@@ -43,8 +43,7 @@ inbound messages are processed. These subjects may contain placeholders, see
 * The optional field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
   can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
   The default value is `2` (exactly-once).
-  Support of any Quality of Service depends on the external MQTT broker; [AWS IoT][awsiot] for example does not
-  acknowledge subscriptions with `qos=2`.
+  Support of any Quality of Service depends on the external MQTT broker
 
 ```json
 {
@@ -182,5 +181,3 @@ Here is an example MQTT connection that checks the broker certificate and authen
   ]
 }
 ```
-
-[awsiot]: https://docs.aws.amazon.com/iot/

@@ -48,7 +48,9 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * Actor which receives message from an MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
+ * Actor which receives message from an MQTT 5 broker and forwards them to a {@code MessageMappingProcessorActor}.
+ *
+ * @since 1.1.0
  */
 public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
 
@@ -64,14 +66,13 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
     @SuppressWarnings("unused")
     private HiveMqtt5ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source, final boolean dryRun) {
-        super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor,
-                source);
+        super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor, source);
         this.dryRun = dryRun;
         this.payloadMapping = source.getPayloadMapping();
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         if (enforcement != null &&
                 enforcement.getInput().contains(ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)) {
-            topicEnforcementFilterFactory =  EnforcementFactoryFactory
+            topicEnforcementFilterFactory = EnforcementFactoryFactory
                     .newEnforcementFilterFactory(enforcement, ConnectivityModelFactory.newSourceAddressPlaceholder());
             headerEnforcementFilterFactory = null;
         } else {
@@ -128,7 +129,7 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
             final String textPayload = ByteBufferUtils.toUtf8String(payload);
             final String topic = message.getTopic().toString();
             log.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
-            
+
             headers = extractHeadersMapFromMqttMessage(message);
 
             final Map<String, String> headerMappingMap = new HashMap<>(source.getHeaderMapping()
@@ -173,10 +174,10 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
 
     private HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt5Publish message) {
         final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
-        
+
         final String topic = message.getTopic().toString();
         headersFromMqttMessage.put(MQTT_TOPIC_HEADER, topic);
-        
+
         message.getCorrelationData().ifPresent(correlationData -> {
             final String correlationId = ByteBufferUtils.toUtf8String(correlationData);
             headersFromMqttMessage.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId);
@@ -188,7 +189,7 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
         });
 
         message.getContentType().ifPresent(contentType ->
-            headersFromMqttMessage.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType.toString())
+                headersFromMqttMessage.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType.toString())
         );
 
         message.getUserProperties().asList().forEach(
