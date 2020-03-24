@@ -322,6 +322,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         OptionalInt.empty()
                                 );
                             })
+                            .recoverWithRetries(1, new PFBuilder<Throwable, Source<ServerSentEvent, NotUsed>>()
+                                    .match(DittoRuntimeException.class, dittoRuntimeException -> Source.single(
+                                            ServerSentEvent.create(dittoRuntimeException.toJsonString())
+                                    ))
+                                    .build())
                             .log("SSE " + PATH_SEARCH)
                             .via(eventSniffer.toAsyncFlow(ctx.getRequest()));
                 });

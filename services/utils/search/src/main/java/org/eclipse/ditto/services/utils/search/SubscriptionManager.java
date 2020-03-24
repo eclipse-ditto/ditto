@@ -194,7 +194,6 @@ public final class SubscriptionManager extends AbstractActor {
             final SearchSource searchSource = SearchSource.newBuilder()
                     .pubSubMediator(pubSubMediator)
                     .conciergeForwarder(conciergeForwarder)
-                    .maxRetries(maxRetries)
                     .namespaces(namespaces)
                     .filter(createSubscription.getFilter().orElse(null))
                     .fields(createSubscription.getSelectedFields().orElse(null))

@@ -82,7 +82,7 @@ public final class SearchSourceTest {
 
     @Test
     public void emptyStream() {
-        startTestSearchSource(0, null, null);
+        startTestSearchSource(null, null);
         sinkProbe.request(1L);
         conciergeForwarderProbe.expectMsg(streamThings(null));
         conciergeForwarderProbe.reply(materializeSourceProbe());
@@ -95,7 +95,7 @@ public final class SearchSourceTest {
     public void nonemptyStreamWithPartialDissync() {
         final JsonFieldSelector fields =
                 JsonFieldSelector.newInstance("thingId", "_revision", "_modified");
-        startTestSearchSource(0, fields, null);
+        startTestSearchSource(fields, null);
         sinkProbe.request(200L);
         conciergeForwarderProbe.expectMsg(streamThings(null));
         conciergeForwarderProbe.reply(materializeSourceProbe());
@@ -121,7 +121,7 @@ public final class SearchSourceTest {
     @Test
     public void resumeAtStart() {
         final JsonArray sortValues = JsonArray.of(997, "t:3");
-        startTestSearchSource(0, null, sortValues);
+        startTestSearchSource(null, sortValues);
         sinkProbe.request(200L);
         conciergeForwarderProbe.expectMsg(streamThings(sortValues));
         conciergeForwarderProbe.reply(materializeSourceProbe());
@@ -135,7 +135,7 @@ public final class SearchSourceTest {
 
     @Test
     public void cursorDeleted() {
-        startTestSearchSource(1, null, null);
+        startTestSearchSource(null, null);
         sinkProbe.request(200L);
         conciergeForwarderProbe.expectMsg(streamThings(null));
         conciergeForwarderProbe.reply(materializeSourceProbe());
@@ -167,7 +167,7 @@ public final class SearchSourceTest {
 
     @Test
     public void askTimeoutDuringResumption() {
-        startTestSearchSource(2, null, null);
+        startTestSearchSource(null, null);
         sinkProbe.request(200L);
         conciergeForwarderProbe.expectMsg(streamThings(null));
         conciergeForwarderProbe.reply(materializeSourceProbe());
@@ -181,17 +181,9 @@ public final class SearchSourceTest {
 
         // WHEN: thing ID source failed and cursor computation failed
         sourceProbe.sendError(new IllegalStateException("Mock SourceRef error"));
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", SORT_FIELDS));
-        conciergeForwarderProbe.reply(new AskTimeoutException("Mock ask-timeout"));
 
-        // THEN: cursor computation is retried
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", SORT_FIELDS));
-        conciergeForwarderProbe.reply(retrieveThingResponse(3));
-        conciergeForwarderProbe.expectMsg(streamThings(JsonArray.of(997, "t:3")));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
-        sourceProbe.expectRequest();
-        sourceProbe.sendComplete();
-        sinkProbe.expectComplete();
+        // THEN: source failed
+        sinkProbe.expectError();
     }
 
     private Thing getThing(final int i) {
@@ -222,8 +214,7 @@ public final class SearchSourceTest {
         return StreamThings.of(null, null, SORT, sortValues, dittoHeaders);
     }
 
-    private void startTestSearchSource(final int maxRestarts,
-            @Nullable final JsonFieldSelector fields,
+    private void startTestSearchSource(@Nullable final JsonFieldSelector fields,
             @Nullable final JsonArray sortValues) {
         final SearchSource underTest = SearchSource.newBuilder()
                 .pubSubMediator(pubSubMediatorProbe.ref())
@@ -236,7 +227,7 @@ public final class SearchSourceTest {
                 .sortValues(sortValues)
                 .dittoHeaders(dittoHeaders)
                 .build();
-        sinkProbe = underTest.start(Duration.ZERO, Duration.ZERO, maxRestarts, Duration.ofHours(1L))
+        sinkProbe = underTest.start()
                 .map(Object.class::cast)
                 .runWith(TestSink.probe(actorSystem), materializer);
     }

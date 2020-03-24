@@ -63,10 +63,6 @@ public final class SearchSourceBuilder {
     private DittoHeaders dittoHeaders;
     private Duration thingsAskTimeout = Duration.ofSeconds(10L);
     private Duration searchAskTimeout = Duration.ofSeconds(60L);
-    private Duration minBackoff = Duration.ofSeconds(1L);
-    private Duration maxBackoff = Duration.ofSeconds(30L);
-    private int maxRetries = 5; // failure message after 32s on back-end error
-    private Duration recovery = Duration.ofSeconds(90L);
     private String lastThingId = "";
 
     /**
@@ -83,7 +79,7 @@ public final class SearchSourceBuilder {
         final StreamThings streamThings = constructStreamThings();
         validate(streamThings);
         return new SearchSource(pubSubMediator, conciergeForwarder, thingsAskTimeout, searchAskTimeout, fields,
-                sortFields, streamThings, minBackoff, maxBackoff, maxRetries, recovery, lastThingId);
+                sortFields, streamThings, lastThingId);
     }
 
     /**
@@ -259,50 +255,6 @@ public final class SearchSourceBuilder {
      */
     public SearchSourceBuilder searchAskTimeout(final Duration searchAskTimeout) {
         this.searchAskTimeout = searchAskTimeout;
-        return this;
-    }
-
-    /**
-     * Set the minimum backoff after failure.
-     *
-     * @param minBackoff the minimum backoff.
-     * @return this builder.
-     */
-    public SearchSourceBuilder minBackoff(final Duration minBackoff) {
-        this.minBackoff = minBackoff;
-        return this;
-    }
-
-    /**
-     * Set the maximum backoff after failure.
-     *
-     * @param maxBackoff the maximum backoff.
-     * @return this builder.
-     */
-    public SearchSourceBuilder maxBackoff(final Duration maxBackoff) {
-        this.maxBackoff = maxBackoff;
-        return this;
-    }
-
-    /**
-     * Set the maximum number of retries after failure.
-     *
-     * @param maxRetries the maximum number of retries.
-     * @return this builder.
-     */
-    public SearchSourceBuilder maxRetries(final int maxRetries) {
-        this.maxRetries = maxRetries;
-        return this;
-    }
-
-    /**
-     * Set the time needed to run without errors before resetting backoff and retry counter.
-     *
-     * @param recovery the recovery period.
-     * @return this builder.
-     */
-    public SearchSourceBuilder recovery(final Duration recovery) {
-        this.recovery = recovery;
         return this;
     }
 

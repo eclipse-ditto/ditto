@@ -138,9 +138,15 @@ public final class CancelSubscription extends AbstractCommand<CancelSubscription
                 ']';
     }
 
-    private static final class JsonFields {
+    /**
+     * Json fields of this command.
+     */
+    public static final class JsonFields {
 
-        private static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
+        /**
+         * JSON field for the subscription ID. Should be equal to {@code SubscriptionEvent.JsonFields.SUBSCRIPTION_ID}.
+         */
+        public static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
                 JsonFactory.newStringFieldDefinition("subscriptionId");
 
     }

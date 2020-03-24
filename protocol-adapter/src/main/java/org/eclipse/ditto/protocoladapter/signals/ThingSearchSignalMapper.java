@@ -124,24 +124,20 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
 
         if (command instanceof CreateSubscription) {
             CreateSubscription createCommand = (CreateSubscription) command;
-            if (createCommand.getSelectedFields().isPresent()) {
-                payloadBuilder.withFields(createCommand.getSelectedFields().orElse(null));
-            }
-            if (createCommand.getFilter().isPresent()) {
-                payloadContentBuilder.set("filter", createCommand.getFilter().orElse(null));
-            }
-            if (createCommand.getOptions().isPresent()) {
-                payloadContentBuilder.set("options", createCommand.getOptions().orElse(null));
-            }
+            createCommand.getSelectedFields().ifPresent(payloadBuilder::withFields);
+            createCommand.getFilter()
+                    .ifPresent(filter -> payloadContentBuilder.set(CreateSubscription.JsonFields.FILTER, filter));
+            createCommand.getOptions()
+                    .ifPresent(options -> payloadContentBuilder.set(CreateSubscription.JsonFields.OPTIONS, options));
         } else if (command instanceof CancelSubscription) {
-            CancelSubscription cancelCommand = (CancelSubscription) command;
-            payloadContentBuilder.set("subscriptionId", cancelCommand.getSubscriptionId());
+            final CancelSubscription cancelCommand = (CancelSubscription) command;
+            payloadContentBuilder.set(CancelSubscription.JsonFields.SUBSCRIPTION_ID, cancelCommand.getSubscriptionId());
 
         } else if (command instanceof RequestSubscription) {
-            RequestSubscription requestCommand = (RequestSubscription) command;
+            final RequestSubscription requestCommand = (RequestSubscription) command;
             payloadContentBuilder
-                    .set("subscriptionId", requestCommand.getSubscriptionId())
-                    .set("demand", requestCommand.getDemand());
+                    .set(RequestSubscription.JsonFields.SUBSCRIPTION_ID, requestCommand.getSubscriptionId())
+                    .set(RequestSubscription.JsonFields.DEMAND, requestCommand.getDemand());
         } else {
             throw UnknownCommandException.newBuilder(command.getClass().toString()).build();
         }

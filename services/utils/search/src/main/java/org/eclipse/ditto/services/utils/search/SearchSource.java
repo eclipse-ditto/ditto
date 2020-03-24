@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.search;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -27,7 +26,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -58,10 +56,6 @@ public final class SearchSource {
     @Nullable private final JsonFieldSelector fields;
     private final JsonFieldSelector sortFields;
     private final StreamThings streamThings;
-    private final Duration minBackoff;
-    private final Duration maxBackoff;
-    private final int maxRetries;
-    private final Duration recovery;
     private final boolean thingIdOnly;
     private final String lastThingId;
 
@@ -72,10 +66,6 @@ public final class SearchSource {
             @Nullable final JsonFieldSelector fields,
             final JsonFieldSelector sortFields,
             final StreamThings streamThings,
-            final Duration minBackoff,
-            final Duration maxBackoff,
-            final int maxRetries,
-            final Duration recovery,
             final String lastThingId) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
@@ -84,10 +74,6 @@ public final class SearchSource {
         this.fields = fields;
         this.sortFields = sortFields;
         this.streamThings = streamThings;
-        this.minBackoff = minBackoff;
-        this.maxBackoff = maxBackoff;
-        this.maxRetries = maxRetries;
-        this.recovery = recovery;
         this.thingIdOnly = fields != null && fields.getSize() == 1 &&
                 fields.getPointers().contains(Thing.JsonFields.ID.getPointer());
         this.lastThingId = lastThingId;
@@ -103,29 +89,13 @@ public final class SearchSource {
     }
 
     /**
-     * Start a robust source of search results.
+     * Start a source of search results.
      *
-     * @return the robust source of search results.
+     * @return the source of search results.
      */
     public Source<JsonObject, NotUsed> start() {
-        return start(minBackoff, maxBackoff, maxRetries, recovery);
-    }
 
-    /**
-     * Start a robust source of search results.
-     *
-     * @param minBackoff minimum backoff after a failure.
-     * @param maxBackoff maximum backoff after a failure.
-     * @param maxRetries how many retries to make before signaling failure downstream.
-     * @param recovery interval between failures to reset backoff and retry counter.
-     * @return the robust source of search results.
-     */
-    public Source<JsonObject, NotUsed> start(final Duration minBackoff,
-            final Duration maxBackoff,
-            final int maxRetries,
-            final Duration recovery) {
-
-        return startAsPair(minBackoff, maxBackoff, maxRetries, recovery).map(Pair::second);
+        return startAsPair().map(Pair::second);
     }
 
     /**
@@ -134,29 +104,7 @@ public final class SearchSource {
      * @return source of pair of ID-result pairs where the ID can be used for resumption.
      */
     public Source<Pair<String, JsonObject>, NotUsed> startAsPair() {
-        return startAsPair(minBackoff, maxBackoff, maxRetries, recovery);
-    }
-
-    private Source<Pair<String, JsonObject>, NotUsed> startAsPair(final Duration minBackoff,
-            final Duration maxBackoff,
-            final int maxRetries,
-            final Duration recovery) {
-        return ResumeSource.onFailureWithBackoff(
-                minBackoff,
-                maxBackoff,
-                maxRetries,
-                recovery,
-                lastThingId,
-                this::resume,
-                1,
-                this::nextSeed
-        );
-    }
-
-    private String nextSeed(final List<Pair<String, JsonObject>> finalElements) {
-        return finalElements.isEmpty()
-                ? ""
-                : finalElements.get(finalElements.size() - 1).first();
+        return resume(lastThingId);
     }
 
     private Source<Pair<String, JsonObject>, NotUsed> resume(final String lastThingId) {
