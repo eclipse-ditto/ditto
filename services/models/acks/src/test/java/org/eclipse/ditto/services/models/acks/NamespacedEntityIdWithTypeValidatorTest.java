@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator.NamespacedEntityIdWithTypeValidator;
 import org.junit.Test;
 
 /**
