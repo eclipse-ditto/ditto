@@ -33,8 +33,8 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import akka.actor.AbstractActorWithStash;
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.japi.pf.ReceiveBuilder;
@@ -48,6 +48,11 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
      * A slight delay of completion, since it happens before all "onNext" calls are complete.
      */
     private static final Duration COMPLETION_DELAY = Duration.ofMillis(100L);
+
+    /**
+     * Live on as zombie for a while to prevent timeout at client side
+     */
+    private static final Duration ZOMBIE_LIFETIME = Duration.ofSeconds(10L);
 
     private final DittoDiagnosticLoggingAdapter log;
 
@@ -105,16 +110,37 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
                 .build();
     }
 
+    private Receive createZombieBehavior() {
+        return ReceiveBuilder.create()
+                .match(RequestSubscription.class, requestSubscription -> {
+                    log.withCorrelationId(requestSubscription)
+                            .info("Rejecting RequestSubscription[demand={}] as zombie",
+                                    requestSubscription.getDemand());
+                    final String errorMessage =
+                            "This subscription is considered cancelled. No more messages are processed.";
+                    final SubscriptionFailed subscriptionFailed = SubscriptionFailed.of(
+                            getSubscriptionId(),
+                            SubscriptionProtocolErrorException.newBuilder()
+                                    .message(errorMessage)
+                                    .build(),
+                            requestSubscription.getDittoHeaders()
+                    );
+                    getSender().tell(subscriptionFailed, ActorRef.noSender());
+                })
+                .matchAny(message -> log.info("Ignoring as zombie: <{}>", message))
+                .build();
+    }
+
     private void scheduleSubscriptionComplete(final Control completeFlag) {
         // sometimes complete signal arrives too early. schedule actual completion after a slight delay.
-        final SubscriptionComplete event = SubscriptionComplete.of(getSelf().path().name(), dittoHeaders);
+        final SubscriptionComplete event = SubscriptionComplete.of(getSubscriptionId(), dittoHeaders);
         getTimers().startSingleTimer(completeFlag, event, COMPLETION_DELAY);
     }
 
     private void idleTimeout(final ReceiveTimeout receiveTimeout) {
         // usually a user error
         log.info("Stopping due to idle timeout");
-        final String subscriptionId = getSelf().path().name();
+        final String subscriptionId = getSubscriptionId();
         final SubscriptionTimeoutException error = SubscriptionTimeoutException.of(subscriptionId, dittoHeaders);
         final SubscriptionFailed subscriptionFailed = SubscriptionFailed.of(subscriptionId, error, dittoHeaders);
         if (subscription == null) {
@@ -135,7 +161,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
     }
 
     private SubscriptionCreated getSubscriptionCreated() {
-        return SubscriptionCreated.of(getSelf().path().name(), dittoHeaders);
+        return SubscriptionCreated.of(getSubscriptionId(), dittoHeaders);
     }
 
     private void setSenderAndDittoHeaders(final ThingSearchCommand<?> command) {
@@ -162,12 +188,12 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
             log.withCorrelationId(cancelSubscription).info("Processing <{}>", cancelSubscription);
             setSenderAndDittoHeaders(cancelSubscription);
             subscription.cancel();
-            getContext().stop(getSelf());
+            becomeZombie();
         }
     }
 
     private void subscriptionHasNext(final SubscriptionHasNext event) {
-        log.debug("{}", event);
+        log.debug("Forwarding {}", event);
         sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
 
@@ -179,7 +205,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
         } else {
             log.info("{}", event);
             sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
-            getContext().stop(getSelf());
+            becomeZombie();
         }
     }
 
@@ -192,8 +218,17 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
             // log at INFO level because user errors may cause subscription failure.
             log.withCorrelationId(event).info("{}", event);
             sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
-            getContext().stop(getSelf());
+            becomeZombie();
         }
+    }
+
+    private void becomeZombie() {
+        getTimers().startSingleTimer(PoisonPill.getInstance(), PoisonPill.getInstance(), ZOMBIE_LIFETIME);
+        getContext().become(createZombieBehavior());
+    }
+
+    private String getSubscriptionId() {
+        return getSelf().path().name();
     }
 
     private static final class SubscriberOps implements Subscriber<JsonArray> {

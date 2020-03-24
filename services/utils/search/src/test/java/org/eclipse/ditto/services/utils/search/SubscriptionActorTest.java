@@ -75,7 +75,6 @@ public final class SubscriptionActorTest {
             final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             connect(underTest, Source.empty(), this);
             expectMsg(SubscriptionComplete.of(underTest.path().name(), DittoHeaders.empty()));
-            expectTerminated(underTest);
         }};
     }
 
@@ -89,7 +88,6 @@ public final class SubscriptionActorTest {
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(2), DittoHeaders.empty()));
             expectMsg(SubscriptionComplete.of(underTest.path().name(), DittoHeaders.empty()));
-            expectTerminated(underTest);
         }};
     }
 
@@ -102,7 +100,6 @@ public final class SubscriptionActorTest {
             underTest.tell(RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             underTest.tell(CancelSubscription.of(subscriptionId, DittoHeaders.empty()), getRef());
-            expectTerminated(underTest);
         }};
     }
 
@@ -116,7 +113,6 @@ public final class SubscriptionActorTest {
                     InvalidRqlExpressionException.fromMessage("mock error", DittoHeaders.empty());
             connect(underTest, Source.failed(error), this);
             expectMsg(SubscriptionFailed.of(underTest.path().name(), error, DittoHeaders.empty()));
-            expectTerminated(underTest);
         }};
     }
 
@@ -148,7 +144,6 @@ public final class SubscriptionActorTest {
             connect(underTest, Source.single(JsonArray.of(1)), this);
             final SubscriptionFailed subscriptionFailed = expectMsgClass(SubscriptionFailed.class);
             assertThat(subscriptionFailed.getError().getErrorCode()).isEqualTo(SubscriptionTimeoutException.ERROR_CODE);
-            expectTerminated(underTest);
         }};
     }
 
