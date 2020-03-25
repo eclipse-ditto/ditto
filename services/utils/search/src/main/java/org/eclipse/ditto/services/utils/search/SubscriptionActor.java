@@ -45,11 +45,6 @@ import akka.japi.pf.ReceiveBuilder;
 public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
 
     /**
-     * A slight delay of completion, since it happens before all "onNext" calls are complete.
-     */
-    private static final Duration COMPLETION_DELAY = Duration.ofMillis(100L);
-
-    /**
      * Live on as zombie for a while to prevent timeout at client side
      */
     private static final Duration ZOMBIE_LIFETIME = Duration.ofSeconds(10L);
@@ -105,7 +100,6 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
                 .match(SubscriptionFailed.class, this::subscriptionFailed)
                 .match(Subscription.class, this::onSubscribe)
-                .matchEquals(Control.COMPLETE, this::scheduleSubscriptionComplete)
                 .matchEquals(ReceiveTimeout.getInstance(), this::idleTimeout)
                 .build();
     }
@@ -129,12 +123,6 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
                 })
                 .matchAny(message -> log.info("Ignoring as zombie: <{}>", message))
                 .build();
-    }
-
-    private void scheduleSubscriptionComplete(final Control completeFlag) {
-        // sometimes complete signal arrives too early. schedule actual completion after a slight delay.
-        final SubscriptionComplete event = SubscriptionComplete.of(getSubscriptionId(), dittoHeaders);
-        getTimers().startSingleTimer(completeFlag, event, COMPLETION_DELAY);
     }
 
     private void idleTimeout(final ReceiveTimeout receiveTimeout) {
@@ -270,11 +258,8 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
 
         @Override
         public void onComplete() {
-            subscriptionActor.tell(Control.COMPLETE, ActorRef.noSender());
+            final SubscriptionComplete event = SubscriptionComplete.of(subscriptionId, DittoHeaders.empty());
+            subscriptionActor.tell(event, ActorRef.noSender());
         }
-    }
-
-    private enum Control {
-        COMPLETE
     }
 }
