@@ -147,7 +147,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
             sender.tell(getSubscriptionCreated(), ActorRef.noSender());
         }
         sender.tell(subscriptionFailed, ActorRef.noSender());
-        getContext().stop(getSelf());
+        becomeZombie();
     }
 
     private void onSubscribe(final Subscription subscription) {

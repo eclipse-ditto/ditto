@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.search;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -181,7 +182,7 @@ public final class SubscriptionManager extends AbstractActor {
 
     private void connect(final ActorRef subscriptionActor, final Source<JsonArray, NotUsed> pageSource) {
         final Subscriber<JsonArray> subscriber = SubscriptionActor.asSubscriber(subscriptionActor);
-        pageSource.runWith(Sink.fromSubscriber(subscriber), materializer);
+        lazify(pageSource).runWith(Sink.fromSubscriber(subscriber), materializer);
     }
 
     private Source<JsonArray, NotUsed> getPageSource(final CreateSubscription createSubscription) {
@@ -202,8 +203,7 @@ public final class SubscriptionManager extends AbstractActor {
                     .build();
             return searchSource.start()
                     .grouped(getPageSize(optionString))
-                    .map(JsonArray::of)
-                    .buffer(1, OverflowStrategy.backpressure());
+                    .map(JsonArray::of);
         } catch (final DittoRuntimeException e) {
             return Source.failed(e);
         }
@@ -212,6 +212,18 @@ public final class SubscriptionManager extends AbstractActor {
     private String nextSubscriptionId(final CreateSubscription createSubscription) {
         final String prefix = createSubscription.getPrefix().orElse("");
         return prefix + subscriptionIdCounter++;
+    }
+
+    /**
+     * Make a source that never completes until downstream request.
+     *
+     * @param upstream the source to lazify.
+     * @param <T> the type of elements.
+     * @return the lazified source.
+     */
+    private static <T> Source<T, ?> lazify(final Source<T, ?> upstream) {
+        return Source.from(List.of(upstream, Source.<T, NotUsed>lazily(Source::empty)))
+                .flatMapConcat(source -> source);
     }
 
 }

@@ -87,7 +87,7 @@ public final class SubscriptionManagerTest {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createSubscriptionManager();
             underTest.tell(CreateSubscription.of(null, "size(0)", null, null, DittoHeaders.empty()), getRef());
-            expectMsgClass(SubscriptionCreated.class);
+            underTest.tell(request(expectMsgClass(SubscriptionCreated.class).getSubscriptionId()), getRef());
             expectMsgClass(SubscriptionFailed.class);
         }};
     }
@@ -136,6 +136,13 @@ public final class SubscriptionManagerTest {
                 Source.from(List.of("t:3", "t:4")),
                 Source.failed(new AskTimeoutException("mock error"))
         );
+
+        underTest.tell(request(sid1), probe1.ref());
+        underTest.tell(request(sid2), probe2.ref());
+        underTest.tell(request(sid3), probe3.ref());
+        underTest.tell(request(sid4), probe4.ref());
+
+        // there should be no upstream request until downstream requests.
         for (int i = 0; i < 4; ++i) {
             final StreamThings streamThings = conciergeForwarderProbe.expectMsgClass(StreamThings.class);
             final ActorRef sender = conciergeForwarderProbe.sender();
@@ -143,11 +150,6 @@ public final class SubscriptionManagerTest {
                     .runWith(StreamRefs.sourceRef(), materializer)
                     .thenAccept(sourceRef -> sender.tell(sourceRef, ActorRef.noSender()));
         }
-
-        underTest.tell(request(sid1), probe1.ref());
-        underTest.tell(request(sid2), probe2.ref());
-        underTest.tell(request(sid3), probe3.ref());
-        underTest.tell(request(sid4), probe4.ref());
 
         probe1.expectMsg(hasNext(sid1, "t:1"));
         probe1.expectMsg(subscriptionComplete(sid1));
