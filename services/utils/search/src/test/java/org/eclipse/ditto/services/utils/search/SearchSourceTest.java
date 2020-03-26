@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Keep;
@@ -53,7 +52,6 @@ import akka.testkit.javadsl.TestKit;
 public final class SearchSourceTest {
 
     private static final String SORT = "sort(+/attributes/counter,+/thingId)";
-    private static final JsonFieldSelector SORT_FIELDS = JsonFieldSelector.newInstance("attributes/counter", "thingId");
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
@@ -191,7 +189,6 @@ public final class SearchSourceTest {
                 .searchAskTimeout(Duration.ofSeconds(3L))
                 .fields(fields)
                 .sort(SORT)
-                .sortFields(SORT_FIELDS)
                 .sortValues(sortValues)
                 .dittoHeaders(dittoHeaders)
                 .build();

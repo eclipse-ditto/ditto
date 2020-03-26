@@ -46,7 +46,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
-import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -60,11 +59,7 @@ public final class SubscriptionManager extends AbstractActor {
      */
     public static final String ACTOR_NAME = "subscriptionManager";
 
-    // attempt silent recovery from upstream errors for 1 + 2 + 4 + 8 + 16 = 31s by default
-    private static final int DEFAULT_MAX_RETRIES = 5;
-
     private final Duration idleTimeout;
-    private final int maxRetries;
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeForwarder;
     private final ActorMaterializer materializer;
@@ -76,12 +71,10 @@ public final class SubscriptionManager extends AbstractActor {
     private int subscriptionIdCounter = 0;
 
     SubscriptionManager(final Duration idleTimeout,
-            final int maxRetries,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ActorMaterializer materializer) {
         this.idleTimeout = idleTimeout;
-        this.maxRetries = maxRetries;
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.materializer = materializer;
@@ -107,8 +100,7 @@ public final class SubscriptionManager extends AbstractActor {
             final ActorRef conciergeForwarder,
             final ActorMaterializer materializer) {
 
-        return Props.create(SubscriptionManager.class, idleTimeout, DEFAULT_MAX_RETRIES, pubSubMediator,
-                conciergeForwarder, materializer);
+        return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, conciergeForwarder, materializer);
     }
 
     private static JsonArray asJsonArray(final Collection<String> strings) {
@@ -198,7 +190,7 @@ public final class SubscriptionManager extends AbstractActor {
                     .namespaces(namespaces)
                     .filter(createSubscription.getFilter().orElse(null))
                     .fields(createSubscription.getSelectedFields().orElse(null))
-                    .option(optionString)
+                    .options(optionString)
                     .dittoHeaders(createSubscription.getDittoHeaders())
                     .build();
             return searchSource.start()

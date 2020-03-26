@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.Option;
+import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
@@ -77,9 +78,15 @@ public final class SearchSourceBuilder {
      */
     public SearchSource build() {
         final StreamThings streamThings = constructStreamThings();
-        validate(streamThings);
-        return new SearchSource(pubSubMediator, conciergeForwarder, thingsAskTimeout, searchAskTimeout, fields,
-                sortFields, streamThings, lastThingId);
+        return new SearchSource(
+                checkNotNull(pubSubMediator, "pubSubMediator"),
+                checkNotNull(conciergeForwarder, "conciergeForwarder"),
+                thingsAskTimeout,
+                searchAskTimeout,
+                fields,
+                sortFields,
+                streamThings,
+                lastThingId);
     }
 
     /**
@@ -145,7 +152,7 @@ public final class SearchSourceBuilder {
      * @return this builder.
      */
     public SearchSourceBuilder filter(@Nullable final String filter) {
-        this.filter = filter;
+        this.filter = validateFilter(filter);
         return this;
     }
 
@@ -184,33 +191,22 @@ public final class SearchSourceBuilder {
      * @return this builder.
      */
     public SearchSourceBuilder sort(@Nullable final String sort) {
-        final SortOption sortOption = getEffectiveSortOption(sort);
-        this.sort = sortOptionAsString(sortOption);
-        sortFields = getSortFields(sortOption);
-        return this;
+        return validateAndSetSortOption(getEffectiveSortOption(sort));
     }
 
     /**
      * Set the sort option and sort fields from the value of the options parameter.
      *
-     * @param option options as comma-separated string.
+     * @param options options as comma-separated string.
      * @return this builder.
      */
-    public SearchSourceBuilder option(@Nullable final String option) {
-        final SortOption sortOption = getEffectiveSortOption(option);
-        sort = sortOptionAsString(sortOption);
-        sortFields = getSortFields(sortOption);
-        return this;
+    public SearchSourceBuilder options(@Nullable final String options) {
+        return validateAndSetSortOption(getEffectiveSortOption(options));
     }
 
-    /**
-     * Set the sort fields. Only used for tests. For other users, sort fields are set according to the sort option.
-     *
-     * @param sortFields the sort fields.
-     * @return this builder.
-     */
-    SearchSourceBuilder sortFields(@Nullable final JsonFieldSelector sortFields) {
-        this.sortFields = sortFields;
+    private SearchSourceBuilder validateAndSetSortOption(final SortOption sortOption) {
+        sort = sortOptionAsString(validateSortOption(sortOption));
+        sortFields = getSortFields(sortOption);
         return this;
     }
 
@@ -317,6 +313,7 @@ public final class SearchSourceBuilder {
                     .message("Invalid options: " + optionString)
                     .build();
         }
+        checkForUnsupportedOptions(parsedOptions);
         final List<SortOption> sortOptions = parsedOptions.stream()
                 .flatMap(option -> option instanceof SortOption
                         ? Stream.of((SortOption) option)
@@ -336,31 +333,47 @@ public final class SearchSourceBuilder {
     }
 
     private StreamThings constructStreamThings() {
-        return StreamThings.of(filter, namespaces, sort, sortValues, dittoHeaders);
+        return StreamThings.of(filter, namespaces, sort, sortValues, checkNotNull(dittoHeaders, "dittoHeaders"));
     }
 
-    private void validate(final StreamThings streamThings) {
-        try {
-            streamThings.getFilter().ifPresent(new RqlPredicateParser()::parse);
-        } catch (final ParserException e) {
-            throw InvalidRqlExpressionException.newBuilder()
-                    .message("Invalid filter expression: " + streamThings.getFilter().orElseThrow())
-                    .build();
+    @Nullable
+    private String validateFilter(@Nullable final String filter) {
+        if (filter != null) {
+            try {
+                new RqlPredicateParser().parse(filter);
+            } catch (final ParserException e) {
+                throw InvalidRqlExpressionException.newBuilder()
+                        .message("Invalid filter expression: " + filter)
+                        .build();
+            }
         }
+        return filter;
+    }
+
+    private SortOption validateSortOption(final SortOption sort) {
         // check sort expressions
         try {
-            streamThings.getSort().ifPresent(sort -> {
-                final ThingsFieldExpressionFactory fieldExpressionFactory =
-                        new ModelBasedThingsFieldExpressionFactory();
-                for (final SortOptionEntry entry : getEffectiveSortOption(sort)) {
-                    fieldExpressionFactory.sortBy(entry.getPropertyPath().toString());
-                }
-            });
+            final ThingsFieldExpressionFactory fieldExpressionFactory =
+                    new ModelBasedThingsFieldExpressionFactory();
+            for (final SortOptionEntry entry : sort) {
+                fieldExpressionFactory.sortBy(entry.getPropertyPath().toString());
+            }
         } catch (final IllegalArgumentException e) {
             throw InvalidOptionException.newBuilder()
                     .message(e.getMessage())
                     .description("The sort option is invalid.")
                     .build();
+        }
+        return sort;
+    }
+
+    private static void checkForUnsupportedOptions(final List<Option> options) {
+        for (final Option option : options) {
+            if (!(option instanceof SortOption || option instanceof SizeOption)) {
+                throw InvalidOptionException.newBuilder()
+                        .message("The option " + option + " is not supported at this endpoint.")
+                        .build();
+            }
         }
     }
 }

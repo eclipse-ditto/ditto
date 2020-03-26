@@ -301,7 +301,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .pubSubMediator(pubSubMediator)
                             .conciergeForwarder(proxyActor)
                             .filter(parameters.get(PARAM_FILTER))
-                            .option(parameters.get(PARAM_OPTION))
+                            .options(parameters.get(PARAM_OPTION))
                             .fields(parameters.get(PARAM_FIELDS))
                             .namespaces(parameters.get(PARAM_NAMESPACES))
                             .dittoHeaders(dittoHeaders);

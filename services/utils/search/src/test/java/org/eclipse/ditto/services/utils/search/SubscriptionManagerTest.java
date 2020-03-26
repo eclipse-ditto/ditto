@@ -210,7 +210,7 @@ public final class SubscriptionManagerTest {
      */
     private ActorRef createSubscriptionManager() {
         return actorSystem.actorOf(Props.create(SubscriptionManager.class, () ->
-                new SubscriptionManager(Duration.ofMinutes(5L), 0, pubSubMediatorProbe.ref(),
+                new SubscriptionManager(Duration.ofMinutes(5L), pubSubMediatorProbe.ref(),
                         conciergeForwarderProbe.ref(), materializer))
         );
     }
