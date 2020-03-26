@@ -35,6 +35,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -217,9 +218,27 @@ final class ImmutableAcknowledgements implements Acknowledgements {
             final Acknowledgement soleAcknowledgement = acknowledgements.get(0);
             result = soleAcknowledgement.getEntity();
         } else {
-            result = Optional.of(acknowledgementsToJson(schemaVersion, p -> true));
+            result = Optional.of(acknowledgementsEntitiesToJson(schemaVersion));
         }
         return result;
+    }
+
+    private JsonObject acknowledgementsEntitiesToJson(final JsonSchemaVersion schemaVersion) {
+
+        return stream()
+                .map(ack -> {
+                            final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
+                                    .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt())
+                                    .set(Acknowledgement.JsonFields.PAYLOAD,
+                                            ack.getEntity(schemaVersion).orElse(JsonValue.nullLiteral()));
+                            if (!ack.getDittoHeaders().isEmpty()) {
+                                jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS,
+                                        ack.getDittoHeaders().toJson());
+                            }
+                            return JsonField.newInstance(ack.getLabel(), jsonObjectBuilder.build());
+                        }
+                )
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     private JsonObject acknowledgementsToJson(final JsonSchemaVersion schemaVersion,

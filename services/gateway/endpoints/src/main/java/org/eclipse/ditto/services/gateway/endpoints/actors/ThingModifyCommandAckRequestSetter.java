@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -71,7 +72,9 @@ final class ThingModifyCommandAckRequestSetter implements UnaryOperator<Command<
     private static Command<?> requestDittoPersistedAckIfNoOtherAcksAreRequested(final Command<?> command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
-        if (acknowledgementRequests.isEmpty()) {
+        final boolean requestedAcksHeaderPresent =
+                dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
+        if (acknowledgementRequests.isEmpty() && !requestedAcksHeaderPresent) {
             acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED));
             return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
                     .acknowledgementRequests(acknowledgementRequests)

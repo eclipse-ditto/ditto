@@ -71,6 +71,7 @@ public final class ThingModifyCommandAckRequestSetterTest {
     public void doNothingIfNoResponseRequired() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .responseRequired(false)
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);

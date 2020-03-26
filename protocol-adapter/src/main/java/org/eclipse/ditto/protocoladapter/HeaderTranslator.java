@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -28,7 +29,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
 /**
@@ -85,18 +85,18 @@ public final class HeaderTranslator {
      * @return Ditto headers initialized with values from external headers.
      * @throws NullPointerException if {@code externalHeaders} is {@code null}.
      */
-    public DittoHeaders fromExternalHeaders(final Map<String, String> externalHeaders) {
+    public Map<String, String> fromExternalHeaders(final Map<String, String> externalHeaders) {
         checkNotNull(externalHeaders, "externalHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.fromExternalHeadersFilter(headerDefinitions);
-        final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder();
+        final Map<String, String> map = new LinkedHashMap<>();
         externalHeaders.forEach((externalKey, value) -> {
             final String key = externalKey.toLowerCase();
             final String filteredValue = headerEntryFilter.apply(key, value);
             if (null != filteredValue) {
-                builder.putHeader(key, filteredValue);
+                map.put(key, filteredValue);
             }
         });
-        return builder.build();
+        return map;
     }
 
     /**

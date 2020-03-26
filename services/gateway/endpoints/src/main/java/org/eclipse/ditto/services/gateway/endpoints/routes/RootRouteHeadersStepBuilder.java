@@ -110,18 +110,19 @@ final class RootRouteHeadersStepBuilder {
          * Sets the RequestContext that provides the original request headers which will be put to the eventual
          * DittoHeaders.
          *
-         * @param requestContext the request headers to be set after header keys are converted to lower-case.
+         * @param requestContext the request context containing request headers to be set after header keys are
+         * converted to lower-case.
          * @return the next builder step.
          * @throws NullPointerException if {@code requestContext} is {@code null}.
          * @throws GatewayDuplicateHeaderException if a collision of header keys occurred.
          */
         RootRouteHeadersStepBuilder.QueryParametersStep withRequestContext(final RequestContext requestContext) {
             checkNotNull(requestContext, "requestContext");
-            final DittoHeaders filteredExternalHeaders = getFilteredExternalHeaders(requestContext.getRequest());
+            final Map<String, String> filteredExternalHeaders = getFilteredExternalHeaders(requestContext.getRequest());
             return new QueryParametersStep(dittoHeadersBuilder, requestContext, filteredExternalHeaders);
         }
 
-        private DittoHeaders getFilteredExternalHeaders(final HttpMessage httpRequest) {
+        private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest) {
             final Iterable<HttpHeader> headers = httpRequest.getHeaders();
             final Map<String, String> externalHeaders = StreamSupport.stream(headers.spliterator(), false)
                     .collect(Collectors.toMap(HttpHeader::lowercaseName, HttpHeader::value, (dv1, dv2) -> {
@@ -142,11 +143,11 @@ final class RootRouteHeadersStepBuilder {
 
         private final DittoHeadersBuilder dittoHeadersBuilder;
         private final RequestContext requestContext;
-        private final DittoHeaders filteredExternalHeaders;
+        private final Map<String, String> filteredExternalHeaders;
 
         private QueryParametersStep(final DittoHeadersBuilder dittoHeadersBuilder,
                 final RequestContext requestContext,
-                final DittoHeaders filteredExternalHeaders) {
+                final Map<String, String> filteredExternalHeaders) {
 
             this.dittoHeadersBuilder = dittoHeadersBuilder;
             this.requestContext = requestContext;
@@ -165,7 +166,8 @@ final class RootRouteHeadersStepBuilder {
          */
         RootRouteHeadersStepBuilder.BuildStep withQueryParameters(final Map<String, String> queryParameters) {
             checkNotNull(queryParameters, "queryParameters");
-            final Map<String, String> headersFromQueryParameters = queryParamsToHeaders.apply(queryParameters);
+            final Map<String, String> externalQueryParams = headerTranslator.fromExternalHeaders(queryParameters);
+            final Map<String, String> headersFromQueryParameters = queryParamsToHeaders.apply(externalQueryParams);
             avoidConflictingHeaders(headersFromQueryParameters);
             dittoHeadersBuilder.putHeaders(filteredExternalHeaders);
             dittoHeadersBuilder.putHeaders(headersFromQueryParameters);

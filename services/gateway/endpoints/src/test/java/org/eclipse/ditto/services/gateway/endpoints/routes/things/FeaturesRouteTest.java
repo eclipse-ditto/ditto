@@ -71,7 +71,8 @@ public final class FeaturesRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName())
+                .build();
 
         featuresRoute = new FeaturesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
                 messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());

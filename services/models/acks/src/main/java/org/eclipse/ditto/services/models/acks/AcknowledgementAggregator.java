@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 /**
@@ -50,14 +52,18 @@ public final class AcknowledgementAggregator {
     private final AbstractEntityIdValidator<?> entityIdValidator;
     private final CharSequence correlationId;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
+    private final Duration timeout;
 
-    private AcknowledgementAggregator(final EntityIdWithType entityId, final AbstractEntityIdValidator<?> entityIdValidator,
-            final CharSequence correlationId) {
+    private AcknowledgementAggregator(final EntityIdWithType entityId,
+            final AbstractEntityIdValidator<?> entityIdValidator,
+            final CharSequence correlationId,
+            final Duration timeout) {
 
         this.entityId = checkNotNull(entityId, "entityId");
         this.entityIdValidator = entityIdValidator;
         this.correlationId = argumentNotEmpty(correlationId);
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
+        this.timeout = checkNotNull(timeout, "timeout");
     }
 
     /**
@@ -65,14 +71,16 @@ public final class AcknowledgementAggregator {
      *
      * @param entityId the ID of the entity for which acknowledgements should be correlated and aggregated.
      * @param correlationId the ID for correlating acknowledgement requests with acknowledgements.
+     * @param timeout the timeout applied how long to wait for acknowledgements.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final EntityIdWithType entityId,
-            final CharSequence correlationId) {
+            final CharSequence correlationId, final Duration timeout) {
 
-        return new AcknowledgementAggregator(entityId, EntityIdWithTypeValidator.getInstance(entityId), correlationId);
+        return new AcknowledgementAggregator(entityId, EntityIdWithTypeValidator.getInstance(entityId), correlationId,
+                timeout);
     }
 
     /**
@@ -80,15 +88,16 @@ public final class AcknowledgementAggregator {
      *
      * @param entityId the ID of the entity for which acknowledgements should be correlated and aggregated.
      * @param correlationId the ID for correlating acknowledgement requests with acknowledgements.
+     * @param timeout the timeout applied how long to wait for acknowledgements.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final NamespacedEntityIdWithType entityId,
-            final CharSequence correlationId) {
+            final CharSequence correlationId, final Duration timeout) {
 
         return new AcknowledgementAggregator(entityId, NamespacedEntityIdWithTypeValidator.getInstance(entityId),
-                correlationId);
+                correlationId, timeout);
     }
 
     /**
@@ -106,7 +115,11 @@ public final class AcknowledgementAggregator {
     private Acknowledgement getTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
 
         // This Acknowledgement was not actually received, thus it cannot have "real" DittoHeaders.
-        return Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.REQUEST_TIMEOUT, DittoHeaders.empty());
+        return Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.REQUEST_TIMEOUT, DittoHeaders.empty(),
+                AcknowledgementRequestTimeoutException.newBuilder(timeout)
+                        .build()
+                        .toJson()
+        );
     }
 
     /**

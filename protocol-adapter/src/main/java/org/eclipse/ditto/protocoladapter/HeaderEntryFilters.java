@@ -52,6 +52,10 @@ final class HeaderEntryFilters {
         return CheckExternalFilter.shouldWriteToExternal(headerDefinitions);
     }
 
+    private static HeaderEntryFilter readJsonArraysFromHeaders(final Map<String, HeaderDefinition> headerDefinitions) {
+        return ReadJsonArrayHeadersFilter.getInstance(headerDefinitions);
+    }
+
     private static HeaderEntryFilter discardDittoAckRequests() {
         return DittoAckRequestsFilter.getInstance();
     }
@@ -67,7 +71,8 @@ final class HeaderEntryFilters {
      * @see HeaderDefinition#shouldReadFromExternalHeaders()
      */
     static HeaderEntryFilter fromExternalHeadersFilter(final Map<String, HeaderDefinition> headerDefinitionMap) {
-        return CheckExternalFilter.shouldReadFromExternal(headerDefinitionMap);
+        return CheckExternalFilter.shouldReadFromExternal(headerDefinitionMap)
+                .andThen(readJsonArraysFromHeaders(headerDefinitionMap));
     }
 
 }

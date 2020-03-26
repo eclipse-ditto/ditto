@@ -20,15 +20,18 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultCommandConfig;
@@ -52,7 +55,7 @@ import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
@@ -75,10 +78,9 @@ import akka.stream.ActorMaterializer;
 public abstract class EndpointTestBase extends JUnitRouteTest {
 
     public static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.of("dummy");
-    public static final String DEFAULT_DUMMY_ENTITY = DEFAULT_DUMMY_ENTITY_JSON.toString();
 
-    private static final Function<Object, Optional<Object>> DUMMY_RESPONSE_PROVIDER =
-            DummyCommandResponse::echo;
+    private static final Function<Object, Optional<Object>> DUMMY_THING_MODIFY_RESPONSE_PROVIDER =
+            DummyThingModifyCommandResponse::echo;
 
     protected static HttpConfig httpConfig;
     protected static HealthCheckConfig healthCheckConfig;
@@ -142,7 +144,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
      * @return the actor
      */
     protected ActorRef createDummyResponseActor() {
-        return system().actorOf(DummyResponseAnswer.props(DUMMY_RESPONSE_PROVIDER));
+        return system().actorOf(DummyResponseAnswer.props(DUMMY_THING_MODIFY_RESPONSE_PROVIDER));
     }
 
     /**
@@ -202,25 +204,32 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
     }
 
-    private static final class DummyCommandResponse extends AbstractCommandResponse<DummyCommandResponse>
-            implements WithEntity<DummyCommandResponse> {
+    private static final class DummyThingModifyCommandResponse
+            extends AbstractCommandResponse<DummyThingModifyCommandResponse>
+            implements ThingModifyCommandResponse<DummyThingModifyCommandResponse> {
 
         private JsonValue dummyEntity = DEFAULT_DUMMY_ENTITY_JSON;
 
-        private DummyCommandResponse(final String responseType, final HttpStatusCode statusCode,
-                final DittoHeaders dittoHeaders) {
+        private DummyThingModifyCommandResponse(final String responseType, final HttpStatusCode statusCode,
+                final DittoHeaders dittoHeaders, @Nullable final JsonValue dummyEntity) {
 
             super(responseType, statusCode, dittoHeaders);
+            if (null != dummyEntity) {
+                this.dummyEntity = dummyEntity;
+            }
         }
 
         private static Optional<Object> echo(final Object m) {
-            final DummyCommandResponse response = new DummyCommandResponse("bumlux",
+            final DittoHeaders dittoHeaders;
+            if (m instanceof WithDittoHeaders) {
+                dittoHeaders = ((WithDittoHeaders) m).getDittoHeaders();
+            } else {
+                dittoHeaders = DittoHeaders.empty();
+            }
+            final DummyThingModifyCommandResponse response = new DummyThingModifyCommandResponse("testonly.response.type",
                     HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
                             .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
-                    DittoHeaders.empty());
-            if (m instanceof Jsonifiable) {
-                response.setEntity(((Jsonifiable) m).toJson());
-            }
+                    dittoHeaders, m instanceof Jsonifiable ? ((Jsonifiable) m).toJson() : null);
             return Optional.of(response);
         }
 
@@ -231,8 +240,8 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
 
         @Override
-        public DummyCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-            return new DummyCommandResponse(getType(), getStatusCode(), dittoHeaders);
+        public DummyThingModifyCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+            return new DummyThingModifyCommandResponse(getType(), getStatusCode(), dittoHeaders, dummyEntity);
         }
 
         @Override
@@ -246,14 +255,8 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
 
         @Override
-        public DummyCommandResponse setEntity(final JsonValue entity) {
-            this.dummyEntity = entity;
-            return this;
-        }
-
-        @Override
-        public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-            return dummyEntity;
+        public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
+            return Optional.of(dummyEntity);
         }
 
         @Override
@@ -262,10 +265,9 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
 
         @Override
-        public EntityId getEntityId() {
-            return null;
+        public ThingId getThingEntityId() {
+            return EndpointTestConstants.KNOWN_THING_ID;
         }
-
     }
 
 }

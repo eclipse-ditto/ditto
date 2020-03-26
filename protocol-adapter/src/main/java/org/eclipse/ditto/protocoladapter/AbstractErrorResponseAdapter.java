@@ -41,8 +41,8 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
 
     @Override
     public T fromAdaptable(final Adaptable adaptable) {
-        final DittoHeaders dittoHeaders =
-                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()));
+        final DittoHeaders dittoHeaders = DittoHeaders.of(
+                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty())));
         final TopicPath topicPath = adaptable.getTopicPath();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()

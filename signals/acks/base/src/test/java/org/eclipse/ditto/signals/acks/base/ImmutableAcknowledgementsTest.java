@@ -60,6 +60,7 @@ public final class ImmutableAcknowledgementsTest {
 
     private static List<Acknowledgement> knownAcknowledgements;
     private static JsonObject knownAcknowledgementsJsonRepresentation;
+    private static JsonObject knownAcknowledgementsGetEntityJsonRepresentation;
     private static JsonObject knownJsonRepresentation;
     private static ImmutableAcknowledgements knownAcknowledgementsWith2Acks;
 
@@ -68,6 +69,16 @@ public final class ImmutableAcknowledgementsTest {
         knownAcknowledgements = Lists.list(KNOWN_ACK_1, KNOWN_ACK_2);
         knownAcknowledgementsJsonRepresentation = knownAcknowledgements.stream()
                 .map(ack -> JsonField.newInstance(ack.getLabel(), ack.toJson()))
+                .collect(JsonCollectors.fieldsToObject());
+
+        knownAcknowledgementsGetEntityJsonRepresentation = knownAcknowledgements.stream()
+                .map(ack -> JsonField.newInstance(ack.getLabel(),
+                        JsonObject.newBuilder()
+                                .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt())
+                                .set(Acknowledgement.JsonFields.PAYLOAD, ack.getEntity().get())
+                                .set(Acknowledgement.JsonFields.DITTO_HEADERS, ack.getDittoHeaders().toJson())
+                                .build())
+                )
                 .collect(JsonCollectors.fieldsToObject());
 
         knownJsonRepresentation = JsonObject.newBuilder()
@@ -143,6 +154,13 @@ public final class ImmutableAcknowledgementsTest {
         final JsonObject actual = knownAcknowledgementsWith2Acks.toJson();
 
         assertThat(actual).isEqualTo(knownJsonRepresentation);
+    }
+
+    @Test
+    public void getEntityReturnsExpected() {
+        final Optional<JsonValue> actual = knownAcknowledgementsWith2Acks.getEntity();
+
+        assertThat(actual).contains(knownAcknowledgementsGetEntityJsonRepresentation);
     }
 
     @Test
@@ -304,7 +322,7 @@ public final class ImmutableAcknowledgementsTest {
     public void getEntityWith2AcksReturnsExpected() {
         final Optional<JsonValue> actual = knownAcknowledgementsWith2Acks.getEntity(JsonSchemaVersion.LATEST);
 
-        assertThat(actual).contains(knownAcknowledgementsJsonRepresentation);
+        assertThat(actual).contains(knownAcknowledgementsGetEntityJsonRepresentation);
     }
 
     @Test

@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -180,8 +179,8 @@ public abstract class AbstractRoute extends AllDirectives {
             return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                     this::validateCommandTimeout,
                     null, // don't set default timeout in order to use the configured akka-http default
-                    () -> doHandlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction,
-                            responseTransformFunction));
+                    timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
+                            requestJsonToCommandFunction, responseTransformFunction));
         }
     }
 
@@ -281,7 +280,7 @@ public abstract class AbstractRoute extends AllDirectives {
     protected Route withCustomRequestTimeout(@Nullable final Duration optionalTimeout,
             final UnaryOperator<Duration> checkTimeoutFunction,
             @Nullable final Duration defaultTimeout,
-            final Supplier<Route> inner) {
+            final java.util.function.Function<Duration, Route> inner) {
 
         @Nullable Duration customRequestTimeout = defaultTimeout;
         if (null != optionalTimeout) {
@@ -289,14 +288,31 @@ public abstract class AbstractRoute extends AllDirectives {
         }
 
         if (null != customRequestTimeout) {
-            // adds 1 second in order to avoid race conditions with internal receiveTimeouts which shall return "408"
-            // in case of message timeouts:
-            final scala.concurrent.duration.Duration akkaHttpRequestTimeout =
-                    scala.concurrent.duration.Duration.create(customRequestTimeout.getSeconds(), TimeUnit.SECONDS)
-                            .plus(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS));
-            return withRequestTimeout(akkaHttpRequestTimeout, inner);
+            return increaseHttpRequestTimeout(inner, customRequestTimeout);
         } else {
-            return inner.get();
+            return extractRequestTimeout(configuredTimeout ->
+                    increaseHttpRequestTimeout(inner, configuredTimeout));
+        }
+    }
+
+    private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
+            final Duration requestTimeout) {
+        return increaseHttpRequestTimeout(inner,
+                scala.concurrent.duration.Duration.create(requestTimeout.toMillis(), TimeUnit.MILLISECONDS));
+    }
+
+    private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
+            final  scala.concurrent.duration.Duration requestTimeout) {
+        if (requestTimeout.isFinite()) {
+            // adds some time in order to avoid race conditions with internal receiveTimeouts which shall return "408"
+            // in case of message timeouts or "424" in case of requested-acks timeouts:
+            final scala.concurrent.duration.Duration akkaHttpRequestTimeout = requestTimeout
+                    .plus(scala.concurrent.duration.Duration.create(2, TimeUnit.SECONDS));
+            return withRequestTimeout(akkaHttpRequestTimeout, () ->
+                    inner.apply(Duration.ofMillis(requestTimeout.toMillis()))
+            );
+        } else {
+            return inner.apply(Duration.ofMillis(Long.MAX_VALUE));
         }
     }
 

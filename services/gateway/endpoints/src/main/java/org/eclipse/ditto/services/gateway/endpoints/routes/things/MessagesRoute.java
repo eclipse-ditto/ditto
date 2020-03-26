@@ -148,13 +148,14 @@ final class MessagesRoute extends AbstractRoute {
                                         withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                                 this::checkClaimTimeout,
                                                 defaultClaimTimeout,
-                                                () ->
+                                                timeout ->
                                                         extractDataBytes(payloadSource ->
                                                                 handleMessage(ctx, payloadSource,
                                                                         buildSendClaimMessage(
                                                                                 ctx,
                                                                                 dittoHeaders,
-                                                                                thingId
+                                                                                thingId,
+                                                                                timeout
                                                                         )
                                                                 )
                                                         )
@@ -182,7 +183,7 @@ final class MessagesRoute extends AbstractRoute {
                                 withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                         this::checkMessageTimeout,
                                         defaultMessageTimeout,
-                                        () ->
+                                        timeout ->
                                                 extractDataBytes(payloadSource ->
                                                         handleMessage(ctx, payloadSource,
                                                                 buildSendThingMessage(
@@ -190,7 +191,8 @@ final class MessagesRoute extends AbstractRoute {
                                                                         ctx,
                                                                         dittoHeaders,
                                                                         thingId,
-                                                                        msgSubject
+                                                                        msgSubject,
+                                                                        timeout
                                                                 )
                                                         )
                                                 )
@@ -222,7 +224,7 @@ final class MessagesRoute extends AbstractRoute {
                                 withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                         this::checkMessageTimeout,
                                         defaultMessageTimeout,
-                                        () ->
+                                        timeout ->
                                                 extractDataBytes(payloadSource ->
                                                         handleMessage(ctx, payloadSource,
                                                                 buildSendFeatureMessage(
@@ -231,7 +233,8 @@ final class MessagesRoute extends AbstractRoute {
                                                                         dittoHeaders,
                                                                         thingId,
                                                                         featureId,
-                                                                        msgSubject
+                                                                        msgSubject,
+                                                                        timeout
                                                                 )
                                                         )
                                                 )
@@ -244,7 +247,8 @@ final class MessagesRoute extends AbstractRoute {
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final ThingId thingId,
-            final String msgSubject) {
+            final String msgSubject,
+            final Duration timeout) {
 
         return payload -> {
             final HttpRequest httpRequest = ctx.getRequest();
@@ -258,7 +262,7 @@ final class MessagesRoute extends AbstractRoute {
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
-            return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
+            return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
 
@@ -267,7 +271,8 @@ final class MessagesRoute extends AbstractRoute {
             final DittoHeaders dittoHeaders,
             final ThingId thingId,
             final String featureId,
-            final String msgSubject) {
+            final String msgSubject,
+            final Duration timeout) {
 
         final HttpRequest httpRequest = ctx.getRequest();
 
@@ -284,7 +289,8 @@ final class MessagesRoute extends AbstractRoute {
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
-            return SendFeatureMessage.of(thingId, featureId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
+            return SendFeatureMessage.of(thingId, featureId, messageBuilder.build(),
+                    enhanceHeaders(dittoHeaders, timeout));
         };
     }
 
@@ -297,7 +303,8 @@ final class MessagesRoute extends AbstractRoute {
 
     private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final ThingId thingId) {
+            final ThingId thingId,
+            final Duration timeout) {
 
         return payload -> {
             final ContentType contentType = ctx.getRequest()
@@ -312,12 +319,15 @@ final class MessagesRoute extends AbstractRoute {
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
-            return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
+            return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
 
-    private static DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.toBuilder().channel(TopicPath.Channel.LIVE.getName()).build();
+    private static DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders, final Duration timeout) {
+        return dittoHeaders.toBuilder()
+                .channel(TopicPath.Channel.LIVE.getName())
+                .timeout(timeout)
+                .build();
     }
 
     private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,

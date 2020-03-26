@@ -54,6 +54,7 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
             final JsonArray originalAckRequestsJsonArray = JsonArray.of(value);
             final JsonArray filteredAckRequestsJsonArray = originalAckRequestsJsonArray.stream()
                     .map(JsonValue::asString)
+                    .filter(string -> !string.isEmpty())
                     .map(AcknowledgementRequest::parseAcknowledgementRequest)
                     .filter(ackRequest -> !isDittoInternal(ackRequest))
                     .map(AcknowledgementRequest::toString)

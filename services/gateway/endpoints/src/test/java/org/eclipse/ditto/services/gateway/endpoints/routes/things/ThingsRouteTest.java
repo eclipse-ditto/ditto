@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
@@ -90,11 +91,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putPolicyIdAssumesJsonContentType() {
-        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/policyId")
+        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
                 .withEntity("hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
-        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/policyId")
+        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
                 .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
                         .withContentType(ContentTypes.TEXT_PLAIN_UTF8)))
                 .entityString();
@@ -103,11 +104,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putDefinitionAssumesJsonContentType() {
-        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
+        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity("hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
-        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
+        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
                         .withContentType(ContentTypes.TEXT_PLAIN_UTF8)))
                 .entityString();
@@ -116,11 +117,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putAndRetrieveNullDefinition() {
-        final String putResult = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
+        final String putResult = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity("null")).entityString();
         assertThat(JsonObject.of(putResult)).contains(JsonKey.of("type"), ModifyThingDefinition.TYPE);
 
-        final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/org.eclipse.ditto%3At1/definition"));
+        final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition"));
         getResult.assertStatusCode(StatusCodes.OK);
     }
 

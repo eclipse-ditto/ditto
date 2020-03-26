@@ -77,7 +77,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         // filter headers by header translator, then inject any missing information from topic path
         final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
         final DittoHeaders filteredHeaders = addTopicPathInfo(
-                headerTranslator.fromExternalHeaders(externalHeaders),
+                DittoHeaders.of(headerTranslator.fromExternalHeaders(externalHeaders)),
                 externalAdaptable.getTopicPath());
 
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.find(type);
