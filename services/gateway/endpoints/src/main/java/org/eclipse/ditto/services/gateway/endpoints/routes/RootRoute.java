@@ -45,7 +45,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -239,36 +238,31 @@ public final class RootRoute extends AllDirectives {
     private Route api(final RequestContext ctx, final String correlationId) {
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                        ContentTypeValidationDirective.ensureValidContentType(correlationId, ctx,
-                                () -> customApiRoutesProvider.unauthorized(apiVersion, correlationId)
-                                        .orElse(
-                                                apiAuthentication(correlationId,
-                                                        authContextWithPrefixedSubjects ->
-                                                                mapAuthorizationContext(
-                                                                        correlationId,
-                                                                        apiVersion,
-                                                                        authContextWithPrefixedSubjects,
-                                                                        authContext ->
-                                                                                parameterOptional(
-                                                                                        TopicPath.Channel.LIVE.getName(),
-                                                                                        liveParam ->
-                                                                                                withDittoHeaders(
-                                                                                                        authContext,
-                                                                                                        apiVersion,
-                                                                                                        correlationId,
-                                                                                                        ctx,
-                                                                                                        liveParam.orElse(
-                                                                                                                null),
-                                                                                                        CustomHeadersHandler.RequestType.API,
-                                                                                                        dittoHeaders ->
-                                                                                                                buildApiSubRoutes(
-                                                                                                                        ctx,
-                                                                                                                        dittoHeaders,
-                                                                                                                        authContext)
-                                                                                                )
+                        customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
+                                apiAuthentication(correlationId,
+                                        authContextWithPrefixedSubjects ->
+                                                mapAuthorizationContext(
+                                                        correlationId,
+                                                        apiVersion,
+                                                        authContextWithPrefixedSubjects,
+                                                        authContext ->
+                                                                parameterOptional(TopicPath.Channel.LIVE.getName(),
+                                                                        liveParam ->
+                                                                                withDittoHeaders(
+                                                                                        authContext,
+                                                                                        apiVersion,
+                                                                                        correlationId,
+                                                                                        ctx,
+                                                                                        liveParam.orElse(null),
+                                                                                        CustomHeadersHandler.RequestType.API,
+                                                                                        dittoHeaders ->
+                                                                                                buildApiSubRoutes(ctx,
+                                                                                                        dittoHeaders,
+                                                                                                        authContext)
                                                                                 )
                                                                 )
-                                                )))
+                                                )
+                                ))
                 )
         );
     }
