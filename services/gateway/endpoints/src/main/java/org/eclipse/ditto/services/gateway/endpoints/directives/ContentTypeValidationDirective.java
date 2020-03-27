@@ -35,7 +35,7 @@
  public final class ContentTypeValidationDirective {
 
      public static final ContentTypeValidationDirective CT_ONLY_APPLICATION_JSON =
-             new ContentTypeValidationDirective(List.of(ContentTypes.APPLICATION_JSON), true);
+             new ContentTypeValidationDirective(List.of(ContentTypes.APPLICATION_JSON), false);
 
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
      private final List<ContentType> allowedContentTypes;
