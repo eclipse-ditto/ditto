@@ -20,14 +20,18 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -49,13 +53,13 @@ public final class AcknowledgementAggregator {
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
     private final EntityIdWithType entityId;
-    private final AbstractEntityIdValidator<?> entityIdValidator;
+    private final EntityIdValidator<?> entityIdValidator;
     private final CharSequence correlationId;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
     private final Duration timeout;
 
     private AcknowledgementAggregator(final EntityIdWithType entityId,
-            final AbstractEntityIdValidator<?> entityIdValidator,
+            final EntityIdValidator<?> entityIdValidator,
             final CharSequence correlationId,
             final Duration timeout) {
 
@@ -244,6 +248,101 @@ public final class AcknowledgementAggregator {
                     final String pattern = "The provided correlation ID <{0}> differs from the expected <{1}>!";
                     throw new IllegalArgumentException(MessageFormat.format(pattern, ci, correlationId));
                 });
+    }
+
+    /**
+     * Abstract base for validating whether given {@code EntityIdWithType} instances are equal to an {@code expected}
+     * instance.
+     *
+     * @param <I> the type of the EntityIdWithType to validate
+     * @since 1.1.0
+     */
+    @Immutable
+    private abstract static class EntityIdValidator<I extends EntityIdWithType> implements Consumer<I> {
+
+        private final I expected;
+
+        /**
+         * Constructs a new EntityIdValidator object.
+         */
+        protected EntityIdValidator(final I expected) {
+            this.expected = checkNotNull(expected, "expected");
+        }
+
+        @Override
+        public void accept(final EntityIdWithType actual) {
+            if (!areEqual(actual, expected)) {
+                final String ptrn = "The received Acknowledgement''s entity ID <{0}> differs from the expected <{1}>!";
+                throw new IllegalArgumentException(MessageFormat.format(ptrn, actual, expected));
+            }
+        }
+
+        /**
+         * Indicates whether the two given entity IDs are regarded as being equal.
+         *
+         * @param actual the entity ID of a received Acknowledgement.
+         * @param expected the entity ID all entity IDs of received Acknowledgements are supposed to be equal to.
+         * @return {@code true} if the given {@code actual} and {@code expected} are regarded as being equal,
+         * {@code false} else.
+         */
+        protected boolean areEqual(final EntityIdWithType actual, final I expected) {
+            return actual.equals(expected);
+        }
+
+    }
+
+    /**
+     * Validator validating {@code EntityIdWithType} instances.
+     *
+     * @since 1.1.0
+     */
+    @Immutable
+    static final class EntityIdWithTypeValidator extends EntityIdValidator<EntityIdWithType> {
+
+        private EntityIdWithTypeValidator(final EntityIdWithType expected) {
+            super(expected);
+        }
+
+        static EntityIdWithTypeValidator getInstance(final EntityIdWithType expected) {
+            return new EntityIdWithTypeValidator(expected);
+        }
+
+    }
+
+    /**
+     * Validator validating {@code NamespacedEntityIdWithType} instances in a way that the {@code namespace} part of the
+     * NamespacedEntityIdWithType may be empty (which can e.g. be the case for "Create Thing" commands where the default
+     * namespace is added at a later step) and only the {@code name} part has to be equal to each other.
+     *
+     * @since 1.1.0
+     */
+    @Immutable
+    static final class NamespacedEntityIdWithTypeValidator extends
+            EntityIdValidator<NamespacedEntityIdWithType> {
+
+        private NamespacedEntityIdWithTypeValidator(final NamespacedEntityIdWithType expected) {
+            super(expected);
+        }
+
+        static NamespacedEntityIdWithTypeValidator getInstance(final NamespacedEntityIdWithType expected) {
+            return new NamespacedEntityIdWithTypeValidator(expected);
+        }
+
+        @Override
+        protected boolean areEqual(final EntityIdWithType actual, final NamespacedEntityIdWithType expected) {
+            return super.areEqual(actual, expected) || areNamesEqual(actual, expected);
+        }
+
+        private static boolean areNamesEqual(final EntityIdWithType actual, final NamespacedEntityId expected) {
+            boolean result = false;
+            if (actual instanceof NamespacedEntityId) {
+                final String expectedNamespace = expected.getNamespace();
+                final String actualName = ((NamespacedEntityId) actual).getName();
+                result = expectedNamespace.isEmpty() && Objects.equals(actualName, expected.getName());
+            }
+            return result;
+        }
+
     }
 
 }

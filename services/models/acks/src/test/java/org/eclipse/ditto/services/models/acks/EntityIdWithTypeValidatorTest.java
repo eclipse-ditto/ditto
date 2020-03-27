@@ -20,8 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator.EntityIdWithTypeValidator;
 import org.junit.Test;
-
 /**
  * Unit test for {@link EntityIdWithTypeValidator}.
  */
