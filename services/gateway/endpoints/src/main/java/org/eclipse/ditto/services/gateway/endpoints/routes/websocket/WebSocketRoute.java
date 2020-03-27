@@ -62,15 +62,13 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
-import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
+import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
@@ -82,7 +80,6 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
@@ -92,7 +89,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.event.EventStream;
 import akka.event.Logging;
 import akka.http.javadsl.model.HttpRequest;
@@ -300,23 +296,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      *             Rate limiter +---------------------->+
      *                  +                               |
      *                  |                               |
-     *                  v                               |
-     *      Filter.multiplexByEither                    |
-     *       +                  +                       |
-     *       |                  |                       |
-     *       v                  |                       |
-     * Control Msg:             |                       |
-     * StreamSessionActor       |                       |
-     *                          |                       |
-     *                          v                       |
-     *                       Signal:                    |
-     *                       CommandSubscriber          |
-     *                                                  |
-     *                                                  |
-     *                  +-------------------------------+
-     *                  |
-     *                  v
-     *         DittoRuntimeException
+     *                  v                               v
+     *            StreamingActor                DittoRuntimeException
      */
     @SuppressWarnings("unchecked")
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final Integer version,
@@ -347,7 +328,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     }));
 
             final SinkShape<Either<StreamControlMessage, Signal>> sink =
-                    builder.add(getStreamControlOrSignalSink(websocketConfig));
+                    builder.add(getStreamControlOrSignalSink());
 
             final UniformFanInShape<DittoRuntimeException, DittoRuntimeException> exceptionMerger =
                     builder.add(Merge.create(2, true));
@@ -362,28 +343,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         }));
     }
 
-    @SuppressWarnings("unchecked")
-    private Graph<SinkShape<Either<StreamControlMessage, Signal>>, NotUsed> getStreamControlOrSignalSink(
-            final WebsocketConfig config) {
+    private Graph<SinkShape<Either<StreamControlMessage, Signal>>, ?> getStreamControlOrSignalSink() {
 
-        return GraphDSL.create(builder -> {
-            final FanOutShape2<Either<StreamControlMessage, Signal>, Signal, StreamControlMessage> multiplexer =
-                    builder.add(Filter.multiplexByEither(java.util.function.Function.identity()));
-            final SinkShape<Signal> signalSink = builder.add(getCommandSubscriberSink(config));
-            final SinkShape<StreamControlMessage> streamControlSink = builder.add(getStreamingActorSink());
-
-            builder.from(multiplexer.out0()).to(signalSink);
-            builder.from(multiplexer.out1()).to(streamControlSink);
-
-            return SinkShape.of(multiplexer.in());
+        return Sink.foreach(either -> {
+            final Object streamControlMessageOrSignal = either.isLeft() ? either.left().get() : either.right().get();
+            streamingActor.tell(streamControlMessageOrSignal, ActorRef.noSender());
         });
-    }
-
-    private Sink<Signal, ActorRef> getCommandSubscriberSink(final WebsocketConfig websocketConfig) {
-        final Props commandSubscriberProps =
-                CommandSubscriber.props(streamingActor, websocketConfig.getSubscriberBackpressureQueueSize(),
-                        eventStream);
-        return Sink.actorSubscriber(commandSubscriberProps);
     }
 
 
@@ -412,11 +377,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         Logging.WarningLevel()));
 
     }
-
-    private Sink<StreamControlMessage, ?> getStreamingActorSink() {
-        return Sink.foreach(streamControlMessage -> streamingActor.tell(streamControlMessage, ActorRef.noSender()));
-    }
-
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
     selectStreamControlOrSignal(
@@ -481,7 +441,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             ActorRef.noSender());
                     return NotUsed.getInstance();
                 })
-                .map(this::publishResponsePublishedEvent)
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,
                                 ex -> {
@@ -536,19 +495,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
                     return FlowShape.of(errors.in(), messages.out());
                 }));
-    }
-
-    private SessionedJsonifiable publishResponsePublishedEvent(final SessionedJsonifiable jsonifiable) {
-        final Jsonifiable.WithPredicate<JsonObject, JsonField> content = jsonifiable.getJsonifiable();
-        if (content instanceof CommandResponse || content instanceof DittoRuntimeException) {
-            // only create ResponsePublished for CommandResponses and DittoRuntimeExceptions
-            // not for Events with the same correlation ID
-            jsonifiable.getDittoHeaders()
-                    .getCorrelationId()
-                    .map(ResponsePublished::new)
-                    .ifPresent(eventStream::publish);
-        }
-        return jsonifiable;
     }
 
     private static <T> Graph<FanOutShape2<Either<T, Signal>, Either<T, Signal>, DittoRuntimeException>, NotUsed>
@@ -666,7 +612,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .error("Signal enrichment failed due to: {}", error.getMessage(), errorToReport);
 
         final JsonifiableAdaptable errorAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable(
+                ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable((Signal<?>)
                         ThingErrorResponse.of(
                                 ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getId()),
                                 errorToReport,
