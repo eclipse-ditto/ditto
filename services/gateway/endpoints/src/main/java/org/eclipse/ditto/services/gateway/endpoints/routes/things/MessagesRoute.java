@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -324,10 +325,16 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     private static DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders, final Duration timeout) {
-        return dittoHeaders.toBuilder()
-                .channel(TopicPath.Channel.LIVE.getName())
-                .timeout(timeout)
-                .build();
+
+        final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
+                .channel(TopicPath.Channel.LIVE.getName());
+        if (timeout.toMillis() % 1000 == 0) {
+            // omit the milliseconds, required for backwards compatibility - not sending the unit along
+            headersBuilder.timeout(String.valueOf(timeout.getSeconds()));
+        } else {
+            headersBuilder.timeout(timeout);
+        }
+        return headersBuilder.build();
     }
 
     private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,
