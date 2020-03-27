@@ -29,7 +29,7 @@ import akka.actor.ActorRef;
 public final class Connect {
 
     private final ActorRef eventAndResponsePublisher;
-    private final String connectionCorrelationId;
+    private final CharSequence connectionCorrelationId;
     private final String type;
     private final JsonSchemaVersion jsonSchemaVersion;
     @Nullable private final Instant sessionExpirationTime;
@@ -43,8 +43,10 @@ public final class Connect {
      * @param jsonSchemaVersion schema version of the request for the streaming session.
      * @param sessionExpirationTime how long to keep the session alive when idling.
      */
-    public Connect(final ActorRef eventAndResponsePublisher, final String connectionCorrelationId,
-            final String type, final JsonSchemaVersion jsonSchemaVersion,
+    public Connect(final ActorRef eventAndResponsePublisher,
+            final CharSequence connectionCorrelationId,
+            final String type,
+            final JsonSchemaVersion jsonSchemaVersion,
             @Nullable final Instant sessionExpirationTime) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.connectionCorrelationId = connectionCorrelationId;
@@ -57,7 +59,7 @@ public final class Connect {
         return eventAndResponsePublisher;
     }
 
-    public String getConnectionCorrelationId() {
+    public CharSequence getConnectionCorrelationId() {
         return connectionCorrelationId;
     }
 

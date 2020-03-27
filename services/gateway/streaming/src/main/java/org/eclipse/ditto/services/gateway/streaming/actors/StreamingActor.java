@@ -126,11 +126,11 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .match(Connect.class, connect -> {
                     final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
                     eventAndResponsePublisher.forward(connect, getContext());
-                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
+                    final CharSequence connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,
                                     streamingConfig.getAcknowledgementConfig()),
-                            connectionCorrelationId);
+                            connectionCorrelationId.toString());
                 })
                 .match(StartStreaming.class,
                         startStreaming -> forwardToSessionActor(startStreaming.getConnectionCorrelationId(),
@@ -219,13 +219,13 @@ public final class StreamingActor extends AbstractActorWithTimers
         });
     }
 
-    private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {
+    private void forwardToSessionActor(final CharSequence connectionCorrelationId, final Object object) {
         if (object instanceof WithDittoHeaders) {
-            logger.setCorrelationId((WithDittoHeaders) object);
+            logger.setCorrelationId((WithDittoHeaders<?>) object);
         }
         logger.debug("Forwarding to session actor '{}': {}", connectionCorrelationId, object);
         logger.discardCorrelationId();
-        getContext().actorSelection(connectionCorrelationId).forward(object, getContext());
+        getContext().actorSelection(connectionCorrelationId.toString()).forward(object, getContext());
     }
 
     private void scheduleScrapeStreamSessionsCounter() {

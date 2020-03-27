@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -107,7 +106,7 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable ack(final StreamingType streamingType, final boolean subscribed,
-            final String connectionCorrelationId) {
+            final CharSequence connectionCorrelationId) {
         return new SessionedResponseErrorOrAck(
                 new StreamingAck(streamingType, subscribed),
                 DittoHeaders.newBuilder().correlationId(connectionCorrelationId).build()

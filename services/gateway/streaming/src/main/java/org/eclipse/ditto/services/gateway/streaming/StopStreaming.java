@@ -28,7 +28,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 public final class StopStreaming implements StreamControlMessage {
 
     private final StreamingType streamingType;
-    private final String connectionCorrelationId;
+    private final CharSequence connectionCorrelationId;
 
     /**
      * Constructs a new {@code StopStreaming} object.
@@ -37,7 +37,7 @@ public final class StopStreaming implements StreamControlMessage {
      * @param connectionCorrelationId the correlation ID of the connection/session.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public StopStreaming(final StreamingType streamingType, final String connectionCorrelationId) {
+    public StopStreaming(final StreamingType streamingType, final CharSequence connectionCorrelationId) {
         this.streamingType = checkNotNull(streamingType, "streamingType");
         this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId");
     }
@@ -49,7 +49,7 @@ public final class StopStreaming implements StreamControlMessage {
         return streamingType;
     }
 
-    public String getConnectionCorrelationId() {
+    public CharSequence getConnectionCorrelationId() {
         return connectionCorrelationId;
     }
 

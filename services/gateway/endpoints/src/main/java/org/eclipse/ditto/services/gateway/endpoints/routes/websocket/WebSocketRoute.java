@@ -64,6 +64,7 @@ import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
+import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
 import org.eclipse.ditto.services.gateway.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
@@ -79,8 +80,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
@@ -251,13 +250,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
             final JsonSchemaVersion version,
-            final String connectionCorrelationId,
+            final String requestCorrelationId,
             final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
         @Nullable final SignalEnrichmentFacade signalEnrichmentFacade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
+
+        final StreamingSessionIdentifier connectionCorrelationId =
+                StreamingSessionIdentifier.of(requestCorrelationId, UUID.randomUUID().toString());
 
         final AuthorizationContext authContext = dittoHeaders.getAuthorizationContext();
         LOGGER.withCorrelationId(connectionCorrelationId)
@@ -316,7 +318,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      */
     @SuppressWarnings("unchecked")
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final JsonSchemaVersion version,
-            final String connectionCorrelationId,
+            final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
@@ -381,7 +383,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return Sink.actorSubscriber(commandSubscriberProps);
     }
 
-    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request, final String correlationId) {
+    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request,
+            final CharSequence correlationId) {
         return Flow.<Message>create()
                 .via(Flow.fromFunction(msg -> {
                     IN_COUNTER.increment();
@@ -414,7 +417,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
     selectStreamControlOrSignal(
             final JsonSchemaVersion version,
-            final String connectionCorrelationId,
+            final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
@@ -451,7 +454,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
             final JsonSchemaVersion version,
-            final String connectionCorrelationId,
+            final CharSequence connectionCorrelationId,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,

@@ -64,7 +64,7 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
         // Initially, this Actor can only receive the Connect message:
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
+                    final CharSequence connectionCorrelationId = connect.getConnectionCorrelationId();
                     logger.withCorrelationId(connectionCorrelationId).debug("Established new connection: {}",
                             connectionCorrelationId);
                     getContext().become(connected(connectionCorrelationId));
@@ -75,7 +75,7 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
                 }).build();
     }
 
-    private Receive connected(final String connectionCorrelationId) {
+    private Receive connected(final CharSequence connectionCorrelationId) {
         unstashAll();
 
         return ReceiveBuilder.create()
@@ -103,10 +103,8 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
                     deliverBuf();
                 })
                 .match(ActorPublisherMessage.Cancel.class, cancel -> getContext().stop(getSelf()))
-                .matchAny(any -> {
-                    logger.withCorrelationId(connectionCorrelationId)
-                            .warning("Got unknown message during connected phase: '{}'", any);
-                })
+                .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
+                        .warning("Got unknown message during connected phase: '{}'", any))
                 .build();
     }
 

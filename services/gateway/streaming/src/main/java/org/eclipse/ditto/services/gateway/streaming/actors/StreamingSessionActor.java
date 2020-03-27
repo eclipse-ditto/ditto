@@ -73,7 +73,7 @@ import scala.concurrent.duration.FiniteDuration;
 final class StreamingSessionActor extends AbstractActor {
 
     private final JsonSchemaVersion jsonSchemaVersion;
-    private final String connectionCorrelationId;
+    private final CharSequence connectionCorrelationId;
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;

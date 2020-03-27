@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.streaming;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 public final class StartStreaming implements StreamControlMessage {
 
     private final StreamingType streamingType;
-    private final String connectionCorrelationId;
+    private final CharSequence connectionCorrelationId;
     private final AuthorizationContext authorizationContext;
     private final List<String> namespaces;
     @Nullable private final String filter;
@@ -42,12 +41,10 @@ public final class StartStreaming implements StreamControlMessage {
 
     private StartStreaming(final StartStreamingBuilder builder) {
         streamingType = builder.streamingType;
-        connectionCorrelationId = builder.connectionCorrelationId.toString();
+        connectionCorrelationId = builder.connectionCorrelationId;
         authorizationContext = builder.authorizationContext;
         @Nullable final Collection<String> namespacesFromBuilder = builder.namespaces;
-        namespaces = null != namespacesFromBuilder
-                ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
-                : Collections.emptyList();
+        namespaces = null != namespacesFromBuilder ? List.copyOf(namespacesFromBuilder) : Collections.emptyList();
         filter = Objects.toString(builder.filter, null);
         extraFields = builder.extraFields;
     }
@@ -74,7 +71,7 @@ public final class StartStreaming implements StreamControlMessage {
         return streamingType;
     }
 
-    public String getConnectionCorrelationId() {
+    public CharSequence getConnectionCorrelationId() {
         return connectionCorrelationId;
     }
 
