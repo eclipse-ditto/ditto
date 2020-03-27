@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -78,27 +80,29 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ActorSubscriberMessage.OnNext.class, on -> on.element() instanceof Signal, onNext -> {
-                    final Signal<?> signal = (Signal) onNext.element();
+                    final Signal<?> signal = (Signal<?>) onNext.element();
                     final Optional<String> correlationIdOpt = signal.getDittoHeaders().getCorrelationId();
-                    if (correlationIdOpt.isPresent()) {
+                    if (!isResponseExpected(signal)) {
+                        logger.debug("Got new fire-and-forget Signal <{}>", signal.getType());
+                        delegateActor.tell(signal, getSelf());
+                    } else if (correlationIdOpt.isPresent()) {
                         final String correlationId = correlationIdOpt.get();
                         LogUtil.enhanceLogWithCorrelationId(logger, correlationId);
 
-                        if (isResponseExpected(signal)) {
-                            outstandingCommandCorrelationIds.add(correlationId);
-                            if (outstandingCommandCorrelationIds.size() > backpressureQueueSize) {
-                                // this should be prevented by akka and never happen!
-                                throw new IllegalStateException(
-                                        "queued too many: " + outstandingCommandCorrelationIds.size() +
-                                                " - backpressureQueueSize is: " + backpressureQueueSize);
-                            }
+                        outstandingCommandCorrelationIds.add(correlationId);
+                        if (outstandingCommandCorrelationIds.size() > backpressureQueueSize) {
+                            // this should be prevented by akka and never happen!
+                            throw new IllegalStateException(
+                                    "queued too many: " + outstandingCommandCorrelationIds.size() +
+                                            " - backpressureQueueSize is: " + backpressureQueueSize);
                         }
 
                         logger.debug("Got new Signal <{}>, currently outstanding are <{}>", signal.getType(),
                                 outstandingCommandCorrelationIds.size());
                         delegateActor.tell(signal, getSelf());
                     } else {
-                        logger.warning("Got a Signal <{}> without correlationId, NOT accepting/forwarding it: {}",
+                        logger.debug("Got a response-required Signal <{}> without correlationId, " +
+                                        "NOT accepting/forwarding it: {}",
                                 signal.getType(), signal);
                     }
                 })
@@ -117,11 +121,12 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                     final Throwable cause = onError.cause();
                     if (cause instanceof PeerClosedConnectionException) {
                         // handle PeerClosedConnectionException and stop actor because WS connection was closed.
-                        logger.debug("Received PeerClosedConnectionException with close code <{}> and close reason <{}>.",
-                                ((PeerClosedConnectionException) cause).closeCode(), ((PeerClosedConnectionException) cause).closeReason());
+                        logger.debug(
+                                "Received PeerClosedConnectionException with close code <{}> and close reason <{}>.",
+                                ((PeerClosedConnectionException) cause).closeCode(),
+                                ((PeerClosedConnectionException) cause).closeReason());
                         getContext().stop(getSelf());
-                    }
-                    else if (cause instanceof DittoRuntimeException) {
+                    } else if (cause instanceof DittoRuntimeException) {
                         handleDittoRuntimeException(delegateActor, (DittoRuntimeException) cause);
                     } else if (cause instanceof JsonRuntimeException) {
                         handleDittoRuntimeException(delegateActor, new DittoJsonException((RuntimeException) cause));
@@ -139,7 +144,13 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
     }
 
     private boolean isResponseExpected(final Signal<?> signal) {
-        return signal instanceof Command && signal.getDittoHeaders().isResponseRequired();
+        return signal instanceof Command &&
+                // search commands have no responses
+                !(signal instanceof ThingSearchCommand) &&
+                // signals without responses cannot be tracked
+                signal.getDittoHeaders().isResponseRequired() &&
+                // live signals should not be tracked - may lead to mysterious throttling
+                signal.getDittoHeaders().getChannel().map(TopicPath.Channel.TWIN.name()::equals).orElse(true);
     }
 
     private void handleDittoRuntimeException(final ActorRef delegateActor, final DittoRuntimeException cre) {
