@@ -21,6 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -249,10 +250,28 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
-    public void isResponseRequiredReturnsTrueIfRequiredAckLabelsAreSet() {
+    public void isResponseRequiredStaysFalseEvenIfRequiredAckLabelsAreSet() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
                 .responseRequired(false)
+                .build();
+
+        assertThat(underTest.isResponseRequired()).isFalse();
+    }
+
+    @Test
+    public void isResponseRequiredReturnsFalseIfRequiredAckLabelsAreEmpty() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
+
+        assertThat(underTest.isResponseRequired()).isFalse();
+    }
+
+    @Test
+    public void isResponseRequiredReturnsTrueIfRequiredAckLabelsAreNonEmpty() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
                 .build();
 
         assertThat(underTest.isResponseRequired()).isTrue();

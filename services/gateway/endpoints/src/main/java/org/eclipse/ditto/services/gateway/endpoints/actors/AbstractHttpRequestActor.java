@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -27,6 +28,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -146,7 +148,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class, receiveTimeout -> handleAcknowledgementsTimeout(null))
                 .match(Acknowledgement.class, this::handleAcknowledgement)
-                .match(Command.class, command -> !isResponseRequired(command), this::handleCommandWithoutResponse)
                 .match(ThingCommand.class, this::handleThingCommand)
                 .match(MessageCommand.class, this::handleMessageCommand)
                 .match(Command.class, command -> handleCommandWithResponse(command,
@@ -189,27 +190,19 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void completeAcknowledgements(final DittoHeaders dittoHeaders, final AcknowledgementAggregator acks) {
 
-        final Acknowledgements aggregatedAcknowledgements = acks.getAggregatedAcknowledgements(dittoHeaders);
-        completeWithResult(createCommandResponse(aggregatedAcknowledgements.getDittoHeaders(),
-                aggregatedAcknowledgements.getStatusCode(),
-                aggregatedAcknowledgements)
-        );
+        if (dittoHeaders.isResponseRequired() || !acks.receivedAllRequestedAcknowledgements()) {
+            final Acknowledgements aggregatedAcknowledgements = acks.getAggregatedAcknowledgements(dittoHeaders);
+            completeWithResult(createCommandResponse(aggregatedAcknowledgements.getDittoHeaders(),
+                    aggregatedAcknowledgements.getStatusCode(),
+                    aggregatedAcknowledgements)
+            );
+        } else {
+            completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
+        }
     }
 
     private Optional<AcknowledgementAggregator> getAcknowledgements() {
         return Optional.ofNullable(acknowledgements);
-    }
-
-    private static boolean isResponseRequired(final WithDittoHeaders<?> withDittoHeaders) {
-        final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
-        return dittoHeaders.isResponseRequired();
-    }
-
-    private void handleCommandWithoutResponse(final Command<?> command) {
-        logger.withCorrelationId(command)
-                .debug("Received <{}> that does't expect a response. Telling the target actor about it.", command);
-        proxyActor.tell(command, getSelf());
-        completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
     }
 
     private void handleThingCommand(final ThingCommand<?> thingCommand) {
@@ -287,21 +280,30 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final Command<?> commandWithAckLabels = ackRequestSetter.apply(command);
 
         requestDittoHeaders = commandWithAckLabels.getDittoHeaders();
-        if (requestDittoHeaders.getAcknowledgementRequests().isEmpty()) {
+        final Set<AcknowledgementRequest> acknowledgementRequests = requestDittoHeaders.getAcknowledgementRequests();
+        if (acknowledgementRequests.isEmpty()) {
             acknowledgements = null;
         }
         getAcknowledgements().ifPresent(acks ->
-                acks.addAcknowledgementRequests(requestDittoHeaders.getAcknowledgementRequests())
+                acks.addAcknowledgementRequests(acknowledgementRequests)
         );
-
-        proxyActor.tell(commandWithAckLabels, getSelf());
 
         final ActorContext context = getContext();
         requestDittoHeaders.getTimeout()
                 .ifPresent(context::setReceiveTimeout);
 
-        // After a Command was received, this Actor can only receive the correlating CommandResponse:
-        context.become(awaitCommandResponseBehavior);
+        if (!command.getDittoHeaders().isResponseRequired() && acknowledgementRequests.isEmpty()) {
+            // shortcut: answer right away with 202 and shutdown this actor:
+            logger.withCorrelationId(command)
+                    .debug("Received <{}> that does't expect a response. Answering with 202..", command);
+
+            proxyActor.tell(commandWithAckLabels, ActorRef.noSender());
+            completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
+        } else {
+            proxyActor.tell(commandWithAckLabels, getSelf());
+            // After a Command was received, this Actor receives the correlating CommandResponse and additional acks:
+            context.become(awaitCommandResponseBehavior);
+        }
     }
 
     private void handleMessageCommand(final MessageCommand<?, ?> command) {
@@ -462,8 +464,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
                 if (optionalContentType.isPresent()) {
                     httpResponse = httpResponse.withEntity(
-                            HttpEntities.create(optionalContentType.get(),
-                                    ByteString.ByteStrings.fromString(payload.toString())));
+                            HttpEntities.create(optionalContentType.get(), ByteString.fromString(payload.toString())));
                 } else {
                     httpResponse = httpResponse.withEntity(HttpEntities.create(payload.toString()));
                 }

@@ -307,19 +307,20 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
-    public void ensureResponseRequiredIsTrueWhenIfAcksAreRequested() {
+    public void ensureResponseRequiredStaysFalseEvenWhenAcksAreRequested() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .responseRequired(false)
                 .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
                 .build();
 
         assertThat(dittoHeaders)
-                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.TRUE.toString());
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
     }
 
     @Test
     public void ensureResponseRequiredIsFalseForHeadersWithZeroTimeout() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(true)
                 .timeout(Duration.ZERO)
                 .build();
 

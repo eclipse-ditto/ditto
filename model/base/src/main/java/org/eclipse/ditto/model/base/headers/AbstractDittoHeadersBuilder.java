@@ -413,9 +413,11 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     private void calculateIsResponseRequiredViaRequestedAcks() {
-        final String ackRequests = headers.getOrDefault(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), "");
-        if (!ackRequests.isEmpty()) {
-            responseRequired(true);
+        @Nullable final String ackRequests = headers.get(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
+        if (null != ackRequests && !headers.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
+            // only if "response-required" was not already set, assume the default
+            final boolean containsAckRequests = !JsonArray.of(ackRequests).isEmpty();
+            responseRequired(containsAckRequests);
         }
     }
 
@@ -424,8 +426,10 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         if (null != timeoutValue) {
             final DittoDuration dittoDuration = DittoDuration.parseDuration(timeoutValue);
 
-            // may set response-required explicitly to false, which is desired in that case
-            responseRequired(!dittoDuration.isZero());
+            // sets response-required explicitly to false, which is desired in that case
+            if (dittoDuration.isZero()) {
+                responseRequired(false);
+            }
         }
     }
 
