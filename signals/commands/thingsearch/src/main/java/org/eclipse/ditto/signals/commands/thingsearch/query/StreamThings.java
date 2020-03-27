@@ -39,6 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Ditto-internal command to start or resume a search request for a stream of thing IDs.
+ * @since 1.1.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = StreamThings.TYPE_PREFIX, name = StreamThings.NAME)

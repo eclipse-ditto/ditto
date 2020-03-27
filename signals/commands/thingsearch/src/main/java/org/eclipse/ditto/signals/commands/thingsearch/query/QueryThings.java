@@ -44,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command for searching things.
+ * @since 1.0.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = QueryThings.TYPE_PREFIX, name = QueryThings.NAME)

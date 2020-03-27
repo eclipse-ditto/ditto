@@ -41,6 +41,8 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Actor that translates subscription commands into stream operations and stream signals into subscription events.
+ *
+ * @since 1.1.0
  */
 public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
 

@@ -51,6 +51,8 @@ import akka.stream.javadsl.Source;
 
 /**
  * Actor that manages search subscriptions for 1 websocket connection or 1 ConnectionPersistenceActor.
+ *
+ * @since 1.1.0
  */
 public final class SubscriptionManager extends AbstractActor {
 

@@ -97,6 +97,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      *
      * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Akka ActorSystem.
+     * @since 1.0.0
      */
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
