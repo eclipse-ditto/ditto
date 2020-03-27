@@ -209,7 +209,17 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
             final StartStreaming receivedStartStreaming = streamingActor.expectMsgClass(StartStreaming.class);
 
-            assertThat(receivedStartStreaming).isEqualTo(expectedStartStreaming);
+            // exclude connectionCorrelationId from being equal as the backend adds a random UUID to it:
+            assertThat(receivedStartStreaming.getAuthorizationContext())
+                    .isEqualTo(expectedStartStreaming.getAuthorizationContext());
+            assertThat(receivedStartStreaming.getExtraFields())
+                    .isEqualTo(expectedStartStreaming.getExtraFields());
+            assertThat(receivedStartStreaming.getFilter())
+                    .isEqualTo(expectedStartStreaming.getFilter());
+            assertThat(receivedStartStreaming.getNamespaces())
+                    .isEqualTo(expectedStartStreaming.getNamespaces());
+            assertThat(receivedStartStreaming.getStreamingType())
+                    .isEqualTo(expectedStartStreaming.getStreamingType());
 
             publisherActor.tell(
                     CloseStreamExceptionally.getInstance(GatewayServiceUnavailableException.newBuilder().build(),
