@@ -64,7 +64,7 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
         // Initially, this Actor can only receive the Connect message:
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    final CharSequence connectionCorrelationId = connect.getConnectionCorrelationId();
+                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     logger.withCorrelationId(connectionCorrelationId).debug("Established new connection: {}",
                             connectionCorrelationId);
                     getContext().become(connected(connectionCorrelationId));

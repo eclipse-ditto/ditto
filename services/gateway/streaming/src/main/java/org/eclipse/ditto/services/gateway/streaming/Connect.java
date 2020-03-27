@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,7 +31,7 @@ import akka.actor.ActorRef;
 public final class Connect {
 
     private final ActorRef eventAndResponsePublisher;
-    private final CharSequence connectionCorrelationId;
+    private final String connectionCorrelationId;
     private final String type;
     private final JsonSchemaVersion jsonSchemaVersion;
     @Nullable private final Instant sessionExpirationTime;
@@ -49,7 +51,8 @@ public final class Connect {
             final JsonSchemaVersion jsonSchemaVersion,
             @Nullable final Instant sessionExpirationTime) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
-        this.connectionCorrelationId = connectionCorrelationId;
+        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                .toString();
         this.type = type;
         this.jsonSchemaVersion = jsonSchemaVersion;
         this.sessionExpirationTime = sessionExpirationTime;
@@ -59,7 +62,7 @@ public final class Connect {
         return eventAndResponsePublisher;
     }
 
-    public CharSequence getConnectionCorrelationId() {
+    public String getConnectionCorrelationId() {
         return connectionCorrelationId;
     }
 

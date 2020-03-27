@@ -33,7 +33,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 public final class StartStreaming implements StreamControlMessage {
 
     private final StreamingType streamingType;
-    private final CharSequence connectionCorrelationId;
+    private final String connectionCorrelationId;
     private final AuthorizationContext authorizationContext;
     private final List<String> namespaces;
     @Nullable private final String filter;
@@ -71,7 +71,7 @@ public final class StartStreaming implements StreamControlMessage {
         return streamingType;
     }
 
-    public CharSequence getConnectionCorrelationId() {
+    public String getConnectionCorrelationId() {
         return connectionCorrelationId;
     }
 
@@ -145,7 +145,7 @@ public final class StartStreaming implements StreamControlMessage {
     public static final class StartStreamingBuilder {
 
         private final StreamingType streamingType;
-        private final CharSequence connectionCorrelationId;
+        private final String connectionCorrelationId;
         private final AuthorizationContext authorizationContext;
 
         @Nullable private Collection<String> namespaces;
@@ -156,7 +156,8 @@ public final class StartStreaming implements StreamControlMessage {
                 final AuthorizationContext authorizationContext) {
 
             this.streamingType = checkNotNull(streamingType, "streamingType");
-            this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId");
+            this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                    .toString();
             this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
             namespaces = null;
             filter = null;
