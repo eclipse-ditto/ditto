@@ -13,10 +13,16 @@
  package org.eclipse.ditto.services.gateway.endpoints.directives;
 
  import static akka.http.javadsl.server.Directives.complete;
+ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
  import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
+ import java.text.MessageFormat;
+ import java.util.List;
  import java.util.function.Supplier;
 
+ import javax.annotation.Nullable;
+
+ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
 
@@ -28,35 +34,48 @@
 
  public final class ContentTypeValidationDirective {
 
+     public static final ContentTypeValidationDirective CT_ONLY_APPLICATION_JSON =
+             new ContentTypeValidationDirective(List.of(ContentTypes.APPLICATION_JSON), true);
+
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
+     private final List<ContentType> allowedContentTypes;
+     private final boolean allowNoneContentType;
 
-     public static Route ensureValidContentType(final String correlationId, RequestContext ctx, Supplier<Route> inner) {
-         return enhanceLogWithCorrelationId(correlationId, () -> {
+     private ContentTypeValidationDirective(final List<ContentType> allowedContentTypes, boolean allowNoneContentType) {
 
-             final ContentType contentType = ctx.getRequest().entity().getContentType();
-             final String unmatchedPath = ctx.getUnmatchedPath();
+         this.allowedContentTypes = checkNotNull(allowedContentTypes);
+         this.allowNoneContentType = allowNoneContentType;
+     }
 
-             LOGGER.info("verifyContentType hit with content-type: {}, unmatched-path: {}",
-                     contentType,
-                     unmatchedPath);
-             if (isContentTypeValidForThatPath(contentType, unmatchedPath)) {
+     public Route ensureValidContentType(RequestContext ctx, DittoHeaders dittoHeaders, Supplier<Route> inner) {
+         return enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () -> {
+             final ContentType contentType =
+                     ctx.getRequest().entity().getContentType();
+
+             LOGGER.info("verifyContentType hit with content-type: {}, unmatched-path: {}", contentType,
+                     ctx.getRequest().getUri().getPathString());
+             if (isContentTypeValid(this.allowedContentTypes, this.allowNoneContentType, contentType)) {
                  return inner.get();
              } else {
-                 return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
+                 final String msgPatten = "The Content-Type <{0}> is not supported for this endpoint. Allowed " +
+                         "Content-Types are: <{1}>";
+                 return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE,
+                         MessageFormat.format(msgPatten, contentType, allowedContentTypes.toString()));
              }
          });
      }
 
-     static boolean isContentTypeValidForThatPath(ContentType contentType, String unmatchedPath) {
+     static boolean isContentTypeValid(List<ContentType> allowedContentTypes,
+             boolean allowNoneContentType, ContentType contentTypeToCheck) {
 
-         if (contentType == null || contentType.equals(ContentTypes.NO_CONTENT_TYPE)) {
+         if (contentTypeToCheck != null && allowedContentTypes.contains(contentTypeToCheck)) {
              return true;
-         } else if (contentType.equals(ContentTypes.APPLICATION_JSON)) {
-             return true;
-         } else if (unmatchedPath.contains("/inbox/messages")) {
-             return true;
-         } else {
-             return false;
          }
+         if (allowNoneContentType) {
+             if (contentTypeToCheck == null || contentTypeToCheck.equals(ContentTypes.NO_CONTENT_TYPE)) {
+                 return true;
+             }
+         }
+         return false;
      }
  }

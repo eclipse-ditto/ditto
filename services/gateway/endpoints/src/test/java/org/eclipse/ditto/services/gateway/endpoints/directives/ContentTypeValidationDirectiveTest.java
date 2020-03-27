@@ -14,76 +14,55 @@ package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 
+@RunWith(Parameterized.class)
 public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
 
-    @Test
-    public void testEnsureValidContentTypeJsonAlwaysValid() {
-        // Arrange
-        final ContentType contentType = ContentTypes.APPLICATION_JSON;
-        final String unmatchedPath = "";
+    private static final List<ContentType> ONLY_JSON_ALLOWED = List.of(ContentTypes.APPLICATION_JSON);
 
-        // Act
-        final boolean result = ContentTypeValidationDirective.isContentTypeValidForThatPath(contentType, unmatchedPath);
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                { false, ContentTypes.APPLICATION_JSON, true },
+                { false, ContentTypes.APPLICATION_GRPC_PROTO, false },
+                { true, ContentTypes.APPLICATION_JSON, true },
+                { true, ContentTypes.APPLICATION_GRPC_PROTO, false },
+                { true, null, true },
+                { true, ContentTypes.NO_CONTENT_TYPE, true }
+        });
+    }
 
-        // Assert
-        assertThat(result).isTrue();
+    final boolean allowNoneContentType;
+    final ContentType contentType;
+    final boolean expectedResult;
+
+    public ContentTypeValidationDirectiveTest(
+            final boolean allowNoneContentType,
+            final ContentType contentType, final boolean expectedResult) {
+        this.allowNoneContentType = allowNoneContentType;
+        this.contentType = contentType;
+        this.expectedResult = expectedResult;
     }
 
     @Test
-    public void testEnsureValidContentTypeNoContentTypeIsAlwaysValid() {
-        // Arrange
-        final ContentType contentType = null;
-        final String unmatchedPath = "imNotEvenARealPath";
-
+    public void testIsContentTypeValid() {
         // Act
-        final boolean result = ContentTypeValidationDirective.isContentTypeValidForThatPath(contentType, unmatchedPath);
+        final boolean result =
+                ContentTypeValidationDirective.isContentTypeValid(ONLY_JSON_ALLOWED, allowNoneContentType, contentType);
 
         // Assert
-        assertThat(result).isTrue();
+        assertThat(result).isEqualTo(expectedResult);
     }
 
-    @Test
-    public void testEnsureValidContentTypeAkkasNoContentTypeIsAlwaysValid() {
-        // Arrange
-        final ContentType contentType = ContentTypes.NO_CONTENT_TYPE;
-        final String unmatchedPath = "imNotEvenARealPath";
-
-        // Act
-        final boolean result = ContentTypeValidationDirective.isContentTypeValidForThatPath(contentType, unmatchedPath);
-
-        // Assert
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    public void testEnsureValidContentTypeAnyContentTypeForMessageEndpointIsValid() {
-        // Arrange
-        final ContentType contentType = ContentTypes.APPLICATION_OCTET_STREAM;
-        final String unmatchedPath = "/api/2/things/messages";
-
-        // Act
-        final boolean result = ContentTypeValidationDirective.isContentTypeValidForThatPath(contentType, unmatchedPath);
-
-        // Assert
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    public void testEnsureValidContentTypeOtherThanJsonIsNotValid() {
-        // Arrange
-        final ContentType contentType = ContentTypes.APPLICATION_OCTET_STREAM;
-        final String unmatchedPath = "/api/2/things/abc";
-
-        // Act
-        final boolean result = ContentTypeValidationDirective.isContentTypeValidForThatPath(contentType, unmatchedPath);
-
-        // Assert
-        assertThat(result).isFalse();
-    }
 }

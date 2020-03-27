@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.CT_ONLY_APPLICATION_JSON;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -250,14 +251,18 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /things/<thingId>
-                                extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThingBuilder(
-                                                        createThingJsonObjectForPut(thingJson, thingId.toString()))
-                                                                .build(),
-                                                        createInlinePolicyJson(thingJson),
-                                                        getCopyPolicyFrom(thingJson),
-                                                        dittoHeaders))
+                                CT_ONLY_APPLICATION_JSON.ensureValidContentType(ctx, dittoHeaders,
+                                        () -> extractDataBytes(payloadSource ->
+                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        thingJson -> ModifyThing.of(thingId,
+                                                                ThingsModelFactory.newThingBuilder(
+                                                                        createThingJsonObjectForPut(thingJson,
+                                                                                thingId.toString()))
+                                                                        .build(),
+                                                                createInlinePolicyJson(thingJson),
+                                                                getCopyPolicyFrom(thingJson),
+                                                                dittoHeaders))
+                                        )
                                 )
                         ),
                         delete(() -> // DELETE /things/<thingId>
