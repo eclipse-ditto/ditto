@@ -80,7 +80,7 @@ import akka.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**
- * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} routes.
+ * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} and {@code /search} routes.
  */
 @NotThreadSafe
 public final class ThingsSseRouteBuilder extends RouteDirectives implements SseRouteBuilder {

@@ -49,6 +49,8 @@ public interface StreamingConfig {
      * Returns the SSE config.
      *
      * @return the SSE config.
+     *
+     * @since 1.1.0
      */
     SseConfig getSseConfig();
 

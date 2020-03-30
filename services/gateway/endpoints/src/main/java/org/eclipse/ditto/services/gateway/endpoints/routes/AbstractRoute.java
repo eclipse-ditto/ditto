@@ -138,6 +138,8 @@ public abstract class AbstractRoute extends AllDirectives {
      * @param throttlingConfig the throttling config to interpret.
      * @param <T> type of elements in the stream.
      * @return a throttling flow.
+     *
+     * @since 1.1.0
      */
     public static <T> Flow<T, T, NotUsed> throttleByConfig(final ThrottlingConfig throttlingConfig) {
         final int limit = throttlingConfig.getLimit();
