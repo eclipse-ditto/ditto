@@ -58,13 +58,13 @@ Use the placeholder namespace `_` in the topic to search in all visible namespac
 |------------|-------------------------|
 | **topic**  | `<namespace>/_/things/twin/search/subscribe`     |
 | **path**   | `/`     |
-| **fields** | Contains a comma separated list of fields to be included in each thing in the search result. |
+| **fields** | Contains a comma separated list of fields, to describe which things to be included in the search result. |
 | **value**  | JSON object specifying the search query. {% include docson.html schema="jsonschema/protocol-search-subscribe-payload.json" %} |
 
 ### Request
 
 After obtaining a subscription ID from a ["created"](#created) message,
-use "request" messages to tell Ditto how many pages of search result you are prepared to receive.
+use "request" messages to tell Ditto how many pages of search results you are prepared to receive.
 Ditto will send ["hasNext"](#hasnext) messages until all requested pages are fulfilled,
 the search result is exhausted, or an error occurred.
 
@@ -92,18 +92,18 @@ messages of the same subscription ID.
 ### Created
 
 To any "subscribe" message, Ditto will always respond with a ["created"](#created) message,
-optionally followed by a ["complete"](#complete) message if no thing is found or a ["failed"](#failed) message
+optionally followed by a ["complete"](#complete) message if no thing is found, or a ["failed"](#failed) message
 if an error is encountered.
 
 | Field      | Value                   |
 |------------|-------------------------|
 | **topic**  | `_/_/things/twin/search/created`     |
 | **path**   | `/`     |
-| **value**  | Discloses the ID of a search subscription with which all subsequent messages should include. {% include docson.html schema="jsonschema/protocol-search-subscriptionid.json" %} |
+| **value**  | Discloses the ID of a search subscription which all subsequent messages should include. {% include docson.html schema="jsonschema/protocol-search-subscriptionid.json" %} |
 
 ### HasNext
 
-Each "hasNext" message contains a page of the search result.
+Each "hasNext" message contains one page of the search results.
 Ditto will not send more "hasNext" messages for a given subscription ID than the total number of pages requested by
 previous ["request"](#request) messages.
 
@@ -111,13 +111,13 @@ previous ["request"](#request) messages.
 |------------|-------------------------|
 | **topic**  | `_/_/things/twin/search/hasNext`     |
 | **path**   | `/`     |
-| **value**  | JSON object containing a page of the search result. {% include docson.html schema="jsonschema/protocol-search-hasnext-payload.json" %} |
+| **value**  | JSON object containing one page of the search results. {% include docson.html schema="jsonschema/protocol-search-hasnext-payload.json" %} |
 
 ### Complete
 
 A search subscription ends with a "complete" or a ["failed"](#failed) message from Ditto,
 or with an ["cancel"](#cancel) message from the client.
-Ditto sends a "complete" message when all pages of a search result are deliverd to the client.
+Ditto sends a "complete" message when all pages of a search result are delivered to the client.
 
 | Field      | Value                   |
 |------------|-------------------------|
