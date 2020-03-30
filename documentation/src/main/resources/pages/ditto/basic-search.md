@@ -28,7 +28,7 @@ No custom indexes have to be defined as the structure in the database is "flatte
 Ditto's search index provides **eventual consistency**.
 
 In order to reduce load to the database when processing updates in a high frequency, the search index is updated in 
-small batches with an default interval of 1 second (configurable via environment variable 
+small batches with a default interval of 1 second (configurable via environment variable 
 `THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL`).
 
 That means that when a thing is updated and the API (e.g. the HTTP endpoint) returns a success response, the search index
