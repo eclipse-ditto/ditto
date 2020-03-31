@@ -14,9 +14,10 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -42,8 +43,7 @@ final class ReadJsonArrayHeadersFilter extends AbstractHeaderEntryFilter {
     private final Map<String, HeaderDefinition> headerDefinitions;
 
     private ReadJsonArrayHeadersFilter(final Map<String, HeaderDefinition> headerDefinitions) {
-
-        this.headerDefinitions = Collections.unmodifiableMap(checkNotNull(headerDefinitions, "headerDefinitions"));
+        this.headerDefinitions = Collections.unmodifiableMap(new HashMap<>(headerDefinitions));
     }
 
     /**
@@ -56,33 +56,51 @@ final class ReadJsonArrayHeadersFilter extends AbstractHeaderEntryFilter {
      * @throws NullPointerException if {@code headerDefinitions} is {@code null}.
      */
     public static ReadJsonArrayHeadersFilter getInstance(final Map<String, HeaderDefinition> headerDefinitions) {
-        return new ReadJsonArrayHeadersFilter(headerDefinitions);
+        return new ReadJsonArrayHeadersFilter(checkNotNull(headerDefinitions, "headerDefinitions"));
     }
 
     @Nullable
     @Override
     protected String filterValue(final String key, final String value) {
-        @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(key);
-        if (headerDefinition != null && headerDefinition.getSerializationType().equals(JsonArray.class)) {
-            if (value.isEmpty()) {
-                return JsonArray.empty().toString();
-            } else {
-                try {
-                    JsonArray.of(value);
-                    // using the format ["foo","bar"] still is valid, so let it pass:
-                    return value;
-                } catch (final JsonParseException e) {
-                    // when the passed in header value is not yet a JsonArray, fall back to assuming that it was provided as
-                    //  comma separated list and build an array based on that assumption:
-                    return Stream.of(value.split(COMMA_SPLIT_REGEX))
-                            .filter(string -> !string.isEmpty())
-                            .map(JsonValue::of)
-                            .collect(JsonCollectors.valuesToArray())
-                            .toString();
-                }
-            }
+        String result = value;
+        if (isJsonArrayDefinition(key)) {
+            final JsonArray jsonArray = getJsonArray(value);
+            result = jsonArray.toString();
         }
-        return value;
+        return result;
+    }
+
+    private boolean isJsonArrayDefinition(final String headerKey) {
+        @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(headerKey);
+        boolean result = false;
+        if (null != headerDefinition) {
+            result = JsonArray.class.equals(headerDefinition.getSerializationType());
+        }
+        return result;
+    }
+
+    private static JsonArray getJsonArray(final String headerValue) {
+        final JsonArray result;
+        if (headerValue.isEmpty()) {
+            result = JsonArray.empty();
+        } else {
+            result = tryToParseJsonArray(headerValue);
+        }
+        return result;
+    }
+
+    private static JsonArray tryToParseJsonArray(final String headerValue) {
+        try {
+            return JsonArray.of(headerValue);
+        } catch (final JsonParseException e) {
+            // when the passed in header value is not yet a JsonArray, fall back to assuming that it was provided as
+            // comma separated list and build an array based on that assumption:
+            return Arrays.stream(headerValue.split(COMMA_SPLIT_REGEX))
+                    .filter(string -> !string.isEmpty())
+                    .map(String::trim)
+                    .map(JsonValue::of)
+                    .collect(JsonCollectors.valuesToArray());
+        }
     }
 
 }

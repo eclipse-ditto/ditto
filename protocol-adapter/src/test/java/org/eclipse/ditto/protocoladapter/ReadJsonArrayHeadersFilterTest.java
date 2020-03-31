@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -36,30 +37,49 @@ import org.junit.Test;
  */
 public final class ReadJsonArrayHeadersFilterTest {
 
+    private static final DittoHeaderDefinition HEADER_DEFINITION = DittoHeaderDefinition.REQUESTED_ACKS;
+
+    private Map<String, HeaderDefinition> headerDefinitions;
+
+    @Before
+    public void setUp() {
+        headerDefinitions = Maps.newHashMap(HEADER_DEFINITION.getKey(), HEADER_DEFINITION);
+    }
+
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ReadJsonArrayHeadersFilter.class, areImmutable(),
+        assertInstancesOf(ReadJsonArrayHeadersFilter.class,
+                areImmutable(),
                 assumingFields("headerDefinitions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
     public void filterNonJsonArrayValue() {
-        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
-        final Map<String, HeaderDefinition> headerDefinitions =
-                Maps.newHashMap(headerDefinition.getKey(), headerDefinition);
-        final String key = "foo";
         final String value = "bar";
         final ReadJsonArrayHeadersFilter underTest = ReadJsonArrayHeadersFilter.getInstance(headerDefinitions);
 
-        assertThat(underTest.apply(key, value)).isEqualTo(value);
+        assertThat(underTest.apply("foo", value)).isEqualTo(value);
+    }
+
+    @Test
+    public void filterJsonArrayStringRepresentation() {
+        final List<AcknowledgementRequest> acknowledgementRequests = Lists.list(
+                AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
+                AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
+        final JsonArray acknowledgementRequestsJsonArray = acknowledgementRequests.stream()
+                .map(AcknowledgementRequest::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
+        final String jsonArrayStringRepresentation = acknowledgementRequestsJsonArray.toString();
+        final ReadJsonArrayHeadersFilter underTest = ReadJsonArrayHeadersFilter.getInstance(headerDefinitions);
+
+        final String filteredValue = underTest.filterValue(HEADER_DEFINITION.getKey(), jsonArrayStringRepresentation);
+
+        assertThat(filteredValue).isEqualTo(jsonArrayStringRepresentation);
     }
 
     @Test
     public void filterJsonArrayValueBasedOnCommaSeparatedList() {
-        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
-        final Map<String, HeaderDefinition> headerDefinitions =
-                Maps.newHashMap(headerDefinition.getKey(), headerDefinition);
-
         final List<AcknowledgementRequest> acknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
                 AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
@@ -68,16 +88,25 @@ public final class ReadJsonArrayHeadersFilterTest {
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
         final String expectedArrayValue = acknowledgementRequestsJsonArray.toString();
+        final String commaSeparatedRequestedAcks = "foo,bar";
 
         final ReadJsonArrayHeadersFilter underTest = ReadJsonArrayHeadersFilter.getInstance(headerDefinitions);
 
-        // ensure that also the string representation of a JsonArray may be passed in:
-        assertThat(underTest.apply(headerDefinition.getKey(), expectedArrayValue)).isEqualTo(expectedArrayValue);
+        final String filteredValue = underTest.apply(HEADER_DEFINITION.getKey(), commaSeparatedRequestedAcks);
 
-        // but also the comma separated list must work:
-        final String commaSeparatedRequestedAcks = "foo,bar";
-        assertThat(underTest.apply(headerDefinition.getKey(), commaSeparatedRequestedAcks))
-                .isEqualTo(expectedArrayValue);
+        assertThat(filteredValue).isEqualTo(expectedArrayValue);
+    }
+
+    @Test
+    public void filterJsonArrayValueBasedOnEmptyString() {
+        final JsonArray emptyJsonArray = JsonArray.empty();
+        final String expected = emptyJsonArray.toString();
+
+        final ReadJsonArrayHeadersFilter underTest = ReadJsonArrayHeadersFilter.getInstance(headerDefinitions);
+
+        final String filtered = underTest.apply(HEADER_DEFINITION.getKey(), "");
+
+        assertThat(filtered).isEqualTo(expected);
     }
 
 }
