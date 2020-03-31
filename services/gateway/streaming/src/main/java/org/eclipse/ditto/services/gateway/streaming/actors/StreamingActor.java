@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 
 import com.typesafe.config.Config;
@@ -145,6 +146,24 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
+                        .match(Acknowledgement.class, acknowledgement -> {
+                            // TODO TJ remove this match again after merge from search feature branch
+                            final DittoHeaders dittoHeaders = acknowledgement.getDittoHeaders();
+                            final Optional<String> originOpt = dittoHeaders.getOrigin();
+                            if (originOpt.isPresent()) {
+                                final String origin = originOpt.get();
+                                final Optional<ActorRef> sessionActor = getContext().findChild(origin);
+                                if (sessionActor.isPresent()) {
+                                    sessionActor.get().forward(acknowledgement, getContext());
+                                } else {
+                                    logger.withCorrelationId(dittoHeaders)
+                                            .error("No session actor found for origin <{}>", origin);
+                                }
+                            } else {
+                                logger.withCorrelationId(dittoHeaders)
+                                        .error("No origin present for ACK <{}>", acknowledgement);
+                            }
+                        })
                         .match(Signal.class, signal -> {
                             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                             final Optional<String> originOpt = dittoHeaders.getOrigin();

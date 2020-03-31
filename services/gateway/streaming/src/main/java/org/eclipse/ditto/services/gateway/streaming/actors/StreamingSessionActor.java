@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -55,8 +56,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -141,7 +142,7 @@ final class StreamingSessionActor extends AbstractActor {
                     eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
                 })
                 .match(Acknowledgement.class, this::handleAcknowledgement)
-                .match(ThingCommand.class, this::handleThingCommand)
+                .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
                     logger.withCorrelationId(cre)
@@ -240,11 +241,11 @@ final class StreamingSessionActor extends AbstractActor {
                 );
     }
 
-    private void handleThingCommand(final ThingCommand<?> thingCommand) {
-        final DittoHeaders dittoHeaders = thingCommand.getDittoHeaders();
-        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingCommand.getEntityId(),
+    private void handleSignalsToStartAckForwarderFor(final Signal<?> signal, final EntityIdWithType entityIdWithType) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), entityIdWithType,
                 dittoHeaders, acknowledgementConfig);
-        handleSignal(thingCommand);
+        handleSignal(signal);
     }
 
     private void handleSignal(final Signal<?> signal) {

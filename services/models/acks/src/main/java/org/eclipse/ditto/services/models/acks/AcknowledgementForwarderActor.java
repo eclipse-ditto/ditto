@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -115,7 +117,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 .orElseThrow(() -> AcknowledgementCorrelationIdMissingException.newBuilder()
                         .dittoHeaders(dittoHeaders)
                         .build());
-        return ACTOR_NAME_PREFIX + correlationId;
+        return ACTOR_NAME_PREFIX + URLEncoder.encode(correlationId, Charset.defaultCharset());
     }
 
     /**

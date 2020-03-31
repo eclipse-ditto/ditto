@@ -267,8 +267,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         return retrieveWebsocketConfig().thenApply(websocketConfig -> {
             final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                    createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
-                            websocketConfig);
+                    createIncoming(version, connectionCorrelationId, authContext, adapter, request, websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
                     createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
                             websocketConfig, signalEnrichmentFacade);
@@ -320,7 +319,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
-            final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig) {
@@ -332,7 +330,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
-                            dittoHeaders, adapter));
+                            adapter));
 
             final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
@@ -419,7 +417,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
 
         final ProtocolMessageExtractor protocolMessageExtractor =
@@ -432,8 +429,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             } else {
                 try {
                     final Signal signal =
-                            buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext,
-                                    additionalHeaders, adapter);
+                            buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext, adapter);
                     return Right.apply(Right.apply(signal));
                 } catch (final DittoRuntimeException dre) {
                     // This is a client error usually; log at level DEBUG without stack trace.
@@ -572,7 +568,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
 
         // initial internal header values
@@ -608,9 +603,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             // add initial internal header values
             logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
             internalHeadersBuilder.putHeaders(initialInternalHeaders);
-            // add headers given by parent route first so that protocol message may override them
-            logger.trace("Adding additionalHeaders: <{}>.", additionalHeaders);
-            internalHeadersBuilder.putHeaders(additionalHeaders);
             // add any headers from protocol adapter to internal headers
             logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
             internalHeadersBuilder.putHeaders(signalHeaders);

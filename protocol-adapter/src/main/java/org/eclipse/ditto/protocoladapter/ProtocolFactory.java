@@ -151,7 +151,8 @@ public final class ProtocolFactory {
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
-                    // messages Path always contain a subject:
+                case ACKS:
+                    // messages and ACK Paths always contain a subject / custom acknowledgement label:
                     final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
                 default:
