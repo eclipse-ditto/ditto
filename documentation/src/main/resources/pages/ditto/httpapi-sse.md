@@ -38,9 +38,9 @@ events sent back from the backend have the same JSON structure as the HTTP API o
 
 When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, a Server-Sent Event stream of
 [change notifications](basic-changenotifications.html) is created by Ditto and for each notification for which the caller
-has READ permissions (see [authorization](basic-auth.html#authorization)), a message is sent to the client.
+has READ permissions (see [authorization](basic-auth.html#authorization)), an event is sent to the client.
 
-The format of the message at the `/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
+The format of the event at the `/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
 (in API 1 format or API 2 format depending on which endpoint the SSE was created).
 
 For partial updates to a `Thing` however, only the changed part is sent back via the SSE, not the complete `Thing`.
@@ -88,7 +88,7 @@ to return in addition to the actually changed fields, e.g.:
 http://localhost:8080/api/<1|2>/things?extraFields=attributes
 ```
 
-The result is that the sent out SSE messages are merged from the actually changed data + the extra fields.
+The result is that the server-sent events are merged with the actually changed data + the extra fields.
 
 This can be used in combination with the below mentioned [RQL filter](#filtering-by-rql-expression), e.g.:
 ```
@@ -190,9 +190,9 @@ and cancellation over any transport layer by reactive-streams means.
 
 When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, a Server-Sent Event stream of
 things is created by Ditto and for each thing matching the search filter for which the caller has READ permissions
-(see [authorization](basic-auth.html#authorization)), a message is sent to the client.
+(see [authorization](basic-auth.html#authorization)), an event is sent to the client.
 
-The format of the message at the `/search/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
+The format of the event at the `/search/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
 (in API 1 format or API 2 format depending on which endpoint the SSE was created).
 
 ### Filtering by RQL expression

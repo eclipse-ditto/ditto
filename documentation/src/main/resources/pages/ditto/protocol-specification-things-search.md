@@ -5,7 +5,7 @@ tags: [protocol, search]
 permalink: protocol-specification-things-search.html
 ---
 
-The [search aspect](basic-search.html) of the Ditto protocol consists of 7 messages that together implement
+The [search aspect](basic-search.html) of the Ditto protocol consists of 3 commands and 4 events that together implement
 the [reactive-streams](https://reactive-streams.org) protocol over any duplex transport layer.
 For each search request, Ditto acts as the reactive-streams publisher of pages of search results,
 and the client acts as the subscriber.
@@ -13,9 +13,9 @@ By reactive-streams means, the client controls how fast pages are delivered to i
 a search request before all results are sent.
 
 While [connections](basic-connections.html) do not expose or require a duplex transport layer,
-the search protocol is available for them as well: Send messages from client to Ditto via any
-[connection source](basic-connections.html#sources); subsequent messages from Ditto to client are published
-to the reply-target of the source.
+the search protocol is available for them as well: Send commands from client to Ditto via any
+[connection source](basic-connections.html#sources). For each command, 0 or more events from Ditto to client
+are published to the reply-target of the source.
 
 [ps]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Publisher.html#subscribe(java.util.concurrent.Flow.Subscriber)
 [ss]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Subscriber.html#onSubscribe(java.util.concurrent.Flow.Subscription)
@@ -28,29 +28,57 @@ to the reply-target of the source.
 
 For reactive-streams on the JVM, a publisher-subscriber pair is identified by a [Subscription][n] object according
 to reference equality.
-Similarly, the search protocol messages related to one query are identified by a subscription ID.
+Similarly, the search protocol commands and events of one search query are identified by a subscription ID.
 
-Each search protocol message corresponds to a reactive-streams _signal_ and are bound
+Each search protocol command or event corresponds to a reactive-streams _signal_ and are bound
 by the same rules in the [reactive-streams specification](https://github.com/reactive-streams/reactive-streams-jvm/blob/v1.0.3/README.md).
 
-| Reactive-streams signal      | Search protocol message topic                     | Message direction |
-|------------------------------|---------------------------------------------------|-------------------|
-| [Publisher#subscribe][ps]    | [`_/_/things/twin/search/subscribe`](#subscribe)  | Client to Ditto   |
-| [Subscription#request][nr]   | [`_/_/things/twin/search/request`](#request)      | Client to Ditto   |
-| [Subscription#cancel][nc]    | [`_/_/things/twin/search/cancel`](#cancel)        | Client to Ditto   |
-| [Subscriber#onSubscribe][ss] | [`_/_/things/twin/search/created`](#created)      | Ditto to Client   |
-| [Subscriber#onNext][sn]      | [`_/_/things/twin/search/hasNext`](#hasnext)      | Ditto to Client   |
-| [Subscriber#onComplete][sc]  | [`_/_/things/twin/search/complete`](#complete)    | Ditto to Client   |
-| [Subscriber#onError][se]     | [`_/_/things/twin/search/failed`](#failed)        | Ditto to Client   |
+| Reactive-streams signal      | Search protocol message topic                     |Type   | Message direction |
+|------------------------------|---------------------------------------------------|-------|-------------------|
+| [Publisher#subscribe][ps]    | [`_/_/things/twin/search/subscribe`](#subscribe)  |Command| Client to Ditto   |
+| [Subscription#request][nr]   | [`_/_/things/twin/search/request`](#request)      |Command| Client to Ditto   |
+| [Subscription#cancel][nc]    | [`_/_/things/twin/search/cancel`](#cancel)        |Command| Client to Ditto   |
+| [Subscriber#onSubscribe][ss] | [`_/_/things/twin/search/created`](#created)      |Event  | Ditto to Client   |
+| [Subscriber#onNext][sn]      | [`_/_/things/twin/search/hasNext`](#hasnext)      |Event  | Ditto to Client   |
+| [Subscriber#onComplete][sc]  | [`_/_/things/twin/search/complete`](#complete)    |Event  | Ditto to Client   |
+| [Subscriber#onError][se]     | [`_/_/things/twin/search/failed`](#failed)        |Event  | Ditto to Client   |
 
-## Messages from Client to Ditto
+## Interaction pattern
+
+For one search query, the commands from client to Ditto should follow this protocol:
+```
+subscribe request* cancel?
+```
+The client should send one ["subscribe"](#subscribe) command,
+followed by multiple ["request"](#request) commands and an optional ["cancel"](#cancel) command.
+
+In response to a ["subscribe"](#subscribe) command and after each ["request"](#request) command,
+Ditto will send 0 or more events to the client according to the following protocol:
+```
+created hasNext* (complete | failed)?
+```
+A ["created"](#created) event bearing the subscription ID is always sent.
+0 or more "hasNext" events are sent according to the amount of search results and the number of pages requested by
+the client. A ["complete"](#complete) or ["failed"](#failed) event comes at the
+end unless the client sends a ["cancel"](#cancel) command before the search results are exhausted.
+
+There is no special event in response to a ["cancel"](#cancel) command.
+The client may continue to receive buffered ["hasNext"](#hasnext),
+["complete"](#complete) or ["failed"](#failed) events after sending a ["cancel"](#cancel) command.
+
+In addition to the rules of reactive-streams, Ditto guarantees that no ["complete"](#complete) or
+["failed"](#failed) event will arrive
+before the client expresses its readiness by a first ["request"](#request) command. The reason is to facilitate
+concurrency at the client side. Without the extra guarantee, a multi-threaded client would have to process a
+["complete"](#complete) or ["failed"](#failed) event in parallel of the preceding ["created"](#created) event.
+It would put the burden of sequentialization at the client side and complicate the programming there.
+
+## Commands from Client to Ditto
 
 ### Subscribe
 
-Sent a "subscribe" message to Ditto to start receiving search results.
-Ditto will always respond with a ["created"](#created) message, optionally followed by
-a ["complete"](#complete) message if no thing is found or a ["failed"](#failed) message
-if an error is encountered.
+Sent a ["subscribe"](#subscribe) command to Ditto to start receiving search results.
+Ditto will always respond with a ["created"](#created) event.
 
 Use the placeholder namespace `_` in the topic to search in all visible namespaces.
 
@@ -63,9 +91,9 @@ Use the placeholder namespace `_` in the topic to search in all visible namespac
 
 ### Request
 
-After obtaining a subscription ID from a ["created"](#created) message,
-use "request" messages to tell Ditto how many pages of search results you are prepared to receive.
-Ditto will send ["hasNext"](#hasnext) messages until all requested pages are fulfilled,
+After obtaining a subscription ID from a ["created"](#created) event,
+use ["request"](#request) commands to tell Ditto how many pages of search results you are prepared to receive.
+Ditto will send ["hasNext"](#hasnext) events until all requested pages are fulfilled,
 the search results are exhausted, or an error occurred.
 
 | Field      | Value                   |
@@ -76,10 +104,10 @@ the search results are exhausted, or an error occurred.
 
 ### Cancel
 
-After obtaining a subscription ID from a ["created"](#created) message,
-use a "cancel" message to stop Ditto from sending more pages of the search results.
+After obtaining a subscription ID from a ["created"](#created) event,
+use a ["cancel"](#cancel) command to stop Ditto from sending more pages of the search results.
 Pages in-flight may yet arrive, but the client will eventually stop receiving
-messages of the same subscription ID.
+events of the same subscription ID.
 
 | Field      | Value                   |
 |------------|-------------------------|
@@ -87,25 +115,23 @@ messages of the same subscription ID.
 | **path**   | `/`     |
 | **value**  | Identifies a search subscription. {% include docson.html schema="jsonschema/protocol-search-subscriptionid.json" %} |
 
-## Messages from Ditto to Client
+## Events from Ditto to Client
 
 ### Created
 
-To any "subscribe" message, Ditto will always respond with a ["created"](#created) message,
-optionally followed by a ["complete"](#complete) message if no thing is found, or a ["failed"](#failed) message
-if an error is encountered.
+To any ["subscribe"](#subscribe) command, Ditto will always respond with a ["created"](#created) event.
 
 | Field      | Value                   |
 |------------|-------------------------|
 | **topic**  | `_/_/things/twin/search/created`     |
 | **path**   | `/`     |
-| **value**  | Discloses the ID of a search subscription which all subsequent messages should include. {% include docson.html schema="jsonschema/protocol-search-subscriptionid.json" %} |
+| **value**  | Discloses the ID of a search subscription which all subsequent commands should include. {% include docson.html schema="jsonschema/protocol-search-subscriptionid.json" %} |
 
 ### HasNext
 
-Each "hasNext" message contains one page of the search results.
-Ditto will not send more "hasNext" messages for a given subscription ID than the total number of pages requested by
-previous ["request"](#request) messages.
+Each ["hasNext"](#hasnext) event contains one page of the search results.
+Ditto will not send more ["hasNext"](#hasnext) events for a given subscription ID than the total number of pages
+requested by previous ["request"](#request) commands.
 
 | Field      | Value                   |
 |------------|-------------------------|
@@ -115,9 +141,9 @@ previous ["request"](#request) messages.
 
 ### Complete
 
-A search subscription ends with a "complete" or a ["failed"](#failed) message from Ditto,
-or with an ["cancel"](#cancel) message from the client.
-Ditto sends a "complete" message when all pages of the search results are delivered to the client.
+A search subscription ends with a ["complete"](#complete) or a ["failed"](#failed) event from Ditto,
+or with an ["cancel"](#cancel) command from the client.
+Ditto sends a ["complete"](#complete) event when all pages of the search results are delivered to the client.
 
 | Field      | Value                   |
 |------------|-------------------------|
@@ -127,11 +153,11 @@ Ditto sends a "complete" message when all pages of the search results are delive
 
 ### Failed
 
-A search subscription ends with a ["complete"](#complete) or a "failed" message from Ditto,
-or with an ["cancel"](#cancel) message from the client.
-Ditto sends a "failed" message when an internal error occurred,
+A search subscription ends with a ["complete"](#complete) or a ["failed"](#failed) event from Ditto,
+or with an ["cancel"](#cancel) command from the client.
+Ditto sends a ["failed"](#failed) event when an internal error occurred,
 or when the client breaches the reactive-streams specification.
-It is not possible to ["request"](#request) more pages of the search results after a "failed" message.
+It is not possible to ["request"](#request) more pages of the search results after a ["failed"](#failed) event.
 
 | Field      | Value                   |
 |------------|-------------------------|
