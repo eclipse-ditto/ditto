@@ -208,7 +208,7 @@ public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEn
          * Definition of the JSON field for the Acknowledgement's DittoHeaders.
          */
         public static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
     }

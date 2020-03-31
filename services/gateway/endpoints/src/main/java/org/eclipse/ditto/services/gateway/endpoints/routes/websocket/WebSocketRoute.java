@@ -26,6 +26,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.model.policies.PolicyException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -160,6 +162,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketAuthorizationEnforcer authorizationEnforcer;
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
+    private HeaderTranslator headerTranslator;
 
     private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
             final EventStream eventStream) {
@@ -174,6 +177,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         authorizationEnforcer = new NoOpAuthorizationEnforcer();
         webSocketSupervisor = new NoOpWebSocketSupervisor();
         signalEnrichmentProvider = null;
+        headerTranslator = HeaderTranslator.empty();
     }
 
     /**
@@ -222,6 +226,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return this;
     }
 
+    @Override
+    public WebSocketRouteBuilder withHeaderTranslator(final HeaderTranslator headerTranslator) {
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        return this;
+    }
+
     /**
      * Builds the {@code /ws} route.
      *
@@ -267,7 +277,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         return retrieveWebsocketConfig().thenApply(websocketConfig -> {
             final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                    createIncoming(version, connectionCorrelationId, authContext, adapter, request, websocketConfig);
+                    createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
+                            websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
                     createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
                             websocketConfig, signalEnrichmentFacade);
@@ -319,6 +330,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig) {
@@ -330,7 +342,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
-                            adapter));
+                            dittoHeaders, adapter));
 
             final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
@@ -417,6 +429,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
+            final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
 
         final ProtocolMessageExtractor protocolMessageExtractor =
@@ -428,8 +441,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 return Right.apply(Left.apply(streamControlMessage.get()));
             } else {
                 try {
-                    final Signal signal =
-                            buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext, adapter);
+                    final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
+                            connectionAuthContext, additionalHeaders, adapter, headerTranslator);
                     return Right.apply(Right.apply(signal));
                 } catch (final DittoRuntimeException dre) {
                     // This is a client error usually; log at level DEBUG without stack trace.
@@ -568,7 +581,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
-            final ProtocolAdapter adapter) {
+            final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter,
+            final HeaderTranslator headerTranslator) {
 
         // initial internal header values
         final DittoHeaders initialInternalHeaders = DittoHeaders.newBuilder()
@@ -603,6 +618,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             // add initial internal header values
             logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
             internalHeadersBuilder.putHeaders(initialInternalHeaders);
+            // add headers given by parent route first so that protocol message may override them
+            final Map<String, String> wellKnownAdditionalHeaders =
+                    headerTranslator.retainKnownHeaders(additionalHeaders);
+            logger.trace("Adding wellKnownAdditionalHeaders: <{}>.", wellKnownAdditionalHeaders);
+            internalHeadersBuilder.putHeaders(wellKnownAdditionalHeaders);
             // add any headers from protocol adapter to internal headers
             logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
             internalHeadersBuilder.putHeaders(signalHeaders);

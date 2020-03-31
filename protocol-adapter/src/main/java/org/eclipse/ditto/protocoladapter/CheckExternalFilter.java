@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -53,7 +54,8 @@ final class CheckExternalFilter extends AbstractHeaderEntryFilter {
      * @throws NullPointerException if {@code headerDefinitions} is {@code null}.
      */
     public static CheckExternalFilter shouldReadFromExternal(final Map<String, HeaderDefinition> headerDefinitions) {
-        return new CheckExternalFilter(headerDefinitions, HeaderDefinition::shouldReadFromExternalHeaders);
+        return new CheckExternalFilter(headerDefinitions,
+                isNull().or(HeaderDefinition::shouldReadFromExternalHeaders));
     }
 
     /**
@@ -69,14 +71,32 @@ final class CheckExternalFilter extends AbstractHeaderEntryFilter {
      * @throws NullPointerException if {@code headerDefinitions} is {@code null}.
      */
     public static CheckExternalFilter shouldWriteToExternal(final Map<String, HeaderDefinition> headerDefinitions) {
-        return new CheckExternalFilter(headerDefinitions, HeaderDefinition::shouldWriteToExternalHeaders);
+        return new CheckExternalFilter(headerDefinitions,
+                isNull().or(HeaderDefinition::shouldWriteToExternalHeaders));
+    }
+
+    /**
+     * Returns an instance of {@code CheckExternalFilter} which checks if a header definition for the given key exists.
+     *
+     * @param headerDefinitions the header definitions for determining whether a header entry is defined by a
+     * HeaderDefinition or not.
+     * @return the instance.
+     * @throws NullPointerException if {@code headerDefinitions} is {@code null}.
+     * @since 1.1.0
+     */
+    public static CheckExternalFilter existsAsHeaderDefinition(final Map<String, HeaderDefinition> headerDefinitions) {
+        return new CheckExternalFilter(headerDefinitions, Objects::nonNull);
+    }
+
+    private static Predicate<HeaderDefinition> isNull() {
+        return Objects::isNull;
     }
 
     @Nullable
     @Override
     protected String filterValue(final String key, final String value) {
         @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(key);
-        if (null == headerDefinition || headerDefinitionPredicate.test(headerDefinition)) {
+        if (headerDefinitionPredicate.test(headerDefinition)) {
             return value;
         }
         return null;

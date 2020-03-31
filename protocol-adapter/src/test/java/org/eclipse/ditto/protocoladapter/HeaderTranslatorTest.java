@@ -195,4 +195,24 @@ public final class HeaderTranslatorTest {
         assertThat(underTest.toExternalHeaders(dittoHeaders)).isEqualTo(expected);
     }
 
+    @Test
+    public void translateMixedDittoHeadersRetainKnownHeaders() {
+        final String correlationId = "correlation-id";
+        final MapEntry<String, String> customHeader = entry("foo", "bar");
+        final MapEntry<String, String> customHeader2 = entry("websocket", "example-ws-header-value");
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .dryRun(true)
+                .correlationId(correlationId)
+                .putHeader(customHeader.getKey(), customHeader.getValue())
+                .putHeader(customHeader2.getKey(), customHeader2.getValue())
+                .build();
+        final Map<String, String> expected = new HashMap<>();
+        expected.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId);
+        expected.put(DittoHeaderDefinition.DRY_RUN.getKey(), Boolean.TRUE.toString());
+
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        assertThat(underTest.retainKnownHeaders(dittoHeaders)).isEqualTo(expected);
+    }
+
 }

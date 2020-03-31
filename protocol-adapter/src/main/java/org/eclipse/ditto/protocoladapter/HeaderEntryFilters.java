@@ -75,4 +75,18 @@ final class HeaderEntryFilters {
                 .andThen(readJsonArraysFromHeaders(headerDefinitionMap));
     }
 
+    /**
+     * Creates a {@code HeaderEntryFilter} which will filter out header entries which do not exist as defined
+     * {@link HeaderDefinition} (e.g. user defined headers).
+     *
+     * @param headerDefinitionMap the header definitions for determining whether a header entry is defined by a
+     * HeaderDefinition or not.
+     * @return the created HeaderEntryFilter.
+     * @throws NullPointerException if {@code headerDefinitionMap} is {@code null}.
+     * @since 1.1.0
+     */
+    static HeaderEntryFilter existsAsHeaderDefinition(final Map<String, HeaderDefinition> headerDefinitionMap) {
+        return CheckExternalFilter.existsAsHeaderDefinition(headerDefinitionMap);
+    }
+
 }

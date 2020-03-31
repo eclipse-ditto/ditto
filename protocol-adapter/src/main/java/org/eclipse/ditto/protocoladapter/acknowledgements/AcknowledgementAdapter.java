@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -152,6 +153,9 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     private DittoHeaders getExternalHeaders(final DittoHeaders acknowledgementHeaders) {
         final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(acknowledgementHeaders);
+        if (externalHeaders.containsKey(DittoHeaderDefinition.CONTENT_TYPE.getKey())) {
+            return DittoHeaders.of(externalHeaders);
+        }
         return ProtocolFactory.newHeadersWithDittoContentType(externalHeaders);
     }
 

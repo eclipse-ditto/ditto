@@ -38,9 +38,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -225,20 +227,34 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
     private JsonObject acknowledgementsEntitiesToJson(final JsonSchemaVersion schemaVersion) {
 
-        return stream()
-                .map(ack -> {
-                            final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
-                                    .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt())
-                                    .set(Acknowledgement.JsonFields.PAYLOAD,
-                                            ack.getEntity(schemaVersion).orElse(JsonValue.nullLiteral()));
-                            if (!ack.getDittoHeaders().isEmpty()) {
-                                jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS,
-                                        ack.getDittoHeaders().toJson());
-                            }
-                            return JsonField.newInstance(ack.getLabel(), jsonObjectBuilder.build());
-                        }
-                )
-                .collect(JsonCollectors.fieldsToObject());
+        return stream().map(ack -> {
+                    final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
+                            .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt())
+                            .set(Acknowledgement.JsonFields.PAYLOAD,
+                                    ack.getEntity(schemaVersion).orElse(JsonValue.nullLiteral()));
+                    final DittoHeaders ackHeaders = ack.getDittoHeaders();
+                    if (!ackHeaders.isEmpty()) {
+                        jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS,
+                                buildHeadersJson(ackHeaders));
+                    }
+                    return JsonField.newInstance(ack.getLabel(), jsonObjectBuilder.build());
+                }
+        ).collect(JsonCollectors.fieldsToObject());
+    }
+
+    private static JsonObject buildHeadersJson(final DittoHeaders dittoHeaders) {
+
+        final boolean containsDittoContentType = dittoHeaders.getContentType()
+                .filter(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE::equals)
+                .isPresent();
+        if (containsDittoContentType) {
+            return dittoHeaders.toBuilder()
+                    .removeHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey())
+                    .build()
+                    .toJson();
+        } else {
+            return dittoHeaders.toJson();
+        }
     }
 
     private JsonObject acknowledgementsToJson(final JsonSchemaVersion schemaVersion,
