@@ -43,7 +43,7 @@ import akka.http.javadsl.server.RequestContext;
  * Handles authentication by using a defined header field {@link HttpHeader#X_DITTO_PRE_AUTH} which proxies in front
  * of Ditto may set to inject authenticated subjects into a HTTP request.
  * <p>
- * Enabled/disabled by {@link org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig#isPreAuthenticatedAuthenticationEnabled()}.
+ * Enabled/disabled by {@link org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig#isPreAuthenticationEnabled()}.
  * </p>
  * If this is enabled it is of upmost importance that only the proxy in front of Ditto sets the defined header field
  * {@link HttpHeader#X_DITTO_PRE_AUTH}, otherwise anyone using the HTTP API may impersonate any other authorization

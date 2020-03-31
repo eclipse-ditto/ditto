@@ -60,7 +60,7 @@ public final class DefaultAuthenticationConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultAuthenticationConfig underTest = DefaultAuthenticationConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.isPreAuthenticatedAuthenticationEnabled())
+        softly.assertThat(underTest.isPreAuthenticationEnabled())
                 .as(AuthenticationConfig.AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getConfigPath())
                 .isEqualTo(AuthenticationConfig.AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getDefaultValue());
     }
@@ -69,7 +69,7 @@ public final class DefaultAuthenticationConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultAuthenticationConfig underTest = DefaultAuthenticationConfig.of(authenticationTestConf);
 
-        softly.assertThat(underTest.isPreAuthenticatedAuthenticationEnabled())
+        softly.assertThat(underTest.isPreAuthenticationEnabled())
                 .as(AuthenticationConfig.AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getConfigPath())
                 .isTrue();
         softly.assertThat(underTest.getHttpProxyConfig())

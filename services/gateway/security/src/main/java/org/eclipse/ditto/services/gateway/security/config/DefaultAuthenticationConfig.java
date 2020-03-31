@@ -33,13 +33,14 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
 
     private static final String CONFIG_PATH = "authentication";
 
-    private final boolean preAuthenticatedAuthEnabled;
+    private final boolean preAuthenticationEnabled;
     private final HttpProxyConfig httpProxyConfig;
     private final DevOpsConfig devOpsConfig;
     private final OAuthConfig oAuthConfig;
 
     private DefaultAuthenticationConfig(final ScopedConfig scopedConfig) {
-        preAuthenticatedAuthEnabled = scopedConfig.getBoolean(AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getConfigPath());
+        preAuthenticationEnabled =
+                scopedConfig.getBoolean(AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getConfigPath());
         httpProxyConfig = DefaultHttpProxyConfig.ofHttpProxy(scopedConfig);
         devOpsConfig = DefaultDevOpsConfig.of(scopedConfig);
         oAuthConfig = DefaultOAuthConfig.of(scopedConfig);
@@ -58,8 +59,8 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
     }
 
     @Override
-    public boolean isPreAuthenticatedAuthenticationEnabled() {
-        return preAuthenticatedAuthEnabled;
+    public boolean isPreAuthenticationEnabled() {
+        return preAuthenticationEnabled;
     }
 
     @Override
@@ -90,7 +91,7 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultAuthenticationConfig that = (DefaultAuthenticationConfig) o;
-        return preAuthenticatedAuthEnabled == that.preAuthenticatedAuthEnabled &&
+        return preAuthenticationEnabled == that.preAuthenticationEnabled &&
                 Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
                 Objects.equals(devOpsConfig, that.devOpsConfig) &&
                 Objects.equals(oAuthConfig, that.oAuthConfig);
@@ -98,13 +99,13 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
 
     @Override
     public int hashCode() {
-        return Objects.hash(preAuthenticatedAuthEnabled, httpProxyConfig, devOpsConfig, oAuthConfig);
+        return Objects.hash(preAuthenticationEnabled, httpProxyConfig, devOpsConfig, oAuthConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "preAuthenticatedAuthEnabled=" + preAuthenticatedAuthEnabled +
+                "preAuthenticationEnabled=" + preAuthenticationEnabled +
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", devOpsConfig=" + devOpsConfig +
                 ", oAuthConfig=" + oAuthConfig +

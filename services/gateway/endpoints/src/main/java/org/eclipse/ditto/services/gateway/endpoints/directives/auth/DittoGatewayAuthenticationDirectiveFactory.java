@@ -65,9 +65,9 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             final JwtAuthenticationFactory jwtAuthenticationFactory,
             final Executor authenticationDispatcher) {
 
-        final Collection<AuthenticationProvider> authenticationProviders = new ArrayList<>();
-        if (authConfig.isPreAuthenticatedAuthenticationEnabled()) {
-            LOGGER.info("Pre-authenticated authentication is enabled!");
+        final Collection<AuthenticationProvider<?>> authenticationProviders = new ArrayList<>();
+        if (authConfig.isPreAuthenticationEnabled()) {
+            LOGGER.info("Pre-authentication is enabled!");
             authenticationProviders.add(PreAuthenticatedAuthenticationProvider.getInstance());
         }
 
