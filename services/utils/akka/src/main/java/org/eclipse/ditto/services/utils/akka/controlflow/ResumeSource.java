@@ -246,6 +246,7 @@ public final class ResumeSource {
                                         .build())
                 )
                 .via(new EndStreamOnEOS<>())
+                .buffer(1, OverflowStrategy.backpressure())
                 .statefulMapConcat(() -> new StatefulLookBehindFunction<>(lookBehind));
     }
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +24,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -130,11 +133,11 @@ public final class SubscriptionManagerTest {
         final String sid3 = probe3.expectMsgClass(SubscriptionCreated.class).getSubscriptionId();
         final String sid4 = probe4.expectMsgClass(SubscriptionCreated.class).getSubscriptionId();
 
-        final List<Source<String, NotUsed>> sources = List.of(
+        final List<?> sources = List.of(
                 Source.single("t:1"),
                 Source.single("t:2"),
                 Source.from(List.of("t:3", "t:4")),
-                Source.failed(new AskTimeoutException("mock error"))
+                new AskTimeoutException("mock error")
         );
 
         underTest.tell(request(sid1), probe1.ref());
@@ -146,9 +149,13 @@ public final class SubscriptionManagerTest {
         for (int i = 0; i < 4; ++i) {
             final StreamThings streamThings = conciergeForwarderProbe.expectMsgClass(StreamThings.class);
             final ActorRef sender = conciergeForwarderProbe.sender();
-            sources.get(getTag(streamThings) - 1)
-                    .runWith(StreamRefs.sourceRef(), materializer)
-                    .thenAccept(sourceRef -> sender.tell(sourceRef, ActorRef.noSender()));
+            final Object source = sources.get(getTag(streamThings) - 1);
+            if (source instanceof Source) {
+                ((Source<?, ?>) source).runWith(StreamRefs.sourceRef(), materializer)
+                        .thenAccept(sourceRef -> sender.tell(sourceRef, ActorRef.noSender()));
+            } else {
+                sender.tell(source, ActorRef.noSender());
+            }
         }
 
         probe1.expectMsg(hasNext(sid1, "t:1"));
@@ -160,7 +167,8 @@ public final class SubscriptionManagerTest {
         probe3.expectMsg(hasNext(sid3, "t:3"));
         underTest.tell(CancelSubscription.of(sid3, DittoHeaders.empty()), probe3.ref());
 
-        probe4.expectMsgClass(SubscriptionFailed.class);
+        assertThat(probe4.expectMsgClass(SubscriptionFailed.class).getError())
+                .isInstanceOf(GatewayInternalErrorException.class);
 
         CompletableFuture.allOf(
                 CompletableFuture.runAsync(

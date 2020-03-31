@@ -92,13 +92,15 @@ public final class ResumeSourceTest {
 
     @Test
     public void testCompletion() {
+        // TODO: delete this
+        system.eventStream().setLogLevel(Attributes.logLevelDebug());
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), -1);
 
             underTest.runWith(testSink, mat);
 
             // start stream with demand
-            sinkProbe.request(100L);
+            sinkProbe.request(2L);
             expectMsg(0);
             reply(testSource);
 
