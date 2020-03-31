@@ -54,8 +54,9 @@ import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
@@ -206,7 +207,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     private static final class DummyThingModifyCommandResponse
             extends AbstractCommandResponse<DummyThingModifyCommandResponse>
-            implements ThingModifyCommandResponse<DummyThingModifyCommandResponse> {
+            implements ThingCommandResponse<DummyThingModifyCommandResponse>, WithOptionalEntity {
 
         private JsonValue dummyEntity = DEFAULT_DUMMY_ENTITY_JSON;
 
