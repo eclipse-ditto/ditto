@@ -1248,9 +1248,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ThingId thingId = ThingId.of("org.eclipse.ditto", "myThing");
 
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                        .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                                AuthorizationSubject.newInstance("authSubject")
-                        ))
+                        .authorizationContext(
+                                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                        AuthorizationSubject.newInstance("authSubject")))
                         .correlationId("correlationId")
                         .schemaVersion(JsonSchemaVersion.LATEST)
                         .build();
@@ -1598,8 +1598,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
                 .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                        AuthorizationSubject.newInstance(AUTH_SUBJECT)
-                ))
+                        AuthorizationSubject.newInstance(AUTH_SUBJECT)))
                 .build();
 
         return CreateThing.of(thing, null, dittoHeaders);
@@ -1609,8 +1608,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
                 .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                        AuthorizationSubject.newInstance(AUTH_SUBJECT)
-                ))
+                        AuthorizationSubject.newInstance(AUTH_SUBJECT)))
                 .build();
         return ModifyThing.of(getIdOrThrow(thing),
                 thing,

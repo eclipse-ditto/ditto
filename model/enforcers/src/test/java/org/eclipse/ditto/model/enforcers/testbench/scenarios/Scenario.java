@@ -101,8 +101,7 @@ public interface Scenario {
                 .collect(Collectors.toList());
 
         return AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                AuthorizationSubject.newInstance(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, authorizationSubject)),
+                AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, authorizationSubject)),
                 authorizationSubjectList.toArray(new AuthorizationSubject[authorizationSubjects.length]));
     }
 

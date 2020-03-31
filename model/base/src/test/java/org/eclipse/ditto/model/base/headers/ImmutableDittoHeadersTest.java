@@ -200,7 +200,7 @@ public final class ImmutableDittoHeadersTest {
 
         final DittoHeaders underTest = DittoHeaders.newBuilder().authorizationContext(authContext).build();
 
-        assertThat(underTest.getAuthorizationContext().getAuthorizationSubjectIds()).isEqualTo(AUTH_SUBJECTS);
+        assertThat(underTest.getAuthorizationContext()).containsExactlyElementsOf(authSubjects);
     }
 
     @Test

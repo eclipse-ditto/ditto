@@ -32,6 +32,7 @@ final class ImmutableAuthorizationContextType extends AuthorizationContextType {
      * @param type the type information to use for building the context type.
      * @return the new ImmutableAuthorizationContextType.
      * @throws NullPointerException if {@code type} is {@code null}.
+     * @throws IllegalArgumentException if {@code type} is empty.
      */
     static ImmutableAuthorizationContextType of(final CharSequence type) {
         return new ImmutableAuthorizationContextType(checkNotNull(type, "type").toString());

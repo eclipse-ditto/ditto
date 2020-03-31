@@ -24,12 +24,12 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 public interface JwtAuthenticationResultProvider {
 
     /**
-     * Extracts an {@code AuthenticationResult} out of a given {@link JsonWebToken JSON web token}.
+     * Extracts an {@code AuthenticationResult} out of a given JsonWebToken.
      *
      * @param jwt the JSON web token that contains the information to be extracted into an authorization context.
      * @param dittoHeaders the DittoHeaders to use for the extracted authentication result.
      * @return the authentication result based on the given JSON web token.
-     * @throws NullPointerException if {@code jwt} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     AuthenticationResult getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
 

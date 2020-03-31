@@ -52,7 +52,6 @@ public final class DittoAuthorizationContextType extends AuthorizationContextTyp
      */
     public static final DittoAuthorizationContextType UNSPECIFIED = new DittoAuthorizationContextType("unspecified");
 
-
     private DittoAuthorizationContextType(final String type) {
         super(type);
     }

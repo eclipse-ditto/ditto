@@ -12,9 +12,9 @@
  */
 
 /**
- * Contains interfaces and classes for authorization. Authorization is performed on
- * {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s. An
- * {@link org.eclipse.ditto.model.base.auth.AuthorizationContext} is a set of authorization subjects.
+ * Contains interfaces and classes for authorization.
+ * Authorization is performed on {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s.
+ * An {@link org.eclipse.ditto.model.base.auth.AuthorizationContext} is a set of authorization subjects.
  * <p>
  * Objects are obtainable from {@link org.eclipse.ditto.model.base.auth.AuthorizationModelFactory}.
  */

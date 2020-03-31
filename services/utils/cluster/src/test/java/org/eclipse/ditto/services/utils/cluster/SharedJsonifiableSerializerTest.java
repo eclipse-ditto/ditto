@@ -77,8 +77,7 @@ public final class SharedJsonifiableSerializerTest {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                    AuthorizationSubject.newInstance("authSubject")
-            ))
+                    AuthorizationSubject.newInstance("authSubject")))
             .correlationId("correlationId")
             .schemaVersion(JsonSchemaVersion.LATEST)
             .build();

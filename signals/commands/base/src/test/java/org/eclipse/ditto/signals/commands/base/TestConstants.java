@@ -39,8 +39,7 @@ public final class TestConstants {
             .correlationId(CORRELATION_ID)
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AuthorizationSubject.newInstance("the_subject"),
-                    AuthorizationSubject.newInstance("another_subject")
-            ))
+                    AuthorizationSubject.newInstance("another_subject")))
             .build();
 
     /**

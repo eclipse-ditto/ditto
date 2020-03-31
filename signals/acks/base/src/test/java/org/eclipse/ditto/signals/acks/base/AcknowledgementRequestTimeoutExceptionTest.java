@@ -54,7 +54,8 @@ public final class AcknowledgementRequestTimeoutExceptionTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(KNOWN_CORRELATION_ID).build();
         final AcknowledgementRequestTimeoutException underTest =
                 AcknowledgementRequestTimeoutException.newBuilder(KNOWN_TIMEOUT)
-                        .dittoHeaders(dittoHeaders).build();
+                        .dittoHeaders(dittoHeaders)
+                        .build();
 
         final JsonObject actual = underTest.toJson();
 
@@ -74,4 +75,5 @@ public final class AcknowledgementRequestTimeoutExceptionTest {
 
         assertThat(actual).isEqualTo(expected);
     }
+
 }

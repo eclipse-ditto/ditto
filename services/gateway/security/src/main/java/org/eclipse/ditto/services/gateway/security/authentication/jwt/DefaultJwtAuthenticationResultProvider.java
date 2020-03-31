@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,10 +32,10 @@ import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthent
 @Immutable
 public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenticationResultProvider {
 
-    private final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
+    private final JwtAuthorizationSubjectsProvider authSubjectsProvider;
 
-    private DefaultJwtAuthenticationResultProvider(final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider) {
-        this.authorizationSubjectsProvider = authorizationSubjectsProvider;
+    private DefaultJwtAuthenticationResultProvider(final JwtAuthorizationSubjectsProvider authSubjectsProvider) {
+        this.authSubjectsProvider = authSubjectsProvider;
     }
 
     /**
@@ -42,19 +44,20 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
      * @param authorizationSubjectsProvider used to extract authorization subjects from each {@link JsonWebToken JWT}
      * passed to {@link #getAuthenticationResult(JsonWebToken,DittoHeaders)}.
      * @return the created instance.
+     * @throws NullPointerException if {@code authorizationSubjectsProvider} is {@code null}.
      */
     public static DefaultJwtAuthenticationResultProvider of(
             final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider) {
 
-        return new DefaultJwtAuthenticationResultProvider(authorizationSubjectsProvider);
+        return new DefaultJwtAuthenticationResultProvider(
+                checkNotNull(authorizationSubjectsProvider, "authorizationSubjectsProvider"));
     }
 
     @Override
     public AuthenticationResult getAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
-        final List<AuthorizationSubject> authSubjects = authorizationSubjectsProvider.getAuthorizationSubjects(jwt);
+        final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
         return DefaultAuthenticationResult.successful(dittoHeaders,
-                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects)
-        );
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects));
     }
 
 }

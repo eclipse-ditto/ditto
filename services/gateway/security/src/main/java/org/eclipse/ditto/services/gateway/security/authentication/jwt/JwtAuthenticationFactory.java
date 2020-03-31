@@ -78,7 +78,7 @@ public final class JwtAuthenticationFactory {
         return jwtSubjectIssuersConfig;
     }
 
-    public JwtAuthenticationResultProvider newJwtAuthorizationContextProvider() {
+    public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider() {
         final DittoJwtAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoJwtAuthorizationSubjectsProvider.of(getJwtSubjectIssuersConfig());
 

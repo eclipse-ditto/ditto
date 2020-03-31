@@ -780,8 +780,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final Set<AuthorizationSubject> authorizedSubjects = authorizationContext.getFirstAuthorizationSubject()
                 .map(Collections::singleton)
                 .orElse(Collections.emptySet());
-        final Enforcer enforcer = new AuthorizedSubjectsEnforcer(AuthorizationContext.newInstance(
-                authorizationContext.getType(), authorizedSubjects));
+        final Enforcer enforcer = new AuthorizedSubjectsEnforcer(
+                AuthorizationContext.newInstance(authorizationContext.getType(), authorizedSubjects));
         final CreateThing command = AbstractEnforcement.addEffectedReadSubjectsToThingSignal(createThing, enforcer);
         return Optional.of(new CreateThingWithEnforcer(command, enforcer));
     }
@@ -823,7 +823,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
     }
 
-    private Optional<CreateThingWithEnforcer> enforceCreateThingByOwnAcl(final CreateThing command,
+    private static Optional<CreateThingWithEnforcer> enforceCreateThingByOwnAcl(final CreateThing command,
             final AccessControlList acl) {
 
         if (AclValidator.newInstance(acl, Thing.MIN_REQUIRED_PERMISSIONS).isValid()) {
@@ -837,7 +837,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     }
 
-    private Optional<CreateThingWithEnforcer> attachEnforcerOrReplyWithError(final CreateThing command,
+    private static Optional<CreateThingWithEnforcer> attachEnforcerOrReplyWithError(final CreateThing command,
             final Enforcer enforcer,
             final BiFunction<Enforcer, ThingCommand<CreateThing>, Optional<CreateThing>> authorization) {
 

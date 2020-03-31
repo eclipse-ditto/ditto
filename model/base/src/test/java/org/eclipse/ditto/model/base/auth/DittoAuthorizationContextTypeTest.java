@@ -35,7 +35,6 @@ public final class DittoAuthorizationContextTypeTest {
         assertInstancesOf(DittoAuthorizationContextType.class, areImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DittoAuthorizationContextType.class)
@@ -97,4 +96,5 @@ public final class DittoAuthorizationContextTypeTest {
         }
         return result;
     }
+
 }

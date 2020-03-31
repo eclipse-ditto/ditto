@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -185,10 +186,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     private static AuthorizationContext keepSubjectsWithIssuerPrefix(
             final Collection<String> subjectsWithAndWithoutPrefix) {
-        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
-                subjectsWithAndWithoutPrefix.stream()
-                        .map(AuthorizationSubject::newInstance)
-                        .collect(Collectors.toList()));
+
+        final List<AuthorizationSubject> authSubjects = subjectsWithAndWithoutPrefix.stream()
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(authSubjects);
+
         return AbstractDittoHeaders.keepAuthContextSubjectsWithIssuer(authorizationContext);
     }
 

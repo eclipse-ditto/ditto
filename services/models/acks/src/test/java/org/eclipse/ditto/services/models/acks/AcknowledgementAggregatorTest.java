@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -264,13 +265,14 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void unknownReceivedAcknowledgementsAreIgnored() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(TIMEOUT);
         final Acknowledgement expected = Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED,
                 ENTITY_ID,
-                HttpStatusCode.REQUEST_TIMEOUT,
-                DittoHeaders.empty(), AcknowledgementRequestTimeoutException.newBuilder(TIMEOUT)
-                        .build()
-                        .toJson()
+                timeoutException.getStatusCode(),
+                timeoutException.getDittoHeaders(),
+                timeoutException.toJson()
         );
         underTest.addAcknowledgementRequest(AcknowledgementRequest.of(expected.getLabel()));
         final List<Acknowledgement> acknowledgementsList = createAcknowledgements(1, HttpStatusCode.NO_CONTENT);

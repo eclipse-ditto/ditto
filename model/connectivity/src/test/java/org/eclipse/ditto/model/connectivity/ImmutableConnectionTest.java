@@ -55,8 +55,9 @@ public final class ImmutableConnectionTest {
     private static final String URI = "amqps://foo:bar@example.com:443";
     private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                    AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     private static final String STATUS_MAPPING = "ConnectionStatus";
     private static final String JAVA_SCRIPT_MAPPING = "JavaScript";

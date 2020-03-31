@@ -50,8 +50,9 @@ public final class PolicyModelJsonExamplesProducer {
         final Collection<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
         authorizationSubjects.add(newAuthSubject("the_firstSubject"));
         authorizationSubjects.add(newAuthSubject("the_anotherSubject"));
-        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(
-                DittoAuthorizationContextType.UNSPECIFIED, authorizationSubjects);
+        final AuthorizationContext authContext =
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        authorizationSubjects);
 
         final Path authorizationDir = rootPath.resolve(Paths.get("authorization"));
         Files.createDirectories(authorizationDir);

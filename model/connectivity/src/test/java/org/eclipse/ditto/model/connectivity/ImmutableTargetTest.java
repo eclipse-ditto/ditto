@@ -34,9 +34,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableTargetTest {
 
     private static final String ADDRESS = "amqp/target1";
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationModelFactory.newAuthContext(
-            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationModelFactory.newAuthSubject("eclipse"),
-            AuthorizationModelFactory.newAuthSubject("ditto"));
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
+            AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                    AuthorizationModelFactory.newAuthSubject("eclipse"),
+                    AuthorizationModelFactory.newAuthSubject("ditto"));
     private static final String CUSTOM_MAPPING = "custom-mapping";
     private static final String DITTO_MAPPING = "ditto-mapping";
 
@@ -67,6 +68,7 @@ public final class ImmutableTargetTest {
             .qos(1)
             .topics(TWIN_EVENTS)
             .build();
+
     private static final JsonObject MQTT_TARGET_JSON = JsonObject.newBuilder()
             .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
             .set(Target.JsonFields.ADDRESS, MQTT_ADDRESS)
@@ -87,31 +89,34 @@ public final class ImmutableTargetTest {
                 provided(AuthorizationContext.class,
                         FilteredTopic.class,
                         HeaderMapping.class,
-                        PayloadMapping.class
-                ).areAlsoImmutable());
+                        PayloadMapping.class).areAlsoImmutable());
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual = TARGET_WITH_AUTH_CONTEXT.toJson();
+
         assertThat(actual).isEqualTo(TARGET_JSON_WITH_AUTH_CONTEXT);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
         final Target actual = ImmutableTarget.fromJson(TARGET_JSON_WITH_AUTH_CONTEXT);
+
         assertThat(actual).isEqualTo(TARGET_WITH_AUTH_CONTEXT);
     }
 
     @Test
     public void mqttToJsonReturnsExpected() {
         final JsonObject actual = MQTT_TARGET.toJson();
+
         assertThat(actual).isEqualTo(MQTT_TARGET_JSON);
     }
 
     @Test
     public void mqttFromJsonReturnsExpected() {
         final Target actual = ImmutableTarget.fromJson(MQTT_TARGET_JSON);
+
         assertThat(actual).isEqualTo(MQTT_TARGET);
     }
 

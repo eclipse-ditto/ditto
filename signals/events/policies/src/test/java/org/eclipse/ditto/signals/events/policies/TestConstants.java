@@ -56,8 +56,7 @@ final class TestConstants {
             .correlationId(CORRELATION_ID)
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AuthorizationSubject.newInstance("the_subject"),
-                    AuthorizationSubject.newInstance("another_subject")
-            ))
+                    AuthorizationSubject.newInstance("another_subject")))
             .build();
 
     /**
@@ -69,21 +68,25 @@ final class TestConstants {
      * A known timestamp.
      */
     public static final Instant TIMESTAMP = Instant.EPOCH;
+
     /**
      * Known JSON parse options.
      */
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
             JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
             JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
@@ -93,7 +96,6 @@ final class TestConstants {
     private TestConstants() {
         throw new AssertionError();
     }
-
 
     /**
      * Policy related test constants.
@@ -125,8 +127,9 @@ final class TestConstants {
         /**
          * Known {@code EffectedPermissions} for a {@code PolicyEntry}.
          */
-        public static final EffectedPermissions EFFECTED_PERMISSIONS = PoliciesModelFactory
-                .newEffectedPermissions(Arrays.asList("READ", "WRITE"), PoliciesModelFactory.noPermissions());
+        public static final EffectedPermissions EFFECTED_PERMISSIONS =
+                PoliciesModelFactory.newEffectedPermissions(Arrays.asList("READ", "WRITE"),
+                        PoliciesModelFactory.noPermissions());
 
         /**
          * A known type for a {@code Resource}.
@@ -193,6 +196,7 @@ final class TestConstants {
         private Policy() {
             throw new AssertionError();
         }
+
     }
 
 }

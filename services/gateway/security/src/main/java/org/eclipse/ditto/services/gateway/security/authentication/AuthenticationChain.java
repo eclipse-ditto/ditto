@@ -39,11 +39,11 @@ import akka.http.javadsl.server.RequestContext;
 public final class AuthenticationChain {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationChain.class);
-    private final Collection<AuthenticationProvider> authenticationProviderChain;
+    private final Collection<AuthenticationProvider<?>> authenticationProviderChain;
     private final Executor authenticationDispatcher;
     private final AuthenticationFailureAggregator authenticationFailureAggregator;
 
-    private AuthenticationChain(final Collection<AuthenticationProvider> authenticationProviders,
+    private AuthenticationChain(final Collection<AuthenticationProvider<?>> authenticationProviders,
             final AuthenticationFailureAggregator authenticationFailureAggregator,
             final Executor authenticationDispatcher) {
 
@@ -68,7 +68,7 @@ public final class AuthenticationChain {
      * @throws NullPointerException if argument is {@code null}.
      * @throws IllegalArgumentException if {@code authenticationProviders} is empty.
      */
-    public static AuthenticationChain getInstance(final Collection<AuthenticationProvider> authenticationProviders,
+    public static AuthenticationChain getInstance(final Collection<AuthenticationProvider<?>> authenticationProviders,
             final AuthenticationFailureAggregator authenticationFailureAggregator,
             final Executor authenticationDispatcher) {
 

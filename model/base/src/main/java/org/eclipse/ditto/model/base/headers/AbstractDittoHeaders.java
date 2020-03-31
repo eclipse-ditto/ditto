@@ -26,10 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -51,7 +52,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 @SuppressWarnings("squid:S2160")
 public abstract class AbstractDittoHeaders extends AbstractMap<String, String> implements DittoHeaders {
+
     private static final String ISSUER_DIVIDER = ":";
+
     private final Map<String, String> headers;
 
     /**
@@ -70,7 +73,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         if (headers.containsKey(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey())) {
             final Map<String, String> newHeaders = new HashMap<>(headers);
             final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(
-                    getJsonObjectForDefinition(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT));
+                    getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT));
             final AuthorizationContext authContextWithoutDups = keepAuthContextSubjectsWithIssuer(authContext);
             newHeaders.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), authContextWithoutDups.toJsonString());
             return newHeaders;
@@ -78,18 +81,29 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return headers;
     }
 
-    protected static AuthorizationContext keepAuthContextSubjectsWithIssuer(final AuthorizationContext authContext) {
-        final List<AuthorizationSubject> adjustedSubjects =
-                keepAuthContextSubjectsWithIssuer(authContext.getAuthorizationSubjects().stream())
-                        .collect(Collectors.toList());
-
-        return AuthorizationModelFactory.newAuthContext(authContext.getType(), adjustedSubjects);
+    private static JsonObject getJsonObject(final Map<String, String> headers, final HeaderDefinition definition) {
+        final String jsonObjectString = headers.get(definition.getKey());
+        final JsonObject result;
+        if (null != jsonObjectString) {
+            result = JsonObject.of(jsonObjectString);
+        } else {
+            result = JsonObject.empty();
+        }
+        return result;
     }
 
-    protected static Stream<AuthorizationSubject> keepAuthContextSubjectsWithIssuer(
-            final Stream<AuthorizationSubject> subjects) {
-        return subjects.filter(
-                authorizationSubject -> authorizationSubject.getId().split(ISSUER_DIVIDER, 2).length == 2);
+    protected static AuthorizationContext keepAuthContextSubjectsWithIssuer(final AuthorizationContext authContext) {
+        final Predicate<AuthorizationSubject> idWithIssuer = authorizationSubject -> {
+            final String authorizationSubjectId = authorizationSubject.getId();
+            final String[] issuers = authorizationSubjectId.split(ISSUER_DIVIDER, 2);
+            return 2 == issuers.length;
+        };
+
+        final List<AuthorizationSubject> subjectsWithIssuer = authContext.stream()
+                .filter(idWithIssuer)
+                .collect(Collectors.toList());
+
+        return AuthorizationModelFactory.newAuthContext(authContext.getType(), subjectsWithIssuer);
     }
 
     @Override
@@ -98,7 +112,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     protected Optional<String> getStringForDefinition(final HeaderDefinition definition) {
-        return getStringForDefinition(headers, definition);
+        return Optional.ofNullable(headers.get(definition.getKey()));
     }
 
     @Override
@@ -119,36 +133,32 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return getAuthorizationContext().getAuthorizationSubjectIds();
     }
 
-    private static AuthorizationSubject getSubjectWithoutIssuer(final AuthorizationSubject subject) {
-        final String[] splittedInIssuerAndSubject = subject.getId().split(ISSUER_DIVIDER, 2);
-        if (splittedInIssuerAndSubject.length == 2) {
-            return AuthorizationSubject.newInstance(splittedInIssuerAndSubject[1]);
-        } else {
-            return subject;
-        }
-    }
-
-    protected JsonArray getJsonArrayForDefinition(final HeaderDefinition definition) {
-        return getJsonArrayForDefinition(headers, definition);
-    }
-
     @Override
     public AuthorizationContext getAuthorizationContext() {
         return duplicateSubjectsByStrippingIssuerPrefix(AuthorizationModelFactory.newAuthContext(
-                getJsonObjectForDefinition(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)));
+                getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)));
     }
 
     private static AuthorizationContext duplicateSubjectsByStrippingIssuerPrefix(
-            final AuthorizationContext authorizationContextWithSubjectsWithPrefix) {
+            final AuthorizationContext authContextWithPrefixedSubjects) {
 
-        final List<AuthorizationSubject> subjectsWithPrefix = authorizationContextWithSubjectsWithPrefix
-                .getAuthorizationSubjects();
-        final Set<AuthorizationSubject> mergedSet = new LinkedHashSet<>(subjectsWithPrefix);
-        subjectsWithPrefix.stream()
+        final List<AuthorizationSubject> prefixedSubjects = authContextWithPrefixedSubjects.getAuthorizationSubjects();
+        final Set<AuthorizationSubject> mergedSubjects = new LinkedHashSet<>(prefixedSubjects);
+        prefixedSubjects.stream()
                 .map(AbstractDittoHeaders::getSubjectWithoutIssuer)
-                .forEach(mergedSet::add);
+                .forEach(mergedSubjects::add);
 
-        return AuthorizationModelFactory.newAuthContext(authorizationContextWithSubjectsWithPrefix.getType(), mergedSet);
+        return AuthorizationModelFactory.newAuthContext(authContextWithPrefixedSubjects.getType(), mergedSubjects);
+    }
+
+    private static AuthorizationSubject getSubjectWithoutIssuer(final AuthorizationSubject authorizationSubject) {
+        final String authorizationSubjectId = authorizationSubject.getId();
+        final String[] splitInIssuerAndSubject = authorizationSubjectId.split(ISSUER_DIVIDER, 2);
+        if (2 == splitInIssuerAndSubject.length) {
+            return AuthorizationSubject.newInstance(splitInIssuerAndSubject[1]);
+        } else {
+            return authorizationSubject;
+        }
     }
 
     @Override
@@ -157,6 +167,17 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
                 .collect(Collectors.toSet());
+    }
+
+    protected JsonArray getJsonArrayForDefinition(final HeaderDefinition definition) {
+        @Nullable final String jsonArrayString = headers.get(definition.getKey());
+        final JsonArray result;
+        if (null != jsonArrayString) {
+            result = JsonArray.of(jsonArrayString);
+        } else {
+            result = JsonArray.empty();
+        }
+        return result;
     }
 
     @Override
@@ -283,11 +304,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public JsonObject toJson() {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+        final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
         forEach((key, value) -> {
             final Class<?> type = getSerializationTypeForKey(key);
             final JsonValue jsonValue = CharSequence.class.isAssignableFrom(type)
-                    ? JsonFactory.newValue(value)
+                    ? JsonValue.of(value)
                     : JsonFactory.readFrom(value);
             jsonObjectBuilder.set(key, jsonValue);
         });
@@ -388,22 +409,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public String toString() {
         return headers.toString();
-    }
-
-    private static JsonArray getJsonArrayForDefinition(final Map<String, String> headers, final HeaderDefinition definition) {
-        return getStringForDefinition(headers, definition)
-                .map(JsonFactory::newArray)
-                .orElseGet(JsonFactory::newArray);
-    }
-
-    private static JsonObject getJsonObjectForDefinition(final Map<String, String> headers, final HeaderDefinition definition) {
-        return getStringForDefinition(headers, definition)
-                .map(JsonFactory::newObject)
-                .orElseGet(JsonFactory::newObject);
-    }
-
-    private static Optional<String> getStringForDefinition(final Map<String, String> headers, final HeaderDefinition definition) {
-        return Optional.ofNullable(headers.get(definition.getKey()));
     }
 
 }

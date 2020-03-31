@@ -498,12 +498,12 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testReplacementOfPlaceholders() {
         final String correlationId = UUID.randomUUID().toString();
-        final AuthorizationContext contextWithPlaceholders = AuthorizationModelFactory.newAuthContext(
-                DittoAuthorizationContextType.UNSPECIFIED,
-                AuthorizationModelFactory.newAuthSubject(
-                        "integration:{{header:correlation-id}}:hub-{{   header:content-type   }}"),
-                AuthorizationModelFactory.newAuthSubject(
-                        "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
+        final AuthorizationContext contextWithPlaceholders =
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationModelFactory.newAuthSubject(
+                                "integration:{{header:correlation-id}}:hub-{{   header:content-type   }}"),
+                        AuthorizationModelFactory.newAuthSubject(
+                                "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
 
         final AuthorizationContext expectedAuthContext = TestConstants.Authorization.withUnprefixedSubjects(
                 AuthorizationModelFactory.newAuthContext(

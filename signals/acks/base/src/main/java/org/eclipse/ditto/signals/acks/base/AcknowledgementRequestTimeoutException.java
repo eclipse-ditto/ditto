@@ -69,6 +69,21 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
     }
 
     /**
+     * Constructs a new AcknowledgementRequestTimeoutException object.
+     *
+     * @param timeout the timeout.
+     * @throws NullPointerException if {@code timeout} is {@code null}.
+     */
+    public AcknowledgementRequestTimeoutException(final Duration timeout) {
+        this(DittoHeaders.empty(), getMessage(timeout), DEFAULT_DESCRIPTION, null, null);
+    }
+
+    private static String getMessage(final Duration timeout) {
+        checkNotNull(timeout, "timeout");
+        return MessageFormat.format(MESSAGE_TEMPLATE, timeout.toMillis());
+    }
+
+    /**
      * A mutable builder for a {@code AcknowledgementRequestTimeoutException}.
      *
      * @param timeout the timeout.
@@ -112,7 +127,7 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
 
         private Builder(final Duration timeout) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, timeout.toMillis()));
+            message(getMessage(timeout));
         }
 
         @Override
@@ -124,6 +139,7 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
             
             return new AcknowledgementRequestTimeoutException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 
@@ -84,8 +83,7 @@ public final class MultiStageCommandTest {
 
     private static final DittoHeaders DEFAULT_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                    AuthorizationSubject.newInstance(DEFAULT_SUBJECT.getId())
-            ))
+                    AuthorizationSubject.newInstance(DEFAULT_SUBJECT.getId())))
             .build();
 
     private static final String THING = ThingCommand.RESOURCE_TYPE;
@@ -113,7 +111,6 @@ public final class MultiStageCommandTest {
             TestKit.shutdownActorSystem(system);
         }
     }
-
 
     @Test
     public void retrieveThingAndPolicy() {
@@ -354,7 +351,6 @@ public final class MultiStageCommandTest {
                     .setReply(POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build())
                     .setReply(CreatePolicy.TYPE, CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
-
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
 
@@ -380,7 +376,6 @@ public final class MultiStageCommandTest {
             mockPoliciesActor.underlyingActor()
                     .setReply(POLICY_SUDO, SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()))
                     .setReply(CreatePolicy.TYPE, PolicyConflictException.newBuilder(policyId).build());
-
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
@@ -490,4 +485,5 @@ public final class MultiStageCommandTest {
                 .setRevision(1L)
                 .build();
     }
+
 }

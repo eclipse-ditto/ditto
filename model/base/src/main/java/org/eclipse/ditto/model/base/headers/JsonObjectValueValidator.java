@@ -19,7 +19,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator parses a CharSequence to a {@link org.eclipse.ditto.json.JsonObject}.</em>
+ * This validator parses a CharSequence to a {@link org.eclipse.ditto.json.JsonObject}.
  * If validation fails, a {@link org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable

@@ -514,14 +514,13 @@ public final class LiveSignalEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
+    private static DittoHeaders headers() {
         return DittoHeaders.newBuilder()
-                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                        SUBJECT,
-                        AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))
-                ))
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
+                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
                 .channel("live")
-                .schemaVersion(schemaVersion)
+                .schemaVersion(JsonSchemaVersion.V_2)
                 .correlationId(UUID.randomUUID().toString())
                 .build();
     }
@@ -533,11 +532,11 @@ public final class LiveSignalEnforcementTest {
     }
 
     private static ThingCommand readCommand() {
-        return RetrieveThing.of(THING_ID, headers(V_2));
+        return RetrieveThing.of(THING_ID, headers());
     }
 
     private static ThingCommand writeCommand() {
-        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
+        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers());
     }
 
     private static MessageCommand thingMessageCommand() {
@@ -547,7 +546,7 @@ public final class LiveSignalEnforcementTest {
                         .build())
                 .payload("Hello you!")
                 .build();
-        return SendThingMessage.of(THING_ID, message, headers(V_2));
+        return SendThingMessage.of(THING_ID, message, headers());
     }
 
     private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
@@ -563,11 +562,11 @@ public final class LiveSignalEnforcementTest {
                         .build())
                 .payload("Hello you!")
                 .build();
-        return SendFeatureMessage.of(THING_ID, "foo", message, headers(V_2));
+        return SendFeatureMessage.of(THING_ID, "foo", message, headers());
     }
 
     private static ThingEvent liveEvent() {
-        return AttributeModified.of(THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L, headers(V_2));
+        return AttributeModified.of(THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L, headers());
     }
 
 }

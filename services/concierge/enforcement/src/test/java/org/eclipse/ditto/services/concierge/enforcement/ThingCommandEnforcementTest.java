@@ -227,16 +227,14 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void rejectCreateByOwnAcl() {
         final AclEntry aclEntry =
-                AclEntry.newInstance(AuthorizationSubject.newInstance("not-subject"),
-                        READ, WRITE, ADMINISTRATE);
+                AclEntry.newInstance(AuthorizationSubject.newInstance("not-subject"), READ, WRITE, ADMINISTRATE);
 
         final Thing thingWithEmptyAcl = newThing()
                 .setPermissions(aclEntry)
                 .build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(THING_ID).build());
+            mockEntitiesActorInstance.setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thingWithEmptyAcl, null, headers(V_1));
@@ -251,8 +249,7 @@ public final class ThingCommandEnforcementTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("dummy")
                 .setSubject(GOOGLE, "not-subject")
-                .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
-                        READ.name(), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource("/"), READ.name(), WRITE.name())
                 .build();
         final Thing thing = newThing().build();
 
@@ -271,12 +268,10 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void acceptByAcl() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
-        final SudoRetrieveThingResponse response =
-                SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
+        final SudoRetrieveThingResponse response = SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
 
         new TestKit(system) {{
             mockEntitiesActorInstance.setReply(THING_SUDO, response);
@@ -285,8 +280,8 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand read = getReadCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat((CharSequence) fishForMsgClass(this, read.getClass()).getEntityId()).isEqualTo(
-                    read.getEntityId());
+            assertThat((CharSequence) fishForMsgClass(this, read.getClass()).getEntityId())
+                    .isEqualTo(read.getEntityId());
 
             final ThingCommand write = getModifyCommand();
             mockEntitiesActorInstance.setReply(write);
@@ -323,8 +318,8 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand write = getModifyCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId()).isEqualTo(
-                    write.getEntityId());
+            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId())
+                    .isEqualTo(write.getEntityId());
 
             final ThingCommand read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =
@@ -694,10 +689,9 @@ public final class ThingCommandEnforcementTest {
 
     private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
-                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                        SUBJECT,
-                        AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))
-                ))
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
+                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
                 .schemaVersion(schemaVersion)
                 .build();
     }

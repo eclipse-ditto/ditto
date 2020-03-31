@@ -68,6 +68,7 @@ public final class AuthorizationModelFactory {
     public static AuthorizationContext newAuthContext(final AuthorizationContextType type,
             final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
+
         return ImmutableAuthorizationContext.of(type, authorizationSubject, furtherAuthorizationSubjects);
     }
 
@@ -84,6 +85,7 @@ public final class AuthorizationModelFactory {
     @Deprecated
     public static AuthorizationContext newAuthContext(final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
+
         return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authorizationSubject,
                 furtherAuthorizationSubjects);
     }
@@ -110,6 +112,7 @@ public final class AuthorizationModelFactory {
      */
     public static AuthorizationContext newAuthContext(final AuthorizationContextType type,
             final Iterable<AuthorizationSubject> authorizationSubjects) {
+
         final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
         authorizationSubjects.forEach(authSubjectsList::add);
         return ImmutableAuthorizationContext.of(type, authSubjectsList);
@@ -129,4 +132,5 @@ public final class AuthorizationModelFactory {
         authorizationSubjects.forEach(authSubjectsList::add);
         return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authSubjectsList);
     }
+
 }

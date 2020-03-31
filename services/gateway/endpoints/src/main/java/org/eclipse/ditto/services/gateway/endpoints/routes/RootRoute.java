@@ -204,26 +204,6 @@ public final class RootRoute extends AllDirectives {
         return outerRouteProvider.apply(innerRouteProvider);
     }
 
-    private Route apiAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
-            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
-
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(schemaVersion)
-                .correlationId(correlationId)
-                .build();
-        return apiAuthenticationDirective.authenticate(dittoHeaders, inner);
-    }
-
-    private Route wsAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
-            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
-
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(schemaVersion)
-                .correlationId(correlationId)
-                .build();
-        return wsAuthenticationDirective.authenticate(dittoHeaders, inner);
-    }
-
     /*
      * Describes {@code /api} route.
      *
@@ -268,6 +248,16 @@ public final class RootRoute extends AllDirectives {
                         throw new IllegalStateException("Unexpected checked exception", e);
                     }
                 });
+    }
+
+    private Route apiAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
+            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(schemaVersion)
+                .correlationId(correlationId)
+                .build();
+        return apiAuthenticationDirective.authenticate(dittoHeaders, inner);
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
@@ -329,6 +319,16 @@ public final class RootRoute extends AllDirectives {
                         )
                 )
         );
+    }
+
+    private Route wsAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
+            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(schemaVersion)
+                .correlationId(correlationId)
+                .build();
+        return wsAuthenticationDirective.authenticate(dittoHeaders, inner);
     }
 
     @Nullable

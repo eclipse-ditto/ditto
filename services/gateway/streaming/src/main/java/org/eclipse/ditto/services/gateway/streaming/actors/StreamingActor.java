@@ -94,7 +94,7 @@ public final class StreamingActor extends AbstractActorWithTimers
         this.streamingConfig = streamingConfig;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();
-        jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthorizationContextProvider();
+        jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
         scheduleScrapeStreamSessionsCounter();
     }
 

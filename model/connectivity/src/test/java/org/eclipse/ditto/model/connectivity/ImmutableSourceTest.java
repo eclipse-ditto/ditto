@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,16 +39,19 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableSourceTest {
 
-    private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
-            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationModelFactory.newAuthSubject("eclipse"),
-            AuthorizationModelFactory.newAuthSubject("ditto"));
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
+            AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                    AuthorizationModelFactory.newAuthSubject("eclipse"),
+                    AuthorizationModelFactory.newAuthSubject("ditto"));
 
-    private static Map<String, String> mapping = new HashMap<>();
+    private static final Map<String, String> MAPPING;
 
     static {
+        final Map<String, String> mapping = new HashMap<>();
         mapping.put("correlation-id", "{{ header:message-id }}");
         mapping.put("thing-id", "{{ header:device_id }}");
         mapping.put("eclipse", "ditto");
+        MAPPING = Collections.unmodifiableMap(mapping);
     }
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
@@ -55,11 +59,11 @@ public final class ImmutableSourceTest {
     private static final String CUSTOM_MAPPING = "custom-mapping";
     private static final Source SOURCE_WITH_AUTH_CONTEXT =
             ConnectivityModelFactory.newSourceBuilder()
-                    .authorizationContext(ctx)
+                    .authorizationContext(AUTHORIZATION_CONTEXT)
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
-                    .headerMapping(ConnectivityModelFactory.newHeaderMapping(mapping))
+                    .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
                     .build();
@@ -69,7 +73,7 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(Source.JsonFields.HEADER_MAPPING,
-                    JsonFactory.newObjectBuilder().setAll(mapping.entrySet().stream()
+                    JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
                             .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
                             .collect(Collectors.toList())).build())
             .set(Source.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
@@ -84,13 +88,13 @@ public final class ImmutableSourceTest {
     private static final String MQTT_SOURCE1 = "mqtt/source1";
     private static final String MQTT_FILTER = "topic/{{ thing.id }}";
 
-    private static final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ topic }}", MQTT_FILTER);
+    private static final Enforcement ENFORCEMENT = ConnectivityModelFactory.newEnforcement("{{ topic }}", MQTT_FILTER);
 
     private static final Source MQTT_SOURCE = ConnectivityModelFactory
             .newSourceBuilder()
-            .authorizationContext(ctx)
+            .authorizationContext(AUTHORIZATION_CONTEXT)
             .address(MQTT_SOURCE1)
-            .enforcement(enforcement)
+            .enforcement(ENFORCEMENT)
             .consumerCount(2)
             .index(0)
             .qos(1)
@@ -118,42 +122,49 @@ public final class ImmutableSourceTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableSource.class, areImmutable(),
-                provided(AuthorizationContext.class, Enforcement.class, HeaderMapping.class,
-                        PayloadMapping.class, ReplyTarget.class
-                ).areAlsoImmutable());
+        assertInstancesOf(ImmutableSource.class,
+                areImmutable(),
+                provided(AuthorizationContext.class,
+                        Enforcement.class,
+                        HeaderMapping.class,
+                        PayloadMapping.class,
+                        ReplyTarget.class).areAlsoImmutable());
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual = SOURCE_WITH_AUTH_CONTEXT.toJson();
+
         assertThat(actual).isEqualTo(SOURCE_JSON_WITH_AUTH_CONTEXT);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
         final Source actual = ImmutableSource.fromJson(SOURCE_JSON_WITH_AUTH_CONTEXT, 0);
+
         assertThat(actual).isEqualTo(SOURCE_WITH_AUTH_CONTEXT);
     }
 
     @Test
     public void mqttToJsonReturnsExpected() {
         final JsonObject actual = MQTT_SOURCE.toJson();
+
         assertThat(actual).isEqualTo(MQTT_SOURCE_JSON);
     }
 
     @Test
     public void mqttFromJsonReturnsExpected() {
         final Source actual = ImmutableSource.fromJson(MQTT_SOURCE_JSON, 0);
+
         assertThat(actual).isEqualTo(MQTT_SOURCE);
     }
 
     @Test
     public void addMappingToExistingSource() {
-        final ImmutableSource.Builder builder = new ImmutableSource.Builder(SOURCE_WITH_AUTH_CONTEXT);
-        final SourceBuilder builderWithMapping = builder.payloadMapping(
-                ConnectivityModelFactory.newPayloadMapping("mapping"));
-        final Source sourceWithMapping = builderWithMapping.build();
+        final Source sourceWithMapping = new ImmutableSource.Builder(SOURCE_WITH_AUTH_CONTEXT)
+                .payloadMapping(ConnectivityModelFactory.newPayloadMapping("mapping"))
+                .build();
+
         assertThat(sourceWithMapping.getPayloadMapping().getMappings()).containsExactly("mapping");
     }
 

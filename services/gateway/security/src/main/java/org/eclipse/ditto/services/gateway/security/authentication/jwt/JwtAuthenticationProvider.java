@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.gateway.security.utils.HttpUtils.getRequestHeader;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,10 +30,9 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -44,16 +42,19 @@ import akka.http.javadsl.server.RequestContext;
 @NotThreadSafe
 public final class JwtAuthenticationProvider extends TimeMeasuringAuthenticationProvider<AuthenticationResult> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationProvider.class);
     private static final String AUTHORIZATION_JWT = "Bearer";
 
-    private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(JwtAuthenticationProvider.class);
+
+    private final JwtAuthenticationResultProvider jwtAuthResultProvider;
     private final JwtValidator jwtValidator;
 
     private JwtAuthenticationProvider(final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
             final JwtValidator jwtValidator) {
-        this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
-        this.jwtValidator = jwtValidator;
+
+        super(LOGGER);
+        jwtAuthResultProvider = checkNotNull(jwtAuthenticationResultProvider, "jwtAuthorizationContextProvider");
+        this.jwtValidator = checkNotNull(jwtValidator, "jwtValidator");
     }
 
     /**
@@ -64,10 +65,9 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
      * @return the created instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JwtAuthenticationProvider newInstance(final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
-            final JwtValidator jwtValidator) {
-        checkNotNull(jwtAuthenticationResultProvider, "jwtAuthorizationContextProvider");
-        checkNotNull(jwtValidator, "jwtValidator");
+    public static JwtAuthenticationProvider newInstance(
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider, final JwtValidator jwtValidator) {
+
         return new JwtAuthenticationProvider(jwtAuthenticationResultProvider, jwtValidator);
     }
 
@@ -97,7 +97,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
 
         final Optional<JsonWebToken> jwtOptional = extractJwtFromRequest(requestContext);
         if (jwtOptional.isEmpty()) {
-            LOGGER.debug("JWT is missing.");
+            LOGGER.withCorrelationId(dittoHeaders).debug("JWT is missing.");
             return DefaultAuthenticationResult.failed(dittoHeaders, buildMissingJwtException(dittoHeaders));
         }
 
@@ -109,8 +109,16 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     }
 
     private static Optional<JsonWebToken> extractJwtFromRequest(final RequestContext requestContext) {
-        return getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString())
+        return HttpUtils.getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString())
                 .map(ImmutableJsonWebToken::fromAuthorization);
+    }
+
+    private static DittoRuntimeException buildMissingJwtException(final DittoHeaders dittoHeaders) {
+        return GatewayAuthenticationFailedException
+                .newBuilder("The JWT was missing.")
+                .description("Please provide a valid JWT in the authorization header prefixed with 'Bearer '")
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -119,23 +127,31 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
 
         return jwtValidator.validate(jwt)
                 .thenApply(validationResult -> {
-                    LogUtil.enhanceLogWithCorrelationId(dittoHeaders);
                     if (!validationResult.isValid()) {
                         final Throwable reasonForInvalidity = validationResult.getReasonForInvalidity();
-                        LOGGER.debug("The JWT is invalid.", reasonForInvalidity);
+                        LOGGER.withCorrelationId(dittoHeaders).debug("The JWT is invalid.", reasonForInvalidity);
                         throw buildJwtUnauthorizedException(dittoHeaders, reasonForInvalidity);
                     }
 
                     final AuthenticationResult authenticationResult = tryToGetAuthenticationResult(jwt, dittoHeaders);
-                    LOGGER.info("Completed JWT authentication successfully.");
+                    LOGGER.withCorrelationId(dittoHeaders).info("Completed JWT authentication successfully.");
                     return authenticationResult;
                 });
     }
 
-    private AuthenticationResult tryToGetAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
+    private static DittoRuntimeException buildJwtUnauthorizedException(final DittoHeaders dittoHeaders,
+            final Throwable cause) {
 
+        return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified.")
+                .description(cause.getMessage())
+                .dittoHeaders(dittoHeaders)
+                .cause(cause)
+                .build();
+    }
+
+    private AuthenticationResult tryToGetAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
         try {
-            return jwtAuthenticationResultProvider.getAuthenticationResult(jwt, dittoHeaders);
+            return jwtAuthResultProvider.getAuthenticationResult(jwt, dittoHeaders);
         } catch (final Exception e) {
             throw buildJwtUnauthorizedException(dittoHeaders, e);
         }
@@ -153,31 +169,13 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     protected AuthenticationResult toFailedAuthenticationResult(final Throwable throwable,
             final DittoHeaders dittoHeaders) {
 
-        LOGGER.debug("JWT Authentication failed.", throwable);
+        LOGGER.withCorrelationId(dittoHeaders).debug("JWT Authentication failed.", throwable);
         return DefaultAuthenticationResult.failed(dittoHeaders, toDittoRuntimeException(throwable, dittoHeaders));
     }
 
     @Override
     public AuthorizationContextType getType(final RequestContext requestContext) {
         return DittoAuthorizationContextType.JWT;
-    }
-
-    private static DittoRuntimeException buildMissingJwtException(final DittoHeaders dittoHeaders) {
-        return GatewayAuthenticationFailedException
-                .newBuilder("The JWT was missing.")
-                .description("Please provide a valid JWT in the authorization header prefixed with 'Bearer '")
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    private static DittoRuntimeException buildJwtUnauthorizedException(final DittoHeaders dittoHeaders,
-            final Throwable cause) {
-
-        return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified.")
-                .description(cause.getMessage())
-                .dittoHeaders(dittoHeaders)
-                .cause(cause)
-                .build();
     }
 
 }

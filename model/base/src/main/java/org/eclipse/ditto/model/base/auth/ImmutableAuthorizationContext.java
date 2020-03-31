@@ -48,6 +48,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
 
     private ImmutableAuthorizationContext(final AuthorizationContextType type,
             final List<AuthorizationSubject> authorizationSubjects) {
+
         this.type = type;
         this.authorizationSubjects = authorizationSubjects;
         authorizationSubjectIds = null;
@@ -236,8 +237,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
             return false;
         }
         final ImmutableAuthorizationContext that = (ImmutableAuthorizationContext) o;
-        return type.equals(that.type) &&
-                authorizationSubjects.equals(that.authorizationSubjects);
+        return type.equals(that.type) && authorizationSubjects.equals(that.authorizationSubjects);
     }
 
     @Override
@@ -252,4 +252,5 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
                 ", authorizationSubjects=" + authorizationSubjects +
                 "]";
     }
+
 }

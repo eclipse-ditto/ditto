@@ -196,7 +196,7 @@ public interface AuthorizationContext
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
-         * @deprecated no longer in use
+         * @deprecated as of 1.1.0 this field is no longer in use.
          */
         @Deprecated
         public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
@@ -205,6 +205,8 @@ public interface AuthorizationContext
 
         /**
          * JSON field containing the authorization context's type.
+         *
+         * @since 1.1.0
          */
         public static final JsonFieldDefinition<String> TYPE =
                 JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,

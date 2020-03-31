@@ -12,12 +12,11 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.preauth;
 
-import static org.eclipse.ditto.services.gateway.security.utils.HttpUtils.getRequestHeader;
-
+import java.text.MessageFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
@@ -33,10 +32,14 @@ import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 
+import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.Query;
+import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.RequestContext;
 
 /**
@@ -61,7 +64,7 @@ public final class PreAuthenticatedAuthenticationProvider
     private static final PreAuthenticatedAuthenticationProvider INSTANCE = new PreAuthenticatedAuthenticationProvider();
 
     private PreAuthenticatedAuthenticationProvider() {
-        super();
+        super(LOGGER);
     }
 
     /**
@@ -79,9 +82,16 @@ public final class PreAuthenticatedAuthenticationProvider
                 containsHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH);
     }
 
-    protected boolean containsHeader(final RequestContext requestContext, final HttpHeader header) {
-        return getRequestHeader(requestContext, header.getName()).isPresent() ||
-                getRequestParam(requestContext, header).isPresent();
+    private static boolean containsHeader(final RequestContext requestContext, final HttpHeader header) {
+        final Optional<String> requestHeader = HttpUtils.getRequestHeader(requestContext, header.getName());
+        return requestHeader.isPresent() || getRequestParam(requestContext, header).isPresent();
+    }
+
+    private static Optional<String> getRequestParam(final RequestContext requestContext, final HttpHeader header) {
+        final HttpRequest httpRequest = requestContext.getRequest();
+        final Uri requestUri = httpRequest.getUri();
+        final Query query = requestUri.query();
+        return query.get(header.getName());
     }
 
     @Override
@@ -91,26 +101,56 @@ public final class PreAuthenticatedAuthenticationProvider
         final Optional<String> preAuthOpt = getPreAuthenticated(requestContext);
 
         if (preAuthOpt.isEmpty()) {
-            return DefaultAuthenticationResult.failed(dittoHeaders, buildNotApplicableException(dittoHeaders));
+            return DefaultAuthenticationResult.failed(dittoHeaders, getAuthenticationFailedException(dittoHeaders));
         }
 
         final String preAuthenticatedSubject = preAuthOpt.get();
 
-        final List<AuthorizationSubject> authorizationSubjects = extractAuthorizationSubjects(preAuthenticatedSubject);
+        final List<AuthorizationSubject> authorizationSubjects = getAuthorizationSubjects(preAuthenticatedSubject);
         if (authorizationSubjects.isEmpty()) {
             return toFailedAuthenticationResult(
                     buildFailedToExtractAuthorizationSubjectsException(preAuthenticatedSubject, dittoHeaders),
                     dittoHeaders);
         }
 
-        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
-                DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP, authorizationSubjects);
+        final AuthorizationContext authContext =
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
+                        authorizationSubjects);
 
         LOGGER.withCorrelationId(dittoHeaders)
-                .info("Pre-authentication has been applied resulting in the following AuthorizationContext: {}",
-                        authorizationContext);
+                .info("Pre-authentication has been applied resulting in AuthorizationContext <{}>.", authContext);
 
-        return DefaultAuthenticationResult.successful(dittoHeaders, authorizationContext);
+        return DefaultAuthenticationResult.successful(dittoHeaders, authContext);
+    }
+
+    private static Optional<String> getPreAuthenticated(final RequestContext requestContext) {
+        return HttpUtils.getRequestHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH.getName())
+                .or(() -> HttpUtils.getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName()))
+                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_PRE_AUTH))
+                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH));
+    }
+
+    private static DittoRuntimeException getAuthenticationFailedException(final DittoHeaders dittoHeaders) {
+        return GatewayAuthenticationFailedException.newBuilder("No pre-authenticated subject was provided!")
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    private static List<AuthorizationSubject> getAuthorizationSubjects(final String subjectsCommaSeparated) {
+        return Arrays.stream(subjectsCommaSeparated.split(","))
+                .map(String::trim)
+                .filter(Predicate.not(String::isEmpty))
+                .map(AuthorizationModelFactory::newAuthSubject)
+                .collect(Collectors.toList());
+    }
+
+    private static DittoRuntimeException buildFailedToExtractAuthorizationSubjectsException(
+            final String preAuthenticatedSubject, final DittoHeaders dittoHeaders) {
+
+        final String mPtrn = "Failed to extract AuthorizationSubjects from pre-authenticated header value <{0}>!";
+        return GatewayAuthenticationFailedException.newBuilder(MessageFormat.format(mPtrn, preAuthenticatedSubject))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     @Override
@@ -123,42 +163,6 @@ public final class PreAuthenticatedAuthenticationProvider
     @Override
     public AuthorizationContextType getType(final RequestContext requestContext) {
         return DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP;
-    }
-
-    private static Optional<String> getPreAuthenticated(final RequestContext requestContext) {
-        return getRequestHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH.getName())
-                .or(() -> getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName()))
-                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_PRE_AUTH))
-                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH));
-    }
-
-    private static Optional<String> getRequestParam(final RequestContext requestContext, final HttpHeader header) {
-        return requestContext.getRequest().getUri().query().get(header.getName());
-    }
-
-    private static List<AuthorizationSubject> extractAuthorizationSubjects(final String subjectsCommaSeparated) {
-        if (subjectsCommaSeparated != null && !subjectsCommaSeparated.isEmpty()) {
-            return Arrays.stream(subjectsCommaSeparated.split(","))
-                    .map(AuthorizationModelFactory::newAuthSubject)
-                    .collect(Collectors.toList());
-        }
-        return Collections.emptyList();
-    }
-
-    private static DittoRuntimeException buildFailedToExtractAuthorizationSubjectsException(
-            final String preAuthenticatedSubject, final DittoHeaders dittoHeaders) {
-
-        return GatewayAuthenticationFailedException.newBuilder(
-                "Failed to extract AuthorizationSubjects from pre-authenticated header value " +
-                        "'" + preAuthenticatedSubject + "'.")
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    private static DittoRuntimeException buildNotApplicableException(final DittoHeaders dittoHeaders) {
-        return GatewayAuthenticationFailedException.newBuilder("No pre-authenticated subject was provided.")
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
 }

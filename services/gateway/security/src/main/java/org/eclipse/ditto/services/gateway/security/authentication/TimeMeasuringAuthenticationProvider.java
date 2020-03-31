@@ -12,20 +12,22 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -41,7 +43,17 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     private static final String AUTH_ERROR_TAG = TracingTags.AUTH_ERROR;
     private static final String AUTH_SUCCESS_TAG = TracingTags.AUTH_SUCCESS;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TimeMeasuringAuthenticationProvider.class);
+    private final DittoLogger logger;
+
+    /**
+     * Constructs a new TimeMeasuringAuthenticationProvider object.
+     *
+     * @param logger the logger to be used.
+     * @throws NullPointerException if {@code logger} is {@code null}.
+     */
+    protected TimeMeasuringAuthenticationProvider(final DittoLogger logger) {
+        this.logger = checkNotNull(logger, "logger");
+    }
 
     @Override
     public final R authenticate(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
@@ -53,9 +65,10 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
             return authenticationResult;
         } catch (final DittoRuntimeException e) {
             timer.tag(AUTH_SUCCESS_TAG, false);
-            if (e.getStatusCode().isInternalError()) {
-                LOGGER.warn("An unexpected error occurred during authentication of type <{}>.",
-                        authorizationContextType, e);
+            if (isInternalError(e.getStatusCode())) {
+                logger.withCorrelationId(dittoHeaders)
+                        .warn("An unexpected error occurred during authentication of type <{}>.",
+                                authorizationContextType, e);
                 timer.tag(AUTH_ERROR_TAG, true);
             }
             return toFailedAuthenticationResult(e, dittoHeaders);
@@ -65,6 +78,10 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
         } finally {
             timer.stop();
         }
+    }
+
+    private static boolean isInternalError(final HttpStatusCode httpStatusCode) {
+        return httpStatusCode.isInternalError();
     }
 
     /**
@@ -105,7 +122,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      * @param dittoHeaders the built DittoHeaders of the request that caused the given throwable.
      * @return the converted exception.
      */
-    protected static DittoRuntimeException toDittoRuntimeException(final Throwable throwable,
+    protected DittoRuntimeException toDittoRuntimeException(final Throwable throwable,
             final DittoHeaders dittoHeaders) {
 
         return DittoRuntimeException.asDittoRuntimeException(throwable,
@@ -114,7 +131,8 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
                             unwrapDittoRuntimeException(cause, dittoHeaders);
 
                     if (dittoRuntimeException == null) {
-                        LOGGER.warn("Failed to unwrap DittoRuntimeException from Throwable!", throwable);
+                        logger.withCorrelationId(dittoHeaders)
+                                .warn("Failed to unwrap DittoRuntimeException from Throwable!", throwable);
                         return buildInternalErrorException(cause, dittoHeaders);
                     }
 

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.base.auth;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 
 import java.util.Objects;
 
@@ -22,6 +22,8 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Abstract class for type information of {@code AuthorizationContext} instances used for defining what "kind" of
  * authorization an authorization context represents.
+ *
+ * @since 1.1.0
  */
 @Immutable
 public abstract class AuthorizationContextType implements CharSequence, Comparable<AuthorizationContextType> {
@@ -32,9 +34,11 @@ public abstract class AuthorizationContextType implements CharSequence, Comparab
      * Abstract constructor for creating the type based on the passed {@code type} String.
      *
      * @param type the type String to back this instance.
+     * @throws NullPointerException if {@code type} is {@code null}.
+     * @throws IllegalArgumentException if {@code type} is empty.
      */
     protected AuthorizationContextType(final String type) {
-        this.type = checkNotNull(type, "type");
+        this.type = argumentNotEmpty(type, "type");
     }
 
     @Override
@@ -99,4 +103,5 @@ public abstract class AuthorizationContextType implements CharSequence, Comparab
     public final String toString() {
         return type;
     }
+
 }

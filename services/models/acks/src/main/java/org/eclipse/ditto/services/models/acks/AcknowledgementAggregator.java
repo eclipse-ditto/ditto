@@ -29,10 +29,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -119,11 +119,9 @@ public final class AcknowledgementAggregator {
     private Acknowledgement getTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
 
         // This Acknowledgement was not actually received, thus it cannot have "real" DittoHeaders.
-        return Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.REQUEST_TIMEOUT, DittoHeaders.empty(),
-                AcknowledgementRequestTimeoutException.newBuilder(timeout)
-                        .build()
-                        .toJson()
-        );
+        final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(timeout);
+        return Acknowledgement.of(acknowledgementLabel, entityId, timeoutException.getStatusCode(),
+                timeoutException.getDittoHeaders(), timeoutException.toJson());
     }
 
     /**
