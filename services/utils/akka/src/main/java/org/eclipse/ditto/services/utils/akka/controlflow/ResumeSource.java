@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import static akka.stream.Attributes.logLevelDebug;
-import static akka.stream.Attributes.logLevelError;
+import static akka.stream.Attributes.logLevelInfo;
 import static akka.stream.Attributes.logLevels;
 
 import java.time.Duration;
@@ -22,6 +22,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import akka.NotUsed;
@@ -67,6 +68,17 @@ import scala.util.Right;
 public final class ResumeSource {
 
     /**
+     * Create a {@code ResumeSourceBuilder} to configure a {@code ResumeSource}.
+     *
+     * @param <S> type of seeds
+     * @param <E> type of elements
+     * @return builder for a {@code ResumeSource}.
+     */
+    public static <S, E> ResumeSourceBuilder<S, E> newBuilder() {
+        return new ResumeSourceBuilder<>();
+    }
+
+    /**
      * Create a source that resumes based on a seed computed from the final N elements that passed through the stream.
      * Resumption is delayed by exponential backoff with a fixed recovery interval.
      * <ul>
@@ -98,11 +110,35 @@ public final class ResumeSource {
             final int lookBehind,
             final Function<List<E>, S> nextSeed) {
 
+        return ResumeSource.<S, E>newBuilder()
+                .minBackoff(minBackoff)
+                .maxBackoff(maxBackoff)
+                .maxRestarts(maxRestarts)
+                .recovery(recovery)
+                .initialSeed(initialSeed)
+                .resume(resume)
+                .lookBehind(lookBehind)
+                .nextSeed(nextSeed)
+                .build();
+    }
+
+    static <S, E> Source<E, NotUsed> build(final ResumeSourceBuilder<S, E> resumeSourceBuilder) {
+
+        final Duration minBackoff = resumeSourceBuilder.minBackoff;
+        final Duration maxBackoff = resumeSourceBuilder.maxBackoff;
+        final int maxRestarts = resumeSourceBuilder.maxRestarts;
+        final Duration recovery = resumeSourceBuilder.recovery;
+        final S initialSeed = resumeSourceBuilder.initialSeed;
+        final Function<S, Source<E, ?>> resume = resumeSourceBuilder.resume;
+        final int lookBehind = resumeSourceBuilder.lookBehind;
+        final Function<List<E>, S> nextSeed = resumeSourceBuilder.nextSeed;
+        final Function<Throwable, Optional<Throwable>> mayResumeFrom = resumeSourceBuilder.mapError;
+
         // upstream of seeds is a feedback loop
         final Flow<S, S, NotUsed> seedsFlow = Flow.<S>create().prepend(Source.single(initialSeed));
         // resume flow from seeds
         final Flow<S, Either<FailureWithLookBehind<E>, E>, NotUsed> resumptionsFlow =
-                resumeWithFailuresAppended(resume, lookBehind);
+                resumeWithFailuresAppended(resume, lookBehind, mayResumeFrom);
         // pass elements downstream and inject errors into feedback loop
         final Graph<FanOutShape2<Either<FailureWithLookBehind<E>, E>, E, FailureWithLookBehind<E>>, NotUsed>
                 filterFanout = Filter.multiplexByEither(Function.identity());
@@ -156,7 +192,7 @@ public final class ResumeSource {
             final int maxRestarts, final Duration recovery) {
         final Flow<E, E, NotUsed> neverCancelFlowWithErrorLogging = Flow.<E>create()
                 .log("resume-source-errors-flow")
-                .withAttributes(logLevels(logLevelError(), logLevelDebug(), logLevelError()))
+                .withAttributes(logLevels(logLevelInfo(), logLevelDebug(), logLevelInfo()))
                 .via(new NeverCancelFlow<>());
 
         final Flow<E, E, NotUsed> upstream = maxRestarts < 0
@@ -194,7 +230,8 @@ public final class ResumeSource {
      * @return A never-failing flow.
      */
     private static <S, E> Flow<S, Either<FailureWithLookBehind<E>, E>, NotUsed> resumeWithFailuresAppended(
-            final Function<S, Source<E, ?>> resume, final int lookBehind) {
+            final Function<S, Source<E, ?>> resume, final int lookBehind,
+            final Function<Throwable, Optional<Throwable>> resumeOrMapError) {
 
         return Flow.<S>create()
                 .flatMapConcat(seed -> resume.apply(seed)
@@ -202,7 +239,10 @@ public final class ResumeSource {
                         .concat(Source.single(new EndOfStream<>()))
                         .recoverWithRetries(1,
                                 new PFBuilder<Throwable, Graph<SourceShape<Envelope<E>>, NotUsed>>()
-                                        .matchAny(error -> Source.single(new Error<>(error)))
+                                        .matchAny(error -> resumeOrMapError.apply(error)
+                                                .<Source<Envelope<E>, NotUsed>>map(Source::failed)
+                                                .orElseGet(() -> Source.single(new Error<>(error)))
+                                        )
                                         .build())
                 )
                 .via(new EndStreamOnEOS<>())

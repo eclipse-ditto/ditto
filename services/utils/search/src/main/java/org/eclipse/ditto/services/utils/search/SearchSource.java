@@ -14,7 +14,10 @@ package org.eclipse.ditto.services.utils.search;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -23,10 +26,16 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
+import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSourceBuilder;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
@@ -39,6 +48,7 @@ import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Graph;
+import akka.stream.RemoteStreamRefActorTerminatedException;
 import akka.stream.SourceRef;
 import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
@@ -48,6 +58,8 @@ import akka.stream.javadsl.Source;
  * Source of search results for one query.
  */
 public final class SearchSource {
+
+    private final DittoLogger LOGGER = DittoLoggerFactory.getLogger(SearchSource.class);
 
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeForwarder;
@@ -93,18 +105,50 @@ public final class SearchSource {
      *
      * @return the source of search results.
      */
-    public Source<JsonObject, NotUsed> start() {
+    public Source<JsonObject, NotUsed> start(final Consumer<ResumeSourceBuilder<?, ?>> configurer) {
 
-        return startAsPair().map(Pair::second);
+        return startAsPair(configurer).map(Pair::second);
     }
 
     /**
      * Start a robust source of search results paired with their IDs.
      *
+     * @param configurer consumer to configure the resume source.
      * @return source of pair of ID-result pairs where the ID can be used for resumption.
      */
-    public Source<Pair<String, JsonObject>, NotUsed> startAsPair() {
-        return resume(lastThingId);
+    public Source<Pair<String, JsonObject>, NotUsed> startAsPair(final Consumer<ResumeSourceBuilder<?, ?>> configurer) {
+        // start with a ResumeSourceBuilder with useful defaults.
+        final ResumeSourceBuilder<String, Pair<String, JsonObject>> builder =
+                ResumeSource.<String, Pair<String, JsonObject>>newBuilder()
+                        .minBackoff(Duration.ofSeconds(1L))
+                        .maxBackoff(Duration.ofSeconds(20L))
+                        .recovery(Duration.ofSeconds(60L))
+                        .maxRestarts(25)
+                        .initialSeed(lastThingId)
+                        .resume(this::resume)
+                        .nextSeed(this::nextSeed)
+                        .mapError(this::mapError);
+        configurer.accept(builder);
+        return builder.build();
+    }
+
+    /**
+     * Decide whether an error is recoverable.
+     *
+     * @param error error from upstream.
+     * @return an empty optional if the error is recoverable, or a DittoRuntimeException if the error is not
+     * recoverable.
+     */
+    private Optional<Throwable> mapError(final Throwable error) {
+        if (error instanceof RemoteStreamRefActorTerminatedException) {
+            LOGGER.withCorrelationId(streamThings).info("Resuming from: {}", error.toString());
+            return Optional.empty();
+        } else {
+            return Optional.of(DittoRuntimeException.asDittoRuntimeException(error, e -> {
+                LOGGER.withCorrelationId(streamThings).error("Unexpected error", e);
+                return GatewayInternalErrorException.newBuilder().build();
+            }));
+        }
     }
 
     private Source<Pair<String, JsonObject>, NotUsed> resume(final String lastThingId) {
@@ -113,6 +157,12 @@ public final class SearchSource {
                 .via(expectMsgClass(SourceRef.class))
                 .flatMapConcat(SourceRef::source)
                 .flatMapConcat(thingId -> retrieveThingForElement((String) thingId));
+    }
+
+    private String nextSeed(final List<Pair<String, JsonObject>> finalElements) {
+        return finalElements.isEmpty()
+                ? lastThingId
+                : finalElements.get(finalElements.size() - 1).first();
     }
 
     private Source<StreamThings, NotUsed> streamThingsFrom(final String lastThingId) {

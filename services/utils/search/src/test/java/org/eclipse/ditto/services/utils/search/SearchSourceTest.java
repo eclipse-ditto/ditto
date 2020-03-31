@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -35,7 +36,9 @@ import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
+import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
+import akka.stream.Attributes;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.StreamRefs;
@@ -52,6 +55,7 @@ import akka.testkit.javadsl.TestKit;
 public final class SearchSourceTest {
 
     private static final String SORT = "sort(+/attributes/counter,+/thingId)";
+    private static final JsonFieldSelector SORT_FIELDS = JsonFieldSelector.newInstance("attributes/counter", "thingId");
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
@@ -87,6 +91,15 @@ public final class SearchSourceTest {
         sourceProbe.expectRequest(); // this request is the input buffer size and not the sink probe request.
         sourceProbe.sendComplete();
         sinkProbe.expectComplete();
+    }
+
+    @Test
+    public void clientError() {
+        startTestSearchSource(null, null);
+        sinkProbe.request(1L);
+        conciergeForwarderProbe.expectMsg(streamThings(null));
+        conciergeForwarderProbe.reply(InvalidRqlExpressionException.newBuilder().build());
+        sinkProbe.expectError();
     }
 
     @Test
@@ -132,7 +145,10 @@ public final class SearchSourceTest {
     }
 
     @Test
-    public void askTimeoutDuringResumption() {
+    public void cursorDeleted() {
+        // Turn off logging to suppress stack trace. Comment out to debug.
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
+
         startTestSearchSource(null, null);
         sinkProbe.request(200L);
         conciergeForwarderProbe.expectMsg(streamThings(null));
@@ -145,11 +161,22 @@ public final class SearchSourceTest {
         conciergeForwarderProbe.reply(retrieveThingResponse(3));
         sinkProbe.expectNext(getThing(3).toJson());
 
-        // WHEN: thing ID source failed and cursor computation failed
-        sourceProbe.sendError(new IllegalStateException("Mock SourceRef error"));
+        // WHEN: search persistence deleted the cursor
+        sourceProbe.sendError(new IllegalStateException("mock cursor-not-found error"));
 
-        // THEN: source failed
-        sinkProbe.expectError();
+        // THEN: the final thing is retrieved again to compute the cursor
+        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", SORT_FIELDS));
+        conciergeForwarderProbe.reply(retrieveThingResponse(3));
+
+        // THEN: stream resumes from the last result
+        conciergeForwarderProbe.expectMsg(streamThings(JsonArray.of(997, "t:3")));
+        conciergeForwarderProbe.reply(materializeSourceProbe());
+        sourceProbe.expectRequest();
+        sourceProbe.sendNext("t:2").sendComplete();
+        conciergeForwarderProbe.expectMsg(retrieveThing("t:2", null));
+        conciergeForwarderProbe.reply(retrieveThingResponse(2));
+        sinkProbe.expectNext(getThing(2).toJson())
+                .expectComplete();
     }
 
     private Thing getThing(final int i) {
@@ -192,7 +219,8 @@ public final class SearchSourceTest {
                 .sortValues(sortValues)
                 .dittoHeaders(dittoHeaders)
                 .build();
-        sinkProbe = underTest.start()
+        sinkProbe = underTest.start(
+                builder -> builder.minBackoff(Duration.ZERO).maxBackoff(Duration.ZERO))
                 .map(Object.class::cast)
                 .runWith(TestSink.probe(actorSystem), materializer);
     }

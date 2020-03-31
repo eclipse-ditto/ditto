@@ -195,7 +195,7 @@ public final class SubscriptionManager extends AbstractActor {
                     .options(optionString)
                     .dittoHeaders(createSubscription.getDittoHeaders())
                     .build();
-            return searchSource.start()
+            return searchSource.start(builder -> {})
                     .grouped(getPageSize(optionString))
                     .map(JsonArray::of);
         } catch (final DittoRuntimeException e) {
@@ -216,8 +216,7 @@ public final class SubscriptionManager extends AbstractActor {
      * @return the lazified source.
      */
     private static <T> Source<T, ?> lazify(final Source<T, ?> upstream) {
-        return Source.from(List.of(upstream, Source.<T, NotUsed>lazily(Source::empty)))
-                .flatMapConcat(source -> source);
+        return Source.lazily(() -> upstream);
     }
 
 }

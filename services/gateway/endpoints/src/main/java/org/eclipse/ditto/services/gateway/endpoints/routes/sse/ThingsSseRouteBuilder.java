@@ -312,7 +312,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .ifPresent(lastEventId -> searchSourceBuilder.lastThingId(lastEventId.value()));
 
                     return searchSourceBuilder.build()
-                            .startAsPair()
+                            .startAsPair(builder -> {})
                             .via(AbstractRoute.throttleByConfig(streamingConfig.getSseConfig().getThrottlingConfig()))
                             .map(pair -> {
                                 SEARCH_SSE_COUNTER.increment();
