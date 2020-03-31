@@ -58,7 +58,7 @@ Use the placeholder namespace `_` in the topic to search in all visible namespac
 |------------|-------------------------|
 | **topic**  | `<namespace>/_/things/twin/search/subscribe`     |
 | **path**   | `/`     |
-| **fields** | Contains a comma separated list of fields, to describe which things to be included in the search result. |
+| **fields** | Contains a comma separated list of fields, to describe which things to be included in the search results. |
 | **value**  | JSON object specifying the search query. {% include docson.html schema="jsonschema/protocol-search-subscribe-payload.json" %} |
 
 ### Request
@@ -66,7 +66,7 @@ Use the placeholder namespace `_` in the topic to search in all visible namespac
 After obtaining a subscription ID from a ["created"](#created) message,
 use "request" messages to tell Ditto how many pages of search results you are prepared to receive.
 Ditto will send ["hasNext"](#hasnext) messages until all requested pages are fulfilled,
-the search result is exhausted, or an error occurred.
+the search results are exhausted, or an error occurred.
 
 | Field      | Value                   |
 |------------|-------------------------|
@@ -77,7 +77,7 @@ the search result is exhausted, or an error occurred.
 ### Cancel
 
 After obtaining a subscription ID from a ["created"](#created) message,
-use a "cancel" message to stop Ditto from sending more pages of the search result.
+use a "cancel" message to stop Ditto from sending more pages of the search results.
 Pages in-flight may yet arrive, but the client will eventually stop receiving
 messages of the same subscription ID.
 
@@ -117,7 +117,7 @@ previous ["request"](#request) messages.
 
 A search subscription ends with a "complete" or a ["failed"](#failed) message from Ditto,
 or with an ["cancel"](#cancel) message from the client.
-Ditto sends a "complete" message when all pages of a search result are delivered to the client.
+Ditto sends a "complete" message when all pages of the search results are delivered to the client.
 
 | Field      | Value                   |
 |------------|-------------------------|
@@ -131,7 +131,7 @@ A search subscription ends with a ["complete"](#complete) or a "failed" message 
 or with an ["cancel"](#cancel) message from the client.
 Ditto sends a "failed" message when an internal error occurred,
 or when the client breaches the reactive-streams specification.
-It is not possible to ["request"](#request) more pages of the search result after a "failed" message.
+It is not possible to ["request"](#request) more pages of the search results after a "failed" message.
 
 | Field      | Value                   |
 |------------|-------------------------|

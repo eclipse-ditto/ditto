@@ -10,7 +10,7 @@
     },
     "items": {
       "type": "array",
-      "description": "A JSON array containing JSON representations of things in this page of the search result."
+      "description": "A JSON array containing JSON representations of things in this page of the search results."
     }
   },
   "required": ["subscriptionId", "items"]

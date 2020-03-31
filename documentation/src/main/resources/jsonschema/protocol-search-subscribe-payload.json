@@ -10,7 +10,7 @@
     },
     "options": {
       "type": "string",
-      "description": "Specify the page size with `size(PAGE_SIZE)`, or the order of the search result by `sort(<+|-><property>)` (see [RQL sorting](https://www.eclipse.org/ditto/basic-rql.html#rql-sorting)).",
+      "description": "Specify the page size with `size(PAGE_SIZE)`, or the order of the search results by `sort(<+|-><property>)` (see [RQL sorting](https://www.eclipse.org/ditto/basic-rql.html#rql-sorting)).",
       "examples": ["size(25)", "sort(+_modified,-thingId)"]
     }
   }
