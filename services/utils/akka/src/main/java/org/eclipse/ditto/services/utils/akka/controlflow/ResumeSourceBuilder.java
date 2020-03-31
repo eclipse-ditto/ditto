@@ -24,6 +24,8 @@ import akka.stream.javadsl.Source;
 
 /**
  * Builder of the resume source.
+ *
+ * @since 1.1.0
  */
 public final class ResumeSourceBuilder<S, E> {
 

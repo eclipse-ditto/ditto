@@ -1176,7 +1176,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef startSubscriptionManager(final ActorRef conciergeForwarder) {
         final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final ActorMaterializer mat = ActorMaterializer.create(getContext());
-        final Props props = SubscriptionManager.props(Duration.ofMinutes(1L), pubSubMediator, conciergeForwarder, mat);
+        final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator, conciergeForwarder, mat);
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
     }
 
