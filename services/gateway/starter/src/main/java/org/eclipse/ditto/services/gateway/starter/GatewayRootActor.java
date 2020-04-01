@@ -253,7 +253,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, actorSystem.eventStream())
+                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)

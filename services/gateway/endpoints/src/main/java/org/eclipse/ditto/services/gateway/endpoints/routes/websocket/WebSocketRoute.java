@@ -152,7 +152,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
-    private final EventStream eventStream;
 
     private EventSniffer<String> incomingMessageSniffer;
     private EventSniffer<String> outgoingMessageSniffer;
@@ -160,13 +159,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor,
-            final StreamingConfig streamingConfig,
-            final EventStream eventStream) {
+    private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
         this.streamingConfig = streamingConfig;
-        this.eventStream = checkNotNull(eventStream, "eventStream");
 
         final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
         incomingMessageSniffer = noOpEventSniffer;
@@ -181,14 +177,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param streamingConfig the streaming configuration.
-     * @param eventStream eventStream used to publish events within the actor system
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor,
-            final StreamingConfig streamingConfig, final EventStream eventStream) {
-
-        return new WebSocketRoute(streamingActor, streamingConfig, eventStream);
+    public static WebSocketRoute getInstance(final ActorRef streamingActor, final StreamingConfig streamingConfig) {
+        return new WebSocketRoute(streamingActor, streamingConfig);
     }
 
     @Override
