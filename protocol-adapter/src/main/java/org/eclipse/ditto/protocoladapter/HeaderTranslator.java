@@ -87,7 +87,7 @@ public final class HeaderTranslator {
     public Map<String, String> fromExternalHeaders(final Map<String, String> externalHeaders) {
         checkNotNull(externalHeaders, "externalHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.fromExternalHeadersFilter(headerDefinitions);
-        return filterMap(externalHeaders, headerEntryFilter);
+        return filterMap(externalHeaders, headerEntryFilter, true);
     }
 
     /**
@@ -100,7 +100,7 @@ public final class HeaderTranslator {
     public Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.toExternalHeadersFilter(headerDefinitions);
-        return filterMap(dittoHeaders, headerEntryFilter);
+        return filterMap(dittoHeaders, headerEntryFilter, false);
     }
 
     /**
@@ -115,7 +115,7 @@ public final class HeaderTranslator {
     public Map<String, String> retainKnownHeaders(final Map<String, String> externalHeaders) {
         checkNotNull(externalHeaders, "externalHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.existsAsHeaderDefinition(headerDefinitions);
-        return filterMap(externalHeaders, headerEntryFilter);
+        return filterMap(externalHeaders, headerEntryFilter, true);
     }
 
     /**
@@ -135,11 +135,11 @@ public final class HeaderTranslator {
     }
 
     private static Map<String, String> filterMap(final Map<String, String> headersToFilter,
-            final HeaderEntryFilter headerEntryFilter) {
+            final HeaderEntryFilter headerEntryFilter, final boolean lowercaseHeaderKeys) {
         final Map<String, String> map = new LinkedHashMap<>(headersToFilter.size());
-        headersToFilter.forEach((externalKey, value) -> {
-            final String key = externalKey.toLowerCase();
-            final String filteredValue = headerEntryFilter.apply(key, value);
+        headersToFilter.forEach((theKey, theValue) -> {
+            final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;
+            final String filteredValue = headerEntryFilter.apply(key, theValue);
             if (null != filteredValue) {
                 map.put(key, filteredValue);
             }
