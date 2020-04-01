@@ -5,8 +5,8 @@ tags: [http, rql]
 permalink: httpapi-sse.html
 ---
 
-HTML5 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.sse}}">SSEs</a>
-can be used to get notified when the state of **digital twins** change and to receive a
+Server-Sent Events (<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.sse}}">SSEs</a>)
+can be used to get notified when the state of **digital twins** change, and to receive a
 [search results](basic-search.html) stream.
 
 ## Server-Sent Events
@@ -32,8 +32,8 @@ http://localhost:8080/api/<1|2>/things
 ```
 
 This is a mechanism to get [change notifications](basic-changenotifications.html).
-The benefit of this mechanism in comparison to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is that it is
-even easier to open a SSE connection from the client than a WebSocket and that in Ditto's interpretation of SSEs the
+The benefit of this mechanism in comparison to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is, that it is
+even easier to open a SSE connection from the client than a WebSocket, and that in Ditto's interpretation of SSEs the
 events sent back from the backend have the same JSON structure as the HTTP API on which they are invoked. 
 
 When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, a Server-Sent Event stream of
@@ -82,13 +82,13 @@ http://localhost:8080/api/<1|2>/things?fields=thingId,attributes
 
 {% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
-In addition to the fields projection one can also choose to select [extra fields](basic-enrichment.html) 
+In addition to the fields projection, one can also choose to select [extra fields](basic-enrichment.html) 
 to return in addition to the actually changed fields, e.g.:
 ```
 http://localhost:8080/api/<1|2>/things?extraFields=attributes
 ```
 
-The result is that the server-sent events are merged with the actually changed data + the extra fields.
+The result is, that the server-sent events are merged, i.e. the SSE contains the actually changed data + the extra fields.
 
 This can be used in combination with the below mentioned [RQL filter](#filtering-by-rql-expression), e.g.:
 ```
@@ -150,7 +150,7 @@ source.onmessage = function (event) {
 };
 ```
 
-This would print the changed content of each thing the authenticated subject is allowed to `READ`.
+This would log the changed content of each thing the authenticated subject is allowed to `READ`.
 
 So when the `on` property of the `lamp` feature is changed to `true` via such an HTTP API call:
 ```
@@ -184,7 +184,7 @@ The benefits of this mechanism over the [search protocol](protocol-specification
 - The client side is easy to implement; it needs not abide by the reactive-streams rules.
 - SSE permits [resuming a stream from the last received ID](#resuming-by-last-event-id) after connection interruptions.
 
-The drawback is that SSE has no application-layer flow control and must rely on the transport layer (TCP) for
+The drawback is, that SSE has no application-layer flow control and must rely on the transport layer (TCP) for
 back-pressure. In contrast, the [search protocol](protocol-specification-things-search.html) supports back-pressure
 and cancellation over any transport layer by reactive-streams means.
 
