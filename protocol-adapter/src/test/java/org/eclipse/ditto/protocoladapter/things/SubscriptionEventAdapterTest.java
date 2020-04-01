@@ -16,8 +16,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -29,6 +27,8 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownEventException;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
@@ -48,7 +48,8 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = SubscriptionEventAdapter.of(DittoProtocolAdapter.getHeaderTranslator());
+        underTest = SubscriptionEventAdapter.of(DittoProtocolAdapter.getHeaderTranslator(),
+                GlobalErrorRegistry.getInstance());
     }
 
     @Test(expected = UnknownEventException.class)
@@ -177,15 +178,18 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
 
         final JsonPointer path = JsonPointer.empty();
 
+        final SubscriptionProtocolErrorException error = SubscriptionProtocolErrorException.newBuilder()
+                .message("Mock error")
+                .build();
+
         final SubscriptionFailed expected =
-                SubscriptionFailed.of(TestConstants.SUBSCRIPTION_ID, TestConstants.EXCEPTION,
-                        TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
+                SubscriptionFailed.of(TestConstants.SUBSCRIPTION_ID, error, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonObject.of(String.format("{\"subscriptionId\": \"%s\", \"error\": %s}",
-                                TestConstants.SUBSCRIPTION_ID, TestConstants.EXCEPTION.toJson())))
+                                TestConstants.SUBSCRIPTION_ID, error.toJson())))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();

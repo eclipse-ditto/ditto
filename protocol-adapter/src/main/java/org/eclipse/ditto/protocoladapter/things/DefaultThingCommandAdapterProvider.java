@@ -58,7 +58,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
         this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
         this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
         this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
-        this.subscriptionEventAdapter = SubscriptionEventAdapter.of(headerTranslator);
+        this.subscriptionEventAdapter = SubscriptionEventAdapter.of(headerTranslator, errorRegistry);
         this.errorResponseAdapter = ThingErrorResponseAdapter.of(headerTranslator, errorRegistry);
     }
 

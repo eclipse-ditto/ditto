@@ -27,7 +27,8 @@ import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand} to and from an {@link org.eclipse.ditto.protocoladapter.Adaptable}.
+ * Adapter for mapping a {@link org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand} to and from
+ * an {@link org.eclipse.ditto.protocoladapter.Adaptable}.
  *
  * @since 1.2.0
  */
@@ -35,8 +36,7 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
 
     private SignalMapper<ThingSearchCommand<?>> signalMapper = SignalMapperFactory.newThingSearchSignalMapper();
 
-    private ThingSearchCommandAdapter(
-            final HeaderTranslator headerTranslator) {
+    private ThingSearchCommandAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getThingSearchCommandMappingStrategies(), headerTranslator);
     }
 
@@ -55,12 +55,9 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
         return signalMapper.mapSignalToAdaptable(command, channel);
     }
 
-
     @Override
     protected String getType(final Adaptable adaptable) {
-
         return ThingSearchCommand.TYPE_PREFIX + adaptable.getTopicPath().getSearchAction().orElse(null);
-
     }
 
     @Override

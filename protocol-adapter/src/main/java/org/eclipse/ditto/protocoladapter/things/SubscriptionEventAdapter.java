@@ -13,6 +13,7 @@
 package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownEventException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
+import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
@@ -40,18 +42,22 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
  */
 final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEvent<?>> {
 
-    private SubscriptionEventAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getSubscriptionEventMappingStrategies(), headerTranslator);
+    private SubscriptionEventAdapter(final HeaderTranslator headerTranslator,
+            final ErrorRegistry<?> errorRegistry) {
+        super(MappingStrategiesFactory.getSubscriptionEventMappingStrategies(errorRegistry), headerTranslator);
     }
 
     /**
      * Returns a new ThingEventAdapter.
      *
      * @param headerTranslator translator between external and Ditto headers.
+     * @param errorRegistry the error registry for {@code SubscriptionFailed} events.
      * @return the adapter.
      */
-    public static SubscriptionEventAdapter of(final HeaderTranslator headerTranslator) {
-        return new SubscriptionEventAdapter(requireNonNull(headerTranslator));
+    public static SubscriptionEventAdapter of(final HeaderTranslator headerTranslator,
+            final ErrorRegistry<?> errorRegistry) {
+        return new SubscriptionEventAdapter(checkNotNull(headerTranslator, "headerTranslator"),
+                checkNotNull(errorRegistry, "errorRegistry"));
     }
 
     @Override

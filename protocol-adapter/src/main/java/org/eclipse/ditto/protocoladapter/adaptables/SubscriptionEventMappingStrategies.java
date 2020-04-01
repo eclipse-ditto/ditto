@@ -19,8 +19,11 @@ import java.util.Objects;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.protocoladapter.AbstractErrorResponseAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
+import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
@@ -32,17 +35,16 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
  */
 final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStrategies<SubscriptionEvent<?>> {
 
-    private static final SubscriptionEventMappingStrategies INSTANCE = new SubscriptionEventMappingStrategies();
-
-    private SubscriptionEventMappingStrategies() {
-        super(initMappingStrategies());
+    private SubscriptionEventMappingStrategies(final ErrorRegistry<?> errorRegistry) {
+        super(initMappingStrategies(errorRegistry));
     }
 
-    static SubscriptionEventMappingStrategies getInstance() {
-        return INSTANCE;
+    static SubscriptionEventMappingStrategies getInstance(final ErrorRegistry<?> errorRegistry) {
+        return new SubscriptionEventMappingStrategies(errorRegistry);
     }
 
-    private static Map<String, JsonifiableMapper<SubscriptionEvent<?>>> initMappingStrategies() {
+    private static Map<String, JsonifiableMapper<SubscriptionEvent<?>>> initMappingStrategies(
+            final ErrorRegistry<?> errorRegistry) {
         final Map<String, JsonifiableMapper<SubscriptionEvent<?>>> mappingStrategies = new HashMap<>();
         mappingStrategies.put(SubscriptionCreated.TYPE,
                 adaptable -> SubscriptionCreated.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
@@ -52,7 +54,7 @@ final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStra
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SubscriptionFailed.TYPE,
                 adaptable -> SubscriptionFailed.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
-                        errorFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        errorFrom(adaptable, errorRegistry), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SubscriptionHasNext.TYPE,
                 adaptable -> SubscriptionHasNext.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
                         itemsFrom(adaptable), dittoHeadersFrom(adaptable)));
@@ -64,10 +66,10 @@ final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStra
         return getFromValue(adaptable, SubscriptionHasNext.JsonFields.ITEMS).orElseGet(JsonArray::empty);
     }
 
-    private static DittoRuntimeException errorFrom(final Adaptable adaptable) {
+    private static DittoRuntimeException errorFrom(final Adaptable adaptable, final ErrorRegistry<?> errorRegistry) {
         return getFromValue(adaptable, SubscriptionFailed.JsonFields.ERROR)
-                .flatMap(error ->
-                        DittoRuntimeException.fromUnknownErrorJson(error.asObject(), dittoHeadersFrom(adaptable)))
+                .map(error ->
+                        AbstractErrorResponseAdapter.parseWithErrorRegistry(error, DittoHeaders.empty(), errorRegistry))
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
