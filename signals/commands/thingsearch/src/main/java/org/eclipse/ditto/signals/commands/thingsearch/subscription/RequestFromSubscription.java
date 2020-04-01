@@ -37,9 +37,9 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RequestSubscription.TYPE_PREFIX, name = RequestSubscription.NAME)
-public final class RequestSubscription extends AbstractCommand<RequestSubscription>
-        implements ThingSearchCommand<RequestSubscription> {
+@JsonParsableCommand(typePrefix = RequestFromSubscription.TYPE_PREFIX, name = RequestFromSubscription.NAME)
+public final class RequestFromSubscription extends AbstractCommand<RequestFromSubscription>
+        implements ThingSearchCommand<RequestFromSubscription> {
 
     /**
      * Name of the command.
@@ -54,7 +54,7 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
     private final String subscriptionId;
     private final long demand;
 
-    private RequestSubscription(final String subscriptionId, final long demand, final DittoHeaders dittoHeaders) {
+    private RequestFromSubscription(final String subscriptionId, final long demand, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.subscriptionId = subscriptionId;
         this.demand = demand;
@@ -69,9 +69,9 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
      * @return a new command to request from a subscription.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static RequestSubscription of(final String subscriptionId, final long demand,
+    public static RequestFromSubscription of(final String subscriptionId, final long demand,
             final DittoHeaders dittoHeaders) {
-        return new RequestSubscription(subscriptionId, demand, dittoHeaders);
+        return new RequestFromSubscription(subscriptionId, demand, dittoHeaders);
     }
 
     /**
@@ -84,11 +84,11 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RequestSubscription fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RequestSubscription>(TYPE, jsonObject).deserialize(() -> {
+    public static RequestFromSubscription fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<RequestFromSubscription>(TYPE, jsonObject).deserialize(() -> {
             final String subscriptionId = jsonObject.getValueOrThrow(JsonFields.SUBSCRIPTION_ID);
             final long demand = jsonObject.getValueOrThrow(JsonFields.DEMAND);
-            return new RequestSubscription(subscriptionId, demand, dittoHeaders);
+            return new RequestFromSubscription(subscriptionId, demand, dittoHeaders);
         });
     }
 
@@ -126,19 +126,19 @@ public final class RequestSubscription extends AbstractCommand<RequestSubscripti
     }
 
     @Override
-    public RequestSubscription setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new RequestSubscription(subscriptionId, demand, dittoHeaders);
+    public RequestFromSubscription setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new RequestFromSubscription(subscriptionId, demand, dittoHeaders);
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o)
             return true;
-        if (!(o instanceof RequestSubscription))
+        if (!(o instanceof RequestFromSubscription))
             return false;
         if (!super.equals(o))
             return false;
-        final RequestSubscription that = (RequestSubscription) o;
+        final RequestFromSubscription that = (RequestFromSubscription) o;
         return Objects.equals(subscriptionId, that.subscriptionId) && demand == that.demand;
     }
 

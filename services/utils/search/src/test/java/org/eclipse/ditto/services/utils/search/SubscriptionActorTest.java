@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
@@ -84,7 +84,7 @@ public final class SubscriptionActorTest {
             final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             final String subscriptionId = underTest.path().name();
             connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))), this);
-            underTest.tell(RequestSubscription.of(subscriptionId, 2L, DittoHeaders.empty()), getRef());
+            underTest.tell(RequestFromSubscription.of(subscriptionId, 2L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(2), DittoHeaders.empty()));
             expectMsg(SubscriptionComplete.of(underTest.path().name(), DittoHeaders.empty()));
@@ -97,7 +97,7 @@ public final class SubscriptionActorTest {
             final ActorRef underTest = watch(newSubscriptionActor(Duration.ofMinutes(1L), this));
             final String subscriptionId = underTest.path().name();
             connect(underTest, Source.from(List.of(JsonArray.of(1), JsonArray.of(2))), this);
-            underTest.tell(RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
+            underTest.tell(RequestFromSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             underTest.tell(CancelSubscription.of(subscriptionId, DittoHeaders.empty()), getRef());
         }};
@@ -131,7 +131,7 @@ public final class SubscriptionActorTest {
                             Source.lazily(() -> Source.<JsonArray>failed(error))))
                             .flatMapConcat(x -> x);
             connect(underTest, lazilyFailingSource, this);
-            underTest.tell(RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
+            underTest.tell(RequestFromSubscription.of(subscriptionId, 1L, DittoHeaders.empty()), getRef());
             expectMsg(SubscriptionHasNext.of(subscriptionId, JsonArray.of(1), DittoHeaders.empty()));
             expectMsg(SubscriptionFailed.of(subscriptionId, error, DittoHeaders.empty()));
         }};

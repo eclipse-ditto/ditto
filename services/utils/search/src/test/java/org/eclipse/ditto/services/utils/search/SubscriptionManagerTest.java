@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorEx
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
@@ -37,7 +37,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -80,7 +79,7 @@ public final class SubscriptionManagerTest {
     public void noSuchSubscription() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createSubscriptionManager();
-            underTest.tell(RequestSubscription.of("nonexistentSid", 1L, DittoHeaders.empty()), getRef());
+            underTest.tell(RequestFromSubscription.of("nonexistentSid", 1L, DittoHeaders.empty()), getRef());
             expectMsgClass(SubscriptionFailed.class);
         }};
     }
@@ -101,7 +100,7 @@ public final class SubscriptionManagerTest {
             final ActorRef underTest = createSubscriptionManager();
             underTest.tell(createSubscription(1), getRef());
             final String sid = expectMsgClass(SubscriptionCreated.class).getSubscriptionId();
-            underTest.tell(RequestSubscription.of(sid, 0L, DittoHeaders.empty()), getRef());
+            underTest.tell(RequestFromSubscription.of(sid, 0L, DittoHeaders.empty()), getRef());
             expectMsgClass(SubscriptionFailed.class);
         }};
     }
@@ -188,8 +187,8 @@ public final class SubscriptionManagerTest {
                 DittoHeaders.empty());
     }
 
-    private static RequestSubscription request(final String subscriptionId) {
-        return RequestSubscription.of(subscriptionId, 1L, DittoHeaders.empty());
+    private static RequestFromSubscription request(final String subscriptionId) {
+        return RequestFromSubscription.of(subscriptionId, 1L, DittoHeaders.empty());
     }
 
     private int getTag(final StreamThings streamThings) {

@@ -24,18 +24,18 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription}.
+ * Tests {@link RequestFromSubscription}.
  */
-public final class RequestSubscriptionTest {
+public final class RequestFromSubscriptionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RequestSubscription.class, areImmutable());
+        assertInstancesOf(RequestFromSubscription.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(RequestSubscription.class)
+        EqualsVerifier.forClass(RequestFromSubscription.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
@@ -43,8 +43,9 @@ public final class RequestSubscriptionTest {
     @Test
     public void serialization() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final RequestSubscription underTest = RequestSubscription.of(UUID.randomUUID().toString(), 9L, dittoHeaders);
-        final RequestSubscription deserialized = RequestSubscription.fromJson(underTest.toJson(), dittoHeaders);
+        final RequestFromSubscription
+                underTest = RequestFromSubscription.of(UUID.randomUUID().toString(), 9L, dittoHeaders);
+        final RequestFromSubscription deserialized = RequestFromSubscription.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);
     }
 

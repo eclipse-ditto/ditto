@@ -251,7 +251,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyEntriesModified;
@@ -1537,9 +1537,9 @@ class JsonExamplesProducer {
                 knownNamespaces,
                 DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("create-subscription-command.json")), createSubscriptionCommand);
-        final RequestSubscription requestSubscriptionCommand =
-                RequestSubscription.of("24601", 3, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("request-subscription-command.json")), requestSubscriptionCommand);
+        final RequestFromSubscription requestFromSubscriptionCommand =
+                RequestFromSubscription.of("24601", 3, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("request-subscription-command.json")), requestFromSubscriptionCommand);
         final CancelSubscription cancelSubscriptionCommand = CancelSubscription.of("24601", DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("cancel-subscription-command.json")), cancelSubscriptionCommand);
     }

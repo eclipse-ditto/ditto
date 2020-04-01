@@ -29,11 +29,10 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
-import org.eclipse.ditto.protocoladapter.things.ThingSearchCommandAdapter;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -180,8 +179,8 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
     @Test
     public void requestSubscriptionFromAdaptable() {
-        final RequestSubscription expected =
-                RequestSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DEMAND,
+        final RequestFromSubscription expected =
+                RequestFromSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DEMAND,
                         TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
         final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
@@ -226,10 +225,10 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
 
-        final RequestSubscription requestSubscription =
-                RequestSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DEMAND,
+        final RequestFromSubscription requestFromSubscription =
+                RequestFromSubscription.of(TestConstants.SUBSCRIPTION_ID, TestConstants.DEMAND,
                         TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
-        final Adaptable actual = underTest.toAdaptable(requestSubscription, TopicPath.Channel.TWIN);
+        final Adaptable actual = underTest.toAdaptable(requestFromSubscription, TopicPath.Channel.TWIN);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

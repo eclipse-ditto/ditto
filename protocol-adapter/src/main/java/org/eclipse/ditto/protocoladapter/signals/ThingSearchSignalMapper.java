@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 
 /**
  * Base class of {@link SignalMapper}s for search (e.g. start, request, cancel stream).
@@ -133,11 +133,11 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
             final CancelSubscription cancelCommand = (CancelSubscription) command;
             payloadContentBuilder.set(CancelSubscription.JsonFields.SUBSCRIPTION_ID, cancelCommand.getSubscriptionId());
 
-        } else if (command instanceof RequestSubscription) {
-            final RequestSubscription requestCommand = (RequestSubscription) command;
+        } else if (command instanceof RequestFromSubscription) {
+            final RequestFromSubscription requestCommand = (RequestFromSubscription) command;
             payloadContentBuilder
-                    .set(RequestSubscription.JsonFields.SUBSCRIPTION_ID, requestCommand.getSubscriptionId())
-                    .set(RequestSubscription.JsonFields.DEMAND, requestCommand.getDemand());
+                    .set(RequestFromSubscription.JsonFields.SUBSCRIPTION_ID, requestCommand.getSubscriptionId())
+                    .set(RequestFromSubscription.JsonFields.DEMAND, requestCommand.getDemand());
         } else {
             throw UnknownCommandException.newBuilder(command.getClass().toString()).build();
         }

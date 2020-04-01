@@ -55,7 +55,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
@@ -234,7 +234,7 @@ final class StreamingSessionActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        if (signal instanceof CreateSubscription || signal instanceof RequestSubscription ||
+        if (signal instanceof CreateSubscription || signal instanceof RequestFromSubscription ||
                 signal instanceof CancelSubscription) {
             subscriptionManager.tell(signal, getSelf());
         }

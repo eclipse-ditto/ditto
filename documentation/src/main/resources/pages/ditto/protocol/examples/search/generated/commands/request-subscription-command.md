@@ -1,4 +1,4 @@
-## RequestSubscription
+## RequestFromSubscription
 
 ```json
 {

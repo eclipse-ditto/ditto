@@ -357,7 +357,7 @@ public interface TopicPath {
 
         FAILED("failed"),
 
-        HAS_NEXT("hasNext");
+        HAS_NEXT("hasnext");
 
         private final String name;
 

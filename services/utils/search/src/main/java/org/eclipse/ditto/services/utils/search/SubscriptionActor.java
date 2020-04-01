@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
@@ -96,7 +96,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RequestSubscription.class, this::requestSubscription)
+                .match(RequestFromSubscription.class, this::requestSubscription)
                 .match(CancelSubscription.class, this::cancelSubscription)
                 .match(SubscriptionHasNext.class, this::subscriptionHasNext)
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
@@ -108,7 +108,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
 
     private Receive createZombieBehavior() {
         return ReceiveBuilder.create()
-                .match(RequestSubscription.class, requestSubscription -> {
+                .match(RequestFromSubscription.class, requestSubscription -> {
                     log.withCorrelationId(requestSubscription)
                             .info("Rejecting RequestSubscription[demand={}] as zombie",
                                     requestSubscription.getDemand());
@@ -159,14 +159,14 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
         dittoHeaders = command.getDittoHeaders();
     }
 
-    private void requestSubscription(final RequestSubscription requestSubscription) {
+    private void requestSubscription(final RequestFromSubscription requestFromSubscription) {
         if (subscription == null) {
-            log.withCorrelationId(requestSubscription).debug("Stashing <{}>", requestSubscription);
+            log.withCorrelationId(requestFromSubscription).debug("Stashing <{}>", requestFromSubscription);
             stash();
         } else {
-            log.withCorrelationId(requestSubscription).debug("Processing <{}>", requestSubscription);
-            setSenderAndDittoHeaders(requestSubscription);
-            subscription.request(requestSubscription.getDemand());
+            log.withCorrelationId(requestFromSubscription).debug("Processing <{}>", requestFromSubscription);
+            setSenderAndDittoHeaders(requestFromSubscription);
+            subscription.request(requestFromSubscription.getDemand());
         }
     }
 

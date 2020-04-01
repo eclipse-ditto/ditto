@@ -105,7 +105,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -534,9 +534,9 @@ public final class ConnectionPersistenceActor
             // compute the next prefix according to subscriptionCounter and the currently configured client actor count
             // ignore any "prefix" field from the command
             augmentWithPrefixAndForward(clientActorRouter, (CreateSubscription) command);
-        } else if (command instanceof RequestSubscription) {
+        } else if (command instanceof RequestFromSubscription) {
             // forward the command to a client actor according to the prefix of the subscription ID
-            computeEnvelopeAndForward(clientActorRouter, ((RequestSubscription) command).getSubscriptionId(), command);
+            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(), command);
         } else if (command instanceof CancelSubscription) {
             // same as RequestSubscription
             computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);

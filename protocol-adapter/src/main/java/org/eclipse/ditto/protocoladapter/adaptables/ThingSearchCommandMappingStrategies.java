@@ -29,7 +29,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing search commands.
@@ -57,7 +57,7 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
                 adaptable -> CancelSubscription.of(requireNonNull(subscriptionIdFrom(adaptable)),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(RequestSubscription.TYPE, adaptable -> RequestSubscription.of(
+        mappingStrategies.put(RequestFromSubscription.TYPE, adaptable -> RequestFromSubscription.of(
                 requireNonNull(subscriptionIdFrom(adaptable)), demandFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
@@ -81,6 +81,6 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
     }
 
     private static long demandFrom(final Adaptable adaptable) {
-        return getFromValue(adaptable, RequestSubscription.JsonFields.DEMAND).orElse(0L);
+        return getFromValue(adaptable, RequestFromSubscription.JsonFields.DEMAND).orElse(0L);
     }
 }

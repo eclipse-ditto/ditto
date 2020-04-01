@@ -39,7 +39,7 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
     /**
      * Name of the event.
      */
-    public static final String NAME = "hasNext";
+    public static final String NAME = "hasnext";
 
     /**
      * Type of this event.

@@ -2,7 +2,7 @@
 
 ```json
 {
-  "topic": "_/_/things/twin/search/hasNext",
+  "topic": "_/_/things/twin/search/hasnext",
   "headers": {
     "content-type": "application/vnd.eclipse.ditto+json"
   },

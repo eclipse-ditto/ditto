@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.search;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -36,7 +35,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionEx
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionNotFoundException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
 import org.reactivestreams.Subscriber;
 
@@ -134,14 +133,14 @@ public final class SubscriptionManager extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RequestSubscription.class, this::requestSubscription)
+                .match(RequestFromSubscription.class, this::requestSubscription)
                 .match(CreateSubscription.class, this::createSubscription)
                 .match(CancelSubscription.class, this::cancelSubscription)
                 .build();
     }
 
-    private void requestSubscription(final RequestSubscription requestSubscription) {
-        forwardToChild(requestSubscription.getSubscriptionId(), requestSubscription);
+    private void requestSubscription(final RequestFromSubscription requestFromSubscription) {
+        forwardToChild(requestFromSubscription.getSubscriptionId(), requestFromSubscription);
     }
 
     private void cancelSubscription(final CancelSubscription cancelSubscription) {

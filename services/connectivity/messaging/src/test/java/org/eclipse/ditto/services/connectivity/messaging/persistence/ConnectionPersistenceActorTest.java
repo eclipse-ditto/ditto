@@ -91,7 +91,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -1031,9 +1031,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // THEN: The command lands in the same client actor
             final String subscriptionId1 =
                     ((CreateSubscription) createSubscription1.getMessage()).getPrefix().orElseThrow() + "-suffix";
-            underTest.tell(RequestSubscription.of(subscriptionId1, 99L, DittoHeaders.empty()), getRef());
+            underTest.tell(RequestFromSubscription.of(subscriptionId1, 99L, DittoHeaders.empty()), getRef());
             final WithSender<?> requestSubscription1 = clientActorsProbe.expectMsgClass(WithSender.class);
-            assertThat(requestSubscription1.getMessage()).isInstanceOf(RequestSubscription.class);
+            assertThat(requestSubscription1.getMessage()).isInstanceOf(RequestFromSubscription.class);
             assertThat(requestSubscription1.getSender()).isEqualTo(createSubscription1.getSender());
 
             // Same for CancelSubscription
