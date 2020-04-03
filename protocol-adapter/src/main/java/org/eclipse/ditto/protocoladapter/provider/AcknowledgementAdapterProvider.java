@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocoladapter.provider;
 
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 /**
  * Provider for all Acknowledgement adapters.
@@ -24,4 +25,9 @@ public interface AcknowledgementAdapterProvider extends AdapterProvider {
      * @return the acknowledgement adapter.
      */
     Adapter<Acknowledgement> getAcknowledgementAdapter();
+
+    /**
+     * @return the acknowledgements adapter.
+     */
+    Adapter<Acknowledgements> getAcknowledgementsAdapter();
 }

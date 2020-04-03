@@ -28,4 +28,11 @@ public interface AcknowledgementTopicPathBuilder extends TopicPathBuildable {
      */
     AcknowledgementTopicPathBuilder label(CharSequence label);
 
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#AGGREGATED_ACKS}.
+     * A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    AcknowledgementTopicPathBuilder aggregatedAcks();
 }

@@ -15,7 +15,6 @@ package org.eclipse.ditto.signals.acks.base;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -87,17 +87,40 @@ final class ImmutableAcknowledgements implements Acknowledgements {
                 getCombinedStatusCode(acknowledgements), dittoHeaders);
     }
 
+    /**
+     * Returns a new instance of {@code ImmutableAcknowledgements} with the given parameters.
+     *
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param acknowledgements the map of acknowledgements to be included in the result.
+     * @param statusCode the status code (HTTP semantics) of the combined Acknowledgements.
+     * @param dittoHeaders the headers of the returned Acknowledgements instance.
+     * @return the Acknowledgements.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
+     * types of the given acknowledgements are not equal.
+     */
+    static ImmutableAcknowledgements of(final EntityIdWithType entityId,
+            final Collection<? extends Acknowledgement> acknowledgements,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
+        checkNotNull(entityId, "entityId");
+        argumentNotEmpty(acknowledgements, "acknowledgements");
+        checkNotNull(statusCode, "statusCode");
+        checkNotNull(dittoHeaders, "dittoHeaders");
+
+        return new ImmutableAcknowledgements(entityId, acknowledgements, statusCode, dittoHeaders);
+    }
+
     private static EntityIdWithType getEntityId(final Iterable<? extends Acknowledgement> acknowledgements) {
         final Iterator<? extends Acknowledgement> acknowledgementIterator = acknowledgements.iterator();
         Acknowledgement acknowledgement = acknowledgementIterator.next();
         final EntityIdWithType entityId = acknowledgement.getEntityId();
+        final Consumer<EntityIdWithType> equalityValidator = EntityIdWithType.createEqualityValidator(entityId);
         while (acknowledgementIterator.hasNext()) {
             acknowledgement = acknowledgementIterator.next();
-            final EntityIdWithType nextEntityId = acknowledgement.getEntityId();
-            if (!entityId.equals(nextEntityId)) {
-                final String msgPattern = "Entity ID <{0}> differs from the expected entity ID <{1}>!";
-                throw new IllegalArgumentException(MessageFormat.format(msgPattern, nextEntityId, entityId));
-            }
+            // will throw an IllegalArgumentException if they are not equal
+            equalityValidator.accept(acknowledgement.getEntityId());
         }
         return entityId;
     }
@@ -218,7 +241,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
             result = Optional.empty();
         } else if (1 == acknowledgementsSize) {
             final Acknowledgement soleAcknowledgement = acknowledgements.get(0);
-            result = soleAcknowledgement.getEntity();
+            result = soleAcknowledgement.getEntity(schemaVersion);
         } else {
             result = Optional.of(acknowledgementsEntitiesToJson(schemaVersion));
         }

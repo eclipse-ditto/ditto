@@ -137,7 +137,7 @@ public final class ImmutableAcknowledgementsTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS))
-                .withMessage("Entity ID <%s> differs from the expected entity ID <%s>!", otherEntityId, KNOWN_ENTITY_ID)
+                .withMessage("The entity ID <%s> differs from the expected <%s>!", otherEntityId, KNOWN_ENTITY_ID)
                 .withNoCause();
     }
 

@@ -142,7 +142,9 @@ public abstract class AcknowledgementJsonParser<I extends EntityIdWithType>
 
     @Nullable
     private static JsonValue getPayloadOrNull(final JsonObject jsonObject) {
-        return jsonObject.getValue(Acknowledgement.JsonFields.PAYLOAD).orElse(null);
+        return jsonObject.getValue(Acknowledgement.JsonFields.PAYLOAD)
+                .filter(value -> !value.isNull())
+                .orElse(null);
     }
 
 }

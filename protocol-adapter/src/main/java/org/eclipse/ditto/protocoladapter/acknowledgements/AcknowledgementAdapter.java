@@ -124,7 +124,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     @Override
     public boolean isForResponses() {
-        return false;
+        return true;
     }
 
     private static TopicPath getTopicPath(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
@@ -144,9 +144,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
     private static Payload getPayload(final Acknowledgement acknowledgement) {
         return Payload.newBuilder(JsonPointer.empty())
                 .withStatus(acknowledgement.getStatusCode())
-                .withValue(acknowledgement.getEntity(acknowledgement.getDittoHeaders()
-                        .getSchemaVersion()
-                        .orElseGet(acknowledgement::getLatestSchemaVersion))
+                .withValue(acknowledgement.getEntity(acknowledgement.getImplementedSchemaVersion())
                         .orElse(null))
                 .build();
     }

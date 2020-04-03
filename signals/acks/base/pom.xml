@@ -26,6 +26,11 @@
     <name>Eclipse Ditto :: Signals :: ACKs :: Base</name>
 
     <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-base</artifactId>
+        </dependency>
+
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

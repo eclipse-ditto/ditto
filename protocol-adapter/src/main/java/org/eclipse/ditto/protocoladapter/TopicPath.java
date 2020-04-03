@@ -161,8 +161,8 @@ public interface TopicPath {
          * @return the optional Group.
          */
         public static Optional<Group> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -197,7 +197,7 @@ public interface TopicPath {
         ERRORS("errors"),
 
         /**
-         * Criterion for the topic path of a n acknowledgement (ACK).
+         * Criterion for the topic path of an acknowledgement (ACK).
          *
          * @since 1.1.0
          */
@@ -217,8 +217,8 @@ public interface TopicPath {
          * @return the optional Criterion.
          */
         public static Optional<Criterion> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -262,8 +262,8 @@ public interface TopicPath {
          * @return the optional Channel.
          */
         public static Optional<Channel> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -300,7 +300,15 @@ public interface TopicPath {
 
         MODIFIED("modified"),
 
-        DELETED("deleted");
+        DELETED("deleted"),
+
+        /**
+         * Special action for {@link TopicPath.Criterion#ACKS}: marks aggregated acknowledgements containing several
+         * custom acknowledgements.
+         *
+         * @since 1.1.0
+         */
+        AGGREGATED_ACKS("aggregated-acks");
 
         private final String name;
 
@@ -316,8 +324,8 @@ public interface TopicPath {
          * @return the optional Action.
          */
         public static Optional<Action> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 

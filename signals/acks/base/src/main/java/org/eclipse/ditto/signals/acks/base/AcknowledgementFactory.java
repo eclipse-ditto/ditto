@@ -73,6 +73,32 @@ final class AcknowledgementFactory {
     }
 
     /**
+     * Returns a new {@link Acknowledgements} based on the passed params, including the contained
+     * {@link Acknowledgement}s.
+     * <p><em>
+     * Should only be used for deserializing from a JSON representation, as
+     * {@link #newAcknowledgements(Collection, DittoHeaders)} does e.g. the calculation of the correct
+     * {@code statusCode}.
+     * </em></p>
+     *
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param acknowledgements the map of acknowledgements to be included in the result.
+     * @param statusCode the status code (HTTP semantics) of the combined Acknowledgements.
+     * @param dittoHeaders the headers of the returned Acknowledgements instance.
+     * @return the Acknowledgements.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
+     * types of the given acknowledgements are not equal.
+     */
+    public static Acknowledgements newAcknowledgements(final EntityIdWithType entityId,
+            final Collection<? extends Acknowledgement> acknowledgements,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return ImmutableAcknowledgements.of(entityId, acknowledgements, statusCode, dittoHeaders);
+    }
+
+    /**
      * Returns an empty instance of {@link Acknowledgements} for the given entity ID.
      *
      * @param entityId the entity ID for which no acknowledgements were received at all.

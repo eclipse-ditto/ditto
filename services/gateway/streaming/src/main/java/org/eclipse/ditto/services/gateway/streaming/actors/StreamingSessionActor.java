@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
@@ -50,12 +52,14 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -82,13 +86,16 @@ final class StreamingSessionActor extends AbstractActor {
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
     private final DittoDiagnosticLoggingAdapter logger;
+    private final Map<String, AcknowledgementAggregator> acknowledgementAggregators;
 
     @Nullable private Cancellable sessionTerminationCancellable;
     private AuthorizationContext authorizationContext;
 
     @SuppressWarnings("unused")
-    private StreamingSessionActor(final Connect connect, final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher, final AcknowledgementConfig acknowledgementConfig) {
+    private StreamingSessionActor(final Connect connect,
+            final DittoProtocolSub dittoProtocolSub,
+            final ActorRef eventAndResponsePublisher,
+            final AcknowledgementConfig acknowledgementConfig) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
         connectionCorrelationId = connect.getConnectionCorrelationId();
@@ -104,6 +111,8 @@ final class StreamingSessionActor extends AbstractActor {
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
+
+        acknowledgementAggregators = new HashMap<>();
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -135,13 +144,20 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CommandResponse.class, response -> {
-                    logger.withCorrelationId(response)
-                            .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
-                                    " about it: {}", type, response);
-                    eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
-                })
+                .match(AcknowledgementAggregator.class, this::handleReceivedAcknowledgementAggregator)
                 .match(Acknowledgement.class, this::handleAcknowledgement)
+                .match(ThingCommandResponse.class, response -> {
+
+                    @Nullable final AcknowledgementAggregator ackregator = acknowledgementAggregators.get(
+                            response.getDittoHeaders().getCorrelationId().orElseThrow());
+                    if (null != ackregator) {
+                        ackregator.addReceivedTwinPersistedAcknowledgment(response);
+                        potentiallyCompleteAcknowledgements(response.getDittoHeaders(), ackregator);
+                    } else {
+                        handleResponse(response);
+                    }
+                })
+                .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
@@ -230,15 +246,54 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
+    private void handleResponse(final CommandResponse<?> response) {
+        logger.withCorrelationId(response)
+                .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
+                        " about it: {}", type, response);
+        eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
+    }
+
+    private void handleReceivedAcknowledgementAggregator(final AcknowledgementAggregator acknowledgementAggregator) {
+        acknowledgementAggregators.put(acknowledgementAggregator.getCorrelationId(), acknowledgementAggregator);
+    }
+
+    private void potentiallyCompleteAcknowledgements(final DittoHeaders dittoHeaders,
+            final AcknowledgementAggregator ackregator) {
+
+        if (ackregator.receivedAllRequestedAcknowledgements()) {
+            completeAcknowledgements(dittoHeaders, ackregator);
+        }
+    }
+
+    private void completeAcknowledgements(final DittoHeaders dittoHeaders, final AcknowledgementAggregator acks) {
+        final Acknowledgements aggregatedAcknowledgements = acks.getAggregatedAcknowledgements(dittoHeaders);
+        logger.withCorrelationId(dittoHeaders)
+                .debug("Completing with collected acknowledgements in <{}> session, telling " +
+                        "EventAndResponsePublisher about it: {}", type, aggregatedAcknowledgements);
+        handleSignal(aggregatedAcknowledgements);
+
+        dittoHeaders.getCorrelationId().ifPresent(acknowledgementAggregators::remove);
+    }
+
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
-        final ActorContext context = getContext();
-        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
-                .ifPresentOrElse(
-                        forwarder -> forwarder.forward(acknowledgement, context),
-                        () -> logger.withCorrelationId(acknowledgement)
-                                .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
-                                        "was present: <{}>", acknowledgement)
-                );
+        @Nullable final AcknowledgementAggregator ackregator = acknowledgementAggregators.get(
+                acknowledgement.getDittoHeaders().getCorrelationId().orElseThrow());
+
+        if (null != ackregator) {
+            // the Acknowledgement is meant for this exact WS session:
+            ackregator.addReceivedAcknowledgment(acknowledgement);
+            potentiallyCompleteAcknowledgements(acknowledgement.getDittoHeaders(), ackregator);
+        } else {
+            // the Acknowledgement is meant for someone else:
+            final ActorContext context = getContext();
+            context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+                    .ifPresentOrElse(
+                            forwarder -> forwarder.forward(acknowledgement, context),
+                            () -> logger.withCorrelationId(acknowledgement)
+                                    .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
+                                            "was present: <{}>", acknowledgement)
+                    );
+        }
     }
 
     private void handleSignalsToStartAckForwarderFor(final Signal<?> signal, final EntityIdWithType entityIdWithType) {
@@ -254,6 +309,10 @@ final class StreamingSessionActor extends AbstractActor {
         if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
+        } else if (signal instanceof Acknowledgements){
+            logger.debug("Got Acknowledgements <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                    signal.getType(), type, signal);
+            eventAndResponsePublisher.forward(SessionedJsonifiable.response((Acknowledgements) signal), getContext());
         } else {
             // check if this session is "allowed" to receive the Signal
             @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));

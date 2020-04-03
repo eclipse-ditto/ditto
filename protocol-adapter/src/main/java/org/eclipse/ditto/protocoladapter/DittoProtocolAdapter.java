@@ -29,6 +29,7 @@ import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -160,8 +161,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((CommandResponse<?>) signal, channel);
         } else if (signal instanceof Event) {
             return toAdaptable((Event<?>) signal, channel);
-        } else if (signal instanceof Acknowledgement) {
-            return toAdaptable((Acknowledgement) signal, channel);
         }
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
@@ -178,6 +177,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (commandResponse instanceof PolicyCommandResponse) {
             validateChannel(channel, commandResponse, NONE);
             return toAdaptable((PolicyCommandResponse<?>) commandResponse);
+        } else if (commandResponse instanceof Acknowledgement) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return toAdaptable((Acknowledgement) commandResponse, channel);
+        } else if (commandResponse instanceof Acknowledgements) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return toAdaptable((Acknowledgements) commandResponse, channel);
         } else {
             throw UnknownCommandResponseException.newBuilder(commandResponse.getName()).build();
         }
@@ -321,6 +326,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private Adaptable toAdaptable(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
         return acknowledgementAdapters.getAcknowledgementAdapter().toAdaptable(acknowledgement, channel);
+    }
+
+    private Adaptable toAdaptable(final Acknowledgements acknowledgements, final TopicPath.Channel channel) {
+        return acknowledgementAdapters.getAcknowledgementsAdapter().toAdaptable(acknowledgements, channel);
     }
 
     private void validateChannel(final TopicPath.Channel channel,

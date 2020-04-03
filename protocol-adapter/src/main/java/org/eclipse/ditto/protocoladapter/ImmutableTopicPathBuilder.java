@@ -202,6 +202,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public AcknowledgementTopicPathBuilder aggregatedAcks() {
+        this.action = TopicPath.Action.AGGREGATED_ACKS;
+        return this;
+    }
+
+    @Override
     public TopicPath build() {
         if (action != null && name != null) {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, action);

@@ -25,16 +25,22 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,6 +54,7 @@ public final class AcknowledgementAggregatorTest {
 
     private static final ThingId ENTITY_ID = ThingId.generateRandom();
     private static final Duration TIMEOUT = Duration.ofMillis(1337);
+    private static final HeaderTranslator HEADER_TRANSLATOR = HeaderTranslator.empty();
 
     @Rule
     public final TestName testName = new TestName();
@@ -63,7 +70,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void tryToAddNullRequestedAcknowledgementLabel() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.addAcknowledgementRequest(null))
@@ -73,7 +81,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void emptyInstanceHasNoMissingAcknowledgementLabels() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         final Acknowledgements acknowledgements = underTest.getAggregatedAcknowledgements(dittoHeaders);
 
@@ -82,7 +91,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void getMissingAcknowledgementLabelsReturnsExpected() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final List<Acknowledgement> successfulAcks = createAcknowledgements(2, HttpStatusCode.NO_CONTENT);
         final List<Acknowledgement> failedAcks = createAcknowledgements(2, HttpStatusCode.FORBIDDEN);
         successfulAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
@@ -99,7 +109,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void tryToAddNullRequestedAcknowledgementLabels() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.addAcknowledgementRequests(null))
@@ -109,14 +120,16 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void emptyInstanceReceivedAllRequestedAcknowledgements() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThat(underTest.receivedAllRequestedAcknowledgements()).isTrue();
     }
 
     @Test
     public void didNotReceiveAllRequestedAcknowledgements() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final List<Acknowledgement> acknowledgements = createAcknowledgements(3, HttpStatusCode.NO_CONTENT);
         acknowledgements.addAll(createAcknowledgements(2, HttpStatusCode.BAD_REQUEST));
         acknowledgements.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
@@ -127,7 +140,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void receivedAllRequestedAcknowledgements() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final List<Acknowledgement> acknowledgements = createAcknowledgements(3, HttpStatusCode.NO_CONTENT);
         acknowledgements.addAll(createAcknowledgements(2, HttpStatusCode.BAD_REQUEST));
         acknowledgements.forEach(
@@ -146,7 +160,8 @@ public final class AcknowledgementAggregatorTest {
                 Acknowledgement.of(ackLabel, entityId, HttpStatusCode.UNAUTHORIZED, dittoHeaders);
         final Acknowledgement successfulAcknowledgement =
                 Acknowledgement.of(ackLabel, entityId, HttpStatusCode.NO_CONTENT, dittoHeaders);
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(entityId, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(entityId, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ackLabel));
         underTest.addReceivedAcknowledgment(failedAcknowledgement);
         underTest.addReceivedAcknowledgment(successfulAcknowledgement);
@@ -165,7 +180,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void tryToAddNullReceivedAcknowledgement() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(null))
@@ -177,7 +193,8 @@ public final class AcknowledgementAggregatorTest {
     public void tryToAddReceivedAcknowledgementWithoutCorrelationId() {
         final Acknowledgement acknowledgement = Mockito.mock(Acknowledgement.class);
         Mockito.when(acknowledgement.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
@@ -194,7 +211,8 @@ public final class AcknowledgementAggregatorTest {
                 .build();
         final Acknowledgement acknowledgement = Mockito.mock(Acknowledgement.class);
         Mockito.when(acknowledgement.getDittoHeaders()).thenReturn(acknowledgementHeaders);
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
@@ -210,18 +228,20 @@ public final class AcknowledgementAggregatorTest {
                 Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED, unexpectedEntityId, HttpStatusCode.NO_CONTENT,
                         dittoHeaders);
 
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The received Acknowledgement's entity ID <%s> differs from the expected <%s>!",
+                .withMessage("The entity ID <%s> differs from the expected <%s>!",
                         unexpectedEntityId, ENTITY_ID)
                 .withNoCause();
     }
 
     @Test
     public void addFailedReceivedAcknowledgement() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final Acknowledgement failedAcknowledgement = createAcknowledgement(HttpStatusCode.NOT_FOUND);
         underTest.addAcknowledgementRequest(AcknowledgementRequest.of(failedAcknowledgement.getLabel()));
         underTest.addReceivedAcknowledgment(failedAcknowledgement);
@@ -243,7 +263,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void addSuccessfulReceivedAcknowledgement() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final Acknowledgement successfulAcknowledgement = createAcknowledgement(HttpStatusCode.OK);
         underTest.addAcknowledgementRequest(AcknowledgementRequest.of(successfulAcknowledgement.getLabel()));
         underTest.addReceivedAcknowledgment(successfulAcknowledgement);
@@ -264,9 +285,53 @@ public final class AcknowledgementAggregatorTest {
     }
 
     @Test
+    public void addReceivedTwinPersistedAcknowledgementFromThingCommandResponse() {
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
+
+        final Thing thing = Thing.newBuilder()
+                .setId(ENTITY_ID)
+                .setPolicyId(PolicyId.of(ENTITY_ID))
+                .setAttribute(JsonPointer.of("foo"), JsonValue.of(42))
+                .build();
+        final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, dittoHeaders);
+
+        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED));
+        underTest.addReceivedTwinPersistedAcknowledgment(createThingResponse);
+
+        final Acknowledgements acknowledgements = underTest.getAggregatedAcknowledgements(dittoHeaders);
+
+        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(acknowledgements.getMissingAcknowledgementLabels())
+                    .as("no missing requested ACK labels")
+                    .isEmpty();
+            softly.assertThat(acknowledgements.getFailedAcknowledgements())
+                    .as("no failed ACKs")
+                    .isEmpty();
+            softly.assertThat(underTest.isSuccessful())
+                    .as("is successful")
+                    .isTrue();
+            softly.assertThat(acknowledgements.getStatusCode())
+                    .as("is of status 201")
+                    .isEqualByComparingTo(HttpStatusCode.CREATED);
+            softly.assertThat(acknowledgements.getSuccessfulAcknowledgements().stream()
+                    .map(Acknowledgement::getStatusCode)
+            )
+                    .as("contains acknowlegement with status 201")
+                    .contains(HttpStatusCode.CREATED);
+            softly.assertThat(acknowledgements.getSuccessfulAcknowledgements().stream()
+                    .map(Acknowledgement::getEntity)
+                    .map(entity -> entity.get().asObject())
+            )
+                    .as("contains expected created Thing JSON")
+                    .contains(thing.toJson());
+        }
+    }
+
+    @Test
     public void unknownReceivedAcknowledgementsAreIgnored() {
         final AcknowledgementAggregator underTest =
-                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(TIMEOUT);
         final Acknowledgement expected = Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED,
                 ENTITY_ID,
@@ -293,7 +358,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void successfulAcknowledgementsAreInExpectedOrder() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final List<Acknowledgement> successfulAcks = createAcknowledgements(3, HttpStatusCode.OK);
         successfulAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
         successfulAcks.forEach(underTest::addReceivedAcknowledgment);
@@ -305,7 +371,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void failedAcknowledgementsAreInExpectedOrder() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final List<Acknowledgement> failedAcks = createAcknowledgements(3, HttpStatusCode.NOT_FOUND);
         failedAcks.forEach(ack -> underTest.addAcknowledgementRequest(AcknowledgementRequest.of(ack.getLabel())));
         failedAcks.forEach(underTest::addReceivedAcknowledgment);
@@ -317,7 +384,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void successfulAcknowledgementsLeadToHttpStatusCodeOK() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final Collection<Acknowledgement> successfulAcks = new ArrayList<>();
         successfulAcks.add(createAcknowledgement(HttpStatusCode.OK));
         successfulAcks.add(createAcknowledgement(HttpStatusCode.NO_CONTENT));
@@ -332,7 +400,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void acknowledgementsWithOneFailedLeadToHttpStatusCodeFailedDependency() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final Collection<Acknowledgement> acks = new ArrayList<>();
         acks.add(createAcknowledgement(HttpStatusCode.OK));
         acks.add(createAcknowledgement(HttpStatusCode.NOT_FOUND));
@@ -346,7 +415,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void acknowledgementsWithOneTimeoutLeadToHttpStatusCodeFailedDependency() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final Collection<Acknowledgement> acks = new ArrayList<>();
         acks.add(createAcknowledgement(HttpStatusCode.OK));
         acks.add(createAcknowledgement(HttpStatusCode.NOT_FOUND));
@@ -361,7 +431,8 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void tryToGetAggregatedAcknowledgementsForNullDittoHeaders() {
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.getAggregatedAcknowledgements(null))
@@ -375,7 +446,8 @@ public final class AcknowledgementAggregatorTest {
         final DittoHeaders dittoHeadersWithDifferentCorrelationId = DittoHeaders.newBuilder()
                 .correlationId(differentCorrelationId)
                 .build();
-        final AcknowledgementAggregator underTest = AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT);
+        final AcknowledgementAggregator underTest =
+                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> underTest.getAggregatedAcknowledgements(

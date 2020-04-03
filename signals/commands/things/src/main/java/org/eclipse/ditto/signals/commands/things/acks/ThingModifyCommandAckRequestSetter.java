@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.actors;
+package org.eclipse.ditto.signals.commands.things.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -34,9 +34,11 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  * The headers are only extended if the command is an instance of {@link ThingModifyCommand} if
  * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true} and if command headers do not yet contain
  * acknowledgement requests.
+ *
+ * @since 1.1.0
  */
 @Immutable
-final class ThingModifyCommandAckRequestSetter implements UnaryOperator<Command<?>> {
+public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<Command<?>> {
 
     private ThingModifyCommandAckRequestSetter() {
         super();

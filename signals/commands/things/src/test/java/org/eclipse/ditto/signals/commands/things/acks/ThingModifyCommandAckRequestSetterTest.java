@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints.actors;
+package org.eclipse.ditto.signals.commands.things.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -21,12 +21,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageDirection;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.Test;
 
@@ -48,23 +43,6 @@ public final class ThingModifyCommandAckRequestSetterTest {
                 .isThrownBy(() -> underTest.apply(null))
                 .withMessage("The command must not be null!")
                 .withNoCause();
-    }
-
-    @Test
-    public void doNothingIfNoThingModifyCommand() {
-        final ThingId thingId = ThingId.generateRandom();
-        final Message<?> message =
-                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, thingId, "my-subject").build())
-                        .build();
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .responseRequired(true)
-                .randomCorrelationId()
-                .build();
-        final SendThingMessage<?> command = SendThingMessage.of(thingId, message, dittoHeaders);
-        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
-
-        assertThat(underTest.apply(command)).isEqualTo(command);
-
     }
 
     @Test

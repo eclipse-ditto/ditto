@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
+import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -21,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
@@ -33,6 +36,7 @@ import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
@@ -42,6 +46,9 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 import com.typesafe.config.Config;
 
@@ -82,16 +89,19 @@ public final class StreamingActor extends AbstractActorWithTimers
             }).build());
 
     private StreamingConfig streamingConfig;
+    private final HeaderTranslator headerTranslator;
 
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
-            final StreamingConfig streamingConfig) {
+            final StreamingConfig streamingConfig,
+            final HeaderTranslator headerTranslator) {
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
         this.streamingConfig = streamingConfig;
+        this.headerTranslator = headerTranslator;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();
         jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
@@ -102,17 +112,19 @@ public final class StreamingActor extends AbstractActorWithTimers
      * Creates Akka configuration object Props for this StreamingActor.
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param streamingConfig the streaming config
+     * @param commandRouter the command router used to send signals into the cluster.
+     * @param streamingConfig the streaming config.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
-            final StreamingConfig streamingConfig) {
+            final StreamingConfig streamingConfig,
+            final HeaderTranslator headerTranslator) {
 
         return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory,
-                streamingConfig);
+                streamingConfig, headerTranslator);
     }
 
     @Override
@@ -146,43 +158,31 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
-                        .match(Acknowledgement.class, acknowledgement -> {
+                        .match(Acknowledgement.class, acknowledgement ->
                             // TODO TJ remove this match again after merge from search feature branch
-                            final DittoHeaders dittoHeaders = acknowledgement.getDittoHeaders();
-                            final Optional<String> originOpt = dittoHeaders.getOrigin();
-                            if (originOpt.isPresent()) {
-                                final String origin = originOpt.get();
-                                final Optional<ActorRef> sessionActor = getContext().findChild(origin);
-                                if (sessionActor.isPresent()) {
-                                    sessionActor.get().forward(acknowledgement, getContext());
-                                } else {
-                                    logger.withCorrelationId(dittoHeaders)
-                                            .error("No session actor found for origin <{}>", origin);
-                                }
-                            } else {
-                                logger.withCorrelationId(dittoHeaders)
-                                        .error("No origin present for ACK <{}>", acknowledgement);
+                            lookupSessionActor(acknowledgement, sessionActor ->
+                                    sessionActor.forward(acknowledgement, getContext())
+                            )
+                        )
+                        .match(ThingModifyCommand.class, thingCommand -> {
+
+                            if (thingCommand.getDittoHeaders().isResponseRequired()) {
+                                final ThingModifyCommand<?> commandWithAckLabels = (ThingModifyCommand<?>)
+                                        ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
+                                final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
+
+                                final AcknowledgementAggregator ackregator =
+                                        getAcknowledgementAggregator(commandWithAckLabels);
+                                ackregator.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests());
+
+                                lookupSessionActor(commandWithAckLabels, sessionActor ->
+                                        sessionActor.tell(ackregator, ActorRef.noSender())
+                                );
                             }
+
+                            handleSignal(thingCommand);
                         })
-                        .match(Signal.class, signal -> {
-                            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                            final Optional<String> originOpt = dittoHeaders.getOrigin();
-                            if (originOpt.isPresent()) {
-                                final String origin = originOpt.get();
-                                final Optional<ActorRef> sessionActor = getContext().findChild(origin);
-                                if (sessionActor.isPresent()) {
-                                    final ActorRef sender = dittoHeaders.isResponseRequired() ? sessionActor.get() :
-                                            ActorRef.noSender();
-                                    commandRouter.tell(signal, sender);
-                                } else {
-                                    logger.withCorrelationId(signal)
-                                            .debug("No session actor found for origin <{}>.", origin);
-                                }
-                            } else {
-                                logger.withCorrelationId(signal)
-                                        .warning("Signal is missing the required origin header!");
-                            }
-                        })
+                        .match(Signal.class, this::handleSignal)
                         .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
                         .matchEquals(Control.SCRAPE_STREAM_COUNTER, this::updateStreamingSessionsCounter)
                         .match(DittoRuntimeException.class, cre -> {
@@ -211,7 +211,6 @@ public final class StreamingActor extends AbstractActorWithTimers
         scheduleScrapeStreamSessionsCounter();
         return streamingConfig.render();
     }
-
 
     private void refreshWebSocketSession(final Jwt jwt) {
         final String connectionCorrelationId = jwt.getConnectionCorrelationId();
@@ -247,6 +246,33 @@ public final class StreamingActor extends AbstractActorWithTimers
         getContext().actorSelection(connectionCorrelationId.toString()).forward(object, getContext());
     }
 
+    private void handleSignal(final Signal<?> signal) {
+        if (signal.getDittoHeaders().isResponseRequired()) {
+            lookupSessionActor(signal, sessionActor -> commandRouter.tell(signal, sessionActor));
+        } else {
+            commandRouter.tell(signal, ActorRef.noSender());
+        }
+    }
+
+    private void lookupSessionActor(final WithDittoHeaders<?> withHeaders, final Consumer<ActorRef> sessionActorCon) {
+
+        final DittoHeaders dittoHeaders = withHeaders.getDittoHeaders();
+        final Optional<String> originOpt = dittoHeaders.getOrigin();
+        if (originOpt.isPresent()) {
+            final String origin = originOpt.get();
+            final Optional<ActorRef> sessionActor = getContext().findChild(origin);
+            if (sessionActor.isPresent()) {
+                sessionActorCon.accept(sessionActor.get());
+            } else {
+                logger.withCorrelationId(dittoHeaders)
+                        .error("No session actor found for origin <{}>", origin);
+            }
+        } else {
+            logger.withCorrelationId(dittoHeaders)
+                    .error("No origin header present for WithDittoHeaders <{}>", withHeaders);
+        }
+    }
+
     private void scheduleScrapeStreamSessionsCounter() {
         getTimers().startPeriodicTimer(Control.SCRAPE_STREAM_COUNTER, Control.SCRAPE_STREAM_COUNTER,
                 streamingConfig.getSessionCounterScrapeInterval());
@@ -261,6 +287,16 @@ public final class StreamingActor extends AbstractActorWithTimers
             streamingSessionsCounter.set(
                     StreamSupport.stream(getContext().getChildren().spliterator(), false).count());
         }
+    }
+
+    private AcknowledgementAggregator getAcknowledgementAggregator(final ThingCommand<?> thingCommand) {
+        final DittoHeaders dittoHeaders = thingCommand.getDittoHeaders();
+        final String correlationId = dittoHeaders.getCorrelationId().orElseThrow();
+
+        final Duration timeout = dittoHeaders.getTimeout().orElseGet(() ->
+                streamingConfig.getAcknowledgementConfig().getForwarderFallbackTimeout());
+        return AcknowledgementAggregator.getInstance(thingCommand.getEntityId(), correlationId, timeout,
+                headerTranslator);
     }
 
     /**

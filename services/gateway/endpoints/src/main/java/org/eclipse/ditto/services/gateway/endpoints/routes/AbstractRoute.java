@@ -307,7 +307,7 @@ public abstract class AbstractRoute extends AllDirectives {
             // adds some time in order to avoid race conditions with internal receiveTimeouts which shall return "408"
             // in case of message timeouts or "424" in case of requested-acks timeouts:
             final scala.concurrent.duration.Duration akkaHttpRequestTimeout = requestTimeout
-                    .plus(scala.concurrent.duration.Duration.create(2, TimeUnit.SECONDS));
+                    .plus(scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS));
             return withRequestTimeout(akkaHttpRequestTimeout, () ->
                     inner.apply(Duration.ofMillis(requestTimeout.toMillis()))
             );

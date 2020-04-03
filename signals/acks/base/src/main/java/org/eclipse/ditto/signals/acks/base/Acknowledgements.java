@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Acknowledgements aggregate several {@link Acknowledgement}s and contain an aggregated overall
@@ -46,7 +46,7 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  */
 @Immutable
 public interface Acknowledgements
-        extends Iterable<Acknowledgement>, Signal<Acknowledgements>, WithOptionalEntity, WithEntityType {
+        extends Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity, WithEntityType {
 
 
     /**
@@ -75,6 +75,31 @@ public interface Acknowledgements
             final DittoHeaders dittoHeaders) {
 
         return AcknowledgementFactory.newAcknowledgements(acknowledgements, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@link Acknowledgements} based on the passed params, including the contained
+     * {@link Acknowledgement}s.
+     * <p><em>
+     * Should only be used for deserializing from a JSON representation, as {@link #of(Collection, DittoHeaders)}
+     * does e.g. the calculation of the correct {@code statusCode}.
+     * </em></p>
+     *
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param acknowledgements the map of acknowledgements to be included in the result.
+     * @param statusCode the status code (HTTP semantics) of the combined Acknowledgements.
+     * @param dittoHeaders the headers of the returned Acknowledgements instance.
+     * @return the Acknowledgements.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
+     * types of the given acknowledgements are not equal.
+     */
+    static Acknowledgements of(final EntityIdWithType entityId,
+            final Collection<? extends Acknowledgement> acknowledgements,
+            final HttpStatusCode statusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return AcknowledgementFactory.newAcknowledgements(entityId, acknowledgements, statusCode, dittoHeaders);
     }
 
     /**

@@ -45,7 +45,14 @@ final class HeaderEntryFilters {
      * @see DittoAckRequestsFilter#getInstance()
      */
     static HeaderEntryFilter toExternalHeadersFilter(final Map<String, HeaderDefinition> headerDefinitionMap) {
-        return shouldWriteToExternal(headerDefinitionMap).andThen(discardDittoAckRequests());
+        final HeaderEntryFilter headerEntryFilter = shouldWriteToExternal(headerDefinitionMap);
+        if (headerDefinitionMap.isEmpty()) {
+            return headerEntryFilter;
+        } else {
+            // only discard Ditto ack request if any headerDefinitions were set - e.g. that is case for the Ditto backend
+            //  the Ditto client should not discard ack requests
+            return headerEntryFilter.andThen(discardDittoAckRequests());
+        }
     }
 
     private static HeaderEntryFilter shouldWriteToExternal(final Map<String, HeaderDefinition> headerDefinitions) {

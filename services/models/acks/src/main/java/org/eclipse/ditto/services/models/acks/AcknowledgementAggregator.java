@@ -20,24 +20,28 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
+import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * This class can be used to aggregate the required and actually received acknowledgements for a single request which
@@ -53,19 +57,22 @@ public final class AcknowledgementAggregator {
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
     private final EntityIdWithType entityId;
-    private final EntityIdValidator<?> entityIdValidator;
-    private final CharSequence correlationId;
+    private final Consumer<EntityIdWithType> entityIdValidator;
+    private final String correlationId;
+    private final HeaderTranslator headerTranslator;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
     private final Duration timeout;
 
     private AcknowledgementAggregator(final EntityIdWithType entityId,
-            final EntityIdValidator<?> entityIdValidator,
+            final Consumer<EntityIdWithType> entityIdValidator,
             final CharSequence correlationId,
-            final Duration timeout) {
+            final Duration timeout,
+            final HeaderTranslator headerTranslator) {
 
         this.entityId = checkNotNull(entityId, "entityId");
         this.entityIdValidator = entityIdValidator;
-        this.correlationId = argumentNotEmpty(correlationId);
+        this.correlationId = argumentNotEmpty(correlationId).toString();
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
         this.timeout = checkNotNull(timeout, "timeout");
     }
@@ -76,15 +83,20 @@ public final class AcknowledgementAggregator {
      * @param entityId the ID of the entity for which acknowledgements should be correlated and aggregated.
      * @param correlationId the ID for correlating acknowledgement requests with acknowledgements.
      * @param timeout the timeout applied how long to wait for acknowledgements.
+     * @param headerTranslator the header translator to use in order to translate internal headers to externally
+     * publishable ones.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final EntityIdWithType entityId,
-            final CharSequence correlationId, final Duration timeout) {
+            final CharSequence correlationId, final Duration timeout, final HeaderTranslator headerTranslator) {
 
-        return new AcknowledgementAggregator(entityId, EntityIdWithTypeValidator.getInstance(entityId), correlationId,
-                timeout);
+        return new AcknowledgementAggregator(entityId,
+                EntityIdWithType.createEqualityValidator(entityId),
+                correlationId,
+                timeout,
+                headerTranslator);
     }
 
     /**
@@ -93,15 +105,29 @@ public final class AcknowledgementAggregator {
      * @param entityId the ID of the entity for which acknowledgements should be correlated and aggregated.
      * @param correlationId the ID for correlating acknowledgement requests with acknowledgements.
      * @param timeout the timeout applied how long to wait for acknowledgements.
+     * @param headerTranslator the header translator to use in order to translate internal headers to externally
+     * publishable ones.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final NamespacedEntityIdWithType entityId,
-            final CharSequence correlationId, final Duration timeout) {
+            final CharSequence correlationId, final Duration timeout, final HeaderTranslator headerTranslator) {
 
-        return new AcknowledgementAggregator(entityId, NamespacedEntityIdWithTypeValidator.getInstance(entityId),
-                correlationId, timeout);
+        return new AcknowledgementAggregator(entityId,
+                EntityIdWithType.createEqualityValidator(entityId),
+                correlationId,
+                timeout,
+                headerTranslator);
+    }
+
+    /**
+     * Returns the {@code correlationId} this instance was created for.
+     *
+     * @return the correlation ID this acknowledgement aggregator handles.
+     */
+    public String getCorrelationId() {
+        return correlationId;
     }
 
     /**
@@ -136,6 +162,35 @@ public final class AcknowledgementAggregator {
     }
 
     /**
+     * Creates an {@code Acknowledgement} with label {@link DittoAcknowledgementLabel#PERSISTED} from the passed
+     * {@code thingCommandResponse} and adds it to the received acknowledgements.
+     *
+     * @param thingCommandResponse the thing command response to create the twin persisted acknowledgement from.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException <ul>
+     * <li>if {@code thingCommandResponse} did not provide a correlation ID at all,</li>
+     * <li>the provided correlation ID differs from the correlation ID of this aggregator instance or</li>
+     * <li>if acknowledgement provides an unexpected entity ID.</li>
+     * </ul>
+     */
+    public void addReceivedTwinPersistedAcknowledgment(final ThingCommandResponse<?> thingCommandResponse) {
+
+        checkNotNull(thingCommandResponse, "thingCommandResponse");
+        final DittoHeaders acknowledgementHeaders = getFilteredAcknowledgementHeaders(thingCommandResponse);
+
+        @Nullable JsonValue payload = null;
+        if (thingCommandResponse instanceof WithOptionalEntity) {
+            payload = ((WithOptionalEntity) thingCommandResponse)
+                    .getEntity(thingCommandResponse.getImplementedSchemaVersion())
+                    .orElse(null);
+        }
+
+        addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(DittoAcknowledgementLabel.PERSISTED,
+                thingCommandResponse.getEntityId(), thingCommandResponse.getStatusCode(), acknowledgementHeaders,
+                payload));
+    }
+
+    /**
      * Adds the given received acknowledgement and processes it accordingly.
      * An acknowledgement which as not requested will be ignored by this method, i. e. it does not affect the result of
      * ACK handling.
@@ -144,11 +199,10 @@ public final class AcknowledgementAggregator {
      *
      * @param acknowledgement the acknowledgement to be added.
      * @throws NullPointerException if {@code acknowledgement} is {@code null}.
-     * @throws IllegalArgumentException
-     * <ul>
-     *     <li>if {@code acknowledgement} did not provide a correlation ID at all,</li>
-     *     <li>the provided correlation ID differs from the correlation ID of this aggregator instance or</li>
-     *     <li>if acknowledgement provides an unexpected entity ID.</li>
+     * @throws IllegalArgumentException <ul>
+     * <li>if {@code acknowledgement} did not provide a correlation ID at all,</li>
+     * <li>the provided correlation ID differs from the correlation ID of this aggregator instance or</li>
+     * <li>if acknowledgement provides an unexpected entity ID.</li>
      * </ul>
      */
     public void addReceivedAcknowledgment(final Acknowledgement acknowledgement) {
@@ -156,7 +210,9 @@ public final class AcknowledgementAggregator {
         validateCorrelationId(acknowledgement);
         validateEntityId(acknowledgement);
         if (isRequested(acknowledgement) && isFirstOfItsLabel(acknowledgement)) {
-            acknowledgementMap.put(acknowledgement.getLabel(), acknowledgement);
+            final DittoHeaders acknowledgementHeaders = getFilteredAcknowledgementHeaders(acknowledgement);
+            final Acknowledgement adjustedAck = acknowledgement.setDittoHeaders(acknowledgementHeaders);
+            acknowledgementMap.put(adjustedAck.getLabel(), adjustedAck);
         }
     }
 
@@ -169,7 +225,7 @@ public final class AcknowledgementAggregator {
                     return new IllegalArgumentException(MessageFormat.format(pattern, correlationId));
                 });
 
-        if (!receivedCorrelationId.equals(correlationId.toString())) {
+        if (!receivedCorrelationId.equals(correlationId)) {
             final String ptrn = "The received Acknowledgement''s correlation ID <{0}> differs from the expected <{1}>!";
             throw new IllegalArgumentException(MessageFormat.format(ptrn, receivedCorrelationId, correlationId));
         }
@@ -188,6 +244,13 @@ public final class AcknowledgementAggregator {
         final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
         @Nullable final Acknowledgement knownAcknowledgement = acknowledgementMap.get(ackLabel);
         return null != knownAcknowledgement && knownAcknowledgement.isTimeout();
+    }
+
+    private DittoHeaders getFilteredAcknowledgementHeaders(final WithDittoHeaders<?> withDittoHeaders) {
+        final DittoHeaders externalHeaders =
+                DittoHeaders.of(headerTranslator.toExternalHeaders(withDittoHeaders.getDittoHeaders()));
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder(externalHeaders);
+        return headersBuilder.build();
     }
 
     /**
@@ -241,106 +304,11 @@ public final class AcknowledgementAggregator {
 
     private void validateCorrelationId(final DittoHeaders dittoHeaders) {
         dittoHeaders.getCorrelationId()
-                .filter(ci -> !ci.equals(correlationId.toString()))
+                .filter(ci -> !ci.equals(correlationId))
                 .ifPresent(ci -> {
                     final String pattern = "The provided correlation ID <{0}> differs from the expected <{1}>!";
                     throw new IllegalArgumentException(MessageFormat.format(pattern, ci, correlationId));
                 });
-    }
-
-    /**
-     * Abstract base for validating whether given {@code EntityIdWithType} instances are equal to an {@code expected}
-     * instance.
-     *
-     * @param <I> the type of the EntityIdWithType to validate
-     * @since 1.1.0
-     */
-    @Immutable
-    private abstract static class EntityIdValidator<I extends EntityIdWithType> implements Consumer<I> {
-
-        private final I expected;
-
-        /**
-         * Constructs a new EntityIdValidator object.
-         */
-        protected EntityIdValidator(final I expected) {
-            this.expected = checkNotNull(expected, "expected");
-        }
-
-        @Override
-        public void accept(final EntityIdWithType actual) {
-            if (!areEqual(actual, expected)) {
-                final String ptrn = "The received Acknowledgement''s entity ID <{0}> differs from the expected <{1}>!";
-                throw new IllegalArgumentException(MessageFormat.format(ptrn, actual, expected));
-            }
-        }
-
-        /**
-         * Indicates whether the two given entity IDs are regarded as being equal.
-         *
-         * @param actual the entity ID of a received Acknowledgement.
-         * @param expected the entity ID all entity IDs of received Acknowledgements are supposed to be equal to.
-         * @return {@code true} if the given {@code actual} and {@code expected} are regarded as being equal,
-         * {@code false} else.
-         */
-        protected boolean areEqual(final EntityIdWithType actual, final I expected) {
-            return actual.equals(expected);
-        }
-
-    }
-
-    /**
-     * Validator validating {@code EntityIdWithType} instances.
-     *
-     * @since 1.1.0
-     */
-    @Immutable
-    static final class EntityIdWithTypeValidator extends EntityIdValidator<EntityIdWithType> {
-
-        private EntityIdWithTypeValidator(final EntityIdWithType expected) {
-            super(expected);
-        }
-
-        static EntityIdWithTypeValidator getInstance(final EntityIdWithType expected) {
-            return new EntityIdWithTypeValidator(expected);
-        }
-
-    }
-
-    /**
-     * Validator validating {@code NamespacedEntityIdWithType} instances in a way that the {@code namespace} part of the
-     * NamespacedEntityIdWithType may be empty (which can e.g. be the case for "Create Thing" commands where the default
-     * namespace is added at a later step) and only the {@code name} part has to be equal to each other.
-     *
-     * @since 1.1.0
-     */
-    @Immutable
-    static final class NamespacedEntityIdWithTypeValidator extends
-            EntityIdValidator<NamespacedEntityIdWithType> {
-
-        private NamespacedEntityIdWithTypeValidator(final NamespacedEntityIdWithType expected) {
-            super(expected);
-        }
-
-        static NamespacedEntityIdWithTypeValidator getInstance(final NamespacedEntityIdWithType expected) {
-            return new NamespacedEntityIdWithTypeValidator(expected);
-        }
-
-        @Override
-        protected boolean areEqual(final EntityIdWithType actual, final NamespacedEntityIdWithType expected) {
-            return super.areEqual(actual, expected) || areNamesEqual(actual, expected);
-        }
-
-        private static boolean areNamesEqual(final EntityIdWithType actual, final NamespacedEntityId expected) {
-            boolean result = false;
-            if (actual instanceof NamespacedEntityId) {
-                final String expectedNamespace = expected.getNamespace();
-                final String actualName = ((NamespacedEntityId) actual).getName();
-                result = expectedNamespace.isEmpty() && Objects.equals(actualName, expected.getName());
-            }
-            return result;
-        }
-
     }
 
 }

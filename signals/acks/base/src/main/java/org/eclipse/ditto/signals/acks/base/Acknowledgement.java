@@ -31,8 +31,8 @@ import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * An Acknowledgement contains all information about a successful (business) {@code ACK} or a not successful
@@ -43,7 +43,7 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  * </p>
  * @since 1.1.0
  */
-public interface Acknowledgement extends Signal<Acknowledgement>, WithOptionalEntity, WithEntityType {
+public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType {
 
     /**
      * Returns the type of an Acknowledgement for the context of the given entity type.

@@ -138,9 +138,13 @@ final class GatewayRootActor extends DittoRootActor {
                 JwtAuthenticationFactory.newInstance(authenticationConfig.getOAuthConfig(),
                         gatewayConfig.getCachesConfig().getPublicKeysConfig(), httpClient);
 
+        final ProtocolAdapterProvider protocolAdapterProvider =
+                ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
+        final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory,
-                        gatewayConfig.getStreamingConfig()));
+                        gatewayConfig.getStreamingConfig(), headerTranslator));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
@@ -153,7 +157,8 @@ final class GatewayRootActor extends DittoRootActor {
         }
 
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
-                healthCheckActor, healthCheckConfig, jwtAuthenticationFactory);
+                healthCheckActor, healthCheckConfig, jwtAuthenticationFactory, protocolAdapterProvider,
+                headerTranslator);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
@@ -206,7 +211,9 @@ final class GatewayRootActor extends DittoRootActor {
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
             final HealthCheckConfig healthCheckConfig,
-            final JwtAuthenticationFactory jwtAuthenticationFactory) {
+            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final ProtocolAdapterProvider protocolAdapterProvider,
+            final HeaderTranslator headerTranslator) {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
 
@@ -216,10 +223,6 @@ final class GatewayRootActor extends DittoRootActor {
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory,
                         authenticationDispatcher);
-
-        final ProtocolAdapterProvider protocolAdapterProvider =
-                ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
-        final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
         final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final StatusAndHealthProvider statusAndHealthProvider =

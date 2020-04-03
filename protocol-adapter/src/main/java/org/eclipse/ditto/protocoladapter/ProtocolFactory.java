@@ -151,10 +151,19 @@ public final class ProtocolFactory {
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
-                case ACKS:
-                    // messages and ACK Paths always contain a subject / custom acknowledgement label:
+                    // messages always contain a subject:
                     final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+                case ACKS:
+                    final String label = String.join(TopicPath.PATH_DELIMITER, parts);
+                    if (TopicPath.Action.AGGREGATED_ACKS.getName().equals(label)) {
+                        // ACK Paths either contain the reserved acknowledgement label translated to an action:
+                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion,
+                                TopicPath.Action.AGGREGATED_ACKS);
+                    } else {
+                        // or ACK Paths contain a custom acknowledgement label:
+                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion, label);
+                    }
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }

@@ -10,32 +10,29 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.acks;
+package org.eclipse.ditto.model.base.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator.EntityIdWithTypeValidator;
 import org.junit.Test;
 /**
- * Unit test for {@link EntityIdWithTypeValidator}.
+ * Unit test for {@link EntityIdWithTypeEqualityValidator}.
  */
-public final class EntityIdWithTypeValidatorTest {
+public final class EntityIdWithTypeEqualityValidatorTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(EntityIdWithTypeValidator.class, areImmutable());
+        assertInstancesOf(EntityIdWithTypeEqualityValidator.class, areImmutable());
     }
 
     @Test
     public void acceptSameId() {
         final MyEntityId entityId = new MyEntityId("foo");
-        final EntityIdWithTypeValidator underTest = EntityIdWithTypeValidator.getInstance(entityId);
+        final EntityIdWithTypeEqualityValidator underTest = EntityIdWithTypeEqualityValidator.getInstance(entityId);
 
         assertThatCode(() -> underTest.accept(entityId)).doesNotThrowAnyException();
     }
@@ -44,12 +41,11 @@ public final class EntityIdWithTypeValidatorTest {
     public void acceptDifferentIds() {
         final MyEntityId entityIdFoo = new MyEntityId("foo");
         final MyEntityId entityIdBar = new MyEntityId("bar");
-        final EntityIdWithTypeValidator underTest = EntityIdWithTypeValidator.getInstance(entityIdFoo);
+        final EntityIdWithTypeEqualityValidator underTest = EntityIdWithTypeEqualityValidator.getInstance(entityIdFoo);
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> underTest.accept(entityIdBar))
-                .withMessage("The received Acknowledgement's entity ID <%s> differs from the expected <%s>!",
-                        entityIdBar, entityIdFoo)
+                .withMessage("The entity ID <%s> differs from the expected <%s>!", entityIdBar, entityIdFoo)
                 .withNoCause();
     }
 
