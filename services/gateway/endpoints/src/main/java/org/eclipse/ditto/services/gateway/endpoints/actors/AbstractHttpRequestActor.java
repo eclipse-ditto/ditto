@@ -55,6 +55,7 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 
 import akka.actor.AbstractActor;
@@ -145,7 +146,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 .dittoHeaders(DittoHeaders.empty())
                                 .build()))
                 .match(Command.class, command -> !isResponseRequired(command), this::handleCommandWithoutResponse)
-                .match(ThingCommand.class, this::handleThingCommand)
+                .match(ThingModifyCommand.class, this::handleThingModifyCommand)
                 .match(MessageCommand.class, this::handleMessageCommand)
                 .match(Command.class, command -> handleCommandWithResponse(command,
                         getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))))
@@ -168,8 +169,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
     }
 
-    private void handleThingCommand(final ThingCommand<?> thingCommand) {
-        final ThingCommand<?> commandWithAckLabels = setImplicitAckRequests(thingCommand);
+    private void handleThingModifyCommand(final ThingModifyCommand<?> thingCommand) {
+        final ThingModifyCommand<?> commandWithAckLabels = (ThingModifyCommand<?>)
+                ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
         final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
 
         final AcknowledgementAggregator ackregator = getAcknowledgementAggregator(commandWithAckLabels);
@@ -179,11 +181,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 getTimeoutExceptionSupplier(commandWithAckLabels));
 
         handleCommandWithResponse(commandWithAckLabels, awaitCommandResponseBehavior);
-    }
-
-    private static ThingCommand<?> setImplicitAckRequests(final ThingCommand<?> thingCommand) {
-        final UnaryOperator<Command<?>> ackRequestSetter = ThingModifyCommandAckRequestSetter.getInstance();
-        return (ThingCommand<?>) ackRequestSetter.apply(thingCommand);
     }
 
     private AcknowledgementAggregator getAcknowledgementAggregator(final ThingCommand<?> thingCommand) {
