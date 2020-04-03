@@ -152,7 +152,7 @@ final class StreamingSessionActor extends AbstractActor {
                             response.getDittoHeaders().getCorrelationId().orElseThrow());
                     if (null != ackregator) {
                         ackregator.addReceivedTwinPersistedAcknowledgment(response);
-                        potentiallyCompleteAcknowledgements(response.getDittoHeaders(), ackregator);
+                        potentiallyCompleteAcknowledgements(response, response.getDittoHeaders(), ackregator);
                     } else {
                         handleResponse(response);
                     }
@@ -257,20 +257,30 @@ final class StreamingSessionActor extends AbstractActor {
         acknowledgementAggregators.put(acknowledgementAggregator.getCorrelationId(), acknowledgementAggregator);
     }
 
-    private void potentiallyCompleteAcknowledgements(final DittoHeaders dittoHeaders,
+    private void potentiallyCompleteAcknowledgements(
+            @Nullable final ThingCommandResponse<?> response,
+            final DittoHeaders dittoHeaders,
             final AcknowledgementAggregator ackregator) {
 
         if (ackregator.receivedAllRequestedAcknowledgements()) {
-            completeAcknowledgements(dittoHeaders, ackregator);
+            completeAcknowledgements(response, dittoHeaders, ackregator);
         }
     }
 
-    private void completeAcknowledgements(final DittoHeaders dittoHeaders, final AcknowledgementAggregator acks) {
+    private void completeAcknowledgements(@Nullable final ThingCommandResponse<?> response,
+            final DittoHeaders dittoHeaders,
+            final AcknowledgementAggregator acks) {
+
         final Acknowledgements aggregatedAcknowledgements = acks.getAggregatedAcknowledgements(dittoHeaders);
-        logger.withCorrelationId(dittoHeaders)
-                .debug("Completing with collected acknowledgements in <{}> session, telling " +
-                        "EventAndResponsePublisher about it: {}", type, aggregatedAcknowledgements);
-        handleSignal(aggregatedAcknowledgements);
+        if (acks.isSuccessful() && null != response && aggregatedAcknowledgements.getSize() == 1) {
+            // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
+            handleSignal(response);
+        } else {
+            logger.withCorrelationId(dittoHeaders)
+                    .debug("Completing with collected acknowledgements in <{}> session, telling " +
+                            "EventAndResponsePublisher about it: {}", type, aggregatedAcknowledgements);
+            handleSignal(aggregatedAcknowledgements);
+        }
 
         dittoHeaders.getCorrelationId().ifPresent(acknowledgementAggregators::remove);
     }
@@ -282,7 +292,7 @@ final class StreamingSessionActor extends AbstractActor {
         if (null != ackregator) {
             // the Acknowledgement is meant for this exact WS session:
             ackregator.addReceivedAcknowledgment(acknowledgement);
-            potentiallyCompleteAcknowledgements(acknowledgement.getDittoHeaders(), ackregator);
+            potentiallyCompleteAcknowledgements(null, acknowledgement.getDittoHeaders(), ackregator);
         } else {
             // the Acknowledgement is meant for someone else:
             final ActorContext context = getContext();
