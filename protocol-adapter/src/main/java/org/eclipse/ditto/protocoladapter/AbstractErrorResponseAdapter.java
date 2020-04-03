@@ -48,6 +48,8 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
      * @param dittoHeaders Headers of the error.
      * @param errorRegistry The error registry.
      * @return The parsed {@code DittoRuntimeException}.
+     *
+     * @since 1.1.0
      */
     public static DittoRuntimeException parseWithErrorRegistry(final JsonObject errorJson,
             final DittoHeaders dittoHeaders,

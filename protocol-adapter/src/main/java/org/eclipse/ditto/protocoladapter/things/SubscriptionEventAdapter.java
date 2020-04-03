@@ -53,6 +53,8 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
      * @param headerTranslator translator between external and Ditto headers.
      * @param errorRegistry the error registry for {@code SubscriptionFailed} events.
      * @return the adapter.
+     *
+     * @since 1.1.0
      */
     public static SubscriptionEventAdapter of(final HeaderTranslator headerTranslator,
             final ErrorRegistry<?> errorRegistry) {
