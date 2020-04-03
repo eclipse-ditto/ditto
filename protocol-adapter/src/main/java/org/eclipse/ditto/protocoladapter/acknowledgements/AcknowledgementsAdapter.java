@@ -15,13 +15,12 @@ package org.eclipse.ditto.protocoladapter.acknowledgements;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -85,32 +84,43 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
     private static List<Acknowledgement> gatherContainedAcknowledgements(final Adaptable adaptable,
             final ThingId thingId) {
 
-        return Optional.ofNullable(getPayloadValueOrNull(adaptable))
-                .filter(JsonValue::isObject)
-                .map(value -> value.asObject().stream()
-                        .map(field -> {
-                            if (filterForAcknowledgementJsonObject(field)) {
-                                return ThingAcknowledgementFactory.fromJson(
-                                        field.getValue().asObject().toBuilder()
-                                                .set(Acknowledgement.JsonFields.LABEL, field.getKey().toString())
-                                                .set(Acknowledgement.JsonFields.ENTITY_ID, thingId.toString())
-                                                .set(Acknowledgement.JsonFields.ENTITY_TYPE,
-                                                        ThingConstants.ENTITY_TYPE.toString())
-                                                .build()
-                                );
-                            } else {
-                                return ThingAcknowledgementFactory.newAcknowledgement(
-                                        getLabelInCaseOfSingleAcknowledgement(adaptable),
-                                        getThingId(adaptable),
-                                        getStatusCodeOrThrow(adaptable),
-                                        adaptable.getDittoHeaders(),
-                                        JsonObject.newBuilder().set(field).build()
-                                );
-                            }
-                        })
-                )
-                .orElse(Stream.empty())
-                .collect(Collectors.toList());
+        final JsonValue adaptablePayloadValue = adaptable.getPayload().getValue().orElse(JsonValue.nullLiteral());
+        return buildAcknowledgements(adaptable, thingId, adaptablePayloadValue);
+    }
+
+    private static List<Acknowledgement> buildAcknowledgements(final Adaptable adaptable, final ThingId thingId,
+            final JsonValue value) {
+
+        if (value.isNull()) {
+            return Collections.singletonList(buildSingleAcknowledgement(adaptable, null));
+        } else if (value.isObject()) {
+            return value.asObject().stream().map(field -> {
+                if (filterForAcknowledgementJsonObject(field)) {
+                    return ThingAcknowledgementFactory.fromJson(
+                            field.getValue().asObject().toBuilder()
+                                    .set(Acknowledgement.JsonFields.LABEL, field.getKey().toString())
+                                    .set(Acknowledgement.JsonFields.ENTITY_ID, thingId.toString())
+                                    .set(Acknowledgement.JsonFields.ENTITY_TYPE, ThingConstants.ENTITY_TYPE.toString())
+                                    .build()
+                    );
+                } else {
+                    return buildSingleAcknowledgement(adaptable, field);
+                }
+            }).collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    private static Acknowledgement buildSingleAcknowledgement(final Adaptable adaptable,
+            @Nullable final JsonField field) {
+        return ThingAcknowledgementFactory.newAcknowledgement(
+                getLabelInCaseOfSingleAcknowledgement(adaptable),
+                getThingId(adaptable),
+                getStatusCodeOrThrow(adaptable),
+                adaptable.getDittoHeaders(),
+                null != field ? JsonObject.newBuilder().set(field).build() : null
+        );
     }
 
     private static AcknowledgementLabel getLabelInCaseOfSingleAcknowledgement(final Adaptable adaptable) {
@@ -131,12 +141,6 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
         final Payload payload = adaptable.getPayload();
         return payload.getStatus()
                 .orElseThrow(() -> new JsonMissingFieldException(Payload.JsonFields.STATUS));
-    }
-
-    @Nullable
-    private static JsonValue getPayloadValueOrNull(final Adaptable adaptable) {
-        final Payload payload = adaptable.getPayload();
-        return payload.getValue().orElse(null);
     }
 
     @Override
