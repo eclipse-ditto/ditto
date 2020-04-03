@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -109,13 +111,14 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                         RetrievePolicyEntries.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /entries
-                                extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                policyEntriesJson ->
-                                                        ModifyPolicyEntries.of(policyId,
-                                                                PoliciesModelFactory.newPolicyEntries(
-                                                                        policyEntriesJson),
-                                                                dittoHeaders))
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        payloadSource ->
+                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        policyEntriesJson ->
+                                                                ModifyPolicyEntries.of(policyId,
+                                                                        PoliciesModelFactory.newPolicyEntries(
+                                                                                policyEntriesJson),
+                                                                        dittoHeaders))
                                 )
                         )
                 )
@@ -140,12 +143,13 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                 ),
                                 put(() -> // PUT /entries/<label>
-                                        extractDataBytes(payloadSource ->
-                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        policyEntryJson -> ModifyPolicyEntry
-                                                                .of(policyId,
-                                                                        createPolicyEntryForPut(policyEntryJson,
-                                                                                label), dittoHeaders))
+                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                                payloadSource ->
+                                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                policyEntryJson -> ModifyPolicyEntry
+                                                                        .of(policyId,
+                                                                                createPolicyEntryForPut(policyEntryJson,
+                                                                                        label), dittoHeaders))
                                         )
                                 ),
                                 delete(() -> // DELETE /entries/<label>
@@ -184,15 +188,17 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         Label.of(label), dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/subjects
-                                                extractDataBytes(payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders,
-                                                                payloadSource, subjectsJson ->
-                                                                        ModifySubjects.of(policyId,
-                                                                                Label.of(label),
-                                                                                PoliciesModelFactory.newSubjects(
-                                                                                        JsonFactory.newObject(
-                                                                                                subjectsJson)),
-                                                                                dittoHeaders)))
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource, subjectsJson ->
+                                                                                ModifySubjects.of(policyId,
+                                                                                        Label.of(label),
+                                                                                        PoliciesModelFactory.newSubjects(
+                                                                                                JsonFactory.newObject(
+                                                                                                        subjectsJson)),
+                                                                                        dittoHeaders)))
                                         )
                                 )
                         )
@@ -219,15 +225,17 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/subjects/<subjectId>
-                                                extractDataBytes(payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders,
-                                                                payloadSource,
-                                                                subjectJson -> ModifySubject
-                                                                        .of(policyId, Label.of(
-                                                                                label),
-                                                                                createSubjectForPut(subjectJson,
-                                                                                        subjectId),
-                                                                                dittoHeaders))
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource,
+                                                                        subjectJson -> ModifySubject
+                                                                                .of(policyId, Label.of(
+                                                                                        label),
+                                                                                        createSubjectForPut(subjectJson,
+                                                                                                subjectId),
+                                                                                        dittoHeaders))
                                                 )
                                         ),
                                         delete(() -> // DELETE /entries/<label>/subjects/<subjectId>
@@ -267,17 +275,19 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         Label.of(label), dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/resources
-                                                extractDataBytes(payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders,
-                                                                payloadSource,
-                                                                policyEntryResourcesJson ->
-                                                                        ModifyResources.of(policyId,
-                                                                                Label.of(
-                                                                                        label),
-                                                                                PoliciesModelFactory.newResources(
-                                                                                        JsonFactory.newObject(
-                                                                                                policyEntryResourcesJson)),
-                                                                                dittoHeaders)))
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource,
+                                                                        policyEntryResourcesJson ->
+                                                                                ModifyResources.of(policyId,
+                                                                                        Label.of(
+                                                                                                label),
+                                                                                        PoliciesModelFactory.newResources(
+                                                                                                JsonFactory.newObject(
+                                                                                                        policyEntryResourcesJson)),
+                                                                                        dittoHeaders)))
                                         )
                                 )
                         )
@@ -304,17 +314,19 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/resources/<resource>
-                                                extractDataBytes(payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders,
-                                                                payloadSource, resourceJson ->
-                                                                        ModifyResource.of(policyId,
-                                                                                Label.of(
-                                                                                        label),
-                                                                                createResourceForPut(
-                                                                                        resourceJson,
-                                                                                        resourceKeyFromUnmatchedPath(
-                                                                                                resource)),
-                                                                                dittoHeaders))
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                        dittoHeaders,
+                                                        payloadSource ->
+                                                                handlePerRequest(ctx, dittoHeaders,
+                                                                        payloadSource, resourceJson ->
+                                                                                ModifyResource.of(policyId,
+                                                                                        Label.of(
+                                                                                                label),
+                                                                                        createResourceForPut(
+                                                                                                resourceJson,
+                                                                                                resourceKeyFromUnmatchedPath(
+                                                                                                        resource)),
+                                                                                        dittoHeaders))
                                                 )
                                         ),
                                         delete(() -> // DELETE /entries/<label>/resources/<resource>

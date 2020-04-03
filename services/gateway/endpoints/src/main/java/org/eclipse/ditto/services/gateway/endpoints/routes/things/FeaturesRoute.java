@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -115,7 +118,8 @@ final class FeaturesRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /features
-                                extractDataBytes(payloadSource ->
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 featuresJson -> ModifyFeatures
                                                         .of(thingId, ThingsModelFactory.newFeatures(
@@ -149,7 +153,8 @@ final class FeaturesRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /features/<featureId>
-                                        extractDataBytes(payloadSource ->
+                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                                payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         featureJson ->
                                                                 ModifyFeature.of(thingId,
@@ -187,7 +192,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                         RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/definition
-                                                extractDataBytes(payloadSource ->
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, definitionJson ->
                                                                         ModifyFeatureDefinition.of(thingId, featureId,
@@ -232,7 +238,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties
-                                                extractDataBytes(payloadSource ->
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertiesJson ->
                                                                         ModifyFeatureProperties.of(
@@ -275,9 +282,9 @@ final class FeaturesRoute extends AbstractRoute {
                                                 handlePerRequest(ctx, RetrieveFeatureProperty.of(thingId, featureId,
                                                         JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         ),
-                                        put(() ->
-                                                extractDataBytes(payloadSource ->
-                                                        // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
+                                        put(() -> // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertyJson ->
                                                                         ModifyFeatureProperty.of(

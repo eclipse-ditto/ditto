@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -96,13 +98,15 @@ public final class PoliciesRoute extends AbstractRoute {
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /policies/<policyId>
-                                extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                policyJson -> ModifyPolicy
-                                                        .of(policyId, PoliciesModelFactory.newPolicy(
-                                                                createPolicyJsonObjectForPut(policyJson, policyId)),
-                                                                dittoHeaders)
-                                        )
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        payloadSource ->
+                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        policyJson -> ModifyPolicy
+                                                                .of(policyId, PoliciesModelFactory.newPolicy(
+                                                                        createPolicyJsonObjectForPut(policyJson,
+                                                                                policyId)),
+                                                                        dittoHeaders)
+                                                )
                                 )
                         ),
                         delete(() -> // DELETE /policies/<policyId>

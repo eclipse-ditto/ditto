@@ -59,6 +59,14 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void putNewThingWithAttributesSuccessfully(){
+        final TestRouteResult result = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy")
+        .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": \"bar\"}}"));
+
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
     public void postFeaturesReturnsMethodNotAllowed() {
         final TestRouteResult result = underTest.run(HttpRequest.POST("/things/org.eclipse.ditto%3Adummy/features"));
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
