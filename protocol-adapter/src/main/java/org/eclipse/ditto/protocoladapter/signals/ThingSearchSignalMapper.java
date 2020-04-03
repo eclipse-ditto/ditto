@@ -123,7 +123,7 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
         final JsonObjectBuilder payloadContentBuilder = JsonFactory.newObjectBuilder();
 
         if (command instanceof CreateSubscription) {
-            CreateSubscription createCommand = (CreateSubscription) command;
+            final CreateSubscription createCommand = (CreateSubscription) command;
             createCommand.getSelectedFields().ifPresent(payloadBuilder::withFields);
             createCommand.getFilter()
                     .ifPresent(filter -> payloadContentBuilder.set(CreateSubscription.JsonFields.FILTER, filter));
