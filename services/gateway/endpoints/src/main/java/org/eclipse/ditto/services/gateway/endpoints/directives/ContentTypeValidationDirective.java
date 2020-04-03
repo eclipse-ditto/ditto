@@ -18,6 +18,7 @@
 
  import java.text.MessageFormat;
  import java.util.List;
+ import java.util.function.Function;
  import java.util.function.Supplier;
 
  import javax.annotation.Nullable;
@@ -31,51 +32,57 @@
  import akka.http.javadsl.model.StatusCodes;
  import akka.http.javadsl.server.RequestContext;
  import akka.http.javadsl.server.Route;
+ import akka.stream.javadsl.Source;
+ import akka.util.ByteString;
+
+ import static akka.http.javadsl.server.Directives.extractDataBytes;
 
  public final class ContentTypeValidationDirective {
 
-     public static final ContentTypeValidationDirective CT_ONLY_APPLICATION_JSON =
-             new ContentTypeValidationDirective(List.of(ContentTypes.APPLICATION_JSON), false);
+     /**
+      * Static list containing:
+      * <ul>
+      *     <li>application/json</li>
+      * </ul>
+      */
+     public static List<ContentType> ONLY_JSON = List.of(
+             ContentTypes.APPLICATION_JSON //,
+     );
 
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
-     private final List<ContentType> allowedContentTypes;
-     private final boolean allowNoneContentType;
 
-     private ContentTypeValidationDirective(final List<ContentType> allowedContentTypes, boolean allowNoneContentType) {
-
-         this.allowedContentTypes = checkNotNull(allowedContentTypes);
-         this.allowNoneContentType = allowNoneContentType;
-     }
-
-     public Route ensureValidContentType(RequestContext ctx, DittoHeaders dittoHeaders, Supplier<Route> inner) {
+     /**
+      *
+      */
+     public static Route ensureValidContentType(final List<ContentType> allowedContentTypes,
+             RequestContext ctx, DittoHeaders dittoHeaders, Supplier<Route> inner) {
          return enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () -> {
              final ContentType contentType =
                      ctx.getRequest().entity().getContentType();
 
-             LOGGER.info("verifyContentType hit with content-type: {}, unmatched-path: {}", contentType,
-                     ctx.getRequest().getUri().getPathString());
-             if (isContentTypeValid(this.allowedContentTypes, this.allowNoneContentType, contentType)) {
+             if (contentType != null && allowedContentTypes.contains(contentType)) {
                  return inner.get();
              } else {
                  final String msgPatten = "The Content-Type <{0}> is not supported for this endpoint. Allowed " +
                          "Content-Types are: <{1}>";
-                 return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE,
-                         MessageFormat.format(msgPatten, contentType, allowedContentTypes.toString()));
+                 final String responseMessage =
+                         MessageFormat.format(msgPatten, contentType, allowedContentTypes.toString());
+                 LOGGER.info(responseMessage);
+                 return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE, responseMessage);
              }
          });
      }
 
-     static boolean isContentTypeValid(List<ContentType> allowedContentTypes,
-             boolean allowNoneContentType, ContentType contentTypeToCheck) {
+     public static Route ensureContentTypeAndExtractDataBytes(final List<ContentType> allowedContentTypes,
+             RequestContext ctx,
+             DittoHeaders dittoHeaders,
+             Function<Source<ByteString, Object>, Route> inner) {
 
-         if (contentTypeToCheck != null && allowedContentTypes.contains(contentTypeToCheck)) {
-             return true;
-         }
-         if (allowNoneContentType) {
-             if (contentTypeToCheck == null || contentTypeToCheck.equals(ContentTypes.NO_CONTENT_TYPE)) {
-                 return true;
-             }
-         }
-         return false;
+         return ensureValidContentType(
+                 allowedContentTypes,
+                 ctx,
+                 dittoHeaders,
+                 () -> extractDataBytes(inner));
      }
+
  }

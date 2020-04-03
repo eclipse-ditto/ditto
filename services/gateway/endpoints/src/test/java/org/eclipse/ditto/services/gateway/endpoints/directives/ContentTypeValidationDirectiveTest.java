@@ -12,57 +12,83 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
+import akka.http.javadsl.testkit.TestRouteResult;
+import akka.stream.Materializer;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import akka.util.ByteString;
 
-@RunWith(Parameterized.class)
 public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
 
-    private static final List<ContentType> ONLY_JSON_ALLOWED = List.of(ContentTypes.APPLICATION_JSON);
+    private final Supplier<Route> COMPLETE_OK = () -> complete(StatusCodes.OK);
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                { false, ContentTypes.APPLICATION_JSON, true },
-                { false, ContentTypes.APPLICATION_GRPC_PROTO, false },
-                { true, ContentTypes.APPLICATION_JSON, true },
-                { true, ContentTypes.APPLICATION_GRPC_PROTO, false },
-                { true, null, true },
-                { true, ContentTypes.NO_CONTENT_TYPE, true }
-        });
-    }
+    @Test
+    public void testValidContentType() {
+        // Arrange
+        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final ContentType type = ContentTypes.APPLICATION_JSON;
 
-    final boolean allowNoneContentType;
-    final ContentType contentType;
-    final boolean expectedResult;
+        // Act
+        final TestRouteResult result =
+                testRoute(extractRequestContext(
+                        ctx -> ensureValidContentType(List.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        .run(HttpRequest.PUT("someUrl").withEntity(type, "something".getBytes()));
 
-    public ContentTypeValidationDirectiveTest(
-            final boolean allowNoneContentType,
-            final ContentType contentType, final boolean expectedResult) {
-        this.allowNoneContentType = allowNoneContentType;
-        this.contentType = contentType;
-        this.expectedResult = expectedResult;
+
+        // Assert
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
-    public void testIsContentTypeValid() {
+    public void testNonValidContentType() {
+        // Arrange
+        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final ContentType type = ContentTypes.APPLICATION_JSON;
+        final ContentType differentType = ContentTypes.APPLICATION_X_WWW_FORM_URLENCODED;
+
         // Act
-        final boolean result =
-                ContentTypeValidationDirective.isContentTypeValid(ONLY_JSON_ALLOWED, allowNoneContentType, contentType);
+        final TestRouteResult result =
+                testRoute(extractRequestContext(
+                        ctx -> ensureValidContentType(List.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        .run(HttpRequest.PUT("someUrl").withEntity(differentType,"something".getBytes()));
+
 
         // Assert
-        assertThat(result).isEqualTo(expectedResult);
+        result.assertStatusCode(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
     }
+
+    @Test
+    public void testWithoutEntityNoNPEExpected() {
+        // Arrange
+        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final ContentType type = ContentTypes.APPLICATION_JSON;
+
+        // Act
+        final TestRouteResult result =
+                testRoute(extractRequestContext(
+                        ctx -> ensureValidContentType(List.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        .run(HttpRequest.PUT("someUrl"));
+
+
+        // Assert
+        result.assertStatusCode(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
+    }
+
 
 }
