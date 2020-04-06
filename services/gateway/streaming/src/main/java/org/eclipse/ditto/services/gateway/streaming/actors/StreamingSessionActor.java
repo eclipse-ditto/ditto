@@ -316,13 +316,13 @@ final class StreamingSessionActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        if (!(signal instanceof CommandResponse) && connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
+        if (signal instanceof CommandResponse) {
+            logger.debug("Got CommandResponse <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                    signal.getType(), type, signal);
+            eventAndResponsePublisher.forward(SessionedJsonifiable.response((CommandResponse) signal), getContext());
+        } else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
-        } else if (signal instanceof Acknowledgements){
-            logger.debug("Got Acknowledgements <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                    signal.getType(), type, signal);
-            eventAndResponsePublisher.forward(SessionedJsonifiable.response((Acknowledgements) signal), getContext());
         } else {
             // check if this session is "allowed" to receive the Signal
             @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
