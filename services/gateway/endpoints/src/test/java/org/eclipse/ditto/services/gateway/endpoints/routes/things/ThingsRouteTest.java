@@ -91,7 +91,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void putPolicyIdAssumesJsonContentType() {
         final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/policyId")
-                .withEntity("hello:world:123")).entityString();
+                .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
         final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/policyId")
@@ -117,7 +117,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void putAndRetrieveNullDefinition() {
         final String putResult = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
-                .withEntity("null")).entityString();
+                .withEntity(ContentTypes.APPLICATION_JSON,"null")).entityString();
         assertThat(JsonObject.of(putResult)).contains(JsonKey.of("type"), ModifyThingDefinition.TYPE);
 
         final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/org.eclipse.ditto%3At1/definition"));
