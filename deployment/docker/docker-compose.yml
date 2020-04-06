@@ -153,7 +153,7 @@ services:
        - ./index.html:/etc/nginx/html/index.html:ro
        - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
     ports:
-      - "8080:80"
+      - "${DITTO_EXTERNAL_PORT:-8080}:80"
     depends_on:
       - gateway
       - swagger-ui
