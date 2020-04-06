@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
 /**
  * Enumeration of definitions of well known message headers including their key and Java type.
+ * Note: All header keys must be lower-case;
  */
 public enum MessageHeaderDefinition implements HeaderDefinition {
 
@@ -139,7 +140,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
 
     /**
      * The regex pattern a Subject has to conform to. Defined by
-     * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a> .
+     * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a>.
      */
     static final String SUBJECT_REGEX =
             "(([a-zA-Z][0-9a-zA-Z+\\-\\.]*:)?/{0,2}[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?(#[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?";

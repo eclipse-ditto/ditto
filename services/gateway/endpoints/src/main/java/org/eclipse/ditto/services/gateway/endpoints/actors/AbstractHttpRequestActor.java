@@ -449,7 +449,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final DittoHeaders allDittoHeaders) {
 
         LogUtil.enhanceLogWithCorrelationId(logger, allDittoHeaders);
-        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allDittoHeaders);
+        final Map<String, String> externalHeaders = headerTranslator.toFilteredExternalHeaders(allDittoHeaders);
 
         if (externalHeaders.isEmpty()) {
             logger.debug("No external headers for enhancing the response, returning it as-is.");

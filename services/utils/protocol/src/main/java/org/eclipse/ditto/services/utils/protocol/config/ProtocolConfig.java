@@ -49,8 +49,7 @@ public interface ProtocolConfig {
         /**
          * The keys of headers that should be ignored by Ditto.
          */
-        BLACKLIST("blacklist",
-                Arrays.asList("authorization", "raw-request-uri", "cache-control", "connection", "timeout-access"));
+        BLACKLIST("blacklist", Arrays.asList("raw-request-uri", "cache-control", "connection", "timeout-access"));
 
         private final String path;
         private final Object defaultValue;

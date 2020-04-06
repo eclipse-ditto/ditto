@@ -299,7 +299,7 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Set<HttpHeader> getExternalHeadersFor(final DittoHeaders dittoHeaders) {
-        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(dittoHeaders);
+        final Map<String, String> externalHeaders = headerTranslator.toFilteredExternalHeaders(dittoHeaders);
         return externalHeaders.entrySet()
                 .stream()
                 .map(headerEntry -> HttpHeader.parse(headerEntry.getKey(), headerEntry.getValue()))
