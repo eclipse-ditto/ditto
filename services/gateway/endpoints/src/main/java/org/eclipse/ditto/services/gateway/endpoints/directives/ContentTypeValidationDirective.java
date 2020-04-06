@@ -13,15 +13,13 @@
  package org.eclipse.ditto.services.gateway.endpoints.directives;
 
  import static akka.http.javadsl.server.Directives.complete;
- import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+ import static akka.http.javadsl.server.Directives.extractDataBytes;
  import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
  import java.text.MessageFormat;
  import java.util.List;
  import java.util.function.Function;
  import java.util.function.Supplier;
-
- import javax.annotation.Nullable;
 
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.slf4j.Logger;
@@ -35,24 +33,35 @@
  import akka.stream.javadsl.Source;
  import akka.util.ByteString;
 
- import static akka.http.javadsl.server.Directives.extractDataBytes;
-
+ /**
+  * Used to validate the Content-Type of a request.
+  */
  public final class ContentTypeValidationDirective {
 
      /**
-      * Static list containing:
+      * Static unmodifiable list containing:
       * <ul>
       *     <li>application/json</li>
+      *     <li>application/octet-stream (akka-default)</li>
+      *     <li>plain (akka-default)</li>
       * </ul>
+      * <p>
+      * For akka-defaults see:
+      * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} -> parseEntity
+      * and
+      * {@link akka.http.scaladsl.model.HttpEntity$}
       */
-     public static List<ContentType> ONLY_JSON = List.of(
-             ContentTypes.APPLICATION_JSON //,
+     public static List<ContentType> ONLY_JSON_AND_AKKA_DEFAULTS = List.of(
+             ContentTypes.APPLICATION_JSON,
+             ContentTypes.APPLICATION_OCTET_STREAM,
+             ContentTypes.TEXT_PLAIN_UTF8
      );
 
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
 
      /**
-      *
+      * verifies that the content-type of the entity is one of the given allowed content-types,
+      * otherwise the request will be completed with 415 ("Unsupported Media Type").
       */
      public static Route ensureValidContentType(final List<ContentType> allowedContentTypes,
              RequestContext ctx, DittoHeaders dittoHeaders, Supplier<Route> inner) {
@@ -73,6 +82,12 @@
          });
      }
 
+     /**
+      * Composes the {@link org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective#ensureValidContentType(java.util.List, akka.http.javadsl.server.RequestContext, org.eclipse.ditto.model.base.headers.DittoHeaders, java.util.function.Supplier)}
+      * and the
+      * {@link akka.http.javadsl.server.directives.BasicDirectives#extractDataBytes(java.util.function.Function)}
+      * together.
+      */
      public static Route ensureContentTypeAndExtractDataBytes(final List<ContentType> allowedContentTypes,
              RequestContext ctx,
              DittoHeaders dittoHeaders,

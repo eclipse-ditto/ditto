@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON_AND_AKKA_DEFAULTS;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -111,7 +111,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                         RetrievePolicyEntries.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /entries
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyEntriesJson ->
@@ -143,7 +143,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                 ),
                                 put(() -> // PUT /entries/<label>
-                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                                 payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 policyEntryJson -> ModifyPolicyEntry
@@ -188,7 +188,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         Label.of(label), dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/subjects
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
@@ -225,7 +225,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/subjects/<subjectId>
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
@@ -275,7 +275,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         Label.of(label), dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/resources
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
@@ -314,7 +314,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/resources/<resource>
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,

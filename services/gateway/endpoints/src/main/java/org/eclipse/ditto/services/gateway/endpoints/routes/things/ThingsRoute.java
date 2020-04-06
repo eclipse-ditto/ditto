@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON_AND_AKKA_DEFAULTS;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
 
 import java.util.Arrays;
@@ -206,7 +206,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 buildRetrieveThingsRoute(ctx, dittoHeaders)
                         ),
                         post(() -> // POST /things
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                         payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 thingJson -> CreateThing.of(createThingForPost(thingJson),
@@ -253,7 +253,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /things/<thingId>
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         thingJson -> ModifyThing.of(thingId,
@@ -285,7 +285,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))
                         ),
                         put(() -> // PUT /things/<thingId>/policyId
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyIdJson -> ModifyPolicyId.of(thingId,
@@ -314,7 +314,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))
                                 ),
                                 put(() -> // PUT /things/<thingId>/acl
-                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                                 payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders, payloadSource, aclJson ->
                                                                 ModifyAcl.of(thingId,
@@ -352,7 +352,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /things/<thingId>/acl/<authorizationSubject>
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx,
+                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
@@ -396,7 +396,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /things/<thingId>/attributes
-                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                                 payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 attributesJson ->
@@ -442,7 +442,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 dittoHeaders))
                         ),
                         put(() -> // PUT /things/<thingId>/attributes/<attributePointerStr>
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
                                                         ModifyAttribute.of(thingId,
@@ -479,7 +479,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /things/<thingId>/definition
-                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON, ctx, dittoHeaders,
+                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
                                                 payloadSource ->
                                                         pathEnd(() -> // PUT /things/<thingId>/definition/
                                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
