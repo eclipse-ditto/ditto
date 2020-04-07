@@ -89,7 +89,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             .address(SOURCE_ADDRESS)
             .qos(1)
             .build();
-
+    protected static final ConnectionType connectionType = ConnectionType.MQTT;
+    
     protected ActorSystem actorSystem;
 
     protected ConnectionId connectionId;
@@ -111,7 +112,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + FREE_PORT.getPort();
-        connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+        connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                 ConnectivityStatus.CLOSED, serverHost)
                 .sources(singletonList(MQTT_SOURCE))
                 .targets(singletonList(TARGET))
@@ -226,7 +227,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}",
                 "eclipse/+/+");
         final Connection connectionWithEnforcement =
-                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                         ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(mqttSource))
@@ -293,7 +294,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                             .collect(Collectors.toList());
 
             final Connection multipleSources =
-                    ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                    ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                             ConnectivityStatus.OPEN, serverHost)
                             .sources(Arrays.asList(
                                     newMqttSource(3, 1, "A1"),

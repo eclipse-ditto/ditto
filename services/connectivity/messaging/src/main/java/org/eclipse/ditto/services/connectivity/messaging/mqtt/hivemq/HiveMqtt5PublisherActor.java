@@ -19,11 +19,13 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.HashSet;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -35,29 +37,41 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
-import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserProperties;
+import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserPropertiesBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor responsible for publishing messages to an MQTT broker using the given {@link Mqtt3Client}.
+ * Actor responsible for publishing messages to an MQTT 5 broker using the given {@link Mqtt5Client}.
+ *
+ * @since 1.1.0
  */
-public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublishTarget> {
+public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublishTarget> {
 
     // for target the default is qos=0 because we have qos=0 all over the akka cluster
     private static final int DEFAULT_TARGET_QOS = 0;
-    static final String NAME = "HiveMqtt3PublisherActor";
+    static final String NAME = "HiveMqtt5PublisherActor";
+
+    private static final HashSet<String> MQTT_HEADER_MAPPING = new HashSet<>();
+
+    static {
+        MQTT_HEADER_MAPPING.add(DittoHeaderDefinition.CORRELATION_ID.getKey());
+        MQTT_HEADER_MAPPING.add(ExternalMessage.REPLY_TO_HEADER);
+        MQTT_HEADER_MAPPING.add(ExternalMessage.CONTENT_TYPE_HEADER);
+    }
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final Mqtt3AsyncClient client;
+    private final Mqtt5AsyncClient client;
     private final boolean dryRun;
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
-    private HiveMqtt3PublisherActor(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
+    private HiveMqtt5PublisherActor(final Connection connection, final Mqtt5Client client, final boolean dryRun) {
         super(connection);
         this.client = checkNotNull(client).toAsync();
         this.dryRun = dryRun;
@@ -71,8 +85,8 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Props object.
      */
-    public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
-        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun);
+    public static Props props(final Connection connection, final Mqtt5Client client, final boolean dryRun) {
+        return Props.create(HiveMqtt5PublisherActor.class, connection, client, dryRun);
     }
 
     @Override
@@ -116,7 +130,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     private void publishMessage(final MqttPublishTarget publishTarget, final MqttQos qos, final ExternalMessage message,
             final ConnectionMonitor publishedMonitor) {
         try {
-            final Mqtt3Publish mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
+            final Mqtt5Publish mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
             if (log().isDebugEnabled()) {
                 final String humanReadablePayload = mqttMessage.getPayload()
                         .map(getCharsetFromMessage(message)::decode)
@@ -124,7 +138,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
                 log().debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.getTopic(),
                         humanReadablePayload);
             }
-            client.publish(mqttMessage).whenComplete((mqtt3Publish, throwable) -> {
+            client.publish(mqttMessage).whenComplete((mqtt5Publish, throwable) -> {
                 if (null == throwable) {
                     log().debug("Successfully published to message of type <{}> to target address <{}>",
                             mqttMessage.getType(), publishTarget.getTopic());
@@ -142,12 +156,13 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
         }
     }
 
-    private Mqtt3Publish mapExternalMessageToMqttMessage(final MqttPublishTarget mqttTarget, final MqttQos qos,
+    private Mqtt5Publish mapExternalMessageToMqttMessage(final MqttPublishTarget mqttTarget, final MqttQos qos,
             final ExternalMessage externalMessage) {
+
+        final Charset charset = getCharsetFromMessage(externalMessage);
 
         final ByteBuffer payload;
         if (externalMessage.isTextMessage()) {
-            final Charset charset = getCharsetFromMessage(externalMessage);
             payload = externalMessage
                     .getTextPayload()
                     .map(text -> ByteBuffer.wrap(text.getBytes(charset)))
@@ -158,7 +173,33 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
         } else {
             payload = ByteBufferUtils.empty();
         }
-        return Mqtt3Publish.builder().topic(mqttTarget.getTopic()).qos(qos).payload(payload).build();
+
+        final ByteBuffer correlationData = ByteBuffer.wrap(externalMessage.getHeaders()
+                .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), "").getBytes(charset));
+
+        final String responseTopic = externalMessage.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
+
+        final String contentType = externalMessage.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
+
+        final Mqtt5UserPropertiesBuilder mqttUserPropertiesBuilder = Mqtt5UserProperties.builder();
+
+        externalMessage.getHeaders()
+                .entrySet()
+                .stream()
+                .filter(header -> !MQTT_HEADER_MAPPING.contains(header.getKey()))
+                .forEach(entry -> mqttUserPropertiesBuilder.add(entry.getKey(), entry.getValue()));
+
+        final Mqtt5UserProperties userProperties = mqttUserPropertiesBuilder.build();
+
+        return Mqtt5Publish.builder()
+                .topic(mqttTarget.getTopic())
+                .qos(qos)
+                .payload(payload)
+                .correlationData(correlationData)
+                .responseTopic(responseTopic)
+                .contentType(contentType)
+                .userProperties(userProperties)
+                .build();
     }
 
     private Charset getCharsetFromMessage(final ExternalMessage message) {

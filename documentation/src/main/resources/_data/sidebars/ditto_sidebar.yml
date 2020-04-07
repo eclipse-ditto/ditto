@@ -237,6 +237,8 @@ entries:
       output: web
     - title: MQTT 3.1.1 protocol binding
       url: /connectivity-protocol-bindings-mqtt.html
+    - title: MQTT 5 protocol binding
+      url: /connectivity-protocol-bindings-mqtt5.html
       output: web
     - title: HTTP 1.1 protocol binding
       url: /connectivity-protocol-bindings-http.html

@@ -43,9 +43,9 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MqttValidator}.
+ * Tests {@link Mqtt3Validator}.
  */
-public final class MqttValidatorTest {
+public final class Mqtt3ValidatorTest {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
@@ -66,16 +66,16 @@ public final class MqttValidatorTest {
 
     @Test
     public void testImmutability() {
-        assertInstancesOf(MqttValidator.class, areImmutable());
+        assertInstancesOf(Mqtt3Validator.class, areImmutable());
     }
 
     @Test
     public void testValidSourceAddress() {
-        MqttValidator.newInstance().validate(connectionWithSource("ditto/topic/+/123"), DittoHeaders.empty(),
+        Mqtt3Validator.newInstance().validate(connectionWithSource("ditto/topic/+/123"), DittoHeaders.empty(),
                 actorSystem);
-        MqttValidator.newInstance().validate(connectionWithSource("ditto/#"), DittoHeaders.empty(), actorSystem);
-        MqttValidator.newInstance().validate(connectionWithSource("#"), DittoHeaders.empty(), actorSystem);
-        MqttValidator.newInstance().validate(connectionWithSource("+"), DittoHeaders.empty(), actorSystem);
+        Mqtt3Validator.newInstance().validate(connectionWithSource("ditto/#"), DittoHeaders.empty(), actorSystem);
+        Mqtt3Validator.newInstance().validate(connectionWithSource("#"), DittoHeaders.empty(), actorSystem);
+        Mqtt3Validator.newInstance().validate(connectionWithSource("+"), DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -112,21 +112,21 @@ public final class MqttValidatorTest {
                 connectionWithSource("eclipse").toBuilder().trustedCertificates("123").build();
 
         Assertions.assertThatExceptionOfType(ConnectionUriInvalidException.class)
-                .isThrownBy(() -> MqttValidator.newInstance()
+                .isThrownBy(() -> Mqtt3Validator.newInstance()
                         .validate(connectionWithInsecureProtocolAndTrustedCertificates, DittoHeaders.empty(),
                                 actorSystem));
     }
 
     @Test
     public void testValidTargetAddress() {
-        MqttValidator.newInstance().validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty(),
+        Mqtt3Validator.newInstance().validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty(),
                 actorSystem);
-        MqttValidator.newInstance().validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
-        MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(),
+        Mqtt3Validator.newInstance().validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
+        Mqtt3Validator.newInstance().validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(),
                 actorSystem);
-        MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(),
+        Mqtt3Validator.newInstance().validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(),
                 actorSystem);
-        MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(),
+        Mqtt3Validator.newInstance().validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(),
                 actorSystem);
     }
 
@@ -231,7 +231,7 @@ public final class MqttValidatorTest {
 
     private static void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> MqttValidator.newInstance().validate(connection, DittoHeaders.empty(), actorSystem));
+                .isThrownBy(() -> Mqtt3Validator.newInstance().validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
 }
