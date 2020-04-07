@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.connectivity.ConnectionType.AMQP_091;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.AMQP_10;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.KAFKA;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.MQTT;
+import static org.eclipse.ditto.model.connectivity.ConnectionType.MQTT_5;
 
 import java.util.concurrent.TimeUnit;
 
@@ -85,6 +86,15 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     @Test
     public void mqttActorPropsIsSerializable() {
         actorPropsIsSerializableAndEqualDeserializedObject(MQTT);
+    }
+
+    /**
+     * Tests serialization of props of MQTT client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    public void mqtt5ActorPropsIsSerializable() {
+        actorPropsIsSerializableAndEqualDeserializedObject(MQTT_5);
     }
 
     /**
