@@ -521,7 +521,7 @@ entries:
           url: /protocol-examples-policies-createresource.html
           output: web
         - title: Delete a single resource
-          url: /examples/protocol-examples-policies-deleteresource.html
+          url: /protocol-examples-policies-deleteresource.html
           output: web
         - title: Modify a single resource
           url: /protocol-examples-policies-modifyresource.html
