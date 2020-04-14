@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * An {@code Adapter} maps objects of type {@link T} to an {@link Adaptable} and vice versa.
@@ -91,4 +90,14 @@ public interface Adapter<T extends Jsonifiable<?>> {
      * @return whether this adapter is for responses.
      */
     boolean isForResponses();
+
+    /**
+     * Retrieve whether this adapter requires a subject in the topic.
+     * Only relevant for message commands and responses and acknowledgements.
+     *
+     * @return whether a subject in the topic is required.
+     */
+    default boolean requiresSubject() {
+        return false;
+    }
 }

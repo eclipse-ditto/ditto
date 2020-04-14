@@ -300,15 +300,7 @@ public interface TopicPath {
 
         MODIFIED("modified"),
 
-        DELETED("deleted"),
-
-        /**
-         * Special action for {@link TopicPath.Criterion#ACKS}: marks aggregated acknowledgements containing several
-         * custom acknowledgements.
-         *
-         * @since 1.1.0
-         */
-        AGGREGATED_ACKS("aggregated-acks");
+        DELETED("deleted");
 
         private final String name;
 

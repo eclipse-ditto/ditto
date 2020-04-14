@@ -29,8 +29,7 @@ public interface AcknowledgementTopicPathBuilder extends TopicPathBuildable {
     AcknowledgementTopicPathBuilder label(CharSequence label);
 
     /**
-     * Sets the {@code Action} of this builder to {@link TopicPath.Action#AGGREGATED_ACKS}.
-     * A previously set action is replaced.
+     * Remove the custom Acknowledgement label from the topic path to signify aggregated acks.
      *
      * @return this builder to allow method chaining.
      */

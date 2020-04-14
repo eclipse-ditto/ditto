@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -115,7 +116,8 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
     private static Acknowledgement buildSingleAcknowledgement(final Adaptable adaptable,
             @Nullable final JsonField field) {
         return ThingAcknowledgementFactory.newAcknowledgement(
-                getLabelInCaseOfSingleAcknowledgement(adaptable),
+                getLabelInCaseOfSingleAcknowledgement(adaptable)
+                        .orElseGet(() -> AcknowledgementLabel.of(checkNotNull(field, "field").getKey())),
                 getThingId(adaptable),
                 getStatusCodeOrThrow(adaptable),
                 adaptable.getDittoHeaders(),
@@ -123,12 +125,17 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
         );
     }
 
-    private static AcknowledgementLabel getLabelInCaseOfSingleAcknowledgement(final Adaptable adaptable) {
-        String path = adaptable.getPayload().getPath().toString();
-        if (path.startsWith("/")) {
-            path = path.substring(1);
+    private static Optional<AcknowledgementLabel> getLabelInCaseOfSingleAcknowledgement(final Adaptable adaptable) {
+        final JsonPointer pathJsonPointer = adaptable.getPayload().getPath();
+        if (pathJsonPointer.isEmpty()) {
+            return Optional.empty();
+        } else {
+            String path = adaptable.getPayload().getPath().toString();
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+            return Optional.of(AcknowledgementLabel.of(path));
         }
-        return AcknowledgementLabel.of(path);
     }
 
     private static boolean filterForAcknowledgementJsonObject(final JsonField field) {
@@ -168,12 +175,17 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
 
     @Override
     public Set<TopicPath.Action> getActions() {
-        return EnumSet.of(TopicPath.Action.AGGREGATED_ACKS);
+        return Collections.emptySet();
     }
 
     @Override
     public boolean isForResponses() {
         return true;
+    }
+
+    @Override
+    public boolean requiresSubject() {
+        return false;
     }
 
     private static TopicPath getTopicPath(final Acknowledgements acknowledgement, final TopicPath.Channel channel) {

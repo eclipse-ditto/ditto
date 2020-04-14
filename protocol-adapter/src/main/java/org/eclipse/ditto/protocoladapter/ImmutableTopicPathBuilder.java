@@ -203,7 +203,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public AcknowledgementTopicPathBuilder aggregatedAcks() {
-        this.action = TopicPath.Action.AGGREGATED_ACKS;
+        subject = null;
         return this;
     }
 

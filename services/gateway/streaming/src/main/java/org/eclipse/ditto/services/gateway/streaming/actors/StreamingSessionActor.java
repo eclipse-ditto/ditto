@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -272,7 +273,7 @@ final class StreamingSessionActor extends AbstractActor {
             final AcknowledgementAggregator acks) {
 
         final Acknowledgements aggregatedAcknowledgements = acks.getAggregatedAcknowledgements(dittoHeaders);
-        if (acks.isSuccessful() && null != response && aggregatedAcknowledgements.getSize() == 1) {
+        if (acks.isSuccessful() && null != response && containsOnlyTwinPersisted(aggregatedAcknowledgements)) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
         } else {
@@ -403,6 +404,12 @@ final class StreamingSessionActor extends AbstractActor {
             logger.debug("Signal does not match namespaces.");
         }
         return result;
+    }
+
+    private static boolean containsOnlyTwinPersisted(final Acknowledgements aggregatedAcknowledgements) {
+        return aggregatedAcknowledgements.getSize() == 1 &&
+                aggregatedAcknowledgements.stream()
+                        .anyMatch(ack -> DittoAcknowledgementLabel.PERSISTED.equals(ack.getLabel()));
     }
 
     private static StreamingType determineStreamingType(final Signal<?> signal) {

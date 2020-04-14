@@ -127,6 +127,11 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         return true;
     }
 
+    @Override
+    public boolean requiresSubject() {
+        return true;
+    }
+
     private static TopicPath getTopicPath(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(ThingId.of(acknowledgement.getEntityId()));
         if (TopicPath.Channel.TWIN == channel) {
