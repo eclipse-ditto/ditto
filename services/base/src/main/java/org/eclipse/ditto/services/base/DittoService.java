@@ -136,6 +136,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         if (null == serviceSpecificConfig) {
             throw new DittoConfigError("The service specific config must not be null!");
         }
+
         logger.debug("Using service specific config: <{}>.", serviceSpecificConfig);
     }
 

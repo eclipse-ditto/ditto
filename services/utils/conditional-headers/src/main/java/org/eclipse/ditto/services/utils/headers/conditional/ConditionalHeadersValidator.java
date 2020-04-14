@@ -14,14 +14,21 @@ package org.eclipse.ditto.services.utils.headers.conditional;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.signals.commands.base.Command;
+
+import com.eclipsesource.json.Json;
 
 /**
  * Checks conditional (http) headers based on a given ETag. Has to be configured with {@link ValidationSettings}.
@@ -50,6 +57,7 @@ public final class ConditionalHeadersValidator {
         /**
          * Returns a builder for a {@link DittoRuntimeException} in case status {@code 304 (Not Modified)} should be
          * returned.
+         *
          * @param expectedNotToMatch the value which was expected not to match {@code matched} value.
          * @param matched the matched value.
          * @return the builder.
@@ -59,6 +67,9 @@ public final class ConditionalHeadersValidator {
     }
 
     private final ValidationSettings validationSettings;
+
+    private static final List<String> EXEMPTED_FIELDS = Arrays.asList("_policy");
+    private static final String SELECTED_FIELDS = "selectedFields";
 
     private ConditionalHeadersValidator(final ValidationSettings validationSettings) {
         this.validationSettings = validationSettings;
@@ -95,13 +106,33 @@ public final class ConditionalHeadersValidator {
 
         checkIfMatch(command, currentETagValue);
         checkIfNoneMatch(command, currentETagValue);
+
     }
 
     private boolean skipPreconditionHeaderCheck(final Command command, @Nullable final EntityTag
             currentETagValue) {
         return currentETagValue == null &&
                 (Command.Category.DELETE.equals(command.getCategory()) ||
-                        Command.Category.QUERY.equals(command.getCategory()));
+                        Command.Category.QUERY.equals(command.getCategory())) || skipDueToRelation(command);
+    }
+
+    private boolean skipDueToRelation(final Command command) {
+
+        final Optional<JsonValue> selectedFields = command.toJson().getValue(SELECTED_FIELDS);
+
+        if (selectedFields.isEmpty()) {
+            return false;
+        }
+
+        return selectedFields.get().asArray().stream()
+                .map(val -> val.toString().split(","))
+                .anyMatch(EXEMPTED_FIELDS::contains);
+
+//        return command.toJson()
+//                .getValue(SELECTED_FIELDS)
+//                .map(jsonValue -> EXEMPTED_FIELDS.stream().filter(elem -> elem == jsonValue))
+//                .filter(a -> a)
+//                .isPresent();
     }
 
     private void checkIfMatch(final Command command, @Nullable final EntityTag currentETagValue) {
@@ -143,7 +174,8 @@ public final class ConditionalHeadersValidator {
     private DittoRuntimeException buildNotModifiedException(final PreconditionHeader preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
         return validationSettings
-                .createPreconditionNotModifiedExceptionBuilder(preconditionHeader.getValue(), String.valueOf(currentETagValue))
+                .createPreconditionNotModifiedExceptionBuilder(preconditionHeader.getValue(),
+                        String.valueOf(currentETagValue))
                 .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
                 .build();
     }
@@ -154,4 +186,6 @@ public final class ConditionalHeadersValidator {
         }
         return dittoHeaders.toBuilder().eTag(entityTag).build();
     }
+
+
 }
