@@ -101,7 +101,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         run(args, new PublicJsonExamplesProducer(writePath[writePath.length - 1]));
     }
 
-    private Optional<Method> findMatchingToAdaptableMethod(final Class parameterClass) {
+    private Optional<Method> findMatchingToAdaptableMethod(final Class<?> parameterClass) {
         return toAdaptableMethods.stream()
                 .filter(m -> m.getParameters().length == 1)
                 .filter(m -> m.getParameters()[0].getType().isAssignableFrom(parameterClass))

@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -303,7 +304,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 
 class JsonExamplesProducer {
 
@@ -1535,7 +1536,7 @@ class JsonExamplesProducer {
                         .withoutUrlDecoding()
                         .build()),
                 knownNamespaces,
-                DittoHeaders.empty());
+                headersWithCorrelationIdFor(CreateSubscription.TYPE));
         writeJson(commandsDir.resolve(Paths.get("create-subscription-command.json")), createSubscriptionCommand);
         final RequestFromSubscription requestFromSubscriptionCommand =
                 RequestFromSubscription.of("24601", 3, DittoHeaders.empty());
@@ -1587,12 +1588,13 @@ class JsonExamplesProducer {
                 .add(thing2.toJson())
                 .build();
 
-        final SubscriptionCreated subscriptionCreatedEvent = SubscriptionCreated.of("24601", DittoHeaders.empty());
+        final SubscriptionCreated subscriptionCreatedEvent =
+                SubscriptionCreated.of("24601", headersWithCorrelationIdFor(CreateSubscription.TYPE));
         writeJson(commandsDir.resolve(Paths.get("subscription-created-event.json")), subscriptionCreatedEvent);
 
-        final SubscriptionHasNext subscriptionHasNextEvent =
-                SubscriptionHasNext.of("24601", array, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("subscription-has-next-event.json")), subscriptionHasNextEvent);
+        final SubscriptionHasNextPage subscriptionHasNextPageEvent =
+                SubscriptionHasNextPage.of("24601", array, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("subscription-has-next-event.json")), subscriptionHasNextPageEvent);
 
         final SubscriptionComplete subscriptionCompleteEvent = SubscriptionComplete.of("24601", DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("subscription-complete-event.json")), subscriptionCompleteEvent);
@@ -1704,6 +1706,12 @@ class JsonExamplesProducer {
         final String jsonString = jsonifiable.toJsonString(schemaVersion);
         System.out.println("Writing file: " + path.toAbsolutePath());
         Files.write(path, jsonString.getBytes());
+    }
+
+    private DittoHeaders headersWithCorrelationIdFor(final String commandType) {
+        return DittoHeaders.newBuilder()
+                .correlationId(UUID.nameUUIDFromBytes(commandType.getBytes()).toString())
+                .build();
     }
 
 }

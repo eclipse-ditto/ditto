@@ -1,8 +1,8 @@
-## SubscriptionHasNext
+## SubscriptionNextPage
 
 ```json
 {
-  "topic": "_/_/things/twin/search/hasnext",
+  "topic": "_/_/things/twin/search/next",
   "headers": {
     "content-type": "application/vnd.eclipse.ditto+json"
   },

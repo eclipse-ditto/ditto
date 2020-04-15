@@ -18,8 +18,11 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -41,6 +44,10 @@ import org.junit.Test;
  */
 public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest {
 
+    private static final JsonArray NAMESPACES_ARRAY = TestConstants.NAMESPACES.stream()
+            .map(JsonValue::of)
+            .collect(JsonCollectors.valuesToArray());
+
     private ThingSearchCommandAdapter underTest;
 
     @Before
@@ -59,7 +66,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, null,
                         TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
+        final TopicPath topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER)
                 .things()
                 .twin()
                 .search()
@@ -69,20 +76,23 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonObject.of(
-                                String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        TestConstants.OPTIONS)))
+                        .withValue(JsonObject.of(String.format(
+                                "{\"filter\": \"%s\", \"options\": \"%s\", \"namespaces\": %s}",
+                                TestConstants.FILTER,
+                                TestConstants.OPTIONS,
+                                NAMESPACES_ARRAY
+                        )))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
-        final ThingSearchCommand actual = underTest.fromAdaptable(adaptable);
+        final ThingSearchCommand<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void createSubscriptionToAdaptable() {
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
+        final TopicPath topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER)
                 .things()
                 .twin()
                 .search()
@@ -93,9 +103,12 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonObject.of(
-                                String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        TestConstants.OPTIONS)))
+                        .withValue(JsonObject.of(String.format(
+                                "{\"filter\": \"%s\", \"options\": \"%s\", \"namespaces\": %s}",
+                                TestConstants.FILTER,
+                                TestConstants.OPTIONS,
+                                NAMESPACES_ARRAY
+                        )))
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
@@ -125,7 +138,7 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
                 CreateSubscription.of(TestConstants.FILTER, TestConstants.OPTIONS, TestConstants.FIELDS,
                         TestConstants.NAMESPACES, TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
+        final TopicPath topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER)
                 .things()
                 .twin()
                 .search()
@@ -136,21 +149,24 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonObject.of(
-                                String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        TestConstants.OPTIONS)))
+                        .withValue(JsonObject.of(String.format(
+                                "{\"filter\": \"%s\", \"options\": \"%s\", \"namespaces\": %s}",
+                                TestConstants.FILTER,
+                                TestConstants.OPTIONS,
+                                NAMESPACES_ARRAY
+                        )))
                         .withFields(TestConstants.FIELDS)
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
-        final ThingSearchCommand actual = underTest.fromAdaptable(adaptable);
+        final ThingSearchCommand<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void createSubscriptionWithFieldsToAdaptable() {
-        final TopicPath topicPath = TopicPath.fromNamespace(String.join(",", TestConstants.NAMESPACES))
+        final TopicPath topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER)
                 .things()
                 .twin()
                 .search()
@@ -161,9 +177,12 @@ public final class ThingSearchCommandAdapterTest implements ProtocolAdapterTest 
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonObject.of(
-                                String.format("{\"filter\": \"%s\", \"options\": \"%s\"}", TestConstants.FILTER,
-                                        TestConstants.OPTIONS)))
+                        .withValue(JsonObject.of(String.format(
+                                "{\"filter\": \"%s\", \"options\": \"%s\", \"namespaces\": %s}",
+                                TestConstants.FILTER,
+                                TestConstants.OPTIONS,
+                                NAMESPACES_ARRAY
+                        )))
                         .withFields(TestConstants.FIELDS)
                         .build())
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)

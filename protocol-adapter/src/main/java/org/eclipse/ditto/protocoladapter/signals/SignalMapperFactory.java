@@ -57,7 +57,7 @@ public final class SignalMapperFactory {
     }
 
     public static SignalMapper<ThingSearchCommand<?>> newThingSearchSignalMapper() {
-        return new ThingSearchSignalMapper();
+        return new ThingSearchSignalMapper<>();
     }
 
     public static SignalMapper<PolicyModifyCommand<?>> newPolicyModifySignalMapper() {

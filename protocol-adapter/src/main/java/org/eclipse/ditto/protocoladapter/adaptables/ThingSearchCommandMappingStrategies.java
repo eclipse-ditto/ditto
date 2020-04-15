@@ -14,18 +14,17 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -64,10 +63,9 @@ final class ThingSearchCommandMappingStrategies extends AbstractSearchMappingStr
     }
 
     private static Set<String> namespacesFrom(final Adaptable adaptable) {
-        if (TopicPath.ID_PLACEHOLDER.equals(adaptable.getTopicPath().getNamespace())) {
-            return Collections.emptySet();
-        }
-        return new HashSet<>(Arrays.asList(adaptable.getTopicPath().getNamespace().split(",")));
+        return getFromValue(adaptable, CreateSubscription.JsonFields.NAMESPACES)
+                .map(array -> array.stream().map(JsonValue::asString).collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
     }
 
     @Nullable

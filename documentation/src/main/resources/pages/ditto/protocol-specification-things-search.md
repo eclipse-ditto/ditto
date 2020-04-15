@@ -39,7 +39,7 @@ by the same rules in the [reactive-streams specification](https://github.com/rea
 | [Subscription#request][nr]   | [`_/_/things/twin/search/request`](#request)      |Command| Client to Ditto   |
 | [Subscription#cancel][nc]    | [`_/_/things/twin/search/cancel`](#cancel)        |Command| Client to Ditto   |
 | [Subscriber#onSubscribe][ss] | [`_/_/things/twin/search/created`](#created)      |Event  | Ditto to Client   |
-| [Subscriber#onNext][sn]      | [`_/_/things/twin/search/hasnext`](#hasnext)      |Event  | Ditto to Client   |
+| [Subscriber#onNext][sn]      | [`_/_/things/twin/search/next`](#next)      |Event  | Ditto to Client   |
 | [Subscriber#onComplete][sc]  | [`_/_/things/twin/search/complete`](#complete)    |Event  | Ditto to Client   |
 | [Subscriber#onError][se]     | [`_/_/things/twin/search/failed`](#failed)        |Event  | Ditto to Client   |
 
@@ -55,15 +55,15 @@ followed by multiple ["request"](#request) commands and an optional ["cancel"](#
 In response to a ["subscribe"](#subscribe) command and after each ["request"](#request) command,
 Ditto will send 0 or more events to the client according to the following protocol:
 ```
-created hasnext* (complete | failed)?
+created next* (complete | failed)?
 ```
 A ["created"](#created) event bearing the subscription ID is always sent.
-0 or more ["hasnext"](#hasnext) events are sent according to the amount of search results and the number of pages requested by
+0 or more ["next"](#next) events are sent according to the amount of search results and the number of pages requested by
 the client. A ["complete"](#complete) or ["failed"](#failed) event comes at the
 end unless the client sends a ["cancel"](#cancel) command before the search results are exhausted.
 
 There is no special event in response to a ["cancel"](#cancel) command.
-The client may continue to receive buffered ["hasnext"](#hasnext),
+The client may continue to receive buffered ["next"](#next),
 ["complete"](#complete) or ["failed"](#failed) events after sending a ["cancel"](#cancel) command.
 
 In addition to the rules of reactive-streams, Ditto guarantees that no ["complete"](#complete) or
@@ -80,11 +80,9 @@ It would put the burden of sequentialization at the client side and complicate t
 Sent a ["subscribe"](#subscribe) command to Ditto to start receiving search results.
 Ditto will always respond with a ["created"](#created) event.
 
-Use the placeholder namespace `_` in the topic to search in all visible namespaces.
-
 | Field      | Value                   |
 |------------|-------------------------|
-| **topic**  | `<namespace>/_/things/twin/search/subscribe`     |
+| **topic**  | `_/_/things/twin/search/subscribe`     |
 | **path**   | `/`     |
 | **fields** | Contains a comma separated list of fields, to describe which things to be included in the search results. |
 | **value**  | JSON object specifying the search query. {% include docson.html schema="jsonschema/protocol-search-subscribe-payload.json" %} |
@@ -93,7 +91,7 @@ Use the placeholder namespace `_` in the topic to search in all visible namespac
 
 After obtaining a subscription ID from a ["created"](#created) event,
 use ["request"](#request) commands to tell Ditto how many pages of search results you are prepared to receive.
-Ditto will send ["hasnext"](#hasnext) events until all requested pages are fulfilled,
+Ditto will send ["next"](#next) events until all requested pages are fulfilled,
 the search results are exhausted, or an error occurred.
 
 | Field      | Value                   |
@@ -127,17 +125,17 @@ To any ["subscribe"](#subscribe) command, Ditto will always respond with a ["cre
 | **path**   | `/`     |
 | **value**  | Discloses the ID of a search subscription which all subsequent commands should include. {% include docson.html schema="jsonschema/protocol-search-subscriptionid.json" %} |
 
-### HasNext
+### Next
 
-Each ["hasnext"](#hasnext) event contains one page of the search results.
-Ditto will not send more ["hasnext"](#hasnext) events for a given subscription ID than the total number of pages
+Each ["next"](#next) event contains one page of the search results.
+Ditto will not send more ["next"](#next) events for a given subscription ID than the total number of pages
 requested by previous ["request"](#request) commands.
 
 | Field      | Value                   |
 |------------|-------------------------|
-| **topic**  | `_/_/things/twin/search/hasnext`     |
+| **topic**  | `_/_/things/twin/search/next`     |
 | **path**   | `/`     |
-| **value**  | JSON object containing one page of the search results. {% include docson.html schema="jsonschema/protocol-search-hasnext-payload.json" %} |
+| **value**  | JSON object containing one page of the search results. {% include docson.html schema="jsonschema/protocol-search-next-payload.json" %} |
 
 ### Complete
 

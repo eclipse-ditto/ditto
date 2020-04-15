@@ -33,13 +33,13 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableEvent(name = SubscriptionHasNext.NAME, typePrefix = SubscriptionHasNext.TYPE_PREFIX)
-public final class SubscriptionHasNext extends AbstractSubscriptionEvent<SubscriptionHasNext> {
+@JsonParsableEvent(name = SubscriptionHasNextPage.NAME, typePrefix = SubscriptionHasNextPage.TYPE_PREFIX)
+public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<SubscriptionHasNextPage> {
 
     /**
      * Name of the event.
      */
-    public static final String NAME = "hasnext";
+    public static final String NAME = "next";
 
     /**
      * Type of this event.
@@ -48,7 +48,7 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
 
     private final JsonArray items;
 
-    private SubscriptionHasNext(final String subscriptionId, final JsonArray items, final DittoHeaders dittoHeaders) {
+    private SubscriptionHasNextPage(final String subscriptionId, final JsonArray items, final DittoHeaders dittoHeaders) {
         super(TYPE, subscriptionId, dittoHeaders);
         this.items = items;
     }
@@ -62,10 +62,10 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
      * @return the SubscriptionHasNext created.
      * @throws NullPointerException if either argument is null.
      */
-    public static SubscriptionHasNext of(final String subscriptionId,
+    public static SubscriptionHasNextPage of(final String subscriptionId,
             final JsonArray items,
             final DittoHeaders dittoHeaders) {
-        return new SubscriptionHasNext(subscriptionId, items, dittoHeaders);
+        return new SubscriptionHasNextPage(subscriptionId, items, dittoHeaders);
     }
 
     /**
@@ -78,12 +78,12 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SubscriptionHasNext fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubscriptionHasNext>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+    public static SubscriptionHasNextPage fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new EventJsonDeserializer<SubscriptionHasNextPage>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
             final String subscriptionId =
                     jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
             final JsonArray items = jsonObject.getValueOrThrow(JsonFields.ITEMS);
-            return new SubscriptionHasNext(subscriptionId, items, dittoHeaders);
+            return new SubscriptionHasNextPage(subscriptionId, items, dittoHeaders);
         });
     }
 
@@ -102,8 +102,8 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
      * @param items the new error.
      * @return the copied event with new error.
      */
-    public SubscriptionHasNext setItems(final JsonArray items) {
-        return new SubscriptionHasNext(getSubscriptionId(), items, getDittoHeaders());
+    public SubscriptionHasNextPage setItems(final JsonArray items) {
+        return new SubscriptionHasNextPage(getSubscriptionId(), items, getDittoHeaders());
     }
 
     @Override
@@ -112,8 +112,8 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
     }
 
     @Override
-    public SubscriptionHasNext setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SubscriptionHasNext(getSubscriptionId(), items, dittoHeaders);
+    public SubscriptionHasNextPage setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new SubscriptionHasNextPage(getSubscriptionId(), items, dittoHeaders);
     }
 
     @Override
@@ -124,7 +124,7 @@ public final class SubscriptionHasNext extends AbstractSubscriptionEvent<Subscri
     @Override
     public boolean equals(final Object o) {
         // super.equals(o) guarantees getClass() == o.getClass()
-        return super.equals(o) && Objects.equals(items, ((SubscriptionHasNext) o).items);
+        return super.equals(o) && Objects.equals(items, ((SubscriptionHasNextPage) o).items);
     }
 
     @Override

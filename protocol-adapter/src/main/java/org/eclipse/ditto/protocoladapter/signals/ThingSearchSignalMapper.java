@@ -12,11 +12,13 @@
  */
 package org.eclipse.ditto.protocoladapter.signals;
 
-import java.util.Collections;
-import java.util.stream.Stream;
+import static org.eclipse.ditto.protocoladapter.TopicPath.ID_PLACEHOLDER;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -35,31 +37,22 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSu
  *
  * @param <T> the type of the command
  */
-final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalMapper<T> {
+final class ThingSearchSignalMapper<T extends Signal<?>> extends AbstractSignalMapper<T> {
 
     @Override
     TopicPath getTopicPath(final T command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = getTopicPathBuilder((ThingSearchCommand) command);
+        final TopicPathBuilder topicPathBuilder = getTopicPathBuilder();
         final SearchTopicPathBuilder searchTopicPathBuilder =
                 fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
-        setTopicPathAction(searchTopicPathBuilder, (ThingSearchCommand) command, getSupportedActions());
+        setTopicPathAction(searchTopicPathBuilder, (ThingSearchCommand<?>) command, getSupportedActions());
         return searchTopicPathBuilder.build();
     }
 
     /**
-     * @param command the command that is processed
      * @return a {@link TopicPathBuilder} for the given command.
      */
-    public TopicPathBuilder getTopicPathBuilder(final ThingSearchCommand command) {
-        return ProtocolFactory.newTopicPathBuilderFromNamespace(getNamespacesConcat(command)).things();
-    }
-
-    /**
-     * @param command the command that is processed
-     * @return a {@link TopicPathBuilder} for the given command.
-     */
-    private String getNamespacesConcat(final ThingSearchCommand<?> command) {
-        return String.join(",", command.getNamespaces().orElse(Collections.singleton(TopicPath.ID_PLACEHOLDER)));
+    private TopicPathBuilder getTopicPathBuilder() {
+        return ProtocolFactory.newTopicPathBuilderFromNamespace(ID_PLACEHOLDER).things();
     }
 
     /**
@@ -73,16 +66,16 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
         };
     }
 
-    private void setTopicPathAction(final SearchTopicPathBuilder builder, final ThingSearchCommand command,
+    private void setTopicPathAction(final SearchTopicPathBuilder builder, final ThingSearchCommand<?> command,
             final TopicPath.SearchAction... supportedActions) {
 
         // e.g. message commands have no associated action
         if (supportedActions.length > 0) {
-            final String searchCommandName = (command.getType().replace(command.getTypePrefix(), "").toLowerCase());
-            setAction(builder, Stream.of(supportedActions)
-                    .filter(action -> searchCommandName.startsWith(action.toString()))
-                    .findAny()
-                    .orElseThrow(() -> unknownCommandException(searchCommandName)));
+            final String searchCommandName = command.getName();
+            final TopicPath.SearchAction searchAction =
+                    TopicPath.SearchAction.forName(searchCommandName)
+                            .orElseThrow(() -> unknownCommandException(searchCommandName));
+            setAction(builder, searchAction);
         }
     }
 
@@ -129,6 +122,13 @@ final class ThingSearchSignalMapper<T extends Signal<T>> extends AbstractSignalM
                     .ifPresent(filter -> payloadContentBuilder.set(CreateSubscription.JsonFields.FILTER, filter));
             createCommand.getOptions()
                     .ifPresent(options -> payloadContentBuilder.set(CreateSubscription.JsonFields.OPTIONS, options));
+            createCommand.getNamespaces()
+                    .ifPresent(namespaces -> {
+                        final JsonArray namespacesArray = namespaces.stream()
+                                .map(JsonValue::of)
+                                .collect(JsonCollectors.valuesToArray());
+                        payloadContentBuilder.set(CreateSubscription.JsonFields.NAMESPACES, namespacesArray);
+                    });
         } else if (command instanceof CancelSubscription) {
             final CancelSubscription cancelCommand = (CancelSubscription) command;
             payloadContentBuilder.set(CancelSubscription.JsonFields.SUBSCRIPTION_ID, cancelCommand.getSubscriptionId());

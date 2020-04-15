@@ -197,7 +197,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public TopicPathBuildable hasNext() {
-        this.searchAction = TopicPath.SearchAction.HAS_NEXT;
+        this.searchAction = TopicPath.SearchAction.NEXT;
         return this;
     }
 

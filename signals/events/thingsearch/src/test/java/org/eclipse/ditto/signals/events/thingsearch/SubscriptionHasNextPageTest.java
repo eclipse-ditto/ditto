@@ -26,26 +26,27 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext}.
+ * Tests {@link SubscriptionHasNextPage}.
  */
-public final class SubscriptionHasNextTest {
+public final class SubscriptionHasNextPageTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SubscriptionHasNext.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
+        assertInstancesOf(SubscriptionHasNextPage.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SubscriptionHasNext.class).withRedefinedSuperclass().verify();
+        EqualsVerifier.forClass(SubscriptionHasNextPage.class).withRedefinedSuperclass().verify();
     }
 
     @Test
     public void serialization() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final JsonArray items = JsonArray.of("[{\"x\":1},{\"x\":2}]");
-        final SubscriptionHasNext underTest = SubscriptionHasNext.of(UUID.randomUUID().toString(), items, dittoHeaders);
-        final SubscriptionHasNext deserialized = SubscriptionHasNext.fromJson(underTest.toJson(), dittoHeaders);
+        final SubscriptionHasNextPage
+                underTest = SubscriptionHasNextPage.of(UUID.randomUUID().toString(), items, dittoHeaders);
+        final SubscriptionHasNextPage deserialized = SubscriptionHasNextPage.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);
     }
 }

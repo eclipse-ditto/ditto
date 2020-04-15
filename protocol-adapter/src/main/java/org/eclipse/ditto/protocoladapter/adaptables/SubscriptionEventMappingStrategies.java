@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing events.
@@ -55,15 +55,15 @@ final class SubscriptionEventMappingStrategies extends AbstractSearchMappingStra
         mappingStrategies.put(SubscriptionFailed.TYPE,
                 adaptable -> SubscriptionFailed.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
                         errorFrom(adaptable, errorRegistry), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(SubscriptionHasNext.TYPE,
-                adaptable -> SubscriptionHasNext.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
+        mappingStrategies.put(SubscriptionHasNextPage.TYPE,
+                adaptable -> SubscriptionHasNextPage.of(Objects.requireNonNull(subscriptionIdFrom(adaptable)),
                         itemsFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }
 
     private static JsonArray itemsFrom(final Adaptable adaptable) {
-        return getFromValue(adaptable, SubscriptionHasNext.JsonFields.ITEMS).orElseGet(JsonArray::empty);
+        return getFromValue(adaptable, SubscriptionHasNextPage.JsonFields.ITEMS).orElseGet(JsonArray::empty);
     }
 
     private static DittoRuntimeException errorFrom(final Adaptable adaptable, final ErrorRegistry<?> errorRegistry) {

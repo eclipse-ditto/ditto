@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Before;
 import org.junit.Test;
@@ -236,8 +236,8 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
                 .hasNext()
                 .build();
 
-        final SubscriptionHasNext expected =
-                SubscriptionHasNext.of(TestConstants.SUBSCRIPTION_ID, TestConstants.ITEMS,
+        final SubscriptionHasNextPage expected =
+                SubscriptionHasNextPage.of(TestConstants.SUBSCRIPTION_ID, TestConstants.ITEMS,
                         TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
 
         final JsonPointer path = JsonPointer.empty();
@@ -274,10 +274,10 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(TestConstants.DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
 
-        final SubscriptionHasNext subscriptionHasNext =
-                SubscriptionHasNext.of(TestConstants.SUBSCRIPTION_ID, TestConstants.ITEMS,
+        final SubscriptionHasNextPage subscriptionHasNextPage =
+                SubscriptionHasNextPage.of(TestConstants.SUBSCRIPTION_ID, TestConstants.ITEMS,
                         TestConstants.DITTO_HEADERS_V_2_NO_STATUS);
-        final Adaptable actual = underTest.toAdaptable(subscriptionHasNext, TopicPath.Channel.TWIN);
+        final Adaptable actual = underTest.toAdaptable(subscriptionHasNextPage, TopicPath.Channel.TWIN);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

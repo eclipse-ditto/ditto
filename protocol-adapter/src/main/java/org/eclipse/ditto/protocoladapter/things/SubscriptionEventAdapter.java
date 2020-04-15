@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 
 /**
  * Adapter for mapping a {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent} to and from an {@link Adaptable}.
@@ -91,12 +91,12 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
                     .set(subscriptionIdKey, failedEvent.getSubscriptionId())
                     .set(SubscriptionFailed.JsonFields.ERROR, failedEvent.getError().toJson());
 
-        } else if (event instanceof SubscriptionHasNext) {
+        } else if (event instanceof SubscriptionHasNextPage) {
             topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().hasNext().build();
-            SubscriptionHasNext hasNextEvent = (SubscriptionHasNext) event;
+            SubscriptionHasNextPage hasNextEvent = (SubscriptionHasNextPage) event;
             payloadContentBuilder
                     .set(subscriptionIdKey, hasNextEvent.getSubscriptionId())
-                    .set(SubscriptionHasNext.JsonFields.ITEMS, hasNextEvent.getItems());
+                    .set(SubscriptionHasNextPage.JsonFields.ITEMS, hasNextEvent.getItems());
 
         } else {
             throw UnknownEventException.newBuilder(event.getClass().getCanonicalName()).build();
@@ -125,7 +125,7 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
 
     @Override
     public Set<TopicPath.SearchAction> getSearchActions() {
-        return EnumSet.of(TopicPath.SearchAction.COMPLETE, TopicPath.SearchAction.HAS_NEXT,
+        return EnumSet.of(TopicPath.SearchAction.COMPLETE, TopicPath.SearchAction.NEXT,
                 TopicPath.SearchAction.FAILED, TopicPath.SearchAction.GENERATED);
     }
 }

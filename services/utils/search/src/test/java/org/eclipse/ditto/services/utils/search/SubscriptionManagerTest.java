@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSu
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -181,8 +181,8 @@ public final class SubscriptionManagerTest {
         return SubscriptionComplete.of(subscriptionId, DittoHeaders.empty());
     }
 
-    private SubscriptionHasNext hasNext(final String subscriptionId, final String thingId) {
-        return SubscriptionHasNext.of(subscriptionId,
+    private SubscriptionHasNextPage hasNext(final String subscriptionId, final String thingId) {
+        return SubscriptionHasNextPage.of(subscriptionId,
                 JsonArray.of(JsonObject.newBuilder().set(Thing.JsonFields.ID, thingId).build()),
                 DittoHeaders.empty());
     }

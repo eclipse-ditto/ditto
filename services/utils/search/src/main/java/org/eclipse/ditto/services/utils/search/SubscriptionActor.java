@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSu
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNext;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -98,7 +98,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
         return ReceiveBuilder.create()
                 .match(RequestFromSubscription.class, this::requestSubscription)
                 .match(CancelSubscription.class, this::cancelSubscription)
-                .match(SubscriptionHasNext.class, this::subscriptionHasNext)
+                .match(SubscriptionHasNextPage.class, this::subscriptionHasNext)
                 .match(SubscriptionComplete.class, this::subscriptionComplete)
                 .match(SubscriptionFailed.class, this::subscriptionFailed)
                 .match(Subscription.class, this::onSubscribe)
@@ -182,7 +182,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
         }
     }
 
-    private void subscriptionHasNext(final SubscriptionHasNext event) {
+    private void subscriptionHasNext(final SubscriptionHasNextPage event) {
         log.debug("Forwarding {}", event);
         sender.tell(event.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
@@ -238,7 +238,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
 
         @Override
         public void onNext(final JsonArray items) {
-            final SubscriptionHasNext event = SubscriptionHasNext.of(subscriptionId, items, DittoHeaders.empty());
+            final SubscriptionHasNextPage event = SubscriptionHasNextPage.of(subscriptionId, items, DittoHeaders.empty());
             subscriptionActor.tell(event, ActorRef.noSender());
         }
 

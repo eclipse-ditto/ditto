@@ -18,6 +18,13 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 
 /**
  * Represents the path of a topic for the Ditto Protocol.
@@ -344,20 +351,20 @@ public interface TopicPath {
     enum SearchAction {
 
 
-        SUBSCRIBE("subscribe"),
+        SUBSCRIBE(CreateSubscription.NAME),
 
-        CANCEL("cancel"),
+        CANCEL(CancelSubscription.NAME),
 
-        REQUEST("request"),
+        REQUEST(RequestFromSubscription.NAME),
 
 
-        COMPLETE("complete"),
+        COMPLETE(SubscriptionComplete.NAME),
 
-        GENERATED("created"),
+        GENERATED(SubscriptionCreated.NAME),
 
-        FAILED("failed"),
+        FAILED(SubscriptionFailed.NAME),
 
-        HAS_NEXT("hasnext");
+        NEXT(SubscriptionHasNextPage.NAME);
 
         private final String name;
 

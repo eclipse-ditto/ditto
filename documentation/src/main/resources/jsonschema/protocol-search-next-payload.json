@@ -6,7 +6,7 @@
   "properties": {
     "subscriptionId": {
       "type": "string",
-      "description": "Identifier of the search subscription delivered by a previous \"created\" message."
+      "description": "Identifier of the search subscription delivered by a previous \"created\" event."
     },
     "items": {
       "type": "array",
