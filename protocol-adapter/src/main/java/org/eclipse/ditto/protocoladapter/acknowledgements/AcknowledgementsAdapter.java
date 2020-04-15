@@ -14,23 +14,20 @@ package org.eclipse.ditto.protocoladapter.acknowledgements;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -42,7 +39,6 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
@@ -61,7 +57,7 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
         this.headerTranslator = headerTranslator;
     }
 
-    public static AcknowledgementsAdapter getInstance(final HeaderTranslator headerTranslator) {
+    static AcknowledgementsAdapter getInstance(final HeaderTranslator headerTranslator) {
         return new AcknowledgementsAdapter(checkNotNull(headerTranslator, "headerTranslator"));
     }
 
@@ -85,63 +81,28 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
     private static List<Acknowledgement> gatherContainedAcknowledgements(final Adaptable adaptable,
             final ThingId thingId) {
 
-        final JsonValue adaptablePayloadValue = adaptable.getPayload().getValue().orElse(JsonValue.nullLiteral());
-        return buildAcknowledgements(adaptable, thingId, adaptablePayloadValue);
+        final JsonValue adaptablePayloadValue = adaptable.getPayload()
+                .getValue()
+                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
+                        .fieldName(Payload.JsonFields.VALUE.getPointer())
+                        .build());
+        return buildAcknowledgements(thingId, adaptablePayloadValue);
     }
 
-    private static List<Acknowledgement> buildAcknowledgements(final Adaptable adaptable, final ThingId thingId,
-            final JsonValue value) {
-
-        if (value.isNull()) {
-            return Collections.singletonList(buildSingleAcknowledgement(adaptable, null));
-        } else if (value.isObject()) {
-            return value.asObject().stream().map(field -> {
-                if (filterForAcknowledgementJsonObject(field)) {
-                    return ThingAcknowledgementFactory.fromJson(
-                            field.getValue().asObject().toBuilder()
-                                    .set(Acknowledgement.JsonFields.LABEL, field.getKey().toString())
-                                    .set(Acknowledgement.JsonFields.ENTITY_ID, thingId.toString())
-                                    .set(Acknowledgement.JsonFields.ENTITY_TYPE, ThingConstants.ENTITY_TYPE.toString())
-                                    .build()
-                    );
-                } else {
-                    return buildSingleAcknowledgement(adaptable, field);
-                }
-            }).collect(Collectors.toList());
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    private static Acknowledgement buildSingleAcknowledgement(final Adaptable adaptable,
-            @Nullable final JsonField field) {
-        return ThingAcknowledgementFactory.newAcknowledgement(
-                getLabelInCaseOfSingleAcknowledgement(adaptable)
-                        .orElseGet(() -> AcknowledgementLabel.of(checkNotNull(field, "field").getKey())),
-                getThingId(adaptable),
-                getStatusCodeOrThrow(adaptable),
-                adaptable.getDittoHeaders(),
-                null != field ? JsonObject.newBuilder().set(field).build() : null
-        );
-    }
-
-    private static Optional<AcknowledgementLabel> getLabelInCaseOfSingleAcknowledgement(final Adaptable adaptable) {
-        final JsonPointer pathJsonPointer = adaptable.getPayload().getPath();
-        if (pathJsonPointer.isEmpty()) {
-            return Optional.empty();
-        } else {
-            String path = adaptable.getPayload().getPath().toString();
-            if (path.startsWith("/")) {
-                path = path.substring(1);
-            }
-            return Optional.of(AcknowledgementLabel.of(path));
-        }
-    }
-
-    private static boolean filterForAcknowledgementJsonObject(final JsonField field) {
-        return field.getValue().isObject() &&
-                field.getValue().asObject().contains(Acknowledgement.JsonFields.STATUS_CODE.getPointer()) &&
-                field.getValue().asObject().contains(Acknowledgement.JsonFields.DITTO_HEADERS.getPointer());
+    private static List<Acknowledgement> buildAcknowledgements(final ThingId thingId, final JsonValue value) {
+        return value.asObject()
+                .stream()
+                .map(field -> {
+                    final JsonObjectBuilder builder = field.getValue().asObject().toBuilder();
+                    builder.set(Acknowledgement.JsonFields.LABEL, field.getKey().toString())
+                            .set(Acknowledgement.JsonFields.ENTITY_ID, thingId.toString())
+                            .set(Acknowledgement.JsonFields.ENTITY_TYPE, ThingConstants.ENTITY_TYPE.toString());
+                    if (!field.getValue().asObject().contains(Acknowledgement.JsonFields.DITTO_HEADERS.getPointer())) {
+                        builder.set(Acknowledgement.JsonFields.DITTO_HEADERS, JsonObject.empty());
+                    }
+                    return ThingAcknowledgementFactory.fromJson(builder.build());
+                })
+                .collect(Collectors.toList());
     }
 
     private static HttpStatusCode getStatusCodeOrThrow(final Adaptable adaptable) {
@@ -189,34 +150,32 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
     }
 
     private static TopicPath getTopicPath(final Acknowledgements acknowledgement, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(ThingId.of(acknowledgement.getEntityId()));
-        if (TopicPath.Channel.TWIN == channel) {
-            topicPathBuilder.twin();
-        } else if (TopicPath.Channel.LIVE == channel) {
-            topicPathBuilder.live();
-        } else {
-            throw new IllegalArgumentException(MessageFormat.format("Unknown channel <{}>", channel));
-        }
-        return topicPathBuilder.acks()
+        return AcknowledgementAdapter.getTopicPathBuilder(channel, acknowledgement.getEntityId())
                 .aggregatedAcks()
                 .build();
     }
 
     private static Payload getPayload(final Acknowledgements acknowledgements) {
-        final JsonPointer path;
-        if (acknowledgements.getSize() == 1) {
-            path = JsonPointer.of(acknowledgements.stream().findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Stream did not contain any Acknowledgements but " +
-                            "should have"))
-                    .getLabel());
-        } else {
-            path = JsonPointer.empty();
-        }
-        return Payload.newBuilder(path)
+        return Payload.newBuilder(JsonPointer.empty())
                 .withStatus(acknowledgements.getStatusCode())
-                .withValue(acknowledgements.getEntity(acknowledgements.getImplementedSchemaVersion())
-                        .orElse(null))
+                .withValue(getPayloadValue(acknowledgements))
                 .build();
+    }
+
+    private static JsonObject getPayloadValue(final Acknowledgements acknowledgements) {
+        return acknowledgements.stream()
+                .map(ack -> JsonField.newInstance(ack.getLabel(), toJsonWithoutLabel(ack)))
+                .collect(JsonCollectors.fieldsToObject());
+    }
+
+    private static JsonObject toJsonWithoutLabel(final Acknowledgement ack) {
+        final JsonObjectBuilder builder = JsonObject.newBuilder()
+                .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCodeValue());
+        ack.getEntity().ifPresent(payload -> builder.set(Acknowledgement.JsonFields.PAYLOAD, payload));
+        if (!ack.getDittoHeaders().isEmpty()) {
+            builder.set(Acknowledgement.JsonFields.DITTO_HEADERS, ack.getDittoHeaders().toJson());
+        }
+        return builder.build();
     }
 
     private DittoHeaders getExternalHeaders(final DittoHeaders acknowledgementHeaders) {

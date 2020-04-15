@@ -392,8 +392,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acks);
 
         final JsonObject expectedPayloadJson = JsonObject.of("{\n" +
-                "  \"twin-persisted\":{\"status\":100,\"headers\":{}},\n" +
-                "  \"the-ack-label\":{\"status\":508,\"headers\":{}}\n" +
+                "  \"twin-persisted\":{\"status\":100},\n" +
+                "  \"the-ack-label\":{\"status\":508}\n" +
                 "}");
 
         assertThat(adaptable.getTopicPath())
@@ -409,8 +409,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "  \"topic\": \"thing/id/things/twin/acks\",\n" +
                 "  \"path\": \"/\",\n" +
                 "  \"value\": {\n" +
-                "    \"twin-persisted\": { \"status\": 100, \"headers\": {} },\n" +
-                "    \"the-ack-label\": { \"status\": 508, \"headers\": {} }\n" +
+                "    \"twin-persisted\": { \"status\": 100 },\n" +
+                "    \"the-ack-label\": { \"status\": 508 }\n" +
                 "  },\n" +
                 "  \"status\": 424,\n" +
                 "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\" }\n" +

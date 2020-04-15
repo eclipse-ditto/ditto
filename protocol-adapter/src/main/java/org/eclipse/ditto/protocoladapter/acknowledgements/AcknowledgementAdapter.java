@@ -27,9 +27,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.AcknowledgementTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -54,8 +56,21 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         this.headerTranslator = headerTranslator;
     }
 
-    public static AcknowledgementAdapter getInstance(final HeaderTranslator headerTranslator) {
+    static AcknowledgementAdapter getInstance(final HeaderTranslator headerTranslator) {
         return new AcknowledgementAdapter(checkNotNull(headerTranslator, "headerTranslator"));
+    }
+
+    static AcknowledgementTopicPathBuilder getTopicPathBuilder(final TopicPath.Channel channel,
+            final EntityIdWithType entityId) {
+        final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(ThingId.of(entityId));
+        if (TopicPath.Channel.TWIN == channel) {
+            topicPathBuilder.twin();
+        } else if (TopicPath.Channel.LIVE == channel) {
+            topicPathBuilder.live();
+        } else {
+            throw new IllegalArgumentException(MessageFormat.format("Unknown channel <{}>", channel));
+        }
+        return topicPathBuilder.acks();
     }
 
     @Override
@@ -133,15 +148,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
     }
 
     private static TopicPath getTopicPath(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(ThingId.of(acknowledgement.getEntityId()));
-        if (TopicPath.Channel.TWIN == channel) {
-            topicPathBuilder.twin();
-        } else if (TopicPath.Channel.LIVE == channel) {
-            topicPathBuilder.live();
-        } else {
-            throw new IllegalArgumentException(MessageFormat.format("Unknown channel <{}>", channel));
-        }
-        return topicPathBuilder.acks()
+        return getTopicPathBuilder(channel, acknowledgement.getEntityId())
                 .label(acknowledgement.getLabel())
                 .build();
     }

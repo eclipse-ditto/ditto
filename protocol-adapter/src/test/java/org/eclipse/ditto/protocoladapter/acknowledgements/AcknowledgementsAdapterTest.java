@@ -48,11 +48,12 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder()
             .set("foo", 42)
             .build();
-    private static final Acknowledgement KNOWN_ACK_SUCCESS = ThingAcknowledgementFactory.newAcknowledgement(KNOWN_CUSTOM_LABEL,
-            TestConstants.THING_ID,
-            KNOWN_STATUS,
-            KNOWN_HEADERS,
-            KNOWN_PAYLOAD);
+    private static final Acknowledgement KNOWN_ACK_SUCCESS =
+            ThingAcknowledgementFactory.newAcknowledgement(KNOWN_CUSTOM_LABEL,
+                    TestConstants.THING_ID,
+                    KNOWN_STATUS,
+                    KNOWN_HEADERS,
+                    KNOWN_PAYLOAD);
 
     private static final AcknowledgementLabel KNOWN_CUSTOM_LABEL_2 = AcknowledgementLabel.of("error-ack");
     private static final HttpStatusCode KNOWN_STATUS_2 = HttpStatusCode.CONFLICT;
@@ -104,14 +105,19 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathMyCustomAck)
                 .withHeaders(KNOWN_HEADERS)
-                .withPayload(Payload.newBuilder(JsonPointer.of(KNOWN_CUSTOM_LABEL))
-                        .withValue(KNOWN_PAYLOAD)
-                        .withStatus(KNOWN_STATUS)
+                .withPayload(Payload.newBuilder(JsonPointer.empty())
+                        .withStatus(HttpStatusCode.CREATED)
+                        .withValue(JsonObject.newBuilder()
+                                .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
+                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("payload", KNOWN_PAYLOAD)
+                                        .build())
+                                .build())
                         .build())
                 .build();
 
         final Acknowledgements expected = ThingAcknowledgementsFactory.newAcknowledgements(
-                Collections.singletonList(KNOWN_ACK_SUCCESS), KNOWN_HEADERS);
+                Collections.singletonList(KNOWN_ACK_SUCCESS.setDittoHeaders(DittoHeaders.empty())), KNOWN_HEADERS);
 
         final Acknowledgements actual = underTest.fromAdaptable(adaptable);
 
@@ -124,11 +130,16 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                 Collections.singletonList(KNOWN_ACK_2_ERROR), KNOWN_HEADERS);
 
         final Adaptable expected = Adaptable.newBuilder(topicPathMyCustomAck)
-                .withPayload(Payload.newBuilder(JsonPointer.of(KNOWN_CUSTOM_LABEL_2))
+                .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withStatus(KNOWN_STATUS_2)
-                        .withValue(KNOWN_PAYLOAD_2)
-                        .build()
-                ).build();
+                        .withValue(JsonObject.newBuilder()
+                                .set(KNOWN_CUSTOM_LABEL_2, JsonObject.newBuilder()
+                                        .set("status", KNOWN_STATUS_2.toInt())
+                                        .set("headers", KNOWN_HEADERS_2.toJson())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
 
         final Adaptable actual = underTest.toAdaptable(acknowledgements);
 
