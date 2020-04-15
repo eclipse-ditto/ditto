@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -390,10 +391,9 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acks);
 
-        // TODO: should Acks in the payload include the field <"payload": null>?
         final JsonObject expectedPayloadJson = JsonObject.of("{\n" +
-                "  \"twin-persisted\":{\"status\":100,\"payload\":null},\n" +
-                "  \"the-ack-label\":{\"status\":508,\"payload\":null}\n" +
+                "  \"twin-persisted\":{\"status\":100,\"headers\":{}},\n" +
+                "  \"the-ack-label\":{\"status\":508,\"headers\":{}}\n" +
                 "}");
 
         assertThat(adaptable.getTopicPath())
@@ -409,29 +409,33 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "  \"topic\": \"thing/id/things/twin/acks\",\n" +
                 "  \"path\": \"/\",\n" +
                 "  \"value\": {\n" +
-                "    \"twin-persisted\": { \"status\": 100 },\n" +
-                "    \"the-ack-label\": { \"status\": 508 }\n" +
+                "    \"twin-persisted\": { \"status\": 100, \"headers\": {} },\n" +
+                "    \"the-ack-label\": { \"status\": 508, \"headers\": {} }\n" +
                 "  },\n" +
-                "  \"status\": 424\n" +
+                "  \"status\": 424,\n" +
+                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\" }\n" +
                 "}"));
 
         final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);
 
-        // TODO: fromAdaptable should be the inverse of toAdaptable, but is not.
         assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
                 Arrays.asList(
                         Acknowledgement.of(PERSISTED, ThingId.of("thing:id"),
-                                HttpStatusCode.FAILED_DEPENDENCY,
-                                DittoHeaders.empty(),
-                                JsonObject.of("{\"twin-persisted\": { \"status\": 100 }}")
+                                HttpStatusCode.CONTINUE,
+                                DittoHeaders.empty()
                         ),
                         Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
-                                HttpStatusCode.FAILED_DEPENDENCY,
-                                DittoHeaders.empty(),
-                                JsonObject.of("{\"the-ack-label\": { \"status\": 508 }}")
+                                HttpStatusCode.LOOP_DETECTED,
+                                DittoHeaders.empty()
                         )
                 ),
-                DittoHeaders.empty()
+                DittoHeaders.newBuilder()
+                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                        .build()
         ));
+
+        final Adaptable reverseAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(
+                underTest.toAdaptable(acknowledgement));
+        assertThat(reverseAdaptable).isEqualTo(adaptable);
     }
 }

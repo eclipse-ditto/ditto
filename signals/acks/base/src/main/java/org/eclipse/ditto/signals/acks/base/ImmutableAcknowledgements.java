@@ -252,14 +252,13 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
         return stream().map(ack -> {
                     final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
-                            .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt())
-                            .set(Acknowledgement.JsonFields.PAYLOAD,
-                                    ack.getEntity(schemaVersion).orElse(JsonValue.nullLiteral()));
+                            .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt());
+
+                    final Optional<JsonValue> ackEntity = ack.getEntity(schemaVersion);
+                    ackEntity.ifPresent(ae -> jsonObjectBuilder.set(Acknowledgement.JsonFields.PAYLOAD, ae));
+
                     final DittoHeaders ackHeaders = ack.getDittoHeaders();
-                    if (!ackHeaders.isEmpty()) {
-                        jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS,
-                                buildHeadersJson(ackHeaders));
-                    }
+                    jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS, buildHeadersJson(ackHeaders));
                     return JsonField.newInstance(ack.getLabel(), jsonObjectBuilder.build());
                 }
         ).collect(JsonCollectors.fieldsToObject());
