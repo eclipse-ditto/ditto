@@ -87,6 +87,22 @@ Ditto will always respond with a ["created"](#created) event.
 | **fields** | Contains a comma separated list of fields, to describe which things to be included in the search results. |
 | **value**  | JSON object specifying the search query. {% include docson.html schema="jsonschema/protocol-search-subscribe-payload.json" %} |
 
+The standard [filter](basic-rql.html#rql-filter),  [options](basic-search.html#sorting-and-paging-options)
+and the [namespaces](basic-search.html#namespaces) can be specified in the `value` field
+of a ["subscribe"](#subscribe) command.
+They have identical semantics and default values as other search APIs.
+In particular:
+- When given in the `options` field, `size(<count>)` limits the number of search results delivered
+  in one ["next"](#next) event to `<count>` items. The default value of `<count>` is 25 and the maximum value is 200.
+- When given in the `options` field, `sort(<+"-><property1>, ...)` sets the order of search results.
+  If not given, the default `sort(+thingId)` is used.
+
+The paging options `cursor` and `limit` of the [HTTP-API](httpapi-search.html) are not supported here, because
+they are not meaningful for the search protocol. For the HTTP-API, those options are for iterating through large
+numbers of search results over many HTTP requests in a stateless manner.
+The search protocol is not stateless and does not require the client to keep track of any cursor or offset;
+results of any size are streamed over an arbitrarily long period of time.
+
 ### Request
 
 After obtaining a subscription ID from a ["created"](#created) event,

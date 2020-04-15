@@ -68,13 +68,21 @@ In order to apply queries when searching, Ditto uses the [RQL notation](basic-rq
 scenarios (e.g. filtering [notifications](basic-changenotifications.html)).
 
 
-## Paging options
+## Sorting and paging options
 
+The [`sort` option](basic-rql.html#rql-sorting) governs the order of search results.
+
+```
+sort(<+|-><property1>,<+|-><property2>,...)
+```
+
+If not given, search results are listed in the ascending order of thing IDs, namely `sort(+thingId)`.
+
+The `size` option
 ```
 size(<count>)
 ```
-
-Limits the search results to `<count>` items.
+limits the search results delivered in one HTTP response or one Ditto protocol message to `<count>` items.
 
 If the paging option is not explicitly specified a **default value** of _25_ is used. The **maximum** allowed count is 
 _200_.
@@ -96,7 +104,7 @@ option=size(10),cursor(<cursor-from-previous-result>)
 ## RQL paging (deprecated)
 
 {% include note.html content="The limit option is deprecated, it may be removed in future releases. Use [cursor-based 
-paging](basic-search.html#paging-options) instead." %}
+paging](basic-search.html#sorting-and-paging-options) instead." %}
 
 The RQL limiting part specifies which part (or "page") should be returned of a large search result set.
 
@@ -119,5 +127,5 @@ limit(10,10)
 ```
 i.e. Return the next ten items (from index 11 to 20)
 
-{% include note.html content="We recommend **not to use high offsets** (e.g. higher than 10000) for paging in API 2 
+{% include note.html content="We recommend **not to use high offsets** (e.g. higher than 10000) for paging
     because of potential performance degradations." %}
