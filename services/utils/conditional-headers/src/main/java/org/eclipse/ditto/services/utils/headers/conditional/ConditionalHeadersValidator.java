@@ -124,15 +124,9 @@ public final class ConditionalHeadersValidator {
             return false;
         }
 
-        return selectedFields.get().asArray().stream()
-                .map(val -> val.toString().split(","))
+        return Arrays.stream(selectedFields.get().asString()
+                .split("\\s*,\\s*"))
                 .anyMatch(EXEMPTED_FIELDS::contains);
-
-//        return command.toJson()
-//                .getValue(SELECTED_FIELDS)
-//                .map(jsonValue -> EXEMPTED_FIELDS.stream().filter(elem -> elem == jsonValue))
-//                .filter(a -> a)
-//                .isPresent();
     }
 
     private void checkIfMatch(final Command command, @Nullable final EntityTag currentETagValue) {
