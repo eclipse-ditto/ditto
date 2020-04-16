@@ -147,13 +147,6 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ThingModifyCommand.class, thingModifyCommand -> {
-                    final ActorRef self = getSelf();
-                    AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
-                            acknowledgementConfig,
-                            headerTranslator,
-                            processedSignal -> self.tell(processedSignal, self));
-                })
                 .match(Acknowledgement.class, acknowledgement ->
                         potentiallyForwardToAckregator(acknowledgement, () -> forwardAcknowledgement(acknowledgement))
                 )
@@ -162,6 +155,14 @@ final class StreamingSessionActor extends AbstractActor {
                 )
                 .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
+                .match(ThingModifyCommand.class, thingModifyCommand -> {
+                    final ActorRef self = getSelf();
+                    AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
+                            acknowledgementConfig,
+                            headerTranslator,
+                            responseSignal -> self.tell(responseSignal, self));
+                    handleSignal(thingModifyCommand);
+                })
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
                     logger.withCorrelationId(cre)
