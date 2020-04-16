@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;

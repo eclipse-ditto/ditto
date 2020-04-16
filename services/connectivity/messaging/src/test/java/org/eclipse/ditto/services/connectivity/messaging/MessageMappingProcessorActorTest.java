@@ -79,6 +79,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -123,11 +124,13 @@ public final class MessageMappingProcessorActorTest {
 
     private ActorSystem actorSystem;
     private ProtocolAdapterProvider protocolAdapterProvider;
+    private TestProbe connectionActorProbe;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
+        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
         MockConciergeForwarderActor.create(actorSystem);
     }
 
@@ -752,10 +755,36 @@ public final class MessageMappingProcessorActorTest {
         }};
     }
 
+    @Test
+    public void forwardsSearchCommandsToConnectionActor() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            final AuthorizationContext context =
+                    AuthorizationModelFactory.newAuthContext(AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+            final CancelSubscription searchCommand =
+                    CancelSubscription.of("sub-" + UUID.randomUUID(), DittoHeaders.empty());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(searchCommand));
+            final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .build();
+
+            messageMappingProcessorActor.tell(externalMessage, getRef());
+
+            final CancelSubscription received = connectionActorProbe.expectMsgClass(CancelSubscription.class);
+            assertThat(received.getSubscriptionId()).isEqualTo(searchCommand.getSubscriptionId());
+        }};
+    }
+
     private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID, 99);
+                        CONNECTION_ID, connectionActorProbe.ref(), 99);
         return actorSystem.actorOf(props);
     }
 

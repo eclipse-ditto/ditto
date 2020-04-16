@@ -92,13 +92,15 @@ public final class ResumeSourceTest {
 
     @Test
     public void testCompletion() {
+        // TODO: delete this
+        system.eventStream().setLogLevel(Attributes.logLevelDebug());
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), -1);
 
             underTest.runWith(testSink, mat);
 
             // start stream with demand
-            sinkProbe.request(100L);
+            sinkProbe.request(2L);
             expectMsg(0);
             reply(testSource);
 
@@ -125,9 +127,17 @@ public final class ResumeSourceTest {
             // send some elements followed by failure
             sourceProbe.sendNext(1).sendNext(2);
             sinkProbe.expectNext(1, 2);
-            sourceProbe.sendError(new IllegalStateException("Expected error"));
+            sourceProbe.sendError(new IllegalStateException("1st expected error"));
 
             // expect new seed equal to final element sent
+            expectMsg(2);
+            rematerializeSource();
+            reply(testSource);
+
+            // fail again without sending any element
+            sourceProbe.sendError(new IllegalStateException("2nd expected error"));
+
+            // expect new seed unchanged and not reset
             expectMsg(2);
             rematerializeSource();
             reply(testSource);

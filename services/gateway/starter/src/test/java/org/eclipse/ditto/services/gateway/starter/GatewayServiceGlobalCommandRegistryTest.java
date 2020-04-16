@@ -31,6 +31,7 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 
 public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -40,6 +41,7 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,
                 QueryThings.class,
+                CreateSubscription.class,
                 RetrieveConnection.class,
                 OpenConnection.class,
                 RetrieveFeature.class,

@@ -179,12 +179,24 @@ final class DefaultAdapterResolver implements AdapterResolver {
     private static Function<Adaptable, Adapter<?>> actionStep(final List<Adapter<?>> adapters) {
         final EnumMap<TopicPath.Action, Function<Adaptable, Adapter<?>>> dispatchByAction =
                 dispatchByEnum(adapters, TopicPath.Action.class, TopicPath.Action.values(),
-                        Adapter::getActions, DefaultAdapterResolver::isResponseStep);
+                        Adapter::getActions, DefaultAdapterResolver::searchActionStep);
         // consider adapters that support no action to be those that support adaptables without action,
         // e. g., message commands and responses
         final List<Adapter<?>> noActionAdapters = filter(adapters, adapter -> adapter.getActions().isEmpty());
-        return evalEnumMapByOptional(dispatchByAction, isResponseStep(noActionAdapters),
+        return evalEnumMapByOptional(dispatchByAction, searchActionStep(noActionAdapters),
                 forTopicPath(TopicPath::getAction));
+    }
+
+    private static Function<Adaptable, Adapter<?>> searchActionStep(final List<Adapter<?>> adapters) {
+        final EnumMap<TopicPath.SearchAction, Function<Adaptable, Adapter<?>>> dispatchBySearchAction =
+                dispatchByEnum(adapters, TopicPath.SearchAction.class, TopicPath.SearchAction.values(),
+                        Adapter::getSearchActions, DefaultAdapterResolver::isResponseStep);
+        // consider adapters that support no search action to be those that support adaptables without search action,
+        // e. g.,  all non-search signals
+        final List<Adapter<?>> noSearchActionAdapters =
+                filter(adapters, adapter -> adapter.getSearchActions().isEmpty());
+        return evalEnumMapByOptional(dispatchBySearchAction, isResponseStep(noSearchActionAdapters),
+                forTopicPath(TopicPath::getSearchAction));
     }
 
     /**
@@ -245,22 +257,42 @@ final class DefaultAdapterResolver implements AdapterResolver {
     /**
      * Compute a fast adapter resolution function from a list of known adapters.
      * <p>
-     * Has potential to construct exponentially many EnumMap objects and iterating on exponentially many adapter lists,
-     * but the Ditto protocol adapters are unambiguous enough such that the total size of all 9 EnumMap objects is 44,
-     * and the total length of iterated adapter lists is 59.
+     * Construct exponentially many EnumMap objects and iterating on exponentially many adapter lists,
+     * The total size of all EnumMap objects is 191, and the total length of iterated adapter lists is 101.
      * Details by return order of {@code dispatchByEnum}:
      * <pre>{@code
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
      * Constructed size-7 EnumMap from 4 adapters for Action
+     * Constructed size-7 EnumMap from 0 adapters for SearchAction
      * Constructed size-5 EnumMap from 5 adapters for Criterion
      * Constructed size-3 EnumMap from 5 adapters for Channel
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
      * Constructed size-7 EnumMap from 4 adapters for Action
-     * Constructed size-5 EnumMap from 6 adapters for Criterion
-     * Constructed size-7 EnumMap from 6 adapters for Action
+     * Constructed size-7 EnumMap from 0 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for Action
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
      * Constructed size-5 EnumMap from 8 adapters for Criterion
-     * Constructed size-3 EnumMap from 8 adapters for Channel
-     * Constructed size-2 EnumMap from 13 adapters for Group
-     * Total EnumMap size: 44
-     * Total adapter list length: 59
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 4 adapters for Action
+     * Constructed size-7 EnumMap from 0 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for Action
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-7 EnumMap from 2 adapters for Action
+     * Constructed size-7 EnumMap from 2 adapters for SearchAction
+     * Constructed size-5 EnumMap from 10 adapters for Criterion
+     * Constructed size-3 EnumMap from 10 adapters for Channel
+     * Constructed size-2 EnumMap from 15 adapters for Group
+     * Total EnumMap size: 191
+     * Total adapter list length: 101
      * }</pre>
      *
      * @param adapters all known adapters.

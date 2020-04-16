@@ -192,11 +192,12 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         }};
     }
 
-    private ActorRef setupActor(final ActorRef testRef, final MappingContext mappingContext) {
+    private ActorRef setupActor(final ActorRef testRef, @Nullable final MappingContext mappingContext) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID, 17);
+                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID,
+                        connectionActorProbe.ref(), 17);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

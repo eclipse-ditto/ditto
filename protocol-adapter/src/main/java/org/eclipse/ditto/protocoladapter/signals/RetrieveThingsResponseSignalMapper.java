@@ -34,7 +34,7 @@ final class RetrieveThingsResponseSignalMapper
 
     @Override
     TopicPathBuilder getTopicPathBuilder(final RetrieveThingsResponse command) {
-        final String namespace = command.getNamespace().orElse("_");
+        final String namespace = command.getNamespace().orElse(TopicPath.ID_PLACEHOLDER);
         return ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
     }
 

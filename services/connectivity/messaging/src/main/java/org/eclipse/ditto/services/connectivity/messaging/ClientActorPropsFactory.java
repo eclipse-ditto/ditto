@@ -25,10 +25,11 @@ public interface ClientActorPropsFactory {
     /**
      * Create actor {@link Props} for a connection.
      *
-     * @param connection the connection
-     * @param conciergeForwarder the actor used to send signals to the concierge service
-     * @return the actor props
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param connectionActor the connection actor acting as the parent of the client actors.
+     * @return the actor props.
      */
-    Props getActorPropsForType(Connection connection, ActorRef conciergeForwarder);
+    Props getActorPropsForType(Connection connection, ActorRef conciergeForwarder, ActorRef connectionActor);
 
 }

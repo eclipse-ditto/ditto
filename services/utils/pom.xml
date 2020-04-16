@@ -41,6 +41,7 @@
         <module>namespaces</module>
         <module>persistence</module>
         <module>protocol</module>
+        <module>search</module>
         <module>test</module>
         <module>tracing</module>
         <module>metrics</module>

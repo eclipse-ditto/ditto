@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.dummy.DummyAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
-import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

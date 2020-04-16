@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "",
+  "title": "",
+  "properties": {
+    "subscriptionId": {
+      "type": "string",
+      "description": "Identifier of the search subscription delivered by a previous \"created\" event."
+    },
+    "items": {
+      "type": "array",
+      "description": "A JSON array containing JSON representations of things in this page of the search results."
+    }
+  },
+  "required": ["subscriptionId", "items"]
+}

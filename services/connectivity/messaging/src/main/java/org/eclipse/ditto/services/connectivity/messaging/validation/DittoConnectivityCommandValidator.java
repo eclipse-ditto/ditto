@@ -30,16 +30,18 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
 
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef conciergeForwarder;
+    private final ActorRef connectionActor;
     private final ConnectionValidator connectionValidator;
     private final ActorSystem actorSystem;
 
     public DittoConnectivityCommandValidator(
             final ClientActorPropsFactory propsFactory,
             final ActorRef conciergeForwarder,
-            final ConnectionValidator connectionValidator,
+            final ActorRef connectionActor, final ConnectionValidator connectionValidator,
             final ActorSystem actorSystem) {
         this.propsFactory = propsFactory;
         this.conciergeForwarder = conciergeForwarder;
+        this.connectionActor = connectionActor;
         this.connectionValidator = connectionValidator;
         this.actorSystem = actorSystem;
     }
@@ -53,7 +55,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
                 final Connection connection = getConnectionFromCommand(command);
                 if (connection != null) {
                     connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
-                    propsFactory.getActorPropsForType(connection, conciergeForwarder);
+                    propsFactory.getActorPropsForType(connection, conciergeForwarder, connectionActor);
                 } else {
                     // should never happen
                     throw new IllegalStateException("connection=null in " + command);

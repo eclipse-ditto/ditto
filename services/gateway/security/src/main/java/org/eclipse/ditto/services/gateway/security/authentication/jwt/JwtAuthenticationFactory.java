@@ -16,7 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.gateway.security.config.OAuthConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
 import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 

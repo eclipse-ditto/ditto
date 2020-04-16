@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
@@ -44,6 +44,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -56,6 +58,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.stream.ActorMaterializer;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 
@@ -159,6 +162,28 @@ public final class SearchActorIT {
     }
 
     @Test
+    public void testStream() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
+
+            insertTestThings();
+
+            underTest.tell(queryThings(null, null), getRef());
+
+            final SourceRef<?> response = expectMsgClass(SourceRef.class);
+            final JsonArray searchResult = response.getSource()
+                    .runWith(Sink.seq(), materializer)
+                    .toCompletableFuture()
+                    .join()
+                    .stream()
+                    .map(thingId -> wrapAsSearchResult((String) thingId))
+                    .collect(JsonCollectors.valuesToArray());
+
+            assertThat(searchResult).isEqualTo(expectedIds(4, 2, 0, 1, 3));
+        }};
+    }
+
+    @Test
     public void testCursorSearch() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
@@ -191,19 +216,27 @@ public final class SearchActorIT {
         }};
     }
 
-    private static QueryThings queryThings(final int size, final @Nullable String cursor) {
+    private static ThingSearchQueryCommand<?> queryThings(@Nullable final Integer size, final @Nullable String cursor) {
         final List<String> options = new ArrayList<>();
+        final String sort = "sort(-attributes/c,+attributes/b,-attributes/a,+attributes/null/1,-attributes/null/2)";
         if (cursor == null) {
-            options.add("sort(-attributes/c,+attributes/b,-attributes/a,+attributes/null/1,-attributes/null/2)");
+            options.add(sort);
         }
-        options.add("size(" + size + ")");
+        if (size != null) {
+            options.add("size(" + size + ")");
+        }
         if (cursor != null) {
             options.add("cursor(" + cursor + ")");
         }
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .authorizationContext(AUTH_CONTEXT)
                 .build();
-        return QueryThings.of("eq(attributes/x,5)", options, null, null, dittoHeaders);
+        final String filter = "eq(attributes/x,5)";
+        if (size != null) {
+            return QueryThings.of(filter, options, null, null, dittoHeaders);
+        } else {
+            return StreamThings.of(filter, null, sort, null, dittoHeaders);
+        }
     }
 
     private void insertTestThings() {
@@ -230,8 +263,13 @@ public final class SearchActorIT {
 
     private static JsonArray expectedIds(final int... thingOrdinals) {
         return Arrays.stream(thingOrdinals)
-                .mapToObj(i -> JsonFactory.readFrom(String.format("{\"thingId\":\"thing:%d\"}", i)))
+                .mapToObj(i -> "thing:" + i)
+                .map(SearchActorIT::wrapAsSearchResult)
                 .collect(JsonCollectors.valuesToArray());
+    }
+
+    private static JsonValue wrapAsSearchResult(final CharSequence thingId) {
+        return JsonFactory.readFrom(String.format("{\"thingId\":\"%s\"}", thingId));
     }
 
     private static Thing template(final Thing thing, final int i, final CharSequence attribute) {

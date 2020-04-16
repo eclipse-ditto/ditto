@@ -63,15 +63,17 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection,
             final ActorRef conciergeForwarder,
-            final HiveMqtt5ClientFactory clientFactory) {
-        super(connection, conciergeForwarder);
+            final HiveMqtt5ClientFactory clientFactory,
+            final ActorRef connectionActor) {
+        super(connection, conciergeForwarder, connectionActor);
         this.connection = connection;
         this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    private HiveMqtt5ClientActor(final Connection connection, final ActorRef conciergeForwarder) {
-        this(connection, conciergeForwarder, DefaultHiveMqtt5ClientFactory.getInstance());
+    private HiveMqtt5ClientActor(final Connection connection, final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
+        this(connection, conciergeForwarder, DefaultHiveMqtt5ClientFactory.getInstance(), connectionActor);
     }
 
     /**
@@ -80,12 +82,13 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param clientFactory factory used to create required mqtt clients
+     * @param connectionActor the parent connection actor
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder,
-            final HiveMqtt5ClientFactory clientFactory) {
+            final HiveMqtt5ClientFactory clientFactory, final ActorRef connectionActor) {
         return Props.create(HiveMqtt5ClientActor.class, validateConnection(connection),
-                conciergeForwarder, clientFactory);
+                conciergeForwarder, clientFactory, connectionActor);
     }
 
     /**
@@ -93,11 +96,13 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param connectionActor the parent connection actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
         return Props.create(HiveMqtt5ClientActor.class, validateConnection(connection),
-                conciergeForwarder);
+                conciergeForwarder, connectionActor);
     }
 
     private Mqtt5Client getClient() {

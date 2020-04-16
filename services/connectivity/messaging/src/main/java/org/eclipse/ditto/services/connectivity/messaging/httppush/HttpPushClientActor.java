@@ -60,8 +60,8 @@ public final class HttpPushClientActor extends BaseClientActor {
     private final HttpPushConfig httpPushConfig;
 
     @SuppressWarnings("unused")
-    private HttpPushClientActor(final Connection connection) {
-        super(connection, ActorRef.noSender());
+    private HttpPushClientActor(final Connection connection, final ActorRef connectionActor) {
+        super(connection, ActorRef.noSender(), connectionActor);
 
         httpPushConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -75,10 +75,11 @@ public final class HttpPushClientActor extends BaseClientActor {
      * Create the {@code Props} object for an {@code HttpPushClientActor}.
      *
      * @param connection the HTTP-push connection.
+     * @param connectionActor the connection actor acting as parent of this actor.
      * @return the {@code Props} object.
      */
-    public static Props props(final Connection connection) {
-        return Props.create(HttpPushClientActor.class, connection);
+    public static Props props(final Connection connection, final ActorRef connectionActor) {
+        return Props.create(HttpPushClientActor.class, connection, connectionActor);
     }
 
     @Override

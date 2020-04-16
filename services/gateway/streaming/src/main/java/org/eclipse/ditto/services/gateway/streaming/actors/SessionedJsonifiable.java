@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -28,6 +27,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Jsonifiable with information from the streaming session.
@@ -96,6 +96,17 @@ public interface SessionedJsonifiable {
      */
     static SessionedJsonifiable response(final CommandResponse<?> response) {
         return new SessionedResponseErrorOrAck(response, response.getDittoHeaders());
+    }
+
+    /**
+     * Create a sessioned Jsonifiable for a {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent}
+     * as response.
+     *
+     * @param subscriptionEvent the {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent} as response.
+     * @return the sessioned Jsonifiable.
+     */
+    static SessionedJsonifiable subscription(final SubscriptionEvent<?> subscriptionEvent) {
+        return new SessionedResponseErrorOrAck(subscriptionEvent, subscriptionEvent.getDittoHeaders());
     }
 
     /**

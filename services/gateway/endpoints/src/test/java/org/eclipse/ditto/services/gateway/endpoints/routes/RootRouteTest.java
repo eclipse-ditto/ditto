@@ -37,7 +37,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
@@ -48,7 +48,7 @@ import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFac
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
@@ -129,6 +129,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
         final ActorRef proxyActor = createDummyResponseActor();
+
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
@@ -143,12 +144,12 @@ public final class RootRouteTest extends EndpointTestBase {
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig,
                         headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig))
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig, proxyActor))
                 .thingsRoute(
                         new ThingsRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, actorSystem.eventStream()))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig))
                 .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

@@ -39,6 +39,7 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSign
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,6 +68,7 @@ public final class BaseClientActorTest {
     private static final Duration DEFAULT_MESSAGE_TIMEOUT = Duration.ofSeconds(3);
     private static ActorSystem actorSystem;
     private static DittoConnectivityConfig connectivityConfig;
+    private static TestProbe connectionActorProbe;
 
     @Mock
     private BaseClientActor delegate;
@@ -76,6 +78,11 @@ public final class BaseClientActorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+    }
+
+    @Before
+    public void init() {
+        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
     }
 
     @AfterClass
@@ -402,7 +409,7 @@ public final class BaseClientActorTest {
 
         public DummyClientActor(final Connection connection, final ActorRef conciergeForwarder,
                 final ActorRef publisherActor, final BaseClientActor delegate) {
-            super(connection, conciergeForwarder);
+            super(connection, conciergeForwarder, connectionActorProbe.ref());
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }

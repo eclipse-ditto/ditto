@@ -14,8 +14,11 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
+import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
 import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
+
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -37,8 +40,12 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -286,6 +293,68 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(retrieveThingResponse);
+    }
+
+    @Test
+    public void thingSearchCommandFromAdaptable() {
+        final CreateSubscription createSubscription =
+                CreateSubscription.of(null, null, null, Collections.emptySet(),
+                        DITTO_HEADERS_V_2_NO_STATUS);
+
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
+                .twin()
+                .search()
+                .subscribe()
+                .build();
+
+        final ThingSearchCommand actualCommand =
+                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder().build())
+                        .withHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
+                        .build());
+
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(createSubscription);
+
+        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("thingId");
+        final CreateSubscription createSubscriptionWithFields =
+                CreateSubscription.of(null, null, selectedFields, Collections.emptySet(),
+                        DITTO_HEADERS_V_2);
+
+        final ThingSearchCommand actualCommandWithFields =
+                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder()
+                                .withFields(selectedFields)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
+                        .build());
+        assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(createSubscriptionWithFields);
+    }
+
+    @Test
+    public void subscriptionEventFromAdaptable() {
+        final SubscriptionCreated expected =
+                SubscriptionCreated.of(TestConstants.SUBSCRIPTION_ID, DITTO_HEADERS_V_2_NO_STATUS);
+
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
+                .twin()
+                .search()
+                .generated()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
+                                String.format("{\"subscriptionId\": \"%s\"}", TestConstants.SUBSCRIPTION_ID)))
+                        .build())
+                .withHeaders(DITTO_HEADERS_V_2_NO_STATUS)
+                .build();
+        final SubscriptionEvent actual = (SubscriptionEvent) underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+
     }
 
     @Test
