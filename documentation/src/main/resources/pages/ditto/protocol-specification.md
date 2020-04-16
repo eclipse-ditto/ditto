@@ -69,12 +69,15 @@ There are some pre-defined headers which have a special meaning for Ditto:
 
 | Header Key | Description                    | Possible values           |
 |------------|--------------------------------|---------------------------|
+| `content-type` | The content-type of the message, for Ditto Protocol messages: `application/vnd.eclipse.ditto+json` | `String` |
 | `correlation-id` | Used for correlating Protocol messages (e.g. a **command** would have the same correlation-id as the sent back **response** message. | `String` |
-| `version` | Determines in which schema version the sent along `payload` should be interpreted. | `Number` - currently: \[1,2\] |
-| `response-required` | Configures for a sent **command** whether a **response** should be sent back. | `Boolean` - default: `true` |
+| `ditto-originator` | Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto. | `String` |
 | `If-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
 | `If-None-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
-| `ditto-originator` | Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto. | `String` |
+| `response-required` | Configures for a sent **command** whether a **response** should be sent back. | `Boolean` - default: `true` |
+| `requested-acks` | Defining which [acknowledgements](basic-acknowledgements.html) are requested for a command processed by Ditto. | `JsonArray` of `String` - default: `["twin-persisted"]` |
+| `timeout` | The timeout value to apply on the Ditto server side, e.g. applied when waiting for requested acknowledgements. | `String` - e.g.: `42s` or `250ms` or `1m` |
+| `version` | Determines in which schema version the sent along `payload` should be interpreted. | `Number` - currently: \[1,2\] |
 
 Custom headers of messages through the [live channel](protocol-twinlive.html) are delivered verbatim. When naming 
 custom headers, it is best to attach a prefix specific to your application that does not conflict with Ditto or
@@ -109,11 +112,3 @@ Some Protocol messages (for example **responses**) contain a HTTP status code wh
 
 When [signal enrichment](basic-enrichment.html) was used in order to ask for `extraFields` to be included, the
 Ditto Protocol message contains a field `extra` containing a JSON object with the selected extra fields.
-
-## ACK
-Requests can specify a number of acknowledgements (ACKs) which have to be successfully fulfilled to regard the request
-(command) as successfully executed.
-
-An ACK is formatted as JSON object (`content-type=application/json`) and must correspond to the following JSON schema:
-
-{% include docson.html schema="jsonschema/protocol-ack.json" %}

@@ -19,6 +19,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.Query;
 import akka.http.javadsl.model.Uri;
 
 /**
@@ -36,11 +37,12 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
 
     @Override
     public Uri get() {
-        final Uri requestUri = httpRequest.getUri();
+        final Uri requestUri = httpRequest.getUri().query(Query.EMPTY); // strip query params
         if (isRequestIdempotent()) {
-            return requestUri;
+            return requestUri.query(Query.EMPTY);
         }
-        return Uri.create(removeTrailingSlash(getLocationUriString(removeEntityId(requestUri.toString()))));
+        return Uri.create(removeTrailingSlash(getLocationUriString(removeEntityId(requestUri.toString()))))
+                .query(Query.EMPTY);
     }
 
     private boolean isRequestIdempotent() {

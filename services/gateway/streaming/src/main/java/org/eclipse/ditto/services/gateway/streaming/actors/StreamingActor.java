@@ -167,7 +167,6 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
                         .match(Acknowledgement.class, acknowledgement ->
-                                // TODO TJ remove this match again after merge from search feature branch
                                 lookupSessionActor(acknowledgement, sessionActor ->
                                         sessionActor.forward(acknowledgement, getContext())
                                 )

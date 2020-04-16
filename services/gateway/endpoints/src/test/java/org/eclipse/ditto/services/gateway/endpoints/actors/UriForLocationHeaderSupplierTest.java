@@ -37,6 +37,17 @@ public final class UriForLocationHeaderSupplierTest {
     @Test
     public void getUriForIdempotentRequest() {
         final Uri uri = Uri.create("https://example.com/plumbus");
+        checkUriForIdempotentRequest(uri, uri);
+    }
+
+    @Test
+    public void getUriForIdempotentRequestWithQueryParam() {
+        final Uri expectedUri = Uri.create("https://example.com/plumbus");
+        final Uri uri = Uri.create("https://example.com/plumbus?timeout=5s");
+        checkUriForIdempotentRequest(expectedUri, uri);
+    }
+
+    private void checkUriForIdempotentRequest(final Uri expectedUri, final Uri uri) {
         final HttpRequest httpRequest = HttpRequest.create()
                 .withUri(uri)
                 .withMethod(HttpMethods.PUT);
@@ -44,12 +55,23 @@ public final class UriForLocationHeaderSupplierTest {
         final UriForLocationHeaderSupplier underTest =
                 new UriForLocationHeaderSupplier(httpRequest, mock(CommandResponse.class));
 
-        assertThat(underTest.get()).isEqualTo(uri);
+        assertThat(underTest.get()).isEqualTo(expectedUri);
     }
 
     @Test
     public void getUriForNonIdempotentRequestWithoutEntityIdInUri() {
         final Uri uri = Uri.create("https://example.com/things");
+        checkUriForNonIdempotentRequestWithoutEntityIdInUri(uri, uri);
+    }
+
+    @Test
+    public void getUriForNonIdempotentRequestWithoutEntityIdInUriWithQueryParam() {
+        final Uri expectedBaseUri = Uri.create("https://example.com/things");
+        final Uri uri = Uri.create("https://example.com/things?timeout=42&response-required=false");
+        checkUriForNonIdempotentRequestWithoutEntityIdInUri(expectedBaseUri, uri);
+    }
+
+    private void checkUriForNonIdempotentRequestWithoutEntityIdInUri(final Uri expectedBaseUri, final Uri uri) {
         final HttpRequest httpRequest = HttpRequest.create()
                 .withUri(uri)
                 .withMethod(HttpMethods.POST);
@@ -57,7 +79,8 @@ public final class UriForLocationHeaderSupplierTest {
         when(commandResponse.getEntityId()).thenReturn(KNOWN_ENTITY_ID);
         when(commandResponse.getResourcePath()).thenReturn(JsonPointer.of(KNOWN_RESOURCE_PATH));
         final Uri expectedUri =
-                Uri.create(uri.toString() + "/" + commandResponse.getEntityId() + commandResponse.getResourcePath());
+                Uri.create(expectedBaseUri.toString() + "/" + commandResponse.getEntityId() +
+                        commandResponse.getResourcePath());
 
         final UriForLocationHeaderSupplier underTest = new UriForLocationHeaderSupplier(httpRequest, commandResponse);
 
