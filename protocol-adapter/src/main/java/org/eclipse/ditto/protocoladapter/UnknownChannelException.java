@@ -57,6 +57,7 @@ public final class UnknownChannelException extends DittoRuntimeException {
      * A mutable builder for a {@code UnknownChannelException}.
      *
      * @param channel the channel not supported.
+     * @param type the type of the signal for which the channel is not supported.
      * @return the builder.
      */
     public static Builder newBuilder(final TopicPath.Channel channel, final String type) {

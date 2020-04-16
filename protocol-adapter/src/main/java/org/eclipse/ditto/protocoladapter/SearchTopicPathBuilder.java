@@ -66,7 +66,7 @@ public interface SearchTopicPathBuilder extends TopicPathBuildable {
     TopicPathBuildable hasNext();
 
     /**
-     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#CREATED}. A previously set action is replaced.
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#GENERATED}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.
      * @since 1.2.0
