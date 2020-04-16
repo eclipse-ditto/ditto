@@ -45,7 +45,12 @@ public enum ConnectionType implements CharSequence {
     /**
      * Indicates an HTTP-connection with targets only.
      */
-    HTTP_PUSH("http-push");
+    HTTP_PUSH("http-push"),
+    
+    /**
+     * Indicates a MQTT 5 connection.
+     */
+    MQTT_5("mqtt-5");
 
     private final String name;
 

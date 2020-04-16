@@ -38,3 +38,12 @@ The slides can be found here: [2018_10_22-eclipse-iot-wg-f2f-ludwigsburg](slides
 Topic: Project status update of Eclipse Ditto
 
 The slides can be found here: [2019_10_21-eclipse-iot-wg-f2f-ludwigsburg](slides/2019_10_21-eclipse-iot-wg-f2f-ludwigsburg/index.html).
+
+## 16.04.2020 The Things Network Virtual Conference 2020 #StayHome
+
+Topic: Eclipse Ditto: Digital Twins as part of an open IoT platform
+
+The slides can be found here: [2020_04_16-ttn-virtual-conference](slides/2020_04_16-ttn-virtual-conference/index.html).
+
+The blogpost for the hands-on part, connecting Ditto to The Things Network via MQTT can be found 
+[here](2020-04-16-connecting-to-ttn-via-mqtt.html).

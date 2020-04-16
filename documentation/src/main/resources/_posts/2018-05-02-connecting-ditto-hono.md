@@ -10,6 +10,8 @@ sidebar: false
 toc: true
 ---
 
+{% include warning.html content="This guide does no longer work with the latest (1.x) versions of Ditto + Hono. Please take a look and make use of the [Eclipse IoT Packages \"cloud2edge\" package](https://www.eclipse.org/packages/packages/cloud2edge/) in order to setup and automatically connect Ditto + Hono." %}
+
 With the recently released Ditto milestone [0.3.0-M1](2018-04-26-milestone-announcement-030-M1.html) the `connectivity`
 to AMQP 1.0 endpoints can now be established in a durable and stable way (including failovers, etc.).
 

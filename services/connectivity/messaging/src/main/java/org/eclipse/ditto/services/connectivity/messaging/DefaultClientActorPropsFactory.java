@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClient
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;
@@ -60,6 +61,9 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 break;
             case MQTT:
                 result = HiveMqtt3ClientActor.props(connection, conciergeForwarder, connectionActor);
+                break;
+            case MQTT_5:
+                result = HiveMqtt5ClientActor.props(connection, conciergeForwarder);
                 break;
             case KAFKA:
                 result = KafkaClientActor.props(connection, conciergeForwarder, connectionActor,
