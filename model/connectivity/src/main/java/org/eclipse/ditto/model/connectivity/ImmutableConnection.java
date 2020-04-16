@@ -683,6 +683,7 @@ final class ImmutableConnection implements Connection {
                 case AMQP_091:
                 case AMQP_10:
                 case KAFKA:
+                case MQTT_5:
                     return true;
                 case MQTT:
                 case HTTP_PUSH:

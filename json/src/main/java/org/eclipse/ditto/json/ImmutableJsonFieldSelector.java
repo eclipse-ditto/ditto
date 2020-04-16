@@ -31,7 +31,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableJsonFieldSelector implements JsonFieldSelector {
 
-    private static final String COMMA = ",";
+    static final String COMMA = ",";
 
     private final Set<JsonPointer> pointers;
     private final String jsonFieldSelectorString;

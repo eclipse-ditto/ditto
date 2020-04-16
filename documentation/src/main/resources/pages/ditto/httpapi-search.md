@@ -27,7 +27,8 @@ Optionally a `namespaces` parameter can be added to search only in the given nam
 ## Query parameters
 
 In order to define for which `Things` to search, the `filter` query parameter has to be added.<br/>
-In order to change the sorting and limit the result (also to do paging), the `options` parameter has to be added.
+In order to change the sorting and limit the result (also to do paging), the `option` parameter has to be added.
+Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
 
 Complex example:
 ```

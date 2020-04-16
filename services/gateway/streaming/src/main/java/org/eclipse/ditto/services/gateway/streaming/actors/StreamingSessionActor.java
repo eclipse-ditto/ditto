@@ -52,6 +52,7 @@ import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
@@ -61,8 +62,12 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -85,6 +90,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final ActorRef eventAndResponsePublisher;
     private final AcknowledgementConfig acknowledgementConfig;
     private final HeaderTranslator headerTranslator;
+    private final ActorRef subscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
     private final DittoDiagnosticLoggingAdapter logger;
@@ -97,7 +103,8 @@ final class StreamingSessionActor extends AbstractActor {
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef eventAndResponsePublisher,
             final AcknowledgementConfig acknowledgementConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final Props subscriptionManagerProps) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
         connectionCorrelationId = connect.getConnectionCorrelationId();
@@ -114,6 +121,8 @@ final class StreamingSessionActor extends AbstractActor {
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
+        this.subscriptionManager =
+                getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -126,16 +135,18 @@ final class StreamingSessionActor extends AbstractActor {
      * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
      * @param acknowledgementConfig the config to apply for Acknowledgements.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param subscriptionManagerProps Props of the subscription manager for search protocol.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef eventAndResponsePublisher,
             final AcknowledgementConfig acknowledgementConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final Props subscriptionManagerProps) {
 
         return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher,
-                acknowledgementConfig, headerTranslator);
+                acknowledgementConfig, headerTranslator, subscriptionManagerProps);
     }
 
     @Override
@@ -288,10 +299,17 @@ final class StreamingSessionActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        if (signal instanceof CommandResponse) {
+        if (signal instanceof CreateSubscription || signal instanceof RequestFromSubscription ||
+                signal instanceof CancelSubscription) {
+            subscriptionManager.tell(signal, getSelf());
+        } else if (signal instanceof SubscriptionEvent) {
+            logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                    signal.getType(), type, signal);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent<?>) signal), getSelf());
+        } else if (signal instanceof CommandResponse) {
             logger.debug("Got CommandResponse <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                     signal.getType(), type, signal);
-            eventAndResponsePublisher.forward(SessionedJsonifiable.response((CommandResponse) signal), getContext());
+            eventAndResponsePublisher.forward(SessionedJsonifiable.response((CommandResponse<?>) signal), getContext());
         } else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);

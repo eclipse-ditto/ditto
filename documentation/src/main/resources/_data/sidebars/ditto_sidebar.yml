@@ -237,6 +237,8 @@ entries:
       output: web
     - title: MQTT 3.1.1 protocol binding
       url: /connectivity-protocol-bindings-mqtt.html
+    - title: MQTT 5 protocol binding
+      url: /connectivity-protocol-bindings-mqtt5.html
       output: web
     - title: HTTP 1.1 protocol binding
       url: /connectivity-protocol-bindings-http.html
@@ -519,7 +521,7 @@ entries:
           url: /protocol-examples-policies-createresource.html
           output: web
         - title: Delete a single resource
-          url: /examples/protocol-examples-policies-deleteresource.html
+          url: /protocol-examples-policies-deleteresource.html
           output: web
         - title: Modify a single resource
           url: /protocol-examples-policies-modifyresource.html
@@ -530,7 +532,9 @@ entries:
         - title: Error responses
           url: /protocol-examples-policies-errorresponses.html
           output: web
-
+    - title: → Search examples
+      url: /protocol-examples-search.html
+      output: web
   - title: Sandbox
     url: /sandbox.html
     output: web

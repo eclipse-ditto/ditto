@@ -32,21 +32,21 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.DefaultCommandConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
-import org.eclipse.ditto.services.gateway.health.config.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.gateway.security.config.AuthenticationConfig;
-import org.eclipse.ditto.services.gateway.security.config.DefaultAuthenticationConfig;
-import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
-import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultPublicHealthConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.PublicHealthConfig;
+import org.eclipse.ditto.services.gateway.util.config.health.DefaultHealthCheckConfig;
+import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.DefaultAuthenticationConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -227,10 +227,11 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
             } else {
                 dittoHeaders = DittoHeaders.empty();
             }
-            final DummyThingModifyCommandResponse response = new DummyThingModifyCommandResponse("testonly.response.type",
-                    HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
-                            .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
-                    dittoHeaders, m instanceof Jsonifiable ? ((Jsonifiable) m).toJson() : null);
+            final DummyThingModifyCommandResponse response =
+                    new DummyThingModifyCommandResponse("testonly.response.type",
+                            HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
+                                    .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
+                            dittoHeaders, m instanceof Jsonifiable ? ((Jsonifiable) m).toJson() : null);
             return Optional.of(response);
         }
 

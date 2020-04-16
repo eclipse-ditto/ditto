@@ -27,7 +27,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 
 /**
@@ -39,9 +41,11 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     private final ThingModifyCommandAdapter modifyCommandAdapter;
     private final ThingQueryCommandResponseAdapter queryCommandResponseAdapter;
     private final ThingModifyCommandResponseAdapter modifyCommandResponseAdapter;
+    private final ThingSearchCommandAdapter searchCommandAdapter;
     private final MessageCommandAdapter messageCommandAdapter;
     private final MessageCommandResponseAdapter messageCommandResponseAdapter;
-    private final ThingEventAdapter eventAdapter;
+    private final ThingEventAdapter thingEventAdapter;
+    private final SubscriptionEventAdapter subscriptionEventAdapter;
     private final ThingErrorResponseAdapter errorResponseAdapter;
 
     public DefaultThingCommandAdapterProvider(final ErrorRegistry<DittoRuntimeException> errorRegistry,
@@ -50,9 +54,11 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
         this.modifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
         this.queryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         this.modifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        this.searchCommandAdapter = ThingSearchCommandAdapter.of(headerTranslator);
         this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
         this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
-        this.eventAdapter = ThingEventAdapter.of(headerTranslator);
+        this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        this.subscriptionEventAdapter = SubscriptionEventAdapter.of(headerTranslator, errorRegistry);
         this.errorResponseAdapter = ThingErrorResponseAdapter.of(headerTranslator, errorRegistry);
     }
 
@@ -63,7 +69,12 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
 
     @Override
     public Adapter<ThingEvent<?>> getEventAdapter() {
-        return eventAdapter;
+        return thingEventAdapter;
+    }
+
+    @Override
+    public Adapter<SubscriptionEvent<?>> getSubscriptionEventAdapter() {
+        return subscriptionEventAdapter;
     }
 
     @Override
@@ -85,7 +96,9 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
                 modifyCommandResponseAdapter,
                 messageCommandAdapter,
                 messageCommandResponseAdapter,
-                eventAdapter,
+                thingEventAdapter,
+                searchCommandAdapter,
+                subscriptionEventAdapter,
                 errorResponseAdapter
         );
     }
@@ -109,4 +122,10 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     public Adapter<MessageCommandResponse<?, ?>> getMessageCommandResponseAdapter() {
         return messageCommandResponseAdapter;
     }
+
+    @Override
+    public Adapter<ThingSearchCommand<?>> getSearchCommandAdapter() {
+        return searchCommandAdapter;
+    }
+
 }

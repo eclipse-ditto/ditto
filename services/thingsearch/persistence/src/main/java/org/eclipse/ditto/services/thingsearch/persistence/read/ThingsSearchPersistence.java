@@ -30,6 +30,7 @@ import akka.stream.javadsl.Source;
 
 /**
  * Interface for thing operations on the persistence used within the search service.
+ * @since 1.0.0
  */
 public interface ThingsSearchPersistence {
 
@@ -76,6 +77,19 @@ public interface ThingsSearchPersistence {
      * @throws NullPointerException if {@code query} is {@code null}.
      */
     Source<ResultList<ThingId>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
+            @Nullable Set<String> namespaces);
+
+    /**
+     * Stream the IDs for all found documents without result size limit.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
+     * @return an {@link Source} which emits the IDs.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     * @since 1.1.0
+     */
+    Source<ThingId, NotUsed> findAllUnlimited(Query query, List<String> authorizationSubjectIds,
             @Nullable Set<String> namespaces);
 
     /**

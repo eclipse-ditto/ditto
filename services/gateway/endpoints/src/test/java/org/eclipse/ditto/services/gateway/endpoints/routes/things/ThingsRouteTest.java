@@ -97,7 +97,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
         final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
                 .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
-                        .withContentType(ContentTypes.TEXT_PLAIN_UTF8)))
+                        .withContentType(ContentTypes.APPLICATION_JSON)))
                 .entityString();
         assertThat(JsonObject.of(jsonStringResponse)).contains(JsonKey.of("type"), ModifyPolicyId.TYPE);
     }
@@ -110,7 +110,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
         final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
-                        .withContentType(ContentTypes.TEXT_PLAIN_UTF8)))
+                        .withContentType(ContentTypes.APPLICATION_JSON)))
                 .entityString();
         assertThat(JsonObject.of(jsonStringResponse)).contains(JsonKey.of("type"), ModifyThingDefinition.TYPE);
     }

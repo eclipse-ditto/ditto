@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownPathException;
 
 /**
@@ -65,9 +66,10 @@ abstract class AbstractThingMappingStrategies<T extends Jsonifiable.WithPredicat
         return adaptable.getPayload().getFields().orElse(null);
     }
 
+    @Nullable
     protected static String namespaceFrom(final Adaptable adaptable) {
         final String namespace = adaptable.getTopicPath().getNamespace();
-        return "_".equals(namespace) ? null : namespace;
+        return TopicPath.ID_PLACEHOLDER.equals(namespace) ? null : namespace;
     }
 
     protected static Thing thingFrom(final Adaptable adaptable) {

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -83,6 +84,16 @@ public interface Adapter<T extends Jsonifiable<?>> {
      * @return the set of actions.
      */
     Set<TopicPath.Action> getActions();
+
+    /**
+     * Return the set of search actions supported by this adapter.
+     * It is the empty set by default.
+     *
+     * @return the collection of supported search actions.
+     */
+    default Set<TopicPath.SearchAction> getSearchActions() {
+        return Collections.emptySet();
+    }
 
     /**
      * Retrieve whether this adapter is for responses.

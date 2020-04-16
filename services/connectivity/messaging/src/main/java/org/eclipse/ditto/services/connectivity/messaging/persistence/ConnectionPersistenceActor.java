@@ -63,7 +63,8 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Validator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt5Validator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands.ConnectionCreatedStrategies;
@@ -104,6 +105,10 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -144,9 +149,13 @@ public final class ConnectionPersistenceActor
 
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
+    // number of client actors to start per node
+    private static final int CLIENT_ACTORS_PER_NODE = 1;
+
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final ClientActorPropsFactory propsFactory;
+    private final int clientActorsPerNode;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final ConnectionLogger connectionLogger;
     private Instant connectionClosedAt = Instant.now();
@@ -164,12 +173,14 @@ public final class ConnectionPersistenceActor
     private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
 
-    @SuppressWarnings("unused")
-    private ConnectionPersistenceActor(final ConnectionId connectionId,
+    private int subscriptionCounter = 0;
+
+    ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
+            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator,
+            final int clientActorsPerNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
@@ -188,13 +199,14 @@ public final class ConnectionPersistenceActor
                         connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
-                        MqttValidator.newInstance(),
+                        Mqtt3Validator.newInstance(),
+                        Mqtt5Validator.newInstance(),
                         KafkaValidator.getInstance(),
                         HttpPushValidator.newInstance());
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, getSelf(),
-                        connectionValidator, actorSystem);
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, getSelf(), connectionValidator,
+                        actorSystem);
 
         if (customCommandValidator != null) {
             commandValidator =
@@ -216,6 +228,7 @@ public final class ConnectionPersistenceActor
 
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
+        this.clientActorsPerNode = clientActorsPerNode;
     }
 
     /**
@@ -235,8 +248,7 @@ public final class ConnectionPersistenceActor
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, conciergeForwarder,
-                propsFactory,
-                commandValidator);
+                propsFactory, commandValidator, CLIENT_ACTORS_PER_NODE);
     }
 
     @Override
@@ -449,6 +461,8 @@ public final class ConnectionPersistenceActor
     protected void matchAnyAfterInitialization(final Object message) {
         if (message instanceof Acknowledgement) {
             handleAcknowledgement((Acknowledgement) message);
+        } else if (message instanceof ThingSearchCommand) {
+            forwardThingSearchCommandToClientActors((ThingSearchCommand<?>) message);
         } else if (message instanceof Signal) {
             handleSignal((Signal<?>) message);
         } else if (message == CheckLoggingActive.INSTANCE) {
@@ -503,9 +517,84 @@ public final class ConnectionPersistenceActor
                 subscribedAndAuthorizedTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(outbound,
-                outbound.getSource().getEntityId().toString());
+        final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
+    }
+
+    /**
+     * Route search commands according to subscription ID prefix. This is necessary so that for connections with
+     * client count > 1, all commands related to 1 search session are routed to the same client actor. This is achieved
+     * by using a prefix of fixed length of subscription IDs as the hash key of search commands. The length of the
+     * prefix depends on the client count configured in the connection; it is 1 for connections with client count <= 15.
+     * <p>
+     * For the search protocol, all incoming messages are commands (ThingSearchCommand) and all outgoing messages are
+     * events (SubscriptionEvent).
+     * <p>
+     * Message path for incoming search commands:
+     * <pre>
+     * ConsumerActor -> MessageMappingProcessorActor -> ConnectionPersistenceActor -> ClientActor -> SubscriptionManager
+     * </pre>
+     * Message path for outgoing search events:
+     * <pre>
+     * SubscriptionActor -> MessageMappingProcessorActor -> PublisherActor
+     * </pre>
+     *
+     * @param command the command to route.
+     */
+    private void forwardThingSearchCommandToClientActors(final ThingSearchCommand<?> command) {
+        enhanceLogUtil(command);
+        if (clientActorRouter == null) {
+            logDroppedSignal(command.getType(), "Client actor not ready.");
+            return;
+        }
+        if (entity == null) {
+            logDroppedSignal(command.getType(), "No Connection configuration available.");
+            return;
+        }
+        log.debug("Forwarding <{}> to client actors.", command);
+        if (command instanceof CreateSubscription) {
+            // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+            // ignore any "prefix" field from the command
+            augmentWithPrefixAndForward(clientActorRouter, (CreateSubscription) command);
+        } else if (command instanceof RequestFromSubscription) {
+            // forward the command to a client actor according to the prefix of the subscription ID
+            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(),
+                    command);
+        } else if (command instanceof CancelSubscription) {
+            // same as RequestSubscription
+            computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);
+        } else {
+            // should not happen
+            log.error("Unknown search command, dropping: <{}>", command);
+        }
+    }
+
+    private void augmentWithPrefixAndForward(final ActorRef receiver, final CreateSubscription createSubscription) {
+        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, getClientCount());
+        final int prefixLength = getSubscriptionPrefixLength();
+        final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
+        final CreateSubscription commandToForward = createSubscription.setPrefix(prefix);
+        receiver.tell(consistentHashableEnvelope(commandToForward, prefix), ActorRef.noSender());
+    }
+
+    private void computeEnvelopeAndForward(final ActorRef receiver, final String subscriptionId,
+            final ThingSearchCommand<?> command) {
+        final int prefixLength = getSubscriptionPrefixLength();
+        if (subscriptionId.length() <= prefixLength) {
+            // command is invalid or outdated, dropping.
+            logDroppedSignal(command.getType(), "Invalid subscription ID");
+            return;
+        }
+        final String prefix = subscriptionId.substring(0, prefixLength);
+        receiver.tell(consistentHashableEnvelope(command, prefix), ActorRef.noSender());
+    }
+
+    private Object consistentHashableEnvelope(final Object message, final String hashKey) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
+    }
+
+    private int getSubscriptionPrefixLength() {
+        return Integer.toHexString(getClientCount()).length();
     }
 
     private void checkLoggingEnabled() {
@@ -658,8 +747,7 @@ public final class ConnectionPersistenceActor
 
     private CompletionStage<Object> startAndAskClientActors(final Command<?> cmd, final int clientCount) {
         startClientActorsIfRequired(clientCount);
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(cmd,
-                cmd.getEntityId().toString());
+        final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
@@ -811,7 +899,7 @@ public final class ConnectionPersistenceActor
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
             final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
-                    new ClusterRouterPoolSettings(clientCount, 1, true,
+                    new ClusterRouterPoolSettings(clientCount, clientActorsPerNode, true,
                             Collections.singleton(CLUSTER_ROLE));
             final Pool pool = new ConsistentHashingPool(clientCount);
             final Props clusterRouterPoolProps =

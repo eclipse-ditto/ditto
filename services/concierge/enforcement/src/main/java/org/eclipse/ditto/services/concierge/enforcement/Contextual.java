@@ -129,6 +129,15 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture, changesAuthorization);
     }
 
+    /**
+     * Retrieve the message but tolerate that it may be null.
+     *
+     * @return the optional message.
+     */
+    public Optional<T> getMessageOptional() {
+        return Optional.ofNullable(message);
+    }
+
     @Override
     public T getMessage() {
         if (message == null) {

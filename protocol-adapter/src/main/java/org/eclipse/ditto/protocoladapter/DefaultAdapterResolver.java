@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -58,10 +59,6 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
     private static <T> List<T> filter(final List<T> list, final Predicate<T> predicate) {
         return list.stream().filter(predicate).collect(Collectors.toList());
-    }
-
-    private static <T> List<T> filterNot(final List<T> list, final Predicate<T> predicate) {
-        return filter(list, predicate.negate());
     }
 
     private static <T> T throwUnknownTopicPathException(final Adaptable adaptable) {
@@ -137,7 +134,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
         }
     }
 
-    private static <T> Function<Adaptable, Adapter<?>> selectMatchedAdapters(
+    private static Function<Adaptable, Adapter<?>> selectMatchedAdapters(
             final List<Adapter<?>> matchingAdapters,
             final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStage) {
 
@@ -192,12 +189,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
         return r -> enumMap.get(enumExtractor.apply(r)).apply(r);
     }
 
-    /**
-     * Compute the adapter resolution function according to TopicPath.Action and this#isResponse.
-     *
-     * @param adapters the list of relevant adapters.
-     * @return the adapter resolution function.
-     */
+    // TODO: convert these "evalByOptional" steps to actual step objects
     private static Function<Adaptable, Adapter<?>> actionStep(final List<Adapter<?>> adapters) {
         final EnumMapOrFunction<TopicPath.Action> dispatchByAction =
                 dispatchByEnum(adapters, TopicPath.Action.class, TopicPath.Action.values(),
@@ -205,7 +197,19 @@ final class DefaultAdapterResolver implements AdapterResolver {
         // consider adapters that support no action to be those that support adaptables without action,
         // e. g., message commands and responses
         final List<Adapter<?>> noActionAdapters = filter(adapters, adapter -> adapter.getActions().isEmpty());
-        return dispatchByAction.evalByOptional(finalStep(noActionAdapters), forTopicPath(TopicPath::getAction));
+        return dispatchByAction.evalByOptional(searchActionStep(noActionAdapters), forTopicPath(TopicPath::getAction));
+    }
+
+    private static Function<Adaptable, Adapter<?>> searchActionStep(final List<Adapter<?>> adapters) {
+        final EnumMapOrFunction<TopicPath.SearchAction> dispatchBySearchAction =
+                dispatchByEnum(adapters, TopicPath.SearchAction.class, TopicPath.SearchAction.values(),
+                        Adapter::getSearchActions, DefaultAdapterResolver::finalStep);
+        // consider adapters that support no search action to be those that support adaptables without search action,
+        // e. g.,  all non-search signals
+        final List<Adapter<?>> noSearchActionAdapters =
+                filter(adapters, adapter -> adapter.getSearchActions().isEmpty());
+        return dispatchBySearchAction.evalByOptional(finalStep(noSearchActionAdapters),
+                forTopicPath(TopicPath::getSearchAction));
     }
 
     /**

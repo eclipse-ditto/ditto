@@ -148,6 +148,11 @@ public final class ProtocolFactory {
                             TopicPath.Action.forName(parts.pop())
                                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
+                case SEARCH:
+                    final TopicPath.SearchAction searchAction =
+                            TopicPath.SearchAction.forName(parts.pop())
+                                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, searchAction);
                 case ERRORS:
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);

@@ -14,17 +14,20 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -124,7 +127,7 @@ public class ImmutableEnforcementFilterTest {
                 ThingId.of("eclipse:ditto"));
     }
 
-    @Test(expected = UnresolvedPlaceholderException.class)
+    @Test
     public void testSimplePlaceholderWithUnresolvableMatcherPlaceholder() {
         testSimplePlaceholder(
                 "{{  test:placeholder }}",
@@ -148,7 +151,22 @@ public class ImmutableEnforcementFilterTest {
         testDeviceIdHeaderEnforcement("entity", DefaultNamespacedEntityId.of("eclipse:ditto"));
     }
 
-    public void testDeviceIdHeaderEnforcement(final String prefix, final NamespacedEntityId namespacedEntityId) {
+    @Test
+    public void testThingSearchFilter() {
+        final CreateSubscription command =
+                CreateSubscription.of(DittoHeaders.empty())
+                        .setNamespaces(new HashSet<>(Arrays.asList("a", "b", "c")));
+        testDeviceIdHeaderEnforcement("entity", command.getEntityId());
+        testDeviceIdHeaderEnforcement("policy", command.getEntityId());
+        testDeviceIdHeaderEnforcement("thing", command.getEntityId());
+
+        final SubscriptionComplete event = SubscriptionComplete.of("abc", DittoHeaders.empty());
+        testDeviceIdHeaderEnforcement("entity", event.getEntityId());
+        testDeviceIdHeaderEnforcement("policy", event.getEntityId());
+        testDeviceIdHeaderEnforcement("thing", event.getEntityId());
+    }
+
+    public void testDeviceIdHeaderEnforcement(final String prefix, final CharSequence namespacedEntityId) {
         final HashMap<String, String> map = new HashMap<>();
         map.put("device_id", "eclipse:ditto");
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ header:device_id }}",

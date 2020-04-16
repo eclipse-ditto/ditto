@@ -92,6 +92,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-thingsearch</artifactId>
+        </dependency>
 
         <!-- ### Provided ### -->
         <dependency>
@@ -220,8 +224,9 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <!-- returned more generic Map<String, String> instead of DittoHeaders which is binary compatible: -->
+                            <!-- TODO: resolve binary compatibility problems -->
                             <exclude>org.eclipse.ditto.protocoladapter.HeaderTranslator#fromExternalHeaders(java.util.Map)</exclude>
+                            <exclude>org.eclipse.ditto.protocoladapter.TopicPathBuilder</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

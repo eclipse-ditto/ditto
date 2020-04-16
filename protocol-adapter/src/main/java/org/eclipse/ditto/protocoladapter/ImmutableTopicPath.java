@@ -41,10 +41,11 @@ final class ImmutableTopicPath implements TopicPath {
     private final Criterion criterion;
     @Nullable private final Action action;
     @Nullable private final String subject;
+    @Nullable private final SearchAction searchAction;
     private final String path;
 
     private ImmutableTopicPath(final String namespace, final String id, final Group group,
-            @Nullable final Channel channel, final Criterion criterion, @Nullable final Action action,
+            @Nullable final Channel channel, final Criterion criterion, @Nullable final Action action, @Nullable final SearchAction searchAction,
             @Nullable final String subject) {
         this.namespace = checkNotNull(namespace, PROP_NAME_NAMESPACE);
         this.id = checkNotNull(id, PROP_NAME_ID);
@@ -52,6 +53,7 @@ final class ImmutableTopicPath implements TopicPath {
         this.channel = checkChannelArgument(channel, group);
         this.criterion = checkNotNull(criterion, PROP_NAME_CRITERION);
         this.action = action;
+        this.searchAction = searchAction;
         this.subject = subject;
         this.path = buildPath();
     }
@@ -82,12 +84,12 @@ final class ImmutableTopicPath implements TopicPath {
      */
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel, final Criterion criterion) {
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null);
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null, null);
     }
 
     /**
      * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
-     * {@code channel}, {@code criterion} and {@code action}.
+     * {@code criterion} and {@code action}.
      *
      * @param namespace the namespace.
      * @param id the id.
@@ -101,8 +103,9 @@ final class ImmutableTopicPath implements TopicPath {
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel, final Criterion criterion, final Action action) {
         checkNotNull(action, "action");
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null);
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null, null);
     }
+
 
     /**
      * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
@@ -120,7 +123,26 @@ final class ImmutableTopicPath implements TopicPath {
     public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
             final Channel channel, final Criterion criterion, final String subject) {
         checkNotNull(subject, "subject");
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, subject);
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null, subject);
+    }
+
+    /**
+     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
+     * {@code criterion} and {@code action}
+     *
+     * @param namespace the namespace.
+     * @param id the id.
+     * @param group the group.
+     * @param channel the channel.
+     * @param criterion the criterion.
+     * @param searchAction the subject of the path.
+     * @return the TopicPath.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
+            final Channel channel, final Criterion criterion, final SearchAction searchAction) {
+        checkNotNull(searchAction, "searchAction");
+        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, searchAction, null);
     }
 
     @Override
@@ -146,6 +168,11 @@ final class ImmutableTopicPath implements TopicPath {
     @Override
     public Optional<Action> getAction() {
         return Optional.ofNullable(action);
+    }
+
+    @Override
+    public Optional<SearchAction> getSearchAction() {
+        return Optional.ofNullable(searchAction);
     }
 
     @Override
@@ -175,19 +202,20 @@ final class ImmutableTopicPath implements TopicPath {
         final ImmutableTopicPath that = (ImmutableTopicPath) o;
         return Objects.equals(namespace, that.namespace) && Objects.equals(id, that.id) && group == that.group
                 && channel == that.channel && criterion == that.criterion && Objects.equals(action, that.action) &&
+                Objects.equals(searchAction, that.searchAction) &&
                 Objects.equals(subject, that.subject) && Objects.equals(path, that.path);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, id, group, channel, criterion, action, path, subject);
+        return Objects.hash(namespace, id, group, channel, criterion, action, searchAction, path, subject);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + id + ", group=" + group +
-                ", channel=" + channel + ", criterion=" + criterion + ", action=" + action + ", subject=" + subject +
-                ", path=" + path + ']';
+                ", channel=" + channel
+                + ", criterion=" + criterion + ", action=" + action + ", searchAction=" + searchAction + ", subject=" + subject + ", path=" + path + ']';
     }
 
     private String buildPath() {
@@ -208,6 +236,8 @@ final class ImmutableTopicPath implements TopicPath {
         } else if (subject != null) {
             // e.g.: <ns>/<id>/things/live/messages/<subject>
             builder.append(PATH_DELIMITER).append(subject);
+        }else if (searchAction != null) {
+            builder.append(PATH_DELIMITER).append(searchAction);
         }
 
         return builder.toString();

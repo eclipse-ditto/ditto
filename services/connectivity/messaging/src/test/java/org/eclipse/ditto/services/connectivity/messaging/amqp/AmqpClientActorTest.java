@@ -144,7 +144,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static ActorSystem actorSystem;
     private static Connection connection;
-    private final ConnectivityStatus connectionStatus = ConnectivityStatus.OPEN;
 
     @Mock
     private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
@@ -223,7 +222,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         final ThrowableAssert.ThrowingCallable props1 =
                 () -> AmqpClientActor.propsForTests(connection, ActorRef.noSender(), null, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> AmqpClientActor.propsForTests(connection, ActorRef.noSender(),null, jmsConnectionFactory);
+                () -> AmqpClientActor.propsForTests(connection, ActorRef.noSender(), null, jmsConnectionFactory);
 
         Stream.of(props1, props2).forEach(throwingCallable ->
                 assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -408,7 +407,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testCreateSessionFails() throws JMSException {
         new TestKit(actorSystem) {{
-            doThrow(JMS_EXCEPTION).when(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
+            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenThrow(JMS_EXCEPTION);
             final Props props =
                     AmqpClientActor.propsForTests(connection, getRef(),
                             getRef(), (ac, el) -> mockConnection);
@@ -423,7 +422,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void testCreateConsumerFails() throws JMSException {
         new TestKit(actorSystem) {{
             doReturn(mockSession).when(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
-            doThrow(JMS_EXCEPTION).when(mockSession).createConsumer(any());
+            when(mockSession.createConsumer(any())).thenThrow(JMS_EXCEPTION);
             final Props props =
                     AmqpClientActor.propsForTests(connection, getRef(),
                             getRef(), (ac, el) -> mockConnection);
@@ -521,12 +520,14 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 c -> {
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT))) {
+                            .equals(TestConstants.Authorization.withUnprefixedSubjects(
+                                    Authorization.SOURCE_SPECIFIC_CONTEXT))) {
                         messageReceivedForSourceContext.set(true);
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT))) {
+                            .equals(TestConstants.Authorization.withUnprefixedSubjects(
+                                    Authorization.SOURCE_SPECIFIC_CONTEXT))) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -541,7 +542,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT)));
+                        .isEqualTo(TestConstants.Authorization.withUnprefixedSubjects(
+                                Authorization.SOURCE_SPECIFIC_CONTEXT)));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
@@ -722,9 +724,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             // GIVEN: JMS session fails, but the JMS connection can create a new functional session
             final Session mockSession2 = Mockito.mock(Session.class);
             final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
-            doThrow(new IllegalStateException("expected exception"))
-                    .when(mockSession)
-                    .createConsumer(any());
+            when(mockSession.createConsumer(any()))
+                    .thenThrow(new IllegalStateException("expected exception"));
             doReturn(mockSession2).when(mockConnection).createSession(anyInt());
             doReturn(mockConsumer2).when(mockSession2).createConsumer(any());
 

@@ -73,13 +73,13 @@ final class ImmutablePayload implements Payload {
         final String readPath = jsonObject.getValueOrThrow(JsonFields.PATH);
 
         final ImmutablePayloadBuilder payloadBuilder = getBuilder(JsonFactory.newPointer(readPath))
-                        .withValue(jsonObject.getValue(JsonFields.VALUE).orElse(null))
-                        .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
-                        .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatusCode::forInt).orElse(null))
-                        .withTimestamp(jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null))
-                        .withFields(jsonObject.getValue(JsonFields.FIELDS)
-                                .map(JsonFieldSelector::newInstance)
-                                .orElse(null));
+                .withValue(jsonObject.getValue(JsonFields.VALUE).orElse(null))
+                .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
+                .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatusCode::forInt).orElse(null))
+                .withTimestamp(jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null))
+                .withFields(jsonObject.getValue(JsonFields.FIELDS)
+                        .map(JsonFactory::parseJsonFieldSelector)
+                        .orElse(null));
 
         jsonObject.getValue(JsonFields.REVISION).ifPresent(payloadBuilder::withRevision);
 

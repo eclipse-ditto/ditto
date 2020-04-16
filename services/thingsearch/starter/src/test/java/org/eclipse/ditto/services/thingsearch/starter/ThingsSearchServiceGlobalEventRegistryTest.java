@@ -15,11 +15,12 @@ package org.eclipse.ditto.services.thingsearch.starter;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 
 public final class ThingsSearchServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ThingsSearchServiceGlobalEventRegistryTest() {
-        super(ResourceDeleted.class, FeatureDeleted.class);
+        super(ResourceDeleted.class, FeatureDeleted.class, ThingsOutOfSync.class);
     }
 
 }

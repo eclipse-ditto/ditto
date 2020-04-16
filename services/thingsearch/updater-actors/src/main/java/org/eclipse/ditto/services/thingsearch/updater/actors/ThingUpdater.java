@@ -207,7 +207,6 @@ final class ThingUpdater extends AbstractActor {
     }
 
     private void acknowledge(final IdentifiableStreamingMessage message) {
-        // TODO: acknowledge from persistence
         final ActorRef sender = getSender();
         if (!getContext().system().deadLetters().equals(sender)) {
             getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());

@@ -39,19 +39,19 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -132,13 +132,15 @@ public final class RootRouteTest extends EndpointTestBase {
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
         final ActorRef proxyActor = createDummyResponseActor();
+
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
         final Route rootRoute = RootRoute.getBuilder(httpConfig)
-                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig, headerTranslator))
+                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
+                        headerTranslator))
                 .statusRoute(new StatusRoute(clusterStatusSupplier, createHealthCheckingActorMock(), actorSystem))
                 .overallStatusRoute(
                         new OverallStatusRoute(clusterStatusSupplier, statusAndHealthProvider, devOpsConfig))
@@ -146,11 +148,12 @@ public final class RootRouteTest extends EndpointTestBase {
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
                         headerTranslator))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig))
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig, proxyActor))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
-                                claimMessageConfig, headerTranslator))
-                .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, actorSystem.eventStream()))
+                        claimMessageConfig, headerTranslator))
+                .thingSearchRoute(
+                        new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
@@ -243,7 +246,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 .build();
 
         final TestRouteResult result =
-                rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(pathBuilder.toString()))));
+                rootTestRoute.run(
+                        withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(pathBuilder.toString()))));
 
         result.assertEntity(expectedEx.toJsonString());
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
@@ -260,7 +264,8 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getThingsUrlWithIds() {
         final TestRouteResult result =
-                rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS))));
+                rootTestRoute.run(
+                        withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS))));
 
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
@@ -299,7 +304,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 ThingsParameter.IDS + "=bumlux";
 
         final TestRouteResult result = rootTestRoute.run(
-                withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(thingsUrlWithIdsWithNonExistingVersionNumber))));
+                withHttps(withPreAuthenticatedAuthentication(
+                        HttpRequest.GET(thingsUrlWithIdsWithNonExistingVersionNumber))));
 
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }

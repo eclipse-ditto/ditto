@@ -61,7 +61,7 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused")
     private HttpPushClientActor(final Connection connection, final ActorRef connectionActor) {
-        super(connection, null, connectionActor);
+        super(connection, ActorRef.noSender(), connectionActor);
 
         httpPushConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

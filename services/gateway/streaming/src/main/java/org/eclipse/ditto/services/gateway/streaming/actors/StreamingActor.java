@@ -28,13 +28,13 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
@@ -42,9 +42,11 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import com.typesafe.config.Config;
 
@@ -55,6 +57,7 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.ActorMaterializer;
 
 /**
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
@@ -73,7 +76,11 @@ public final class StreamingActor extends AbstractActorWithTimers
     private final Gauge streamingSessionsCounter;
     private final JwtValidator jwtValidator;
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
+    private final Props subscriptionManagerProps;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final HeaderTranslator headerTranslator;
+
+    private StreamingConfig streamingConfig;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
@@ -84,15 +91,14 @@ public final class StreamingActor extends AbstractActorWithTimers
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private StreamingConfig streamingConfig;
-    private final HeaderTranslator headerTranslator;
-
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
             final StreamingConfig streamingConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
@@ -101,6 +107,9 @@ public final class StreamingActor extends AbstractActorWithTimers
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();
         jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
+        subscriptionManagerProps =
+                SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator, conciergeForwarder,
+                        ActorMaterializer.create(getContext()));
         scheduleScrapeStreamSessionsCounter();
     }
 
@@ -117,10 +126,12 @@ public final class StreamingActor extends AbstractActorWithTimers
             final ActorRef commandRouter,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
             final StreamingConfig streamingConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
         return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory,
-                streamingConfig, headerTranslator);
+                streamingConfig, headerTranslator, pubSubMediator, conciergeForwarder);
     }
 
     @Override
@@ -138,7 +149,8 @@ public final class StreamingActor extends AbstractActorWithTimers
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,
-                                    streamingConfig.getAcknowledgementConfig(), headerTranslator),
+                                    streamingConfig.getAcknowledgementConfig(), headerTranslator,
+                                    subscriptionManagerProps),
                             connectionCorrelationId);
                 })
                 .match(StartStreaming.class,
@@ -155,10 +167,10 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
                         .match(Acknowledgement.class, acknowledgement ->
-                            // TODO TJ remove this match again after merge from search feature branch
-                            lookupSessionActor(acknowledgement, sessionActor ->
-                                    sessionActor.forward(acknowledgement, getContext())
-                            )
+                                // TODO TJ remove this match again after merge from search feature branch
+                                lookupSessionActor(acknowledgement, sessionActor ->
+                                        sessionActor.forward(acknowledgement, getContext())
+                                )
                         )
                         .match(Signal.class, this::handleSignal)
                         .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
@@ -227,7 +239,7 @@ public final class StreamingActor extends AbstractActorWithTimers
     private void handleSignal(final Signal<?> signal) {
         if (signal.getDittoHeaders().isResponseRequired()) {
             lookupSessionActor(signal, sessionActor -> {
-                if (signal instanceof ThingModifyCommand) {
+                if (signal instanceof ThingModifyCommand || signal instanceof ThingSearchCommand) {
                     // also tell the sessionActor so that the sessionActor may start an AcknowledgementAggregator
                     sessionActor.tell(signal, getSelf());
                 }

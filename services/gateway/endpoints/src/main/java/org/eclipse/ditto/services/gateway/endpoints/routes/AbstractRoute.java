@@ -34,10 +34,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
-import org.eclipse.ditto.services.gateway.endpoints.config.CommandConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayTimeoutInvalidE
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -59,6 +61,7 @@ import akka.japi.function.Function;
 import akka.stream.ActorMaterializer;
 import akka.stream.ActorMaterializerSettings;
 import akka.stream.Supervision;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamConverters;
@@ -137,6 +140,24 @@ public abstract class AbstractRoute extends AllDirectives {
      */
     public static Optional<JsonFieldSelector> calculateSelectedFields(final Optional<String> fieldsString) {
         return fieldsString.map(fs -> JsonFactory.newFieldSelector(fs, JSON_FIELD_SELECTOR_PARSE_OPTIONS));
+    }
+
+    /**
+     * Interpret a throttling config and throttle a stream with it.
+     *
+     * @param throttlingConfig the throttling config to interpret.
+     * @param <T> type of elements in the stream.
+     * @return a throttling flow.
+     * @since 1.1.0
+     */
+    public static <T> Flow<T, T, NotUsed> throttleByConfig(final ThrottlingConfig throttlingConfig) {
+        final int limit = throttlingConfig.getLimit();
+        final Duration interval = throttlingConfig.getInterval();
+        if (limit > 0 && interval.negated().isNegative()) {
+            return Flow.<T>create().throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
+        } else {
+            return Flow.create();
+        }
     }
 
     protected Route handlePerRequest(final RequestContext ctx, final Command command) {
@@ -302,7 +323,7 @@ public abstract class AbstractRoute extends AllDirectives {
     }
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
-            final  scala.concurrent.duration.Duration requestTimeout) {
+            final scala.concurrent.duration.Duration requestTimeout) {
         if (requestTimeout.isFinite()) {
             // adds some time in order to avoid race conditions with internal receiveTimeouts which shall return "408"
             // in case of message timeouts or "424" in case of requested-acks timeouts:

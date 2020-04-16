@@ -49,8 +49,10 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Adapter for the Ditto protocol.
@@ -157,6 +159,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((MessageCommandResponse<?, ?>) signal);
         } else if (signal instanceof Command) {
             return toAdaptable((Command<?>) signal, channel);
+        } else if (signal instanceof ThingSearchCommand) {
+            return toAdaptable((ThingSearchCommand) signal, channel);
         } else if (signal instanceof CommandResponse) {
             return toAdaptable((CommandResponse<?>) signal, channel);
         } else if (signal instanceof Event) {
@@ -222,6 +226,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (command instanceof ThingModifyCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return toAdaptable((ThingModifyCommand<?>) command, channel);
+        } else if (command instanceof ThingSearchCommand) {
+            return toAdaptable((ThingSearchCommand<?>) command, channel);
         } else if (command instanceof ThingQueryCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return toAdaptable((ThingQueryCommand<?>) command, channel);
@@ -240,6 +246,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final ThingQueryCommand<?> thingQueryCommand, final TopicPath.Channel channel) {
         validateChannel(channel, thingQueryCommand, TWIN, LIVE);
         return thingsAdapters.getQueryCommandAdapter().toAdaptable(thingQueryCommand, channel);
+    }
+
+    public Adaptable toAdaptable(final ThingSearchCommand<?> thingSearchCommand, final TopicPath.Channel channel) {
+        validateChannel(channel, thingSearchCommand, TWIN);
+        return thingsAdapters.getSearchCommandAdapter().toAdaptable(thingSearchCommand, channel);
     }
 
     @Override
@@ -273,7 +284,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         if (event instanceof ThingEvent) {
             validateChannel(channel, event, TWIN, LIVE);
             return toAdaptable((ThingEvent<?>) event, channel);
-        } else {
+        } else if (event instanceof SubscriptionEvent) {
+            validateChannel(channel, event, TWIN);
+            return  toAdaptable((SubscriptionEvent<?>) event, channel);
+        }
+
+        else {
             throw UnknownEventException.newBuilder(event.getName()).build();
         }
     }
@@ -282,6 +298,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         validateChannel(channel, thingEvent, TWIN, LIVE);
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
+    }
+
+    public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel){
+        validateNotLive(subscriptionEvent);
+        return thingsAdapters.getSubscriptionEventAdapter().toAdaptable(subscriptionEvent, channel);
     }
 
     private Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {

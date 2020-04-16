@@ -94,14 +94,14 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
      */
     public static void main(final String... args) throws IOException {
         if (args.length != 1) {
-            System.err.println("Exactly 1 argument required: the target folder in which to generate the JSON files");
+            System.err.println("Exactly 1 argument required: <target-folder>/<file-type(only \"markdown\" supported)>");
             System.exit(-1);
         }
         final String[] writePath = args[0].split("/");
         run(args, new PublicJsonExamplesProducer(writePath[writePath.length - 1]));
     }
 
-    private Optional<Method> findMatchingToAdaptableMethod(final Class parameterClass) {
+    private Optional<Method> findMatchingToAdaptableMethod(final Class<?> parameterClass) {
         return toAdaptableMethods.stream()
                 .filter(m -> m.getParameters().length == 1)
                 .filter(m -> m.getParameters()[0].getType().isAssignableFrom(parameterClass))

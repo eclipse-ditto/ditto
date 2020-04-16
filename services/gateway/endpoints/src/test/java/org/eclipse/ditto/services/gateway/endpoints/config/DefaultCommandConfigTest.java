@@ -18,6 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,7 +30,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link DefaultCommandConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig}.
  */
 public final class DefaultCommandConfigTest {
 

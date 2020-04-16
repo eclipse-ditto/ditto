@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "",
+  "title": "",
+  "properties": {
+    "subscriptionId": {
+      "type": "string",
+      "description": "Identifier of the search subscription delivered by a previous \"created\" event."
+    },
+    "demand": {
+      "type": "number",
+      "description": "How many pages to request. Must be a positive integer."
+    }
+  },
+  "required": ["subscriptionId", "demand"]
+}

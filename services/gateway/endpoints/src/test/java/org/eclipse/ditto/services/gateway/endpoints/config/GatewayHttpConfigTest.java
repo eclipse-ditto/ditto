@@ -33,7 +33,8 @@ import org.assertj.core.util.Maps;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig.GatewayHttpConfigValue;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,7 +45,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link GatewayHttpConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig}.
  */
 public final class GatewayHttpConfigTest {
 
@@ -82,7 +83,7 @@ public final class GatewayHttpConfigTest {
     }
 
     private static Set<JsonSchemaVersion> getDefaultSchemaVersions() {
-        final Object defaultValue = GatewayHttpConfigValue.SCHEMA_VERSIONS.getDefaultValue();
+        final Object defaultValue = HttpConfig.GatewayHttpConfigValue.SCHEMA_VERSIONS.getDefaultValue();
         @SuppressWarnings("unchecked") final Collection<Integer> versionNumbers = (Collection<Integer>) defaultValue;
         return versionNumbers.stream()
                 .map(JsonSchemaVersion::forInt)
@@ -108,7 +109,7 @@ public final class GatewayHttpConfigTest {
                 List.of(JsonSchemaVersion.V_1.toInt(), JsonSchemaVersion.V_2.toInt());
         final Collection<Integer> allSchemaVersions = new ArrayList<>(knownSchemaVersions);
         allSchemaVersions.add(unknownVersionNumber);
-        final String configPath = "http." + GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath();
+        final String configPath = "http." + HttpConfig.GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath();
         final Config config = ConfigFactory.parseMap(Maps.newHashMap(configPath, allSchemaVersions));
 
         assertThatExceptionOfType(DittoConfigError.class)
@@ -128,7 +129,7 @@ public final class GatewayHttpConfigTest {
     }
 
     private static Set<HeaderDefinition> getDefaultQueryParamsAsHeaders() {
-        final Object defaultValue = GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getDefaultValue();
+        final Object defaultValue = HttpConfig.GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getDefaultValue();
         @SuppressWarnings("unchecked") final Collection<String> headerKeys = (Collection<String>) defaultValue;
         return headerKeys.stream()
                 .map(DittoHeaderDefinition::forKey)
@@ -155,7 +156,7 @@ public final class GatewayHttpConfigTest {
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
         final List<String> allHeaderKeys = new ArrayList<>(knownHeaderKeys);
         allHeaderKeys.addAll(unknownHeaderKeys);
-        final String configPath = "http." + GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getConfigPath();
+        final String configPath = "http." + HttpConfig.GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getConfigPath();
         final Config config = ConfigFactory.parseMap(Maps.newHashMap(configPath, allHeaderKeys));
 
         assertThatExceptionOfType(DittoConfigError.class)

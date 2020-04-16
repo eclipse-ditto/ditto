@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -214,9 +214,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     if (null != responseLocationUri) {
                         final Location location = Location.create(responseLocationUri);
                         enhancedResponse = commandResponse.setDittoHeaders(
-                            commandResponse.getDittoHeaders().toBuilder()
-                                .putHeader(location.lowercaseName(), location.value())
-                                .build()
+                                commandResponse.getDittoHeaders().toBuilder()
+                                        .putHeader(location.lowercaseName(), location.value())
+                                        .build()
                         );
                     }
                     ackregator.addReceivedTwinPersistedAcknowledgment(enhancedResponse);
