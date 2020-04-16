@@ -95,6 +95,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     protected static final ConnectionType connectionType = ConnectionType.MQTT;
     
     protected ActorSystem actorSystem;
+    protected TestProbe mockConnectionActor;
 
     protected ConnectionId connectionId;
     private String serverHost;
@@ -113,6 +114,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Before
     public void initializeConnection() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        mockConnectionActor = TestProbe.apply("connectionActor", actorSystem);
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + FREE_PORT.getPort();
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,

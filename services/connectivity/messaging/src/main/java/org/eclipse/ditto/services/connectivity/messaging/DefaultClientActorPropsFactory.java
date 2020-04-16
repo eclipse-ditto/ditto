@@ -63,7 +63,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 result = HiveMqtt3ClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, conciergeForwarder);
+                result = HiveMqtt5ClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case KAFKA:
                 result = KafkaClientActor.props(connection, conciergeForwarder, connectionActor,
