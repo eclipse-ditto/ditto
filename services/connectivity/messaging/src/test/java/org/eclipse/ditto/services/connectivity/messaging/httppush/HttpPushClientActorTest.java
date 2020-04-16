@@ -128,8 +128,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder) {
-        return HttpPushClientActor.props(connection);
+    protected Props createClientActor(final ActorRef testProbe) {
+        return HttpPushClientActor.props(connection, testProbe);
     }
 
     @Override

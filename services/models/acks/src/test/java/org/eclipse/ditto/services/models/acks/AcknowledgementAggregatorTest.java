@@ -332,7 +332,8 @@ public final class AcknowledgementAggregatorTest {
     public void unknownReceivedAcknowledgementsAreIgnored() {
         final AcknowledgementAggregator underTest =
                 AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
-        final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(TIMEOUT);
+        final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(TIMEOUT)
+                .setDittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build());
         final Acknowledgement expected = Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED,
                 ENTITY_ID,
                 timeoutException.getStatusCode(),

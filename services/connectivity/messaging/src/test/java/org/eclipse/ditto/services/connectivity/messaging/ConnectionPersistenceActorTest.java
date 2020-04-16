@@ -284,7 +284,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -312,7 +313,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create closed connection
@@ -349,7 +351,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder,
-                            (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+                            (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(clientActorMock.ref()));
             watch(underTest);
 
             // create connection
@@ -375,7 +378,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder,
-                            (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+                            (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(clientActorMock.ref()));
             watch(underTest);
 
             // create connection
@@ -399,7 +403,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -417,7 +422,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -444,7 +450,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -475,7 +482,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId,
                             actorSystem,
-                            conciergeForwarder, (connection, concierge) -> {
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) -> {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
                             },
@@ -520,7 +527,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder,
-                            (connection, concierge) -> MockClientActor.props(mockClientProbe.ref()));
+                            (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(mockClientProbe.ref()));
             watch(underTest);
 
             // create connection
@@ -656,7 +664,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                             TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
-                            (connection, conciergeForwarder) -> {
+                            (connection, connectionActor, conciergeForwarder) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             }, null);
@@ -743,7 +751,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -768,7 +777,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -798,7 +808,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -821,7 +832,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -856,7 +868,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -888,7 +901,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -914,7 +928,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -946,7 +961,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
@@ -970,7 +986,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, conciergeForwarder) -> TestActor.props(probe));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    TestActor.props(probe));
             watch(underTest);
 
             // create connection
@@ -1007,7 +1024,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, conciergeForwarder) -> TestActor.props(probe));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    TestActor.props(probe));
             watch(underTest);
 
             // create connection
@@ -1060,7 +1078,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, conciergeForwarder) -> TestActor.props(probe));
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    TestActor.props(probe));
             watch(underTest);
 
             // create connection

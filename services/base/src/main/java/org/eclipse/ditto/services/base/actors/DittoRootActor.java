@@ -16,7 +16,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -144,56 +143,8 @@ public abstract class DittoRootActor extends AbstractActor {
     }
 
     private void startChildActor(final StartChildActor startChildActor) {
-        startChildActor(startChildActor.actorName, startChildActor.props);
+        startChildActor(startChildActor.getActorName(), startChildActor.getProps());
     }
 
-
-    /**
-     * Message that holds props of an actor and the name to start this actor with.
-     * Send this Object to a {@link DittoRootActor} in order to start an actor in the actor context of the root actor.
-     */
-    public static class StartChildActor {
-
-        private final Props props;
-        private final String actorName;
-
-        /**
-         * Constructs a new instance of StartChildActor
-         *
-         * @param props the props of the child actor.
-         * @param actorName the name the child actor should be started with.
-         */
-        public StartChildActor(final Props props, final String actorName) {
-            this.props = props;
-            this.actorName = actorName;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final StartChildActor that = (StartChildActor) o;
-            return props.equals(that.props) &&
-                    actorName.equals(that.actorName);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(props, actorName);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "props=" + props +
-                    ", actorName=" + actorName +
-                    "]";
-        }
-
-    }
 
 }

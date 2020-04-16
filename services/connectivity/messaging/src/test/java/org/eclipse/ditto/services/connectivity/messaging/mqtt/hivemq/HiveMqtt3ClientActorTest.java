@@ -57,7 +57,7 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
                     .withTestProbe(getRef())
                     .withFailingSubscribe();
 
-            final Props props = HiveMqtt3ClientActor.props(connection, getRef(), clientFactory);
+            final Props props = HiveMqtt3ClientActor.props(connection, getRef(), getRef(), clientFactory);
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -70,13 +70,13 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
 
     @Override
     protected Props createClientActor(final ActorRef testProbe) {
-        return HiveMqtt3ClientActor.props(connection, testProbe,
+        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe,
                 mockHiveMqtt3ClientFactory.withTestProbe(testProbe));
     }
 
     @Override
     protected Props createFailingClientActor(final ActorRef testProbe) {
-        return HiveMqtt3ClientActor.props(connection, testProbe,
+        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe,
                 mockHiveMqtt3ClientFactory
                         .withException(new RuntimeException("failed to connect")));
     }
@@ -88,7 +88,7 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
         final MockHiveMqtt3ClientFactory clientFactory = mockHiveMqtt3ClientFactory
                 .withMessages(messages)
                 .withTestProbe(testProbe);
-        return HiveMqtt3ClientActor.props(connection, testProbe, clientFactory);
+        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe, clientFactory);
     }
 
     @Override

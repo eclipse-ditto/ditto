@@ -98,13 +98,15 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {
-        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
+                actorSystem.deadLetters());
         final Object objectToSerialize = wrapForSerialization(props);
         serializeAndDeserialize(objectToSerialize);
     }
 
     private void actorPropsIsSerializableAndEqualDeserializedObject(final ConnectionType connectionType) {
-        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
+                actorSystem.deadLetters());
         final Object objectToSerialize = wrapForSerialization(props);
         final Object deserializedObject = serializeAndDeserialize(objectToSerialize);
 

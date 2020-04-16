@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -36,7 +35,6 @@ import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingConfig;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
@@ -46,8 +44,6 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 import com.typesafe.config.Config;
@@ -142,7 +138,7 @@ public final class StreamingActor extends AbstractActorWithTimers
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,
-                                    streamingConfig.getAcknowledgementConfig()),
+                                    streamingConfig.getAcknowledgementConfig(), headerTranslator),
                             connectionCorrelationId);
                 })
                 .match(StartStreaming.class,
@@ -164,24 +160,6 @@ public final class StreamingActor extends AbstractActorWithTimers
                                     sessionActor.forward(acknowledgement, getContext())
                             )
                         )
-                        .match(ThingModifyCommand.class, thingCommand -> {
-
-                            if (thingCommand.getDittoHeaders().isResponseRequired()) {
-                                final ThingModifyCommand<?> commandWithAckLabels = (ThingModifyCommand<?>)
-                                        ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
-                                final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
-
-                                final AcknowledgementAggregator ackregator =
-                                        getAcknowledgementAggregator(commandWithAckLabels);
-                                ackregator.addAcknowledgementRequests(dittoHeaders.getAcknowledgementRequests());
-
-                                lookupSessionActor(commandWithAckLabels, sessionActor ->
-                                        sessionActor.tell(ackregator, ActorRef.noSender())
-                                );
-                            }
-
-                            handleSignal(thingCommand);
-                        })
                         .match(Signal.class, this::handleSignal)
                         .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
                         .matchEquals(Control.SCRAPE_STREAM_COUNTER, this::updateStreamingSessionsCounter)
@@ -248,7 +226,13 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     private void handleSignal(final Signal<?> signal) {
         if (signal.getDittoHeaders().isResponseRequired()) {
-            lookupSessionActor(signal, sessionActor -> commandRouter.tell(signal, sessionActor));
+            lookupSessionActor(signal, sessionActor -> {
+                if (signal instanceof ThingModifyCommand) {
+                    // also tell the sessionActor so that the sessionActor may start an AcknowledgementAggregator
+                    sessionActor.tell(signal, getSelf());
+                }
+                commandRouter.tell(signal, sessionActor);
+            });
         } else {
             commandRouter.tell(signal, ActorRef.noSender());
         }
@@ -287,16 +271,6 @@ public final class StreamingActor extends AbstractActorWithTimers
             streamingSessionsCounter.set(
                     StreamSupport.stream(getContext().getChildren().spliterator(), false).count());
         }
-    }
-
-    private AcknowledgementAggregator getAcknowledgementAggregator(final ThingCommand<?> thingCommand) {
-        final DittoHeaders dittoHeaders = thingCommand.getDittoHeaders();
-        final String correlationId = dittoHeaders.getCorrelationId().orElseThrow();
-
-        final Duration timeout = dittoHeaders.getTimeout().orElseGet(() ->
-                streamingConfig.getAcknowledgementConfig().getForwarderFallbackTimeout());
-        return AcknowledgementAggregator.getInstance(thingCommand.getEntityId(), correlationId, timeout,
-                headerTranslator);
     }
 
     /**

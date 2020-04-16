@@ -46,7 +46,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -106,6 +105,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -193,8 +193,8 @@ public final class ConnectionPersistenceActor
                         HttpPushValidator.newInstance());
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, connectionValidator,
-                        actorSystem);
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, getSelf(),
+                        connectionValidator, actorSystem);
 
         if (customCommandValidator != null) {
             commandValidator =
@@ -469,10 +469,10 @@ public final class ConnectionPersistenceActor
                 .ifPresentOrElse(action, emptyAction);
     }
 
-    private void handleSignal(final Signal signal) {
-        if (signal instanceof WithThingId) {
-            final WithThingId withThingId = (WithThingId) signal;
-            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), withThingId.getThingEntityId(),
+    private void handleSignal(final Signal<?> signal) {
+        if (signal instanceof ThingEvent) {
+            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingEvent.getThingEntityId(),
                     signal.getDittoHeaders(), config.getAcknowledgementConfig());
         }
         forwardSignalToClientActors(signal);
@@ -809,7 +809,7 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder);
+            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));

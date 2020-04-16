@@ -145,7 +145,11 @@ public final class AcknowledgementAggregator {
     private Acknowledgement getTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
 
         // This Acknowledgement was not actually received, thus it cannot have "real" DittoHeaders.
-        final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(timeout);
+        final DittoRuntimeException timeoutException = AcknowledgementRequestTimeoutException.newBuilder(timeout)
+                .dittoHeaders(DittoHeaders.newBuilder()
+                        .correlationId(correlationId)
+                        .build()
+                ).build();
         return Acknowledgement.of(acknowledgementLabel, entityId, timeoutException.getStatusCode(),
                 timeoutException.getDittoHeaders(), timeoutException.toJson());
     }
