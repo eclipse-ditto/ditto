@@ -13,9 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON_AND_AKKA_DEFAULTS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
-
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -118,7 +115,7 @@ final class FeaturesRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /features
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
+                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 featuresJson -> ModifyFeatures
@@ -153,7 +150,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /features/<featureId>
-                                        ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
+                                        ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         featureJson ->
@@ -192,7 +189,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                         RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/definition
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
+                                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
                                                         payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, definitionJson ->
@@ -238,7 +235,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
+                                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
                                                         payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertiesJson ->
@@ -283,7 +280,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                         JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
-                                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
+                                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
                                                         payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertyJson ->

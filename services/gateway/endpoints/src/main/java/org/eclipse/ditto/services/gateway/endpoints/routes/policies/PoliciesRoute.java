@@ -13,8 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ONLY_JSON_AND_AKKA_DEFAULTS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -98,7 +96,7 @@ public final class PoliciesRoute extends AbstractRoute {
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /policies/<policyId>
-                                ensureContentTypeAndExtractDataBytes(ONLY_JSON_AND_AKKA_DEFAULTS, ctx, dittoHeaders,
+                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyJson -> ModifyPolicy

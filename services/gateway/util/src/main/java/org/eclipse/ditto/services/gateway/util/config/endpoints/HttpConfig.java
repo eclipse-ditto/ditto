@@ -21,6 +21,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import akka.http.javadsl.model.MediaTypes;
+
 /**
  * Provides configuration settings of the Gateway service's HTTP behaviour.
  */
@@ -80,6 +82,13 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     String getActorPropsFactoryFullQualifiedClassname();
 
     /**
+     * Whitelisted Media-Types, which should also be accepted by the endpoints besides the one they accept.
+     *
+     * @return media-types.
+     */
+    Set<String> getAdditionalAcceptedMediaTypes();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpConfig}.
      */
@@ -122,7 +131,17 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
          * The full qualified classname of the HttpRequestActorPropsFactory to instantiate.
          */
         ACTOR_PROPS_FACTORY("actor-props-factory",
-                "org.eclipse.ditto.services.gateway.endpoints.actors.DefaultHttpRequestActorPropsFactory");
+                "org.eclipse.ditto.services.gateway.endpoints.actors.DefaultHttpRequestActorPropsFactory"),
+
+        /**
+         * PUT and POST resources validate that the content-type of a request is supported. With this config value
+         * additional media-types can be specified, which will also be accepted. Default value
+         * 'application/octet-stream' is for unknown or not further specified payload and request without any
+         * content-type declaration will also be mapped to this type by akka-http.
+         */
+        ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types",
+                MediaTypes.APPLICATION_OCTET_STREAM.toString())
+        ;
 
         private final String path;
         private final Object defaultValue;

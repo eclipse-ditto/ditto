@@ -18,8 +18,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -33,6 +36,7 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
+import org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -47,6 +51,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -82,6 +87,7 @@ public abstract class AbstractRoute extends AllDirectives {
     private final HttpConfig httpConfig;
     private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
+    private final Set<String> supportedMediaTypes;
 
     /**
      * Constructs the abstract route builder.
@@ -101,6 +107,7 @@ public abstract class AbstractRoute extends AllDirectives {
         this.actorSystem = checkNotNull(actorSystem, "actor system");
         this.httpConfig = httpConfig;
         this.headerTranslator = checkNotNull(headerTranslator, "header translator");
+        this.supportedMediaTypes = getSupportedMediaTypesWithFallbacks(httpConfig);
 
         LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
 
@@ -120,6 +127,12 @@ public abstract class AbstractRoute extends AllDirectives {
         httpRequestActorPropsFactory =
                 AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class,
                         httpConfig.getActorPropsFactoryFullQualifiedClassname());
+    }
+
+    private Set<String> getSupportedMediaTypesWithFallbacks(final HttpConfig httpConfig) {
+        final Stream<String> fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
+        final Stream<String> supportedMediaTypes = Set.of(MediaTypes.APPLICATION_JSON.toString()).stream();
+        return Stream.concat(supportedMediaTypes, fallbackMediaTypes).collect(Collectors.toUnmodifiableSet());
     }
 
     /**
@@ -249,6 +262,24 @@ public abstract class AbstractRoute extends AllDirectives {
                 proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture, httpConfig);
 
         return actorSystem.actorOf(props);
+    }
+
+    /**
+     * Provides a composed directive of {@link ContentTypeValidationDirective#ensureValidContentType} and
+     * {@link AllDirectives#extractDataBytes}.
+     *
+     * @param ctx The context of a request.
+     * @param dittoHeaders The ditto headers of a request.
+     * @param inner route directive to handles the extracted payload.
+     * @return Route.
+     */
+    protected Route ensureSupportedContentTypeThenExtractDataBytes(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final java.util.function.Function<Source<ByteString, Object>, Route> inner) {
+
+        return ContentTypeValidationDirective.ensureValidContentType(supportedMediaTypes, ctx, dittoHeaders,
+                () -> extractDataBytes(inner));
+
     }
 
 }

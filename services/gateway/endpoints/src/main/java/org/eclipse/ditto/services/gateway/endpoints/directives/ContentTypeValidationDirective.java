@@ -13,91 +13,104 @@
  package org.eclipse.ditto.services.gateway.endpoints.directives;
 
  import static akka.http.javadsl.server.Directives.complete;
- import static akka.http.javadsl.server.Directives.extractDataBytes;
+ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
  import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
  import java.text.MessageFormat;
- import java.util.List;
- import java.util.function.Function;
+ import java.util.Optional;
+ import java.util.Set;
  import java.util.function.Supplier;
+ import java.util.stream.Stream;
+ import java.util.stream.StreamSupport;
 
+ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
+ import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
 
- import akka.http.javadsl.model.ContentType;
- import akka.http.javadsl.model.ContentTypes;
+ import akka.http.javadsl.model.HttpHeader;
+ import akka.http.javadsl.model.HttpRequest;
+ import akka.http.javadsl.model.MediaType;
  import akka.http.javadsl.model.StatusCodes;
  import akka.http.javadsl.server.RequestContext;
  import akka.http.javadsl.server.Route;
- import akka.stream.javadsl.Source;
- import akka.util.ByteString;
 
  /**
   * Used to validate the Content-Type of a request.
   */
  public final class ContentTypeValidationDirective {
 
-     /**
-      * Static unmodifiable list containing:
-      * <ul>
-      *     <li>application/json</li>
-      *     <li>application/octet-stream (akka-default)</li>
-      *     <li>plain (akka-default)</li>
-      * </ul>
-      * <p>
-      * For akka-defaults see:
-      * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} -> parseEntity
-      * and
-      * {@link akka.http.scaladsl.model.HttpEntity$}
-      */
-     public static List<ContentType> ONLY_JSON_AND_AKKA_DEFAULTS = List.of(
-             ContentTypes.APPLICATION_JSON,
-             ContentTypes.APPLICATION_OCTET_STREAM,
-             ContentTypes.TEXT_PLAIN_UTF8
-     );
-
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
 
      /**
-      * verifies that the content-type of the entity is one of the given allowed content-types,
+      * verifies that the content-type of the entity is one of the allowed media-types,
       * otherwise the request will be completed with 415 ("Unsupported Media Type").
+      * Besides the given allowed media-types, the configured whitelisted media-types will also be considered.
+      *
+      * @param supportedByResource the media-type which are allowed for the wrapped route.
+      * @param ctx the context of the request.
+      * @param dittoHeaders the ditto-headers of a request.
+      * @param inner route to wrap.
+      * @return the wrapped route.
       */
-     public static Route ensureValidContentType(final List<ContentType> allowedContentTypes,
-             RequestContext ctx, DittoHeaders dittoHeaders, Supplier<Route> inner) {
+     public static Route ensureValidContentType(final Set<String> supportedByResource, final RequestContext ctx,
+             final DittoHeaders dittoHeaders,
+             final Supplier<Route> inner) {
          return enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () -> {
-             final ContentType contentType =
-                     ctx.getRequest().entity().getContentType();
+             final String requestsMediaType = extractMediaType(ctx.getRequest());
 
-             if (contentType != null && allowedContentTypes.contains(contentType)) {
+             if(supportedByResource.contains(requestsMediaType)){
                  return inner.get();
              } else {
-                 final String msgPatten = "The Content-Type <{0}> is not supported for this endpoint. Allowed " +
-                         "Content-Types are: <{1}>";
-                 final String responseMessage =
-                         MessageFormat.format(msgPatten, contentType, allowedContentTypes.toString());
-                 LOGGER.info(responseMessage);
-                 return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE, responseMessage);
+                 LOGGER.info("Request rejected: unsupported media-type: <{}>  request: <{}>",
+                         requestsMediaType, requestToLogString(ctx.getRequest()));
+                 return completeWithMediaTypeNotSupported(requestsMediaType, supportedByResource);
              }
          });
      }
 
-     /**
-      * Composes the {@link org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective#ensureValidContentType(java.util.List, akka.http.javadsl.server.RequestContext, org.eclipse.ditto.model.base.headers.DittoHeaders, java.util.function.Supplier)}
-      * and the
-      * {@link akka.http.javadsl.server.directives.BasicDirectives#extractDataBytes(java.util.function.Function)}
-      * together.
-      */
-     public static Route ensureContentTypeAndExtractDataBytes(final List<ContentType> allowedContentTypes,
-             RequestContext ctx,
-             DittoHeaders dittoHeaders,
-             Function<Source<ByteString, Object>, Route> inner) {
+     protected static Route completeWithMediaTypeNotSupported(final String mediaType,
+             final Set<String> supportedByResource){
 
-         return ensureValidContentType(
-                 allowedContentTypes,
-                 ctx,
-                 dittoHeaders,
-                 () -> extractDataBytes(inner));
+             final String msgPatten = "The Media-Type <{0}> is not supported for this endpoint. Allowed " +
+                     "Media-Types are: <{1}>";
+             final String responseMessage =
+                     MessageFormat.format(msgPatten, mediaType, supportedByResource);
+
+             return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE, responseMessage);
+     }
+
+     protected static String requestToLogString(final HttpRequest request){
+         final String msgPatten = "{0} {1} {2}";
+         return MessageFormat.format(msgPatten,
+                 request.getUri().getHost().address(),
+                 request.method().value(),
+                 request.getUri().getPathString());
+     }
+
+
+     /**
+      * Uses either the raw-header or the content-type parsed by akka-http.
+      * The parsed content-type is never null, because akka-http sets a default.
+      * In the case of akka's default value, the raw version is preferred.
+      * The raw content-type header is not available, in case akka successfully parsed the content-type
+      * For akka-defaults:
+      * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} -> parseEntity
+      * and {@link akka.http.scaladsl.model.HttpEntity$}.
+      * @see
+      * <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
+      *
+      * @param request the request where the media type shall be extracted from.
+      * @return the extracted media-type.
+      */
+     protected static String extractMediaType(HttpRequest request){
+         final Optional<HttpHeader> rawContentType = StreamSupport.stream(request.getHeaders().spliterator(), false)
+                 .filter(header -> header.name().equals(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
+                 .findFirst();
+
+         return rawContentType.map(HttpHeader::value)
+                 .orElse(request.entity().getContentType().mediaType().toString());
      }
 
  }

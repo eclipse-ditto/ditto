@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.gateway.util.config.endpoints;
 
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -45,14 +43,14 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final boolean enableCors;
     private final Duration requestTimeout;
     private final String actorPropsFactoryFullQualifiedClassname;
+    private final Set<String> additionalAcceptedMediaTypes;
 
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig,
             final Pattern redirectToHttpsBlacklistPattern) {
 
         hostname = basicHttpConfig.getHostname();
         port = basicHttpConfig.getPort();
-        schemaVersions = Collections.unmodifiableSet(
-                new HashSet<>(scopedConfig.getIntList(GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath())));
+        schemaVersions = Set.copyOf(scopedConfig.getIntList(GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath()));
         forceHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.FORCE_HTTPS.getConfigPath());
         redirectToHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.REDIRECT_TO_HTTPS.getConfigPath());
         this.redirectToHttpsBlacklistPattern = redirectToHttpsBlacklistPattern;
@@ -60,6 +58,9 @@ public final class GatewayHttpConfig implements HttpConfig {
         requestTimeout = scopedConfig.getDuration(GatewayHttpConfigValue.REQUEST_TIMEOUT.getConfigPath());
         actorPropsFactoryFullQualifiedClassname = scopedConfig.getString(
                 GatewayHttpConfigValue.ACTOR_PROPS_FACTORY.getConfigPath());
+        this.additionalAcceptedMediaTypes =
+                Set.of(scopedConfig.getString(GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                        .split(","));
     }
 
     /**
@@ -137,6 +138,12 @@ public final class GatewayHttpConfig implements HttpConfig {
         return actorPropsFactoryFullQualifiedClassname;
     }
 
+    @Override
+    public Set<String> getAdditionalAcceptedMediaTypes() {
+        return additionalAcceptedMediaTypes;
+    }
+
+
     @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(final Object o) {
@@ -155,13 +162,15 @@ public final class GatewayHttpConfig implements HttpConfig {
                 schemaVersions.equals(that.schemaVersions) &&
                 redirectToHttpsBlacklistPattern.equals(that.redirectToHttpsBlacklistPattern) &&
                 requestTimeout.equals(that.requestTimeout) &&
-                actorPropsFactoryFullQualifiedClassname.equals(that.actorPropsFactoryFullQualifiedClassname);
+                actorPropsFactoryFullQualifiedClassname.equals(that.actorPropsFactoryFullQualifiedClassname) &&
+                additionalAcceptedMediaTypes.equals(that.additionalAcceptedMediaTypes);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(hostname, port, schemaVersions, forceHttps, redirectToHttps,
-                redirectToHttpsBlacklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname);
+                redirectToHttpsBlacklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
+                additionalAcceptedMediaTypes);
     }
 
     @Override
@@ -176,6 +185,7 @@ public final class GatewayHttpConfig implements HttpConfig {
                 ", enableCors=" + enableCors +
                 ", requestTimeout=" + requestTimeout +
                 ", actorPropsFactoryFullQualifiedClassname=" + actorPropsFactoryFullQualifiedClassname +
+                ", additionalAcceptedMediaTypes=" + additionalAcceptedMediaTypes +
                 "]";
     }
 

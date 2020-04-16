@@ -12,45 +12,30 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureContentTypeAndExtractDataBytes;
+
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
 
-import java.util.List;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpEntities;
+import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpMessage;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
-import akka.stream.ActorMaterializer;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Source;
-import akka.util.ByteString;
 
 public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
 
     private final Supplier<Route> COMPLETE_OK = () -> complete(StatusCodes.OK);
-
-    private final Materializer MAT = ActorMaterializer.create(ActorSystem.create("QuickStart"));
-    private final String PAYLOAD_STRING = "something";
-    private final Function<Source<ByteString, Object>, Route> OK_WHEN_PAYLOAD_MATCHES = payload -> {
-        final String payloadAsString = payload
-                .map(ByteString::utf8String)
-                .runReduce(String::concat, MAT)
-                .toCompletableFuture()
-                .join();
-
-        return payloadAsString.equals(PAYLOAD_STRING) ? complete(StatusCodes.OK) :
-                complete(StatusCodes.BAD_REQUEST);
-    };
 
     @Test
     public void testValidContentType() {
@@ -61,7 +46,8 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
         // Act
         final TestRouteResult result =
                 testRoute(extractRequestContext(
-                        ctx -> ensureValidContentType(List.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        ctx -> ensureValidContentType(Set.of(type.mediaType().toString()), ctx, dittoHeaders,
+                                COMPLETE_OK)))
                         .run(HttpRequest.PUT("someUrl").withEntity(type, "something".getBytes()));
 
         // Assert
@@ -72,13 +58,13 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     public void testNonValidContentType() {
         // Arrange
         DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ContentType type = ContentTypes.APPLICATION_JSON;
+        final String type = MediaTypes.APPLICATION_JSON.toString();
         final ContentType differentType = ContentTypes.APPLICATION_X_WWW_FORM_URLENCODED;
 
         // Act
         final TestRouteResult result =
                 testRoute(extractRequestContext(
-                        ctx -> ensureValidContentType(List.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        ctx -> ensureValidContentType(Set.of(type), ctx, dittoHeaders, COMPLETE_OK)))
                         .run(HttpRequest.PUT("someUrl").withEntity(differentType, "something".getBytes()));
 
         // Assert
@@ -86,37 +72,58 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     }
 
     @Test
-    public void testWithoutEntityNoNPEExpected() {
+    public void testWithContentTypeWithoutCharset() {
         // Arrange
         DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ContentType type = ContentTypes.APPLICATION_JSON;
+        final String type = MediaTypes.TEXT_PLAIN.toString();
+        final ContentType typeMissingCharset = MediaTypes.TEXT_PLAIN.toContentTypeWithMissingCharset();
 
         // Act
         final TestRouteResult result =
                 testRoute(extractRequestContext(
-                        ctx -> ensureValidContentType(List.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        ctx -> ensureValidContentType(Set.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        .run(HttpRequest.PUT("someUrl").withEntity(typeMissingCharset, "something".getBytes()));
+
+        // Assert
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void testWithoutEntityNoNPEExpected() {
+        // Arrange
+        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final String type = ContentTypes.APPLICATION_JSON.mediaType().toString();
+
+        // Act
+        final TestRouteResult result =
+                testRoute(extractRequestContext(
+                        ctx -> ensureValidContentType(Set.of(type), ctx, dittoHeaders, COMPLETE_OK)))
                         .run(HttpRequest.PUT("someUrl"));
 
         // Assert
         result.assertStatusCode(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
     }
 
+    /**
+     * When akka can't parse the content-type header, it appears as rawHeader and application/octet-streams is used
+     * as default, this behaviour is simulated here.
+     */
     @Test
-    public void testComposedDirective() {
+    public void testWithNonParsableContentType() {
         // Arrange
         DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ContentType type = ContentTypes.APPLICATION_JSON;
+        final String nonParsableMediaType = "application-json";
 
         // Act
         final TestRouteResult result =
                 testRoute(extractRequestContext(
-                        ctx -> ensureContentTypeAndExtractDataBytes(List.of(type), ctx, dittoHeaders,
-                                OK_WHEN_PAYLOAD_MATCHES)))
-                        .run(HttpRequest.PUT("someUrl").withEntity(type, PAYLOAD_STRING.getBytes()));
+                        ctx -> ensureValidContentType(Set.of(nonParsableMediaType), ctx, dittoHeaders, COMPLETE_OK)))
+                        .run(HttpRequest.PUT("someUrl")
+                                .addHeader(HttpHeader.parse("content-type", nonParsableMediaType))
+                                .withEntity(ContentTypes.APPLICATION_OCTET_STREAM, "something".getBytes()));
 
         // Assert
         result.assertStatusCode(StatusCodes.OK);
     }
-
 
 }
