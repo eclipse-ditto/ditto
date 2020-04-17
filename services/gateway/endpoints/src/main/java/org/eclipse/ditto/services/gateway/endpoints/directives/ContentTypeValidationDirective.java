@@ -91,7 +91,7 @@
       * In the case of akka's default value, the raw version is preferred.
       * The raw content-type header is not available, in case akka successfully parsed the content-type.
       * For akka-defaults:
-      * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} -> parseEntity
+      * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} <code>parseEntity</code>
       * and {@link akka.http.scaladsl.model.HttpEntity$}.
       * @see
       * <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
