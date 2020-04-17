@@ -274,7 +274,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
         final Message message = messageCaptor.getValue();
 
-        assertThat(message.getStringProperty("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(message.getJMSCorrelationID()).isEqualTo(TestConstants.CORRELATION_ID);
         assertThat(message.getStringProperty("mappedHeader2")).isEqualTo("thing:id");
     }
 

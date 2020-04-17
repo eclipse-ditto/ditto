@@ -93,10 +93,35 @@ public final class HeaderTranslator {
      * @return external headers.
      */
     public Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders) {
+        if (headerDefinitionMap.isEmpty()) {
+            return dittoHeaders;
+        }
         final Map<String, String> headers = new HashMap<>();
         dittoHeaders.forEach((key, value) -> {
-            final HeaderDefinition definition = headerDefinitionMap.get(key);
+            final String lowerCaseKey = key.toLowerCase();
+            final HeaderDefinition definition = headerDefinitionMap.get(lowerCaseKey);
             if (definition == null || definition.shouldWriteToExternalHeaders()) {
+                headers.put(key, value);
+            }
+        });
+        return headers;
+    }
+
+    /**
+     * Publish Ditto headers to external headers and filter unknown header.
+     *
+     * @param dittoHeaders Ditto headers to publish.
+     * @return external headers.
+     */
+    public Map<String, String> toFilteredExternalHeaders(final DittoHeaders dittoHeaders) {
+        if (headerDefinitionMap.isEmpty()) {
+            return dittoHeaders;
+        }
+        final Map<String, String> headers = new HashMap<>();
+        dittoHeaders.forEach((key, value) -> {
+            final String lowerCaseKey = key.toLowerCase();
+            final HeaderDefinition definition = headerDefinitionMap.get(lowerCaseKey);
+            if (definition != null && definition.shouldWriteToExternalHeaders()) {
                 headers.put(key, value);
             }
         });
