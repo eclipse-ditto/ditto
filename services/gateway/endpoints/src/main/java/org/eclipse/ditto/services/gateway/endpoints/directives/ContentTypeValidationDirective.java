@@ -13,25 +13,21 @@
  package org.eclipse.ditto.services.gateway.endpoints.directives;
 
  import static akka.http.javadsl.server.Directives.complete;
- import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
  import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
  import java.text.MessageFormat;
  import java.util.Optional;
  import java.util.Set;
  import java.util.function.Supplier;
- import java.util.stream.Stream;
  import java.util.stream.StreamSupport;
 
  import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
- import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
 
  import akka.http.javadsl.model.HttpHeader;
  import akka.http.javadsl.model.HttpRequest;
- import akka.http.javadsl.model.MediaType;
  import akka.http.javadsl.model.StatusCodes;
  import akka.http.javadsl.server.RequestContext;
  import akka.http.javadsl.server.Route;
