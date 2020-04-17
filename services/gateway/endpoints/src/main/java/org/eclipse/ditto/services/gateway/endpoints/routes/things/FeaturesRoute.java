@@ -115,7 +115,7 @@ final class FeaturesRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /features
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 featuresJson -> ModifyFeatures
@@ -150,7 +150,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /features/<featureId>
-                                        ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         featureJson ->
@@ -189,7 +189,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                         RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/definition
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                         payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, definitionJson ->
@@ -235,7 +235,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                         payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertiesJson ->
@@ -280,7 +280,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                         JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                         payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertyJson ->

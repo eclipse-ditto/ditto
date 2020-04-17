@@ -204,7 +204,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 buildRetrieveThingsRoute(ctx, dittoHeaders)
                         ),
                         post(() -> // POST /things
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 thingJson -> CreateThing.of(createThingForPost(thingJson),
@@ -251,7 +251,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /things/<thingId>
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         thingJson -> ModifyThing.of(thingId,
@@ -283,7 +283,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))
                         ),
                         put(() -> // PUT /things/<thingId>/policyId
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyIdJson -> ModifyPolicyId.of(thingId,
@@ -312,7 +312,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))
                                 ),
                                 put(() -> // PUT /things/<thingId>/acl
-                                        ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders, payloadSource, aclJson ->
                                                                 ModifyAcl.of(thingId,
@@ -350,7 +350,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /things/<thingId>/acl/<authorizationSubject>
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
@@ -394,7 +394,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /things/<thingId>/attributes
-                                        ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 attributesJson ->
@@ -440,7 +440,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 dittoHeaders))
                         ),
                         put(() -> // PUT /things/<thingId>/attributes/<attributePointerStr>
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
                                                         ModifyAttribute.of(thingId,
@@ -477,7 +477,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /things/<thingId>/definition
-                                        ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource ->
                                                         pathEnd(() -> // PUT /things/<thingId>/definition/
                                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,

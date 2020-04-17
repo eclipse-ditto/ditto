@@ -109,7 +109,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                         RetrievePolicyEntries.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /entries
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyEntriesJson ->
@@ -141,7 +141,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                 ),
                                 put(() -> // PUT /entries/<label>
-                                        ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 policyEntryJson -> ModifyPolicyEntry
@@ -186,7 +186,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         Label.of(label), dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/subjects
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
@@ -223,7 +223,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/subjects/<subjectId>
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
@@ -273,7 +273,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         Label.of(label), dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/resources
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,
@@ -312,7 +312,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                         dittoHeaders))
                                         ),
                                         put(() -> // PUT /entries/<label>/resources/<resource>
-                                                ensureSupportedContentTypeThenExtractDataBytes(ctx,
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource ->
                                                                 handlePerRequest(ctx, dittoHeaders,

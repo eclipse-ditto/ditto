@@ -96,7 +96,7 @@ public final class PoliciesRoute extends AbstractRoute {
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /policies/<policyId>
-                                ensureSupportedContentTypeThenExtractDataBytes(ctx, dittoHeaders,
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyJson -> ModifyPolicy

@@ -46,26 +46,25 @@
      /**
       * verifies that the content-type of the entity is one of the allowed media-types,
       * otherwise the request will be completed with 415 ("Unsupported Media Type").
-      * Besides the given allowed media-types, the configured whitelisted media-types will also be considered.
       *
-      * @param supportedByResource the media-type which are allowed for the wrapped route.
+      * @param supportedMediaTypes the media-type which are allowed for the wrapped route.
       * @param ctx the context of the request.
       * @param dittoHeaders the ditto-headers of a request.
       * @param inner route to wrap.
       * @return the wrapped route.
       */
-     public static Route ensureValidContentType(final Set<String> supportedByResource, final RequestContext ctx,
+     public static Route ensureValidContentType(final Set<String> supportedMediaTypes, final RequestContext ctx,
              final DittoHeaders dittoHeaders,
              final Supplier<Route> inner) {
          return enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () -> {
              final String requestsMediaType = extractMediaType(ctx.getRequest());
 
-             if(supportedByResource.contains(requestsMediaType)){
+             if(supportedMediaTypes.contains(requestsMediaType)){
                  return inner.get();
              } else {
                  LOGGER.info("Request rejected: unsupported media-type: <{}>  request: <{}>",
                          requestsMediaType, requestToLogString(ctx.getRequest()));
-                 return completeWithMediaTypeNotSupported(requestsMediaType, supportedByResource);
+                 return completeWithMediaTypeNotSupported(requestsMediaType, supportedMediaTypes);
              }
          });
      }
@@ -94,14 +93,14 @@
       * Uses either the raw-header or the content-type parsed by akka-http.
       * The parsed content-type is never null, because akka-http sets a default.
       * In the case of akka's default value, the raw version is preferred.
-      * The raw content-type header is not available, in case akka successfully parsed the content-type
+      * The raw content-type header is not available, in case akka successfully parsed the content-type.
       * For akka-defaults:
       * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} -> parseEntity
       * and {@link akka.http.scaladsl.model.HttpEntity$}.
       * @see
       * <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
       *
-      * @param request the request where the media type shall be extracted from.
+      * @param request the request where the media type will be extracted from.
       * @return the extracted media-type.
       */
      protected static String extractMediaType(HttpRequest request){
