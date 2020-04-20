@@ -24,8 +24,8 @@ The Ditto Protocol representation of an `Acknowledgement` is specified as follow
 
 ## Acknowledgements (aggregating)
 
-Acknowledgements aggregating structures do not contain this label, they contains several single acknowledgements as
-its payload, the topic is then: 
+An acknowledgment for aggregated structures contains several single acknowledgements as
+its payload, and the topic is without a label: 
 ```
 <namespace>/<thingName>/things/<channel>/acks
 ```
