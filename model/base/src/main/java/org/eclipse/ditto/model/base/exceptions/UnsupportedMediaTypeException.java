@@ -27,7 +27,6 @@
   * Thrown if a request with an unsupported media-type is made.
   */
  @Immutable
- @JsonParsableException(errorCode = UnsupportedMediaTypeException.ERROR_CODE)
  public final class UnsupportedMediaTypeException extends DittoRuntimeException {
 
      /**
