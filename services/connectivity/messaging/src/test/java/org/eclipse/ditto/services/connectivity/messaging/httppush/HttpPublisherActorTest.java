@@ -142,8 +142,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(received).hasSize(0);
         assertThat(request.method()).isEqualTo(HttpMethods.POST);
         assertThat(request.getUri().getPathString()).isEqualTo("/replyTarget/thing:id");
-        assertThat(request.getHeader("mappedHeader1"))
-                .contains(HttpHeader.parse("mappedHeader1", "original-header-value"));
+        assertThat(request.getHeader("correlation-id"))
+                .contains(HttpHeader.parse("correlation-id", TestConstants.CORRELATION_ID));
         assertThat(request.getHeader("mappedHeader2"))
                 .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
     }

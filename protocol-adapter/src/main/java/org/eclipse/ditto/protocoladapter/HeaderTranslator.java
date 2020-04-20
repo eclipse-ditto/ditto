@@ -119,6 +119,27 @@ public final class HeaderTranslator {
     }
 
     /**
+     * Publish Ditto headers to external headers and filter unknown header.
+     * TODO TJ is this now the same as "retain"?
+     * @param dittoHeaders Ditto headers to publish.
+     * @return external headers.
+     */
+    public Map<String, String> toFilteredExternalHeaders(final DittoHeaders dittoHeaders) {
+        if (headerDefinitionMap.isEmpty()) {
+            return dittoHeaders;
+        }
+        final Map<String, String> headers = new HashMap<>();
+        dittoHeaders.forEach((key, value) -> {
+            final String lowerCaseKey = key.toLowerCase();
+            final HeaderDefinition definition = headerDefinitionMap.get(lowerCaseKey);
+            if (definition != null && definition.shouldWriteToExternalHeaders()) {
+                headers.put(key, value);
+            }
+        });
+        return headers;
+    }
+
+    /**
      * Build a copy of this header translator without knowledge of certain headers.
      *
      * @param headerKeys header keys to forget.
@@ -136,6 +157,7 @@ public final class HeaderTranslator {
 
     private static Map<String, String> filterMap(final Map<String, String> headersToFilter,
             final HeaderEntryFilter headerEntryFilter, final boolean lowercaseHeaderKeys) {
+        // TODO TJ Stefan always lowercased all headers - is this better?
         final Map<String, String> map = new LinkedHashMap<>(headersToFilter.size());
         headersToFilter.forEach((theKey, theValue) -> {
             final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;

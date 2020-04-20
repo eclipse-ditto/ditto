@@ -55,10 +55,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,9 +246,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                 newFilteredMqttSource("eclipse/{{ thing:namespace }}/{{ thing:name }}", "eclipse/+/+");
 
         final Connection connectionWithEnforcement =
-                ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
-                        ConnectivityStatus.OPEN,
-                        serverHost)
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                        ConnectivityStatus.OPEN, serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
 

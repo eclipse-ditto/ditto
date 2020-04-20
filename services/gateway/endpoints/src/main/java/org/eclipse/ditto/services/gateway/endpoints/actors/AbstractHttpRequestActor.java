@@ -451,7 +451,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final DittoHeaders allDittoHeaders) {
 
         logger.setCorrelationId(allDittoHeaders);
-        final Map<String, String> externalHeaders = getExternalHeaders(allDittoHeaders);
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allDittoHeaders);
 
         if (externalHeaders.isEmpty()) {
             logger.debug("No external headers for enhancing the response, returning it as-is.");

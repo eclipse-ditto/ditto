@@ -89,6 +89,7 @@ public final class ImmutableDittoHeadersTest {
             Lists.list(AuthorizationModelFactory.newAuthSubject("knownRevokedSubject1"),
                     AuthorizationModelFactory.newAuthSubject("knownRevokedSubject2"));
     private static final String KNOWN_CONTENT_TYPE = "application/json";
+    private static final String KNOWN_REPLY_TO = "replies";
     private static final String KNOWN_ORIGIN = "knownOrigin";
     private static final String KNOWN_REPLY_TARGET = "5";
     private static final String KNOWN_MAPPER = "knownMapper";
@@ -98,6 +99,7 @@ public final class ImmutableDittoHeadersTest {
             AcknowledgementRequest.of(AcknowledgementLabel.of("ack-label-1"));
     private static final List<AcknowledgementRequest> KNOWN_ACK_REQUESTS = Lists.list(KNOWN_ACK_REQUEST);
     private static final String KNOWN_ENTITY_ID = "known:entityId";
+    private static final String KNOWN_WWW_AUTHENTICATION = "known:www-authentication";
 
     @Test
     public void assertImmutability() {
@@ -133,6 +135,8 @@ public final class ImmutableDittoHeadersTest {
                 .inboundPayloadMapper(KNOWN_MAPPER)
                 .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
+                .putHeader(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
+                .putHeader(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .timeout(KNOWN_TIMEOUT)
                 .build();
@@ -338,6 +342,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
                 .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
                 .set(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
+                .set(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
+                .set(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -536,6 +542,8 @@ public final class ImmutableDittoHeadersTest {
                 ackRequestsToJsonArray(KNOWN_ACK_REQUESTS).toString());
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
         result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID);
+        result.put(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO);
+        result.put(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION);
 
         return result;
     }

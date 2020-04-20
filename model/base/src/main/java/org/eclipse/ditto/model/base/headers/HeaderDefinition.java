@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 /**
  * This interface represents the definition of a pre-defined Ditto header. The definition provides the header key as
  * well as the Java type of the header value.
+ * Note: All header keys must be lower-case;
  */
 public interface HeaderDefinition {
 

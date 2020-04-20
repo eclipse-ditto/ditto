@@ -98,6 +98,25 @@ public final class HeaderTranslatorTest {
     }
 
     @Test
+    public void testReadExternalWhitelistedHeader() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put("Authorization", "Basic afhdfiusfaifsafwaihfidsahfiudsafidsahfoidsaf");
+
+        assertThat(underTest.fromExternalHeaders(externalHeaders)).containsKey("authorization");
+    }
+
+    @Test
+    public void testHeaderFiltering() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("bumlux", "foobar").build();
+
+        assertThat(underTest.toFilteredExternalHeaders(dittoHeaders)).isEmpty();
+    }
+
+    @Test
     public void translateMixedExternalHeadersToDittoHeaders() {
         final String correlationId = "correlation-id";
         final Map<String, String> externalHeaders = new HashMap<>();

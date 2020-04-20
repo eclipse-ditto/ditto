@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
 /**
  * Enumeration of definitions of well known Ditto Headers including their key and Java type.
+ * Note: All header keys must be lower-case;
  */
 public enum DittoHeaderDefinition implements HeaderDefinition {
 
@@ -100,6 +101,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     CONTENT_TYPE("content-type", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
+     * Header definition for the reply to address. MUST be lower-case.
+     * "reply-to" is a standard internet message header (RFC-5322).
+     * <p>
+     * Key: {@code "reply-to"}, Java type: String.
+     * </p>
+     * @since 1.1.0
+     */
+    REPLY_TO("reply-to", String.class, true, true),
+
+    /**
      * Header definition for channel value meaning distinguishing between live/twin.
      * <p>
      * Key: {@code "ditto-channel"}, Java type: {@link String}.
@@ -121,7 +132,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ETag"}, Java type: {@link String}.
      * </p>
      */
-    ETAG("ETag", EntityTag.class, String.class, false, true, HeaderValueValidators.getEntityTagValidator()),
+    ETAG("etag", EntityTag.class, String.class, false, true, HeaderValueValidators.getEntityTagValidator()),
 
     /**
      * Header definition for "If-Match".
@@ -129,7 +140,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_MATCH("If-Match", EntityTagMatchers.class, String.class, true, false,
+    IF_MATCH("if-match", EntityTagMatchers.class, String.class, true, false,
             HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
@@ -138,7 +149,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-None-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_NONE_MATCH("If-None-Match", EntityTagMatchers.class, String.class, true, false,
+    IF_NONE_MATCH("if-none-match", EntityTagMatchers.class, String.class, true, false,
             HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
@@ -198,7 +209,20 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 1.1.0
      */
     ENTITY_ID("ditto-entity-id", String.class, false, false,
-            HeaderValueValidators.getNoOpValidator());
+            HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header definition for the response header defining which authentication method that should be used
+     * to gain access to a resource
+     * <p>
+     * Key: {@code "www-authenticate"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 1.1.0
+     */
+    WWW_AUTHENTICATE("www-authenticate", String.class, false, true,
+            HeaderValueValidators.getNoOpValidator()),
+    ;
 
     /**
      * Map to speed up lookup of header definition by key.

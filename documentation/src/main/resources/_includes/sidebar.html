@@ -3,11 +3,13 @@
 <ul id="mysidebar" class="nav">
   <li class="sidebarTitle">
     <label for="docVersion">{{sidebar[0].product}} {{sidebar[0].version}} version:</label>
-    <select id="docVersion" name="docVersion">
-      {% for docV in site.docVersions %}
-      <option value="{{docV.basePath}}">{{docV.label}}</option>
-      {% endfor %}
-    </select>
+    <div class="select-wrapper">
+      <select id="docVersion" name="docVersion">
+        {% for docV in site.docVersions %}
+        <option value="{{docV.basePath}}">{{docV.label}}</option>
+        {% endfor %}
+      </select>
+    </div>
     <div id="dev-warning">
       {% include important.html content="This documentation reflects the latest 'development'. You might want to choose a released version."
         additionalStyle="font-size:0.6em" %}
