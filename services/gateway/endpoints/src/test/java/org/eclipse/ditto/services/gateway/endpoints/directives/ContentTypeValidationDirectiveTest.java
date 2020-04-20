@@ -13,22 +13,28 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpMessage;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
@@ -61,14 +67,17 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
         final String type = MediaTypes.APPLICATION_JSON.toString();
         final ContentType differentType = ContentTypes.APPLICATION_X_WWW_FORM_URLENCODED;
 
+        final RequestContext mockedCtx = mock(RequestContext.class);
+        when(mockedCtx.getRequest())
+                .thenReturn(HttpRequest.PUT("someUrl").withEntity(differentType,"something".getBytes()));
         // Act
-        final TestRouteResult result =
-                testRoute(extractRequestContext(
-                        ctx -> ensureValidContentType(Set.of(type), ctx, dittoHeaders, COMPLETE_OK)))
-                        .run(HttpRequest.PUT("someUrl").withEntity(differentType, "something".getBytes()));
+        final UnsupportedMediaTypeException result =
+                catchThrowableOfType(() -> ensureValidContentType(Set.of(type), mockedCtx, dittoHeaders, COMPLETE_OK),
+                        UnsupportedMediaTypeException.class);
 
         // Assert
-        result.assertStatusCode(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(result).hasMessageContaining(differentType.toString());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatusCode.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @Test
@@ -94,14 +103,34 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
         DittoHeaders dittoHeaders = DittoHeaders.empty();
         final String type = ContentTypes.APPLICATION_JSON.mediaType().toString();
 
+        final RequestContext mockedCtx = mock(RequestContext.class);
+        when(mockedCtx.getRequest()).thenReturn(HttpRequest.PUT("someUrl"));
+
         // Act
-        final TestRouteResult result =
-                testRoute(extractRequestContext(
-                        ctx -> ensureValidContentType(Set.of(type), ctx, dittoHeaders, COMPLETE_OK)))
-                        .run(HttpRequest.PUT("someUrl"));
+        final UnsupportedMediaTypeException result =
+                catchThrowableOfType(() -> ensureValidContentType(Set.of(type), mockedCtx, dittoHeaders, COMPLETE_OK),
+                        UnsupportedMediaTypeException.class);
 
         // Assert
-        result.assertStatusCode(StatusCodes.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatusCode.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    @Test
+    public void testExceptionContainsDittoHeaders() {
+        // Arrange
+        DittoHeaders dittoHeaders = DittoHeaders.of(Map.of("someHeaderKey", "someHeaderVal"));
+        final String type = ContentTypes.APPLICATION_JSON.mediaType().toString();
+
+        final RequestContext mockedCtx = mock(RequestContext.class);
+        when(mockedCtx.getRequest()).thenReturn(HttpRequest.PUT("someUrl"));
+
+        // Act
+        final UnsupportedMediaTypeException result =
+                catchThrowableOfType(() -> ensureValidContentType(Set.of(type), mockedCtx, dittoHeaders, COMPLETE_OK),
+                        UnsupportedMediaTypeException.class);
+
+        // Assert
+        assertThat(result.getDittoHeaders()).isEqualTo(dittoHeaders);
     }
 
     /**

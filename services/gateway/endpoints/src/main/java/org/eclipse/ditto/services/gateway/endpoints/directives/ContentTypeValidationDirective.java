@@ -12,7 +12,6 @@
   */
  package org.eclipse.ditto.services.gateway.endpoints.directives;
 
- import static akka.http.javadsl.server.Directives.complete;
  import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
  import java.text.MessageFormat;
@@ -21,9 +20,6 @@
  import java.util.function.Supplier;
  import java.util.stream.StreamSupport;
 
- import org.eclipse.ditto.model.base.common.HttpStatusCode;
- import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
- import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
  import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
  import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -69,7 +65,10 @@
                      LOGGER.info("Request rejected: unsupported media-type: <{}>  request: <{}>",
                              requestsMediaType, requestToLogString(ctx.getRequest()));
                  }
-                 throw UnsupportedMediaTypeException.withDetailedMessage(requestsMediaType, supportedMediaTypes, dittoHeaders);
+                 throw UnsupportedMediaTypeException
+                         .withDetailedInformationBuilder(requestsMediaType, supportedMediaTypes)
+                         .dittoHeaders(dittoHeaders)
+                         .build();
              }
          });
      }
