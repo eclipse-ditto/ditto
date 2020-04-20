@@ -224,7 +224,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <!-- TODO: resolve binary compatibility problems -->
                             <exclude>org.eclipse.ditto.protocoladapter.HeaderTranslator#fromExternalHeaders(java.util.Map)</exclude>
                             <exclude>org.eclipse.ditto.protocoladapter.TopicPathBuilder</exclude>
                         </excludes>
