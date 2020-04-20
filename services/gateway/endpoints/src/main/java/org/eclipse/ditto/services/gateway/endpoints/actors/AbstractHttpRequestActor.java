@@ -262,7 +262,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private DittoHeaders getExternalHeaders(final DittoHeaders dittoHeaders) {
-        return DittoHeaders.of(headerTranslator.toExternalHeaders(dittoHeaders));
+        return DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders));
     }
 
     private void handleCommandWithResponse(final Command<?> command, final Receive awaitCommandResponseBehavior) {
@@ -451,7 +451,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final DittoHeaders allDittoHeaders) {
 
         logger.setCorrelationId(allDittoHeaders);
-        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allDittoHeaders);
+        final Map<String, String> externalHeaders = getExternalHeaders(allDittoHeaders);
 
         if (externalHeaders.isEmpty()) {
             logger.debug("No external headers for enhancing the response, returning it as-is.");

@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -155,7 +154,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         final Adaptable adaptable = mapSignalToAdaptable(signal, channel);
         final Map<String, String> externalHeaders;
         if (signal instanceof CommandResponse) {
-            externalHeaders = headerTranslator.toFilteredExternalHeaders(adaptable.getDittoHeaders());
+            externalHeaders = headerTranslator.toExternalAndRetainKnownHeaders(adaptable.getDittoHeaders());
         } else {
             externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
         }

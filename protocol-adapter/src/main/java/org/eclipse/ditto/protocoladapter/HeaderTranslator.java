@@ -119,24 +119,22 @@ public final class HeaderTranslator {
     }
 
     /**
-     * Publish Ditto headers to external headers and filter unknown header.
-     * TODO TJ is this now the same as "retain"?
+     * Publish Ditto headers to external headers and filter out Ditto unknown headers.
+     * A combination of {@link #toExternalHeaders(DittoHeaders)} and {@link #retainKnownHeaders(Map)}.
+     *
      * @param dittoHeaders Ditto headers to publish.
      * @return external headers.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @since 1.1.0
      */
-    public Map<String, String> toFilteredExternalHeaders(final DittoHeaders dittoHeaders) {
-        if (headerDefinitionMap.isEmpty()) {
+    public Map<String, String> toExternalAndRetainKnownHeaders(final DittoHeaders dittoHeaders) {
+        checkNotNull(dittoHeaders, "dittoHeaders");
+        if (headerDefinitions.isEmpty()) {
             return dittoHeaders;
         }
-        final Map<String, String> headers = new HashMap<>();
-        dittoHeaders.forEach((key, value) -> {
-            final String lowerCaseKey = key.toLowerCase();
-            final HeaderDefinition definition = headerDefinitionMap.get(lowerCaseKey);
-            if (definition != null && definition.shouldWriteToExternalHeaders()) {
-                headers.put(key, value);
-            }
-        });
-        return headers;
+        final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters
+                .existsAsHeaderDefinitionAndExternal(headerDefinitions);
+        return filterMap(dittoHeaders, headerEntryFilter, true);
     }
 
     /**
@@ -157,7 +155,6 @@ public final class HeaderTranslator {
 
     private static Map<String, String> filterMap(final Map<String, String> headersToFilter,
             final HeaderEntryFilter headerEntryFilter, final boolean lowercaseHeaderKeys) {
-        // TODO TJ Stefan always lowercased all headers - is this better?
         final Map<String, String> map = new LinkedHashMap<>(headersToFilter.size());
         headersToFilter.forEach((theKey, theValue) -> {
             final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;

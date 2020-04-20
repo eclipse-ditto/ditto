@@ -63,7 +63,7 @@ final class DittoRuntimeExceptionToHttpResponse implements Function<DittoRuntime
     }
 
     private List<HttpHeader> getExternalHeadersFor(final DittoHeaders dittoHeaders) {
-        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(dittoHeaders);
+        final Map<String, String> externalHeaders = headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders);
         final List<HttpHeader> result = new ArrayList<>(externalHeaders.size());
         externalHeaders.forEach((key, value) -> result.add(HttpHeader.parse(key, value)));
         return result;

@@ -100,6 +100,7 @@ public final class ImmutableDittoHeadersTest {
     private static final List<AcknowledgementRequest> KNOWN_ACK_REQUESTS = Lists.list(KNOWN_ACK_REQUEST);
     private static final String KNOWN_ENTITY_ID = "known:entityId";
     private static final String KNOWN_WWW_AUTHENTICATION = "known:www-authentication";
+    private static final String KNOWN_LOCATION = "known:location";
 
     @Test
     public void assertImmutability() {
@@ -137,6 +138,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .putHeader(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
                 .putHeader(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
+                .putHeader(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .timeout(KNOWN_TIMEOUT)
                 .build();
@@ -344,6 +346,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .set(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
                 .set(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
+                .set(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -544,6 +547,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID);
         result.put(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO);
         result.put(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION);
+        result.put(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION);
 
         return result;
     }

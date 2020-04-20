@@ -113,7 +113,7 @@ public final class HeaderTranslatorTest {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("bumlux", "foobar").build();
 
-        assertThat(underTest.toFilteredExternalHeaders(dittoHeaders)).isEmpty();
+        assertThat(underTest.toExternalAndRetainKnownHeaders(dittoHeaders)).isEmpty();
     }
 
     @Test

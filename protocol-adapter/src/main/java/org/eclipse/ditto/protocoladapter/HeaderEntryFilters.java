@@ -96,4 +96,24 @@ final class HeaderEntryFilters {
         return CheckExternalFilter.existsAsHeaderDefinition(headerDefinitionMap);
     }
 
+    /**
+     * Creates a {@code HeaderEntryFilter} which will
+     * <ul>
+     * <li>filter out header entries which do not exist as defined {@link HeaderDefinition} (e.g. user defined headers)
+     * and filters out only.</li>
+     * <li>filter out header entries which should not be written to external headers as specified by
+     * {@link HeaderDefinition#shouldWriteToExternalHeaders()} of the entry</li>
+     * </ul>
+     *
+     * @param headerDefinitionMap the header definitions for determining whether a header entry is defined by a
+     * HeaderDefinition or not.
+     * @return the created HeaderEntryFilter.
+     * @throws NullPointerException if {@code headerDefinitionMap} is {@code null}.
+     * @since 1.1.0
+     */
+    static HeaderEntryFilter existsAsHeaderDefinitionAndExternal(final Map<String, HeaderDefinition> headerDefinitionMap) {
+        return existsAsHeaderDefinition(headerDefinitionMap)
+                .andThen(toExternalHeadersFilter(headerDefinitionMap));
+    }
+
 }

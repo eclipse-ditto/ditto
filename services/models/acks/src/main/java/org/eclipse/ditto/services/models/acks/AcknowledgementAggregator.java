@@ -252,7 +252,7 @@ public final class AcknowledgementAggregator {
 
     private DittoHeaders getFilteredAcknowledgementHeaders(final WithDittoHeaders<?> withDittoHeaders) {
         final DittoHeaders externalHeaders =
-                DittoHeaders.of(headerTranslator.toExternalHeaders(withDittoHeaders.getDittoHeaders()));
+                DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(withDittoHeaders.getDittoHeaders()));
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder(externalHeaders);
         return headersBuilder.build();
     }

@@ -106,9 +106,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "reply-to"}, Java type: String.
      * </p>
+     *
      * @since 1.1.0
      */
-    REPLY_TO("reply-to", String.class, true, true),
+    REPLY_TO("reply-to", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for channel value meaning distinguishing between live/twin.
@@ -221,6 +222,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 1.1.0
      */
     WWW_AUTHENTICATE("www-authenticate", String.class, false, true,
+            HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header definition for the response header defining the HTTP "Location" where a new resource was created.
+     * <p>
+     * Key: {@code "location"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 1.1.0
+     */
+    LOCATION("location", String.class, false, true,
             HeaderValueValidators.getNoOpValidator()),
     ;
 
