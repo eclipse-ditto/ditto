@@ -43,6 +43,31 @@ to supply additional configuration one has to add the variable in the correspond
 The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
 the `-jar` option.
 
+### Pre-authentication
+
+HTTP API calls to Ditto may be authenticated with a reverse proxy (e.g. a nginx) which:
+* authenticates a user/subject
+* passes the authenticated username as HTTP header
+* ensures that this HTTP header can never be written by the end-user
+
+By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.<br/>
+It can however be enabled by configuring the environment variable `ENABLE_PRE_AUTHENTICATION` to the value `true`.
+
+When it is enabled, the reverse proxy has to set the HTTP header `x-ditto-pre-authenticated`.<br/>
+The format of the "pre-authenticated" string is: `<issuer>:<subject>`. The issuer defines which system authenticated the
+user and the subject contains e.g. the user-id or -name.
+
+This string must then be used in [policies](basic-policy.html#who-can-be-addressed) as "Subject ID".
+
+Example for a nginx "proxy" configuration: 
+```
+auth_basic                    "Authentication required";
+auth_basic_user_file          nginx.htpasswd;
+...
+proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
+```
+
+
 ### OpenID Connect
 
 The authentication provider must be added to the ditto-gateway configuration.
