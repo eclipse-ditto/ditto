@@ -21,6 +21,10 @@
  import java.util.function.Supplier;
  import java.util.stream.StreamSupport;
 
+ import org.eclipse.ditto.model.base.common.HttpStatusCode;
+ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+ import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
  import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.slf4j.Logger;
@@ -28,7 +32,6 @@
 
  import akka.http.javadsl.model.HttpHeader;
  import akka.http.javadsl.model.HttpRequest;
- import akka.http.javadsl.model.StatusCodes;
  import akka.http.javadsl.server.RequestContext;
  import akka.http.javadsl.server.Route;
 
@@ -38,6 +41,10 @@
  public final class ContentTypeValidationDirective {
 
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
+
+     private ContentTypeValidationDirective() {
+         // no op
+     }
 
      /**
       * verifies that the content-type of the entity is one of the allowed media-types,
@@ -55,28 +62,19 @@
          return enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () -> {
              final String requestsMediaType = extractMediaType(ctx.getRequest());
 
-             if(supportedMediaTypes.contains(requestsMediaType)){
+             if (supportedMediaTypes.contains(requestsMediaType)) {
                  return inner.get();
              } else {
-                 LOGGER.info("Request rejected: unsupported media-type: <{}>  request: <{}>",
-                         requestsMediaType, requestToLogString(ctx.getRequest()));
-                 return completeWithMediaTypeNotSupported(requestsMediaType, supportedMediaTypes);
+                 if (LOGGER.isInfoEnabled()) {
+                     LOGGER.info("Request rejected: unsupported media-type: <{}>  request: <{}>",
+                             requestsMediaType, requestToLogString(ctx.getRequest()));
+                 }
+                 throw UnsupportedMediaTypeException.withDetailedMessage(requestsMediaType, supportedMediaTypes, dittoHeaders);
              }
          });
      }
 
-     protected static Route completeWithMediaTypeNotSupported(final String mediaType,
-             final Set<String> supportedByResource){
-
-             final String msgPatten = "The Media-Type <{0}> is not supported for this endpoint. Allowed " +
-                     "Media-Types are: <{1}>";
-             final String responseMessage =
-                     MessageFormat.format(msgPatten, mediaType, supportedByResource);
-
-             return complete(StatusCodes.UNSUPPORTED_MEDIA_TYPE, responseMessage);
-     }
-
-     protected static String requestToLogString(final HttpRequest request){
+     protected static String requestToLogString(final HttpRequest request) {
          final String msgPatten = "{0} {1} {2}";
          return MessageFormat.format(msgPatten,
                  request.getUri().getHost().address(),
@@ -93,13 +91,12 @@
       * For akka-defaults:
       * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} <code>parseEntity</code>
       * and {@link akka.http.scaladsl.model.HttpEntity$}.
-      * @see
-      * <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
       *
       * @param request the request where the media type will be extracted from.
       * @return the extracted media-type.
+      * @see <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
       */
-     protected static String extractMediaType(HttpRequest request){
+     protected static String extractMediaType(HttpRequest request) {
          final Optional<HttpHeader> rawContentType = StreamSupport.stream(request.getHeaders().spliterator(), false)
                  .filter(header -> header.name().equals(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
                  .findFirst();
