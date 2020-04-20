@@ -154,6 +154,17 @@ An entity (e.g. a Thing) or an aspect of an entity was
 For the *messages* criterion the *action* segment specifies the message subject and can be freely chosen by the sender 
 provided that it conforms to [RFC-3986](https://tools.ietf.org/html/rfc3986) (URI).
 
+### Search criterion actions
+
+The action of a command or an event of the [search protocol](protocol-specification-things-search.html) is
+* `subscribe`,
+* `request`,
+* `cancel`,
+* `created`,
+* `next`,
+* `complete`, or
+* `failed`.
+
 ### Acknowledgement criterion actions
 For *acks* criterion the *action* segment specifies the identifier which is defined by the system which issued the ACK.
 The criterion has to match the regular expression `[a-zA-Z0-9-_]{3,64}`, i.e. letters of the latin alphabet, numbers,
