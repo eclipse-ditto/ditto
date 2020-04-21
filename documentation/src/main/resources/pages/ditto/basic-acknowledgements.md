@@ -33,10 +33,10 @@ processed, applying a specified timeout interval.
 Acknowledgement requests are expressed as protocol specific header fields of commands, more on that 
 [later](#requesting-acknowledgements).
 
-Acknowledgement requests will be included in the `"requested-acks"` header for 
-[events](basic-signals-event.html) emitted by Ditto, 
-except for Ditto's [built-in acknowledgements](#built-in-acknowledgement-labels),
-which will be excluded. This way, only custom requested acknowledgements, which an external party can acknowledge, are retained.
+The [events](basic-signals-event.html) emitted by Ditto, will inlcude the custom
+acknowledgement requests in the `"requested-acks"` header, but exclude the Ditto default `"twin-persisted"`
+header for [built-in acknowledgements](#built-in-acknowledgement-labels). 
+This way, only custom requested acknowledgements, which an external party can acknowledge, are sent.
 
 
 ## Acknowledgement labels
@@ -84,8 +84,8 @@ With every API call *modifying the state of a twin* there is the option to provi
 Either specify the following HTTP header fields:
   * **requested-acks**: a comma separated list of [acknowledgement labels](#acknowledgement-labels)<br/>
   Example: *requested-acks*: twin-persisted,my-custom-ack
-  * timeout: an optional time (in s or ms) of how long the HTTP request should wait for acknowledgements and block. Default: `60s`<br/>
-  Examples: *timeout*: 42s, *timeout*: 250ms
+  * timeout: an optional time (in ms, s or m) of how long the HTTP request should wait for acknowledgements and block. Default: `60s`<br/>
+  Examples: *timeout*: 42s, *timeout*: 250ms, *timeout*: 1m
 
 Or specify the header fields as query parameters to the HTTP params, e.g.:
 ```
