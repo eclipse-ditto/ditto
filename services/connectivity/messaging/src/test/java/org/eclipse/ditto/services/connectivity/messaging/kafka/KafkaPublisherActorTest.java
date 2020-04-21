@@ -97,7 +97,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(message.record().topic()).isEqualTo("replyTarget");
         assertThat(message.record().key()).isEqualTo("thing:id");
         final List<Header> headers = Arrays.asList(message.record().headers().toArray());
-        shouldContainHeader(headers, "mappedHeader1", "original-header-value");
+        shouldContainHeader(headers, "correlation-id", TestConstants.CORRELATION_ID);
         shouldContainHeader(headers, "mappedHeader2", "thing:id");
     }
 

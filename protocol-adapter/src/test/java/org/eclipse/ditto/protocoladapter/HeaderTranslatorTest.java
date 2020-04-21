@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
 /**
@@ -50,6 +51,25 @@ public final class HeaderTranslatorTest {
         externalHeaders.put("nullValueHeader", null);
 
         assertThat(underTest.fromExternalHeaders(externalHeaders)).isEmpty();
+    }
+
+    @Test
+    public void testReadExternalWhitelistedHeader() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put("Authorization", "Basic afhdfiusfaifsafwaihfidsahfiudsafidsahfoidsaf");
+
+        assertThat(underTest.fromExternalHeaders(externalHeaders)).containsKey("authorization");
+    }
+
+    @Test
+    public void testHeaderFiltering() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("bumlux", "foobar").build();
+
+        assertThat(underTest.toFilteredExternalHeaders(dittoHeaders)).isEmpty();
     }
 
 }

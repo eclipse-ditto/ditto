@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,15 +32,11 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.mongodb.QueryOperators;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -88,22 +85,13 @@ public class MongoReadJournal {
     private static final String SNAPS_COLLECTION_NAME_KEY = "overrides.snaps-collection";
 
     private static final String PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
-    private static final String TO = JournallingFieldNames$.MODULE$.TO();
     private static final String SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
-    private static final String GTE = QueryOperators.GTE;
-    private static final String LT = QueryOperators.LT;
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
     private static final String SERIALIZED_SNAPSHOT = "s2";
     private static final String LIFECYCLE = "__lifecycle";
 
-    private static final Integer PROJECT_INCLUDE = 1;
     private static final Integer SORT_DESCENDING = -1;
-
-    private static final Document JOURNAL_PROJECT_DOCUMENT =
-            toDocument(new Object[][]{{PROCESSOR_ID, PROJECT_INCLUDE}, {TO, PROJECT_INCLUDE}});
-    private static final Document SNAPS_PROJECT_DOCUMENT =
-            toDocument(new Object[][]{{PROCESSOR_ID, PROJECT_INCLUDE}, {SN, PROJECT_INCLUDE}});
 
     private static final Document ID_DESC = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
 
@@ -112,14 +100,12 @@ public class MongoReadJournal {
     private final String journalCollection;
     private final String snapsCollection;
     private final DittoMongoClient mongoClient;
-    private final Logger log;
 
     private MongoReadJournal(final String journalCollection, final String snapsCollection,
             final DittoMongoClient mongoClient) {
         this.journalCollection = journalCollection;
         this.snapsCollection = snapsCollection;
         this.mongoClient = mongoClient;
-        log = LoggerFactory.getLogger(MongoReadJournal.class);
     }
 
     /**
@@ -246,9 +232,12 @@ public class MongoReadJournal {
             final ActorMaterializer mat,
             final String... snapshotFields) {
 
-        return unfoldBatchedSource(lowerBound, mat, document -> document.getString(ID), actualStart ->
-                listNewestSnapshots(snapshotStore, actualStart, batchSize, snapshotFields)
-        );
+        return this.unfoldBatchedSource(lowerBound,
+                mat,
+                SnapshotBatch::getMaxPid,
+                actualStart -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStart, batchSize, snapshotFields))
+                .mapConcat(x -> x)
+                .map(SnapshotBatch::getItems);
     }
 
     private <T> Source<List<T>, NotUsed> unfoldBatchedSource(
@@ -314,7 +303,8 @@ public class MongoReadJournal {
         }
     }
 
-    private Source<Document, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
+    private Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
+            final MongoCollection<Document> snapshotStore,
             final String start,
             final int batchSize,
             final String... snapshotFields) {
@@ -331,18 +321,43 @@ public class MongoReadJournal {
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
-        // group stage
+        // group stage 1: by PID
         pipeline.add(Aggregates.group("$" + PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
-
-        // filter out entities whose latest snapshots are deleted snapshots.
-        // all Ditto entities store their lifecycle in the field "__lifecycle".
-        pipeline.add(Aggregates.match(Filters.ne(LIFECYCLE, "DELETED")));
-        pipeline.add(Aggregates.project(Projections.exclude(LIFECYCLE)));
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
 
-        return Source.fromPublisher(snapshotStore.aggregate(pipeline));
+        // group stage 2: filter out pids whose latest snapshot is a deleted snapshot, but retain max encountered pid
+        final String maxPid = "m";
+        final String items = "i";
+        pipeline.add(Aggregates.group(null,
+                Accumulators.max(maxPid, "$" + ID),
+                Accumulators.push(
+                        items,
+                        new Document().append("$cond", new Document()
+                                .append("if", new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
+                                .append("then", "$$CURRENT")
+                                .append("else", null)
+                        ))
+        ));
+
+        // remove null entries by projection
+        pipeline.add(Aggregates.project(new Document()
+                .append(maxPid, 1)
+                .append(items, new Document()
+                        .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
+                )
+        ));
+
+        return Source.fromPublisher(snapshotStore.aggregate(pipeline))
+                .flatMapConcat(document -> {
+                    final String theMaxPid = document.getString(maxPid);
+                    if (theMaxPid == null) {
+                        return Source.empty();
+                    } else {
+                        return Source.single(new SnapshotBatch(theMaxPid, document.getList(items, Document.class)));
+                    }
+                });
     }
 
     /**
@@ -425,6 +440,25 @@ public class MongoReadJournal {
      */
     private static String getOverrideCollectionName(final Config journalOrSnapsConfig, final String key) {
         return journalOrSnapsConfig.getString(key);
+    }
+
+    private static final class SnapshotBatch {
+
+        private final String maxPid;
+        private final List<Document> items;
+
+        private SnapshotBatch(final String maxPid, final List<Document> items) {
+            this.maxPid = maxPid;
+            this.items = items;
+        }
+
+        private String getMaxPid() {
+            return maxPid;
+        }
+
+        private List<Document> getItems() {
+            return items;
+        }
     }
 
 }
