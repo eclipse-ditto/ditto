@@ -169,44 +169,6 @@ final class DefaultAdapterResolver implements AdapterResolver {
         return r -> enumMap.get(enumExtractor.apply(r)).apply(r);
     }
 
-    private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnumOptional(
-            final List<Adapter<?>> adapters,
-            final Class<T> enumClass,
-            final T[] enumValues,
-            final Function<Adapter<?>, Set<T>> getSupportedEnums,
-            final Function<Adaptable, Optional<T>> extractEnum,
-            final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
-        final EnumMapOrFunction<T> dispatchByT =
-                dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep);
-        // consider adapters that support no enum value to be those that support adaptables without enum values.
-        // e. g., search signals for actions, non-search signals for search actions, non-message signals for subjects
-        final List<Adapter<?>> noEnumValueAdapters =
-                filter(adapters, adapter -> getSupportedEnums.apply(adapter).isEmpty());
-        return dispatchByT.evalByOptional(nextStep.apply(noEnumValueAdapters), extractEnum);
-    }
-
-    /**
-     * Compute the adapter resolver function for current and subsequent enum dimensions.
-     *
-     * @param adapters the list of relevant adapters at this step.
-     * @param enumClass the class of the enum type to dispatch at this step.
-     * @param enumValues all values of the enum class.
-     * @param getSupportedEnums the function to extract a set of supported enum values from an adapter.
-     * @param extractEnum the function to extract the enum value from an adaptable for adapter resolution.
-     * @param nextStep the factory for the adapter resolver function for subsequent enum dimensions.
-     * @param <T> the enum type.
-     * @return the adapter resolver function.
-     */
-    private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnum(
-            final List<Adapter<?>> adapters,
-            final Class<T> enumClass,
-            final T[] enumValues,
-            final Function<Adapter<?>, Set<T>> getSupportedEnums,
-            final Function<Adaptable, T> extractEnum,
-            final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
-        return dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep).eval(extractEnum);
-    }
-
     /**
      * Convert an extracting function for TopicPath into one for Adaptable.
      *
@@ -283,8 +245,8 @@ final class DefaultAdapterResolver implements AdapterResolver {
          * @return the adapter selector.
          */
         Function<Adaptable, Adapter<?>> combine(
-                final List<Adapter<?>> currentAdapters,
-                final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep);
+                List<Adapter<?>> currentAdapters,
+                Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep);
     }
 
     /**
@@ -314,6 +276,22 @@ final class DefaultAdapterResolver implements AdapterResolver {
                 final List<Adapter<?>> currentAdapters,
                 final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
             return forEnumOptional(currentAdapters, enumClass, enumValues, getSupportedEnums, extractEnum, nextStep);
+        }
+
+        private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnumOptional(
+                final List<Adapter<?>> adapters,
+                final Class<T> enumClass,
+                final T[] enumValues,
+                final Function<Adapter<?>, Set<T>> getSupportedEnums,
+                final Function<Adaptable, Optional<T>> extractEnum,
+                final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
+            final EnumMapOrFunction<T> dispatchByT =
+                    DefaultAdapterResolver.dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep);
+            // consider adapters that support no enum value to be those that support adaptables without enum values.
+            // e. g., search signals for actions, non-search signals for search actions, non-message signals for subjects
+            final List<Adapter<?>> noEnumValueAdapters =
+                    filter(adapters, adapter -> getSupportedEnums.apply(adapter).isEmpty());
+            return dispatchByT.evalByOptional(nextStep.apply(noEnumValueAdapters), extractEnum);
         }
     }
 
@@ -353,6 +331,29 @@ final class DefaultAdapterResolver implements AdapterResolver {
                 final List<Adapter<?>> currentAdapters,
                 final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
             return forEnum(currentAdapters, enumClass, enumValues, getSupportedEnums, extractEnum, nextStep);
+        }
+
+        /**
+         * Compute the adapter resolver function for current and subsequent enum dimensions.
+         *
+         * @param adapters the list of relevant adapters at this step.
+         * @param enumClass the class of the enum type to dispatch at this step.
+         * @param enumValues all values of the enum class.
+         * @param getSupportedEnums the function to extract a set of supported enum values from an adapter.
+         * @param extractEnum the function to extract the enum value from an adaptable for adapter resolution.
+         * @param nextStep the factory for the adapter resolver function for subsequent enum dimensions.
+         * @param <T> the enum type.
+         * @return the adapter resolver function.
+         */
+        private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnum(
+                final List<Adapter<?>> adapters,
+                final Class<T> enumClass,
+                final T[] enumValues,
+                final Function<Adapter<?>, Set<T>> getSupportedEnums,
+                final Function<Adaptable, T> extractEnum,
+                final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
+            return DefaultAdapterResolver.dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep)
+                    .eval(extractEnum);
         }
     }
 
