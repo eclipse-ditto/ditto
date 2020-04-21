@@ -17,7 +17,7 @@ Acknowledgements can be used in order to solve the following cases:
   Ditto (e.g. a modification was successfully persisted).
 * postpone a response until an external subscriber connected to Ditto reports that he successfully processed an 
   [event](basic-signals-event.html) which e.g. resulted by a persistence change of Ditto. 
-* *Outlook* (to come in Ditto 1.2.0): provide a QoS (quality of service) guarantee of "at least one" when processing 
+* *Outlook* (to come in Ditto 1.2.0): provide a QoS (quality of service) guarantee of "at least once" when processing 
   messages in an end-2-end manner by e.g. technically acknowledging/settling a processed message from a message broker 
   (e.g. [AMQP 1.0](connectivity-protocol-bindings-amqp10.html) or [MQTT](connectivity-protocol-bindings-mqtt.html)) only
   after it was successfully applied to Ditto and potentially also to 3rd parties.
@@ -33,16 +33,14 @@ processed, applying a specified timeout interval.
 Acknowledgement requests are expressed as protocol specific header fields of commands, more on that 
 [later](#requesting-acknowledgements).
 
-The [events](basic-signals-event.html) emitted by Ditto, will inlcude the custom
-acknowledgement requests in the `"requested-acks"` header, but exclude the Ditto default `"twin-persisted"`
-header for [built-in acknowledgements](#built-in-acknowledgement-labels). 
-This way, only custom requested acknowledgements, which an external party can acknowledge, are sent.
+The [events](basic-signals-event.html) emitted by Ditto will include the custom acknowledgement requests in the 
+`"requested-acks"` header.
 
 
 ## Acknowledgement labels
 
 Acknowledgement labels identify the acknowledgement. Some labels are already engaged by Ditto for other purposes, 
-and may therfore not be used when sending back a custom acknowledgement.
+and may therefore not be used when sending back a custom acknowledgement.
 
 ### Built-in acknowledgement labels
 
@@ -85,18 +83,17 @@ Either specify the following HTTP header fields:
   * **requested-acks**: a comma separated list of [acknowledgement labels](#acknowledgement-labels)<br/>
   Example: *requested-acks*: twin-persisted,my-custom-ack
   * timeout: an optional time (in ms, s or m) of how long the HTTP request should wait for acknowledgements and block. Default: `60s`<br/>
-  Examples: *timeout*: 42s, *timeout*: 250ms, *timeout*: 1m
+  Examples: *timeout*: `42s`, *timeout*: `250ms`, *timeout*: `1m`
 
 Or specify the header fields as query parameters to the HTTP params, e.g.:
 ```
-PUT /api/2/things?requested-acks=twin-persisted,my-custom-ack&timeout=42s
+PUT /api/2/things/org.eclipse.ditto:thing-1?requested-acks=twin-persisted,my-custom-ack&timeout=42s
 ```
 
 The response of an HTTP request, which requested several acknowledgements, will differ from the response, 
-where a HTTP request was not
-requesting acknowledgements.
+where an HTTP request was not requesting acknowledgements.
 
-Example response when 2 acknowledgements were requested:
+Example response when 2 acknowledgements were requested and were successful:
 ```json
 {
   "twin-persisted": {
@@ -116,6 +113,38 @@ Example response when 2 acknowledgements were requested:
     "status": 200,
     "payload": {
       "outcome": "green"
+    },
+    "headers": {
+      "version": 2,
+      "correlation-id": "db878735-4957-4fd9-92dc-6f09bb12a093"
+    }
+  }
+}
+```
+
+Example response when 2 acknowledgements were requested and one lead to a timeout:
+```json
+{
+  "twin-persisted": {
+    "status": 201,
+    "payload": {
+      "thingId": "org.eclipse.ditto:thing-1",
+      "policyId": "org.eclipse.ditto:thing-1"
+    },
+    "headers": {
+      "correlation-id": "db878735-4957-4fd9-92dc-6f09bb12a093",
+      "version": 2,
+      "etag": "\"rev:1\"",
+      "location": "http://127.0.0.1:8080/api/2/things/org.eclipse.ditto:thing-1"
+    }
+  },
+  "my-custom-ack": {
+    "status": 408,
+    "payload": {
+      "status": 408,
+      "error": "acknowledgement:request.timeout",
+      "message": "The acknowledgement request reached the specified timeout of 42,000ms.",
+      "description": "Try increasing the timeout and make sure that the requested acknowledgement is sent back in time."
     },
     "headers": {
       "version": 2,
