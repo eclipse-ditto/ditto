@@ -219,7 +219,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private void tellSenderForNonTwinEvents(@Nullable final TopicPath topicPath, final ActorRef sender,
             final DittoRuntimeException exception) {
 
-        if (null == topicPath || isTwinEvent(topicPath)) {
+        if (null == topicPath || !isTwinEvent(topicPath)) {
             sender.tell(exception, getSelf());
         } else {
             log.withCorrelationId(exception)
