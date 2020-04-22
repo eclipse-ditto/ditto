@@ -93,7 +93,8 @@ PUT /api/2/things/org.eclipse.ditto:thing-1?requested-acks=twin-persisted,my-cus
 The response of an HTTP request, which requested several acknowledgements, will differ from the response, 
 where an HTTP request was not requesting acknowledgements.
 
-Example response when 2 acknowledgements were requested and were successful:
+Example response when 2 acknowledgements were requested and were successful. The overall HTTP status code will be 
+`200` (OK) in this case:
 ```json
 {
   "twin-persisted": {
@@ -122,7 +123,8 @@ Example response when 2 acknowledgements were requested and were successful:
 }
 ```
 
-Example response when 2 acknowledgements were requested and one lead to a timeout:
+Example response when 2 acknowledgements were requested and one lead to a timeout. The overall HTTP status code will be 
+`424` (Dependency failed) in this case:
 ```json
 {
   "twin-persisted": {

@@ -33,3 +33,13 @@ its payload, and the topic is without a label:
 The Ditto Protocol representation of `Acknowledgements` is specified as follows:
 
 {% include docson.html schema="jsonschema/protocol-acks.json" %}
+
+### Combined status code
+
+The status code of the aggregating acknowledgements is derived based on the status codes of the contained single acks.
+
+* if only one acknowledgement is included, this acknowledgment's status code is used
+* if several acknowledgements are included:
+    * if all contained acknowledgements are successful (`200>=` HTTP status `<=299`), the overall status code is `200` (OK)
+    * if at least one acknowledgement failed (HTTP status `>299`), the overall status code is `424` (Dependency failed)
+
