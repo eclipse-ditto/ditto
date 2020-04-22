@@ -189,6 +189,13 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     }
 
     @Override
+    public Optional<Acknowledgement> getAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
+        return stream()
+                .filter(ack -> acknowledgementLabel.equals(ack.getLabel()))
+                .findAny();
+    }
+
+    @Override
     public Iterator<Acknowledgement> iterator() {
         return acknowledgements.iterator();
     }

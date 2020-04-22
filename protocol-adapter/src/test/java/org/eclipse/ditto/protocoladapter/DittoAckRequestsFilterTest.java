@@ -69,7 +69,7 @@ public final class DittoAckRequestsFilterTest {
         final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
         final List<AcknowledgementRequest> allAcknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
-                AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+                AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
                 AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
         final JsonArray allAcknowledgementRequestsJsonArray = allAcknowledgementRequests.stream()
                 .map(AcknowledgementRequest::toString)

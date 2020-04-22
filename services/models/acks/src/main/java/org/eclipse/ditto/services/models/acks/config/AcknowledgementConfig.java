@@ -43,7 +43,7 @@ public interface AcknowledgementConfig {
         /**
          * The fallback timeout to apply when forwarding Acknowledgements.
          */
-        FORWARDER_FALLBACK_TIMEOUT("forwarder-fallback-timeout", Duration.ofMinutes(1));
+        FORWARDER_FALLBACK_TIMEOUT("forwarder-fallback-timeout", Duration.ofSeconds(10));
 
         private final String path;
         private final Object defaultValue;

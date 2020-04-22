@@ -49,7 +49,7 @@ public final class ThingModifyCommandAckRequestSetterTest {
     public void doNothingIfNoResponseRequired() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .responseRequired(false)
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
@@ -63,7 +63,7 @@ public final class ThingModifyCommandAckRequestSetterTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
                 .build());
         final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 

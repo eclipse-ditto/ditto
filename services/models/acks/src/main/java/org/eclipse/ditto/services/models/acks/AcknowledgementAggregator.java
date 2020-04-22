@@ -166,7 +166,7 @@ public final class AcknowledgementAggregator {
     }
 
     /**
-     * Creates an {@code Acknowledgement} with label {@link DittoAcknowledgementLabel#PERSISTED} from the passed
+     * Creates an {@code Acknowledgement} with label {@link DittoAcknowledgementLabel#TWIN_PERSISTED} from the passed
      * {@code thingCommandResponse} and adds it to the received acknowledgements.
      *
      * @param thingCommandResponse the thing command response to create the twin persisted acknowledgement from.
@@ -189,7 +189,7 @@ public final class AcknowledgementAggregator {
                     .orElse(null);
         }
 
-        addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(DittoAcknowledgementLabel.PERSISTED,
+        addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(DittoAcknowledgementLabel.TWIN_PERSISTED,
                 thingCommandResponse.getEntityId(), thingCommandResponse.getStatusCode(), acknowledgementHeaders,
                 payload));
     }

@@ -44,7 +44,7 @@ public final class DittoAcknowledgementLabelTest {
                 .usingGetClass()
                 .verify();
 
-        final DittoAcknowledgementLabel underTest = DittoAcknowledgementLabel.PERSISTED;
+        final DittoAcknowledgementLabel underTest = DittoAcknowledgementLabel.TWIN_PERSISTED;
         final AcknowledgementLabel other = AcknowledgementLabel.of(underTest.toString());
 
         assertThat((CharSequence) other).isEqualTo(underTest);
@@ -64,13 +64,13 @@ public final class DittoAcknowledgementLabelTest {
 
     @Test
     public void containsConstantOfSelf() {
-        assertThat(DittoAcknowledgementLabel.contains(DittoAcknowledgementLabel.PERSISTED)).isTrue();
+        assertThat(DittoAcknowledgementLabel.contains(DittoAcknowledgementLabel.TWIN_PERSISTED)).isTrue();
     }
 
     @Test
     public void containsGivenLabel() {
         final AcknowledgementLabel acknowledgementLabel =
-                AcknowledgementLabel.of(DittoAcknowledgementLabel.PERSISTED.toString());
+                AcknowledgementLabel.of(DittoAcknowledgementLabel.TWIN_PERSISTED.toString());
 
         assertThat(DittoAcknowledgementLabel.contains(acknowledgementLabel)).isTrue();
     }

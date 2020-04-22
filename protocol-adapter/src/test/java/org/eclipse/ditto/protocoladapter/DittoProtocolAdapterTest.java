@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.PERSISTED;
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
 import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
@@ -422,7 +422,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void acknowledgementToAdaptable() {
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
 
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acknowledgement);
 
@@ -451,7 +451,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void acknowledgementsToAdaptable() {
         final Acknowledgement ack1 =
-                Acknowledgement.of(PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
         final Acknowledgement ack2 =
                 Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
                         HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty());
@@ -488,7 +488,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
                 Arrays.asList(
-                        Acknowledgement.of(PERSISTED, ThingId.of("thing:id"),
+                        Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"),
                                 HttpStatusCode.CONTINUE,
                                 DittoHeaders.empty()
                         ),

@@ -137,7 +137,7 @@ public interface Acknowledgements
     HttpStatusCode getStatusCode();
 
     /**
-     * Returns the JSON representation of this Acknowledgement's entity.
+     * Returns the JSON representation of this Acknowledgements' entity.
      * <ul>
      *     <li>
      *         If only one acknowledgement is included, the {@link Acknowledgement#getEntity(JsonSchemaVersion)} of this
@@ -180,6 +180,16 @@ public interface Acknowledgements
      * Changes on the returned set are not reflected back to this AcknowledgementsPerRequest instance.
      */
     Set<Acknowledgement> getFailedAcknowledgements();
+
+    /**
+     * Returns the in this Acknowledgements contained acknowledgement identified by the passed
+     * {@code acknowledgementLabel}, if it was present. {@link Optional#empty()} otherwise.
+     *
+     * @param acknowledgementLabel the acknowledgement label to return.
+     * @return the found acknowledgement if the {@code acknowledgementLabel} was part of this Acknowledgements, empty
+     * Optional otherwise.
+     */
+    Optional<Acknowledgement> getAcknowledgement(AcknowledgementLabel acknowledgementLabel);
 
     /**
      * Returns the size of the Acknowledgements, i. e. the number of contained values.

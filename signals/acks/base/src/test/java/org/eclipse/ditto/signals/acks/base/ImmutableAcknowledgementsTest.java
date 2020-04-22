@@ -55,7 +55,7 @@ public final class ImmutableAcknowledgementsTest {
             ImmutableAcknowledgement.of(AcknowledgementLabel.of("welcome-ack"), KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
                     KNOWN_DITTO_HEADERS, KNOWN_PAYLOAD);
     private static final Acknowledgement KNOWN_ACK_2 =
-            ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
+            ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
                     KNOWN_DITTO_HEADERS, KNOWN_PAYLOAD);
 
     private static List<Acknowledgement> knownAcknowledgements;
@@ -131,7 +131,7 @@ public final class ImmutableAcknowledgementsTest {
     public void tryToGetInstanceWithAcknowledgementsWithDifferentEntityIds() {
         final ThingId otherEntityId = ThingId.of("com.example:flux-condensator");
         final Acknowledgement otherAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, otherEntityId, KNOWN_STATUS_CODE,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, otherEntityId, KNOWN_STATUS_CODE,
                         KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements = Lists.list(KNOWN_ACK_1, otherAcknowledgement);
 
@@ -166,7 +166,7 @@ public final class ImmutableAcknowledgementsTest {
     @Test
     public void getStatusCodeWithOneItem() {
         final Acknowledgement acknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
                         HttpStatusCode.CONFLICT, KNOWN_DITTO_HEADERS, null);
         final ImmutableAcknowledgements underTest =
                 ImmutableAcknowledgements.of(Lists.list(acknowledgement), KNOWN_DITTO_HEADERS);
@@ -185,7 +185,7 @@ public final class ImmutableAcknowledgementsTest {
     @Test
     public void getStatusCodeWithMultipleItemsWithDivergentStatusCodes() {
         final Acknowledgement otherAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
                         HttpStatusCode.CONFLICT, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements = Lists.list(KNOWN_ACK_1, otherAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
@@ -196,7 +196,7 @@ public final class ImmutableAcknowledgementsTest {
     @Test
     public void getMissingAcknowledgementLabelsReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
                         HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements = Lists.list(KNOWN_ACK_1, timeoutAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
@@ -207,7 +207,7 @@ public final class ImmutableAcknowledgementsTest {
     @Test
     public void getSuccessfulAcknowledgementsReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
                         HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final Acknowledgement successfulAcknowledgement = KNOWN_ACK_1;
         final List<Acknowledgement> acknowledgements = Lists.list(successfulAcknowledgement, timeoutAcknowledgement);
@@ -219,10 +219,10 @@ public final class ImmutableAcknowledgementsTest {
     @Test
     public void getFailedAcknowledgementsReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
                         HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final Acknowledgement failedAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.PERSISTED, KNOWN_ENTITY_ID,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
                         HttpStatusCode.NOT_FOUND, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements =
                 Lists.list(KNOWN_ACK_1, timeoutAcknowledgement, failedAcknowledgement);
@@ -258,6 +258,23 @@ public final class ImmutableAcknowledgementsTest {
                 ImmutableAcknowledgements.of(knownAcknowledgements, KNOWN_DITTO_HEADERS);
 
         assertThat(underTest.isEmpty()).isFalse();
+    }
+
+    @Test
+    public void getAcknowledgementReturnsExpected() {
+        final Acknowledgement timeoutAcknowledgement =
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
+                        HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
+        final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("foo");
+        final Acknowledgement customAcknowledgement = ImmutableAcknowledgement.of(customAckLabel, KNOWN_ENTITY_ID,
+                        HttpStatusCode.OK, KNOWN_DITTO_HEADERS, null);
+        final List<Acknowledgement> acknowledgements =
+                Lists.list(KNOWN_ACK_1, timeoutAcknowledgement, customAcknowledgement);
+        final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
+
+        assertThat(underTest.getAcknowledgement(DittoAcknowledgementLabel.TWIN_PERSISTED))
+                .contains(timeoutAcknowledgement);
+        assertThat(underTest.getAcknowledgement(customAckLabel)).contains(customAcknowledgement);
     }
 
     @Test

@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -100,18 +101,21 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
     private final HttpRequest httpRequest;
+    private final CommandConfig commandConfig;
     @Nullable private Uri responseLocationUri;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig) {
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
-        httpRequest = request;
+        this.httpRequest = request;
+        this.commandConfig = commandConfig;
         responseLocationUri = null;
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
@@ -271,8 +275,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         final ActorContext context = getContext();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        dittoHeaders.getTimeout()
-                .ifPresent(context::setReceiveTimeout);
+        context.setReceiveTimeout(
+                dittoHeaders.getTimeout()
+                        .orElse(commandConfig.getDefaultTimeout()) // if no specific timeout was configured, use the default command timeout
+        );
 
         // After a Command was received, this Actor can only receive the correlating CommandResponse:
         context.become(awaitCommandResponseBehavior);

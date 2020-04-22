@@ -110,7 +110,7 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
 
             final boolean containsOnlyTwinPersistedAckRequest = dittoHeaders.getAcknowledgementRequests().stream()
                             .map(AcknowledgementRequest::getLabel)
-                            .allMatch(DittoAcknowledgementLabel.PERSISTED::equals);
+                            .allMatch(DittoAcknowledgementLabel.TWIN_PERSISTED::equals);
 
             if (!containsOnlyTwinPersistedAckRequest) {
                 final Props props = AcknowledgementAggregatorActor.props(thingModifyCommand, acknowledgementConfig,

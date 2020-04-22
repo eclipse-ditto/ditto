@@ -149,7 +149,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * <li>contains in its ditto headers that {@code response-required} is given</li>
      * <li>contains in the acknowledgement requests in the contained ditto headers at least one custom
      * acknowledgement request in addition to the ack label
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#PERSISTED}
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED}
      * </li>
      * </ul>
      * </p>
@@ -235,7 +235,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private static boolean containsOnlyTwinPersisted(final Acknowledgements aggregatedAcknowledgements) {
         return aggregatedAcknowledgements.getSize() == 1 &&
                 aggregatedAcknowledgements.stream()
-                        .anyMatch(ack -> DittoAcknowledgementLabel.PERSISTED.equals(ack.getLabel()));
+                        .anyMatch(ack -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ack.getLabel()));
     }
 
 }

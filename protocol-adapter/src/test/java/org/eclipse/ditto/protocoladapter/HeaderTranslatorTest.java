@@ -189,7 +189,7 @@ public final class HeaderTranslatorTest {
         final String correlationId = "correlation-id";
         final List<AcknowledgementRequest> allAcknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
-                AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+                AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
                 AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(correlationId)

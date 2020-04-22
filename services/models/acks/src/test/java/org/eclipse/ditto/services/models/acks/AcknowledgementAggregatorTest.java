@@ -153,7 +153,7 @@ public final class AcknowledgementAggregatorTest {
 
     @Test
     public void onlyRegardFirstReceivedAcknowledgementForSameLabel() {
-        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.TWIN_PERSISTED;
         final ThingId entityId = ThingId.generateRandom();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         final Acknowledgement failedAcknowledgement =
@@ -225,7 +225,7 @@ public final class AcknowledgementAggregatorTest {
     public void tryToAddReceivedAcknowledgementWithDifferentEntityId() {
         final ThingId unexpectedEntityId = ThingId.generateRandom();
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED, unexpectedEntityId, HttpStatusCode.NO_CONTENT,
+                Acknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, unexpectedEntityId, HttpStatusCode.NO_CONTENT,
                         dittoHeaders);
 
         final AcknowledgementAggregator underTest =
@@ -296,7 +296,7 @@ public final class AcknowledgementAggregatorTest {
                 .build();
         final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, dittoHeaders);
 
-        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED));
+        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED));
         underTest.addReceivedTwinPersistedAcknowledgment(createThingResponse);
 
         final Acknowledgements acknowledgements = underTest.getAggregatedAcknowledgements(dittoHeaders);
@@ -334,7 +334,7 @@ public final class AcknowledgementAggregatorTest {
                 AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
         final DittoRuntimeException timeoutException = new AcknowledgementRequestTimeoutException(TIMEOUT)
                 .setDittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build());
-        final Acknowledgement expected = Acknowledgement.of(DittoAcknowledgementLabel.PERSISTED,
+        final Acknowledgement expected = Acknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED,
                 ENTITY_ID,
                 timeoutException.getStatusCode(),
                 timeoutException.getDittoHeaders(),

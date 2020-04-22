@@ -258,7 +258,7 @@ public final class ImmutableDittoHeadersTest {
     @Test
     public void isResponseRequiredStaysFalseEvenIfRequiredAckLabelsAreSet() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
                 .responseRequired(false)
                 .build();
 
@@ -277,7 +277,7 @@ public final class ImmutableDittoHeadersTest {
     @Test
     public void isResponseRequiredReturnsTrueIfRequiredAckLabelsAreNonEmpty() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED))
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
                 .build();
 
         assertThat(underTest.isResponseRequired()).isTrue();

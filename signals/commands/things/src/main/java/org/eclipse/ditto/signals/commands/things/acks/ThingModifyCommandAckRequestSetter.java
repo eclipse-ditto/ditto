@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
  * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by an
- * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#PERSISTED}.
+ * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
  * If so, the result is a new command with extended headers, else the same command is returned.
  * The headers are only extended if the command is an instance of {@link ThingModifyCommand} if
  * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true} and if command headers do not yet contain
@@ -77,7 +77,7 @@ public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<C
         final boolean requestedAcksHeaderPresent =
                 dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
         if (acknowledgementRequests.isEmpty() && !requestedAcksHeaderPresent) {
-            acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED));
+            acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED));
             return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
                     .acknowledgementRequests(acknowledgementRequests)
                     .build());

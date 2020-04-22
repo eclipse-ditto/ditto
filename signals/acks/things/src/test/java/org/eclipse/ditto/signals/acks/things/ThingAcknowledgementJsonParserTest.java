@@ -44,7 +44,7 @@ import org.junit.rules.TestName;
  */
 public final class ThingAcknowledgementJsonParserTest {
 
-    private static final AcknowledgementLabel KNOWN_LABEL = DittoAcknowledgementLabel.PERSISTED;
+    private static final AcknowledgementLabel KNOWN_LABEL = DittoAcknowledgementLabel.TWIN_PERSISTED;
     private static final ThingId KNOWN_THING_ID = ThingId.generateRandom();
     private static final JsonObject KNOWN_PAYLOAD = JsonObject.newBuilder().set("foo", "bar").build();
 

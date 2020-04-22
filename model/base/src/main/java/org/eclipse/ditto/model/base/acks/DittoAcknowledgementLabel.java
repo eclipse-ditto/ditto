@@ -31,7 +31,7 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been persisted
      * to the twin.
      */
-    public static final DittoAcknowledgementLabel PERSISTED = new DittoAcknowledgementLabel("twin-persisted");
+    public static final DittoAcknowledgementLabel TWIN_PERSISTED = new DittoAcknowledgementLabel("twin-persisted");
 
     private final AcknowledgementLabel delegate;
 
@@ -45,7 +45,7 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      * @return an array containing the Ditto acknowledgement labels, in the order they're declared.
      */
     public static AcknowledgementLabel[] values() {
-        return new AcknowledgementLabel[]{PERSISTED};
+        return new AcknowledgementLabel[]{TWIN_PERSISTED};
     }
 
     /**

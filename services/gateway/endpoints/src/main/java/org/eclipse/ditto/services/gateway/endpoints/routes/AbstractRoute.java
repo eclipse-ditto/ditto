@@ -97,6 +97,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * @param proxyActor an actor selection of the actor handling delegating to persistence.
      * @param actorSystem the ActorSystem to use.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
@@ -281,7 +282,7 @@ public abstract class AbstractRoute extends AllDirectives {
             final CompletableFuture<HttpResponse> httpResponseFuture) {
 
         final Props props = httpRequestActorPropsFactory.props(
-                proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture, httpConfig);
+                proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture, httpConfig, commandConfig);
 
         return actorSystem.actorOf(props);
     }

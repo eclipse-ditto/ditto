@@ -34,7 +34,7 @@ import org.junit.rules.TestName;
  */
 public final class ThingAcknowledgementFactoryTest {
 
-    private static final AcknowledgementLabel KNOWN_LABEL = DittoAcknowledgementLabel.PERSISTED;
+    private static final AcknowledgementLabel KNOWN_LABEL = DittoAcknowledgementLabel.TWIN_PERSISTED;
     private static final ThingId KNOWN_THING_ID = ThingId.generateRandom();
     private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.NOT_FOUND;
     private static final JsonObject KNOWN_PAYLOAD = JsonObject.newBuilder().set("foo", "bar").build();

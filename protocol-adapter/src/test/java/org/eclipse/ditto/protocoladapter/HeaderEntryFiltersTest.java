@@ -48,7 +48,7 @@ public final class HeaderEntryFiltersTest {
                 Maps.newHashMap(headerDefinition.getKey(), headerDefinition);
         final List<AcknowledgementRequest> allAcknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
-                AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+                AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
                 AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
         final JsonArray allAcknowledgementRequestsJsonArray = allAcknowledgementRequests.stream()
                 .map(AcknowledgementRequest::toString)

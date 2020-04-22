@@ -40,7 +40,7 @@ public final class AcknowledgementRequestsTest {
 
     @Test
     public void getNewAcknowledgementRequestReturnsExpected() {
-        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.TWIN_PERSISTED;
         final ImmutableAcknowledgementRequest expected = ImmutableAcknowledgementRequest.getInstance(ackLabel);
 
         final ImmutableAcknowledgementRequest actual = AcknowledgementRequests.newAcknowledgementRequest(ackLabel);
@@ -71,7 +71,7 @@ public final class AcknowledgementRequestsTest {
 
     @Test
     public void parseAcknowledgementRequestFromValidStringRepresentation() {
-        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.PERSISTED;
+        final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.TWIN_PERSISTED;
         final ImmutableAcknowledgementRequest expected = ImmutableAcknowledgementRequest.getInstance(ackLabel);
 
         final ImmutableAcknowledgementRequest actual = AcknowledgementRequests.parseAcknowledgementRequest(ackLabel);

@@ -83,7 +83,7 @@ public final class QueryParametersToHeadersMapTest {
     public void convertQueryParametersWithoutConfiguredHeaderNames() {
         Mockito.when(httpConfig.getQueryParametersAsHeaders()).thenReturn(Collections.emptySet());
         final Map<String, String> queryParameters =
-                Map.of(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.PERSISTED.toString(),
+                Map.of(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.TWIN_PERSISTED.toString(),
                         DittoHeaderDefinition.TIMEOUT.getKey(), "5s");
 
         final QueryParametersToHeadersMap underTest = QueryParametersToHeadersMap.getInstance(httpConfig);
@@ -97,12 +97,12 @@ public final class QueryParametersToHeadersMapTest {
                 .thenReturn(Set.of(DittoHeaderDefinition.REQUESTED_ACKS, DittoHeaderDefinition.TIMEOUT));
         final Map<String, String> queryParams = new HashMap<>();
         queryParams.put("foo", "bar");
-        queryParams.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.PERSISTED.toString());
+        queryParams.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.TWIN_PERSISTED.toString());
         queryParams.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/json");
         queryParams.put(DittoHeaderDefinition.TIMEOUT.getKey(), "5s");
 
         final Map<String, String> expected = new HashMap<>();
-        expected.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.PERSISTED.toString());
+        expected.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.TWIN_PERSISTED.toString());
         expected.put(DittoHeaderDefinition.TIMEOUT.getKey(), "5s");
 
         final QueryParametersToHeadersMap underTest = QueryParametersToHeadersMap.getInstance(httpConfig);

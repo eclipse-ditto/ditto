@@ -108,7 +108,7 @@ public final class AcknowledgementForwarderActorStarterTest {
     public void startForwarderActorSuccessfully() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(testName.getMethodName())
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
                         AcknowledgementRequest.of(AcknowledgementLabel.of("my-ack")))
                 .build();
 
@@ -123,7 +123,7 @@ public final class AcknowledgementForwarderActorStarterTest {
         final String correlationId = testName.getMethodName();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(correlationId)
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
                         AcknowledgementRequest.of(customAckLabel))
                 .build();
         final AcknowledgementRequestDuplicateCorrelationIdException expectedException =
