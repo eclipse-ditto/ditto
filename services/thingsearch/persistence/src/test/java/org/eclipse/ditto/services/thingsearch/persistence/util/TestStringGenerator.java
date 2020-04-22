@@ -12,27 +12,36 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Generates test strings.
  */
 public final class TestStringGenerator {
 
-    private TestStringGenerator(){
+    private TestStringGenerator() {
         throw new AssertionError();
     }
 
     /**
-     * Creates a test string of the given {@code length}.
+     * Creates a test string of the given {@code bytes} in bytes.
      *
-     * @param length the length
+     * @param bytes the bytes
      * @return the test string
      */
-    public static String createString(final int length) {
-        return IntStream.range(0, length)
-                .mapToObj(i -> "$")
+    public static String createStringOfBytes(final int bytes) {
+        final String unicodeString = "ひらがな";
+        final int bytesOfUnicodeString = unicodeString.getBytes(StandardCharsets.UTF_8).length;
+        final int multiples = bytes / bytesOfUnicodeString;
+        final int remainder = bytes % bytesOfUnicodeString;
+        return Stream.concat(repeat(unicodeString, multiples), repeat("x", remainder))
                 .collect(Collectors.joining());
+    }
+
+    private static Stream<String> repeat(final String element, final int number) {
+        return IntStream.range(0, number).mapToObj(i -> element);
     }
 }

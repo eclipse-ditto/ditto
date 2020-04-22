@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.junit.Test;
@@ -42,8 +41,6 @@ import org.junit.Test;
  * Tests {@link EnforcedThingFlattener}
  */
 public final class EnforcedThingFlattenerTest {
-
-    final ThingDefinition DEFINITION = ThingsModelFactory.newDefinition("example:test:definition");
 
     @Test
     public void testWithAclEnforcer() {
@@ -146,7 +143,7 @@ public final class EnforcedThingFlattenerTest {
                 "}");
 
         final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(
-                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy","id"))
+                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
                         .forLabel("grant-root")
                         .setSubject("grant:root", SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/", Permission.READ)
@@ -294,7 +291,7 @@ public final class EnforcedThingFlattenerTest {
                 "    \"example:test:definition\"}");
 
         final Enforcer emptyEnforcer = PolicyEnforcers.defaultEvaluator(
-                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy","id"))
+                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
                         .forLabel("grant-root")
                         .setSubject("grant:root", SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/", Permission.READ)
