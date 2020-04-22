@@ -886,12 +886,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "amqps") : connection;
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder) {
+    protected Props createClientActor(final ActorRef conciergeForwarder, final Connection connection) {
         return AmqpClientActor.propsForTests(connection, conciergeForwarder, connectionActor,
                 (ac, el) -> mockConnection);
     }

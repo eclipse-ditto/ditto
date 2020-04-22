@@ -79,8 +79,7 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
 
             if (connection.isValidateCertificates()) {
                 // create DittoTrustManagerFactory to apply hostname verification
-                final TrustManagerFactory trustManagerFactory =
-                        DittoTrustManagerFactory.from(connection);
+                final TrustManagerFactory trustManagerFactory = DittoTrustManagerFactory.from(connection);
                 sslConfigBuilder.trustManagerFactory(trustManagerFactory);
             }
 
