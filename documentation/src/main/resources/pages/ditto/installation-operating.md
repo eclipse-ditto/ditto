@@ -446,12 +446,12 @@ and restart the background cleanup process.
 Each command is sent to the actor selection `/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy` on _one_
 Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 
 ##### Query background cleanup coordinator state
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -506,7 +506,7 @@ The response has the following details:
 
 ##### Query background cleanup coordinator configuration
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -561,7 +561,7 @@ Send a piggyback command of type `common.commands:modifyConfig` to change the co
 coordinator. All subsequent cleanup processes will use the new configuration. Any ongoing cleanup is not affected.
 Configurations absent in the payload of the piggyback command remain unchanged.
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -620,7 +620,7 @@ piggyback command contains any error, then an error is logged and the actor's co
 Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process.
 The next process is scheduled after the `quiet-period` duration in the coordinator's configuration.
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -656,7 +656,7 @@ snapshots manually. Here is an example for things. Change the service name and s
 policies and connections. Typically in a docker based environment, use `INSTANCE_INDEX=1`.
 
 
-`POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -691,7 +691,7 @@ A background sync actor goes over thing snapshots and search index entries slowl
 of the search index. The actor operates in the same manner as the background cleanup coordinator and responds to
 the same commands.
 
-`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -757,7 +757,7 @@ To do so safely, perform the following steps in sequence.
 Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
 to block all messages sent to actors belonging to a namespace.
 
-`PUT /devops/piggygack?timeout=10000`
+`PUT /devops/piggygack?timeout=10s`
 
 ```json
 {
@@ -826,7 +826,7 @@ all its actors so that no data is written in the namespace while erasing is ongo
 The erasure may take a long time if the namespace has a lot of data associated with it or if the persistent storage is
 slow. Set the timeout to a safe margin above the estimated erasure time in milliseconds.
 
-`PUT /devops/piggygack?timeout=10000`
+`PUT /devops/piggygack?timeout=10s`
 
 ```json
 {
@@ -877,7 +877,7 @@ Note that to see responses from multiple resource types, the header `aggregate` 
 Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
 to stop blocking messages to a namespace.
 
-`PUT /devops/piggygack?timeout=10000`
+`PUT /devops/piggygack?timeout=10s`
 
 ```json
 {
