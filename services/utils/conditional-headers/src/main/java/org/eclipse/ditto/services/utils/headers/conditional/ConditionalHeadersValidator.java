@@ -14,21 +14,22 @@ package org.eclipse.ditto.services.utils.headers.conditional;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.signals.commands.base.Command;
-
-import com.eclipsesource.json.Json;
 
 /**
  * Checks conditional (http) headers based on a given ETag. Has to be configured with {@link ValidationSettings}.
@@ -68,7 +69,7 @@ public final class ConditionalHeadersValidator {
 
     private final ValidationSettings validationSettings;
 
-    private static final List<String> EXEMPTED_FIELDS = Arrays.asList("_policy");
+    private static final Set<JsonPointer> EXEMPTED_FIELDS = Collections.singleton(JsonPointer.of("_policy"));
     private static final String SELECTED_FIELDS = "selectedFields";
 
     private ConditionalHeadersValidator(final ValidationSettings validationSettings) {
@@ -116,17 +117,26 @@ public final class ConditionalHeadersValidator {
                         Command.Category.QUERY.equals(command.getCategory())) || skipDueToRelation(command);
     }
 
+    /**
+     * Skip precondition check if the selected fields contain exempted fields (e.g. {@code _policy} for things
+     * because the revision of a thing does not change if its policy is updated).
+     */
     private boolean skipDueToRelation(final Command command) {
+        return command.toJson().getValue(SELECTED_FIELDS)
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                        .withoutUrlDecoding()
+                        .build()))
+                .map(JsonFieldSelector::getPointers)
+                .map(this::containsExemptedField)
+                .orElse(false);
+    }
 
-        final Optional<JsonValue> selectedFields = command.toJson().getValue(SELECTED_FIELDS);
-
-        if (selectedFields.isEmpty()) {
-            return false;
-        }
-
-        return Arrays.stream(selectedFields.get().asString()
-                .split("\\s*,\\s*"))
-                .anyMatch(EXEMPTED_FIELDS::contains);
+    private boolean containsExemptedField(final Set<JsonPointer> selectedFields) {
+        final HashSet<JsonPointer> result = new HashSet<>(EXEMPTED_FIELDS);
+        result.retainAll(selectedFields);
+        return !result.isEmpty();
     }
 
     private void checkIfMatch(final Command command, @Nullable final EntityTag currentETagValue) {
