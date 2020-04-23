@@ -152,7 +152,6 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED}
      * </li>
      * </ul>
-     * </p>
      *
      * @param context the context to start the aggregator actor in.
      * @param thingModifyCommand the thing modify command which potentially includes {@code AcknowledgementRequests}
