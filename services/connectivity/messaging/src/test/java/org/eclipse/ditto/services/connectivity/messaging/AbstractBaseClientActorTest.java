@@ -20,7 +20,6 @@ import java.util.Collections;
 
 import javax.net.ssl.SSLContext;
 
-import org.assertj.core.api.Assumptions;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -154,11 +153,6 @@ public abstract class AbstractBaseClientActorTest {
 
     @Test
     public void testTLSConnectionWithoutCertificateCheck() {
-        // GIVEN: this is not a Kafka connection, because Kafka connections do not actually test connectivity
-        Assumptions.assumeThat((CharSequence) getConnection(false).getConnectionType())
-                .describedAs("Skipping Kafka connection - it does not try to connect on TestConnection")
-                .isNotEqualTo(ConnectionType.KAFKA);
-
         // GIVEN: server has a self-signed certificate (bind port number is random; connection port number is ignored)
         final Connection serverConnection = getHttpConnectionToLocalBinding(true, 443);
         final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
