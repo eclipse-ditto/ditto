@@ -112,9 +112,9 @@
  * Source: github.com/scullxbones/akka-persistence-mongo
 
 
-## HiveMQ MQTT Client (1.1.3)
+## HiveMQ MQTT Client (1.1.4)
 
- * Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.1.3`
+ * Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.1.4`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/hivemq/hivemq-mqtt-client
  * Source: https://github.com/hivemq/hivemq-mqtt-client
@@ -163,7 +163,7 @@
 ## RabbitMQ Java Client (5.1.1)
 
  * Maven coordinates: `com.rabbitmq:amqp-client:5.1.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt), [GPL-2.0](licenses/GPL-2.0.txt), [MPL 1.1](licenses/MPL 1.1.txt)
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://www.rabbitmq.com
  * Source: https://github.com/rabbitmq/rabbitmq-java-client
 
@@ -552,9 +552,9 @@
  * Source: https://github.com/netty/netty/netty-buffer
 
 
-## Netty/Buffer (4.1.45.Final)
+## Netty/Buffer (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-buffer:4.1.45.Final`
+ * Maven coordinates: `io.netty:netty-buffer:4.1.48.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-buffer/
  * Source: https://github.com/netty/netty/netty-buffer
@@ -568,9 +568,9 @@
  * Source: https://github.com/netty/netty/netty-codec
 
 
-## Netty/Codec (4.1.45.Final)
+## Netty/Codec (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-codec:4.1.45.Final`
+ * Maven coordinates: `io.netty:netty-codec:4.1.48.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-codec/
  * Source: https://github.com/netty/netty/netty-codec
@@ -592,25 +592,25 @@
  * Source: https://github.com/netty/netty/netty-common
 
 
-## Netty/Common (4.1.45.Final)
+## Netty/Common (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-common:4.1.45.Final`
+ * Maven coordinates: `io.netty:netty-common:4.1.48.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-common/
  * Source: https://github.com/netty/netty/netty-common
 
 
-## Netty/Handler (4.1.41.Final)
+## Netty/Handler (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-handler:4.1.41.Final`
+ * Maven coordinates: `io.netty:netty-handler:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-handler/
+ * Project: http://netty.io/netty-handler/
  * Source: https://github.com/netty/netty/netty-handler
 
 
-## Netty/Handler (4.1.45.Final)
+## Netty/Handler (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-handler:4.1.45.Final`
+ * Maven coordinates: `io.netty:netty-handler:4.1.48.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-handler/
  * Source: https://github.com/netty/netty/netty-handler
@@ -624,9 +624,9 @@
  * Source: https://github.com/netty/netty/netty-resolver
 
 
-## Netty/Resolver (4.1.45.Final)
+## Netty/Resolver (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-resolver:4.1.45.Final`
+ * Maven coordinates: `io.netty:netty-resolver:4.1.48.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-resolver/
  * Source: https://github.com/netty/netty/netty-resolver
@@ -640,9 +640,9 @@
  * Source: https://github.com/netty/netty/netty-transport
 
 
-## Netty/Transport (4.1.45.Final)
+## Netty/Transport (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-transport:4.1.45.Final`
+ * Maven coordinates: `io.netty:netty-transport:4.1.48.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-transport/
  * Source: https://github.com/netty/netty/netty-transport

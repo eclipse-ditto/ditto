@@ -18,7 +18,7 @@
 |com.github.luben|zstd-jni|1.3.7-1| [19163](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19163) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.3.1| [20858](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20858) |
 |com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.3.1| [20859](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20859) |
-|com.hivemq|hivemq-mqtt-client|1.1.2| [20712](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20712) |
+|com.hivemq|hivemq-mqtt-client|1.1.4| [20712](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20712) |
 |com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|1.0.4| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.lightbend.akka.management|akka-management_2.12|1.0.4| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|1.0.4| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
@@ -52,16 +52,16 @@
 |io.kamon|kamon-core_2.12|1.1.2| [16740](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16740) |
 |io.kamon|kamon-prometheus_2.12|1.1.1| [16742](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16742) |
 |io.kamon|kamon-system-metrics_2.12|1.0.0| [16741](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16741) |
-|io.netty|netty-buffer|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-codec-http|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-codec|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-common|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-handler|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-resolver|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-transport|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-buffer|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-codec-http|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-codec|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-common|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-handler|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-resolver|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-transport|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.netty|netty-transport-native-epoll|linux-x86_64| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.netty|netty-transport-native-unix-common|4.1.45.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
+|io.netty|netty-transport-native-unix-common|4.1.48.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.reactivex.rxjava2|rxjava|2.2.5| [20711](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20711) |
 |io.spray|spray-json_2.12|1.3.5| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |nl.grons|metrics4-akka_a25_2.12|4.0.8| [20860](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20860) |
@@ -128,7 +128,7 @@
 |net.java.dev.jna|jna|4.0.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |net.java.dev.jna|jna-platform|4.0.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |net.sf.jopt-simple|jopt-simple|4.6| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|nl.jqno.equalsverifier|equalsverifier|3.1.10| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
+|nl.jqno.equalsverifier|equalsverifier|3.1.10| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.commons|commons-compress|1.18| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
 |org.apache.commons|commons-lang3|3.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.commons|commons-math3|3.2| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
@@ -181,9 +181,3 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 
 | Group ID  | Artifact ID  | Version  | CQ |
 |-----------|--------------|----------|----|
-|com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|1.0.0| [19510](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19510) |
-|org.ow2.asm|asm-analysis|5.2| [16321](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16321) |
-|org.ow2.asm|asm-commons|5.2| [16322](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16322) |
-|org.ow2.asm|asm|5.2| [16325](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16325) |
-|org.ow2.asm|asm-tree|5.2| [16323](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16323) |
-|org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
