@@ -111,7 +111,6 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig) &&
-                Objects.equals(websocketConfig, that.websocketConfig) &&
                 Objects.equals(sseConfig, that.sseConfig);
     }
 
