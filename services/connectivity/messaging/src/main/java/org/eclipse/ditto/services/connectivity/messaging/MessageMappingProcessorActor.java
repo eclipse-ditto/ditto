@@ -271,11 +271,24 @@ public final class MessageMappingProcessorActor
             connectionActor.tell(signal, ActorRef.noSender());
         } else {
             if (signal instanceof ThingModifyCommand) {
-                AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                        (ThingModifyCommand<?>) signal,
-                        acknowledgementConfig,
-                        messageMappingProcessor.getHeaderTranslator(),
-                        responseSignal -> self.tell(responseSignal, self));
+                try {
+                    AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                            (ThingModifyCommand<?>) signal,
+                            acknowledgementConfig,
+                            messageMappingProcessor.getHeaderTranslator(),
+                            responseSignal -> self.tell(responseSignal, self));
+                } catch (final DittoRuntimeException e) {
+                    logger.withCorrelationId(signal)
+                            .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
+                                    " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
+                    responseMappedMonitor.getLogger()
+                            .failure("Got exception {0} when processing external message: {1}",
+                                    e.getErrorCode(),
+                                    e.getMessage());
+                    final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
+                    handleErrorResponse(e, errorResponse.setDittoHeaders(signal.getDittoHeaders()), ActorRef.noSender());
+                    return;
+                }
             }
             conciergeForwarder.tell(signal, self);
         }

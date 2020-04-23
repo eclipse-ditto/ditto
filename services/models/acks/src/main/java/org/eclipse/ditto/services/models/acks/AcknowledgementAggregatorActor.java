@@ -68,11 +68,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final Consumer<Signal<?>> responseSignalConsumer) {
 
         this.responseSignalConsumer = responseSignalConsumer;
-
-        final ThingModifyCommand<?> commandWithAckLabels = (ThingModifyCommand<?>)
-                ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
-        requestCommandHeaders = commandWithAckLabels.getDittoHeaders();
-
+        requestCommandHeaders = thingModifyCommand.getDittoHeaders();
         correlationId = requestCommandHeaders.getCorrelationId()
                 .orElseGet(() ->
                         // fall back using the actor name which also contains the correlation-id
@@ -80,7 +76,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                 );
 
         ackregator = createAcknowledgementAggregator(acknowledgementConfig, headerTranslator, correlationId,
-                commandWithAckLabels);
+                thingModifyCommand);
         ackregator.addAcknowledgementRequests(requestCommandHeaders.getAcknowledgementRequests());
 
         getContext().setReceiveTimeout(
@@ -110,12 +106,16 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
      * response over a channel to the user.
      * @return the Akka configuration Props object.
+     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
      */
     static Props props(final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig, final HeaderTranslator headerTranslator,
             final Consumer<Signal<?>> responseSignalConsumer) {
 
-        return Props.create(AcknowledgementAggregatorActor.class, thingModifyCommand,
+        final ThingModifyCommand<?> commandWithAckLabels =
+                (ThingModifyCommand<?>) ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
+        return Props.create(AcknowledgementAggregatorActor.class, commandWithAckLabels,
                 acknowledgementConfig, headerTranslator, responseSignalConsumer);
     }
 
@@ -167,6 +167,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException in case that an
      * aggregator actor with the same correlation-id is already running.
+     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
      */
     public static Optional<ActorRef> startAcknowledgementAggregator(final akka.actor.ActorContext context,
             final ThingModifyCommand<?> thingModifyCommand,

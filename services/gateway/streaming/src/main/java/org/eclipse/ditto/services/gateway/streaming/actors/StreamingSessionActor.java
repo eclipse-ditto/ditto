@@ -168,10 +168,18 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
                 .match(ThingModifyCommand.class, thingModifyCommand -> {
                     final ActorRef self = getSelf();
-                    AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
-                            acknowledgementConfig,
-                            headerTranslator,
-                            responseSignal -> self.tell(responseSignal, self));
+                    try {
+                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
+                                acknowledgementConfig,
+                                headerTranslator,
+                                responseSignal -> self.tell(responseSignal, self));
+                    } catch (final DittoRuntimeException e) {
+                        logger.withCorrelationId(thingModifyCommand)
+                                .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
+                                        " {}: <{}>", type, e.getClass().getSimpleName(), e.getMessage());
+                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+                        return;
+                    }
                     handleSignal(thingModifyCommand);
                 })
                 .match(Signal.class, this::handleSignal)

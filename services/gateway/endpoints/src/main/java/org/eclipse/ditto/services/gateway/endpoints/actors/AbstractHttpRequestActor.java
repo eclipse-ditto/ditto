@@ -174,8 +174,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleThingModifyCommand(final ThingModifyCommand<?> thingCommand) {
-        final ThingModifyCommand<?> commandWithAckLabels = (ThingModifyCommand<?>)
-                ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
+        final ThingModifyCommand<?> commandWithAckLabels;
+        try {
+            commandWithAckLabels = (ThingModifyCommand<?>)
+                    ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
+        } catch (final DittoRuntimeException e) {
+            handleDittoRuntimeException(e);
+            return;
+        }
         final DittoHeaders dittoHeaders = commandWithAckLabels.getDittoHeaders();
 
         final AcknowledgementAggregator ackregator = getAcknowledgementAggregator(commandWithAckLabels);
