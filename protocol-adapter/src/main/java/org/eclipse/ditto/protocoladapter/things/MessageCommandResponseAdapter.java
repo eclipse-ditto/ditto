@@ -58,6 +58,12 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
+    protected boolean filterOutUnknownExternalHeaders(final MessageCommandResponse<?, ?> signal) {
+        // for MessageCommandResponses, don't filter out unkown headers
+        return false;
+    }
+
+    @Override
     public boolean isForResponses() {
         return true;
     }
