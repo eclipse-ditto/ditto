@@ -20,15 +20,15 @@ servers:
     description: "local Ditto"
 tags:
   - name: Things
-    description: Manage every Thing
+    description: Manage every thing
   - name: Features
-    description: Structure the Features of your Things
+    description: Structure the features of your things
   - name: Policies
-    description: Control access to your Things
+    description: Control access to your things
   - name: Things-Search
-    description: Find every Thing
+    description: Find every thing
   - name: Messages
-    description: Talk with your Things
+    description: Talk with your things
 security:
   #  - Google:
   #    - openid
@@ -40,7 +40,7 @@ paths:
   ###
   /things:
     get:
-      summary: Retrieve multiple Things with specified IDs
+      summary: Retrieve multiple things with specified IDs
       description: |-
         Returns all things passed in by the required parameter `ids`, which you (the authorized subject) are allowed to read.
 
@@ -91,7 +91,7 @@ paths:
             The request could not be completed due to an URI length exceeding 8k
             characters.
     post:
-      summary: Create a new Thing
+      summary: Create a new thing
       description: |-
         Creates a thing with a default `thingId` and a default `policyId`.
 
@@ -110,7 +110,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Thing was successfully created.
+          description: The thing was successfully created.
           headers:
             ETag:
               description: |-
@@ -119,7 +119,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Thing resource
+              description: The location of the created thing resource
               schema:
                 type: string
           content:
@@ -204,10 +204,10 @@ paths:
                            }
                         }
                      }
-        description: JSON representation of the Thing to be created. Use { } to create an empty thing with a default policy.
+        description: JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.
   '/things/{thingId}':
     get:
-      summary: Retrieve a specific Thing
+      summary: Retrieve a specific thing
       description: |-
         Returns the thing identified by the `thingId` path parameter. The
         response includes details about the thing, including the `policyId`, attributes, definition and features.
@@ -226,7 +226,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The request successfully returned the specific Thing.
+          description: The request successfully returned the specific thing.
           headers:
             ETag:
               description: |-
@@ -259,7 +259,7 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -268,7 +268,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update a Thing with a specified ID
+      summary: Create or update a thing with a specified ID
       description: |-
         Create or update the thing specified by the `thingId` path parameter and
         the optional JSON body.
@@ -277,7 +277,7 @@ paths:
         * If you set an existing `thingId` in the path, the thing will be updated.
 
 
-        ### Create a new Thing
+        ### Create a new thing
         At the initial creation of a thing, only a valid `thingId` is required.
         However, you can create a full-fledged thing all at once.
 
@@ -327,14 +327,14 @@ paths:
         Keep in mind, that you can also change the assignment to another policy anytime,
         with a request on the sub-resource "PUT /things/{thingId}/policyId"
 
-        ### Update an existing Thing
+        ### Update an existing thing
 
-        For updating an existing Thing, the authorized subject needs **WRITE** permission on the thing's root resource.
+        For updating an existing thing, the authorized subject needs **WRITE** permission on the thing's root resource.
 
-        The ID of a Thing cannot be changed after creation. Any `thingId`
+        The ID of a thing cannot be changed after creation. Any `thingId`
         specified in the request body is therefore ignored.
 
-        ### Partially update an existing Thing
+        ### Partially update an existing thing
 
         When updating an existing thing, which already contains `attributes`, `definition` `policyId` or `features`,
         the existing fields must not explicitly be provided again.
@@ -396,7 +396,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Thing was successfully created.
+          description: The thing was successfully created.
           headers:
             ETag:
               description: |-
@@ -405,7 +405,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Thing resource
+              description: The location of the created thing resource
               schema:
                 type: string
           content:
@@ -413,7 +413,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Thing'
         '204':
-          description: The Thing was successfully modified.
+          description: The thing was successfully modified.
           headers:
             ETag:
               description: |-
@@ -426,8 +426,8 @@ paths:
             The request could not be completed. Possible reasons:
 
               * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON body of the Thing to be created/modified is invalid
-              * the JSON body of the Thing to be created/modified contains a `thingId`
+              * the JSON body of the thing to be created/modified is invalid
+              * the JSON body of the thing to be created/modified contains a `thingId`
               which does not match the ID in the path
           content:
             application/json:
@@ -501,9 +501,9 @@ paths:
                            }
                          }
                         }
-        description: JSON representation of the Thing to be modified.
+        description: JSON representation of the thing to be modified.
     delete:
-      summary: Delete a specific Thing
+      summary: Delete a specific thing
       description: |-
         Deletes the thing identified by the `thingId` path parameter.
 
@@ -521,7 +521,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Thing was successfully deleted.
+          description: The thing was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -547,7 +547,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -560,21 +560,19 @@ paths:
   ###
   '/things/{thingId}/definition':
     get:
-      summary: Retrieve the Definition of a specific Thing
+      summary: Retrieve the definition of a specific thing
       description: |-
-        Returns the Definition of the Thing identified by the `thingId` path parameter.
+        Returns the definition of the thing identified by the `thingId` path parameter.
       tags:
         - Things
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/requestedAcksParam'
         - $ref: '#/components/parameters/timeoutParam'
-        - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '200':
-          description: The request successfully returned the definition of the specific Thing.
+          description: The request successfully returned the definition of the specific thing.
           headers:
             ETag:
               description: |-
@@ -616,7 +614,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -625,7 +623,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update the Definition of a specific Thing
+      summary: Create or update the definition of a specific thing
       description: |-
         * If the thing does not have a definition yet, this request will create it.
         * If the thing already has a definition you can assign it to a new one by setting the new definition in the request body.
@@ -641,7 +639,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Definition was successfully created.
+          description: The definition was successfully created.
           headers:
             ETag:
               description: |-
@@ -658,7 +656,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Definition'
         '204':
-          description: The Definition was successfully updated.
+          description: The definition was successfully updated.
           headers:
             ETag:
               description: |-
@@ -697,7 +695,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -710,9 +708,9 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/Definition'
     delete:
-      summary: Delete the Definition of a specific Thing
+      summary: Delete the definition of a specific thing
       description: |-
-        Deletes the Definition of the Thing identified by the `thingId`.
+        Deletes the definition of the thing identified by the `thingId`.
       tags:
         - Things
       parameters:
@@ -724,7 +722,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Definition was successfully deleted.
+          description: The definition was successfully deleted.
         '400':
           description: |-
             The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
@@ -751,8 +749,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID or
-            its Definition was not found.
+            The request could not be completed. The thing with the given ID or
+            its definition was not found.
           content:
             application/json:
               schema:
@@ -761,7 +759,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/policyId':
     get:
-      summary: Retrieve the Policy ID of a Thing
+      summary: Retrieve the policy ID of a thing
       description: |-
         Returns the policy ID of the thing identified by the `thingId` path parameter.
       tags:
@@ -770,12 +768,10 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/ifMatchHeaderParamHash'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/requestedAcksParam'
         - $ref: '#/components/parameters/timeoutParam'
-        - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '200':
-          description: The request successfully returned the Policy ID.
+          description: The request successfully returned the policy ID.
           headers:
             ETag:
               description: |-
@@ -804,7 +800,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
-          description: The request could not be completed. The Thing with the given ID was not found in the context of the authenticated user.
+          description: The request could not be completed. The thing with the given ID was not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -812,7 +808,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update the Policy ID of a Thing
+      summary: Create or update the policy ID of a thing
       description: |-
         Create or update the policy ID of the thing identified by the `thingId`
         path parameter.
@@ -839,7 +835,7 @@ paths:
       responses:
         '201':
           description: |-
-            The Policy ID was successfully created. Note: You will need to create the policy content separately.
+            The policy ID was successfully created. Note: You will need to create the policy content separately.
           headers:
             ETag:
               description: |-
@@ -852,7 +848,7 @@ paths:
               schema:
                 type: string
         '204':
-          description: The Policy ID was successfully updated.
+          description: The policy ID was successfully updated.
           headers:
             ETag:
               description: |-
@@ -879,7 +875,7 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -896,14 +892,14 @@ paths:
               type: string
               example: "\"your.namespace:your-policy-name\""
         description: |-
-          The Policy is used for controlling access to this Thing. It is managed by
+          The policy is used for controlling access to this thing. It is managed by
           resource `/policies/{policyId}`.
 
           The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         required: true
   '/things/{thingId}/attributes':
     get:
-      summary: List all Attributes of a specific Thing
+      summary: List all attributes of a specific thing
       description: |-
         Returns all attributes of the thing identified by the `thingId` path parameter.
       tags:
@@ -916,7 +912,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The Attributes of the specific Thing were successfully retrieved.
+          description: The attributes of the specific thing were successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -948,7 +944,7 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was not found.
           content:
             application/json:
               schema:
@@ -956,7 +952,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update all Attributes of a specific Thing at once
+      summary: Create or update all attributes of a specific thing at once
       description: |-
         Create or update the attributes of a thing identified by the `thingId`
         path parameter. The attributes will be overwritten - all at once - with the
@@ -972,7 +968,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Attributes were successfully created.
+          description: The attributes were successfully created.
           headers:
             ETag:
               description: |-
@@ -981,7 +977,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Attribute resource
+              description: The location of the created attribute resource
               schema:
                 type: string
           content:
@@ -989,7 +985,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Attributes'
         '204':
-          description: The Attributes were successfully updated.
+          description: The attributes were successfully updated.
           headers:
             ETag:
               description: |-
@@ -1024,7 +1020,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -1037,7 +1033,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/Attributes'
     delete:
-      summary: Delete all Attributes of a specific Thing at once
+      summary: Delete all attributes of a specific thing at once
       description: |-
         Deletes all attributes of the thing identified by the `thingId` path
         parameter.
@@ -1052,7 +1048,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Attributes were successfully deleted.
+          description: The attributes were successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1078,7 +1074,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID or
+            The request could not be completed. The thing with the given ID or
             its attributes were not found.
           content:
             application/json:
@@ -1088,7 +1084,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
-      summary: Retrieve a specific Attribute of a specific Thing
+      summary: Retrieve a specific attribute of a specific thing
       description: |-
         Returns a specific attribute of the thing identified by the `thingId`
         path parameter.
@@ -1110,7 +1106,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The Attribute was successfully retrieved.
+          description: The attribute was successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -1137,8 +1133,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID or
-            the Attribute at the specified path was not found.
+            The request could not be completed. The thing with the given ID or
+            the attribute at the specified path was not found.
           content:
             application/json:
               schema:
@@ -1146,7 +1142,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update a specific Attribute of a specific Thing
+      summary: Create or update a specific attribute of a specific thing
       description: |-
         Create or update a specific attribute of the thing identified by the
         `thingId` path parameter.
@@ -1154,7 +1150,7 @@ paths:
         * If you specify a new attribute path, this will be created
         * If you specify an existing attribute path, this will be updated
 
-        The Attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+        The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
         Example: In order to put the `name` field of an `manufacturer` attribute, the full path would be
         `/things/{thingId}/attributes/manufacturer/name`
@@ -1170,7 +1166,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Attribute was successfully created.
+          description: The attribute was successfully created.
           headers:
             ETag:
               description: |-
@@ -1179,11 +1175,11 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Attribute resource
+              description: The location of the created attribute resource
               schema:
                 type: string
         '204':
-          description: The Attribute was successfully modified.
+          description: The attribute was successfully modified.
           headers:
             ETag:
               description: |-
@@ -1217,7 +1213,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -1230,7 +1226,7 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/Value'
     delete:
-      summary: Delete a specific Attribute of a specific Thing
+      summary: Delete a specific attribute of a specific thing
       description: |-
         Deletes a specific attribute of the thing identified by the `thingId`
         path parameter.
@@ -1251,7 +1247,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Attribute was successfully deleted.
+          description: The attribute was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1277,8 +1273,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID or
-            the Attribute at the specified path was not found.
+            The request could not be completed. The thing with the given ID or
+            the attribute at the specified path was not found.
           content:
             application/json:
               schema:
@@ -1290,7 +1286,7 @@ paths:
   ###
   '/things/{thingId}/features':
     get:
-      summary: List all Features of a specific Thing
+      summary: List all features of a specific thing
       description: |-
         Returns all features of the thing identified by the `thingId` path
         parameter.
@@ -1305,7 +1301,7 @@ paths:
       responses:
         '200':
           description: |-
-            The list of Features of the specific Thing were successfully
+            The list of features of the specific thing were successfully
             retrieved.
           headers:
             ETag:
@@ -1349,8 +1345,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
-            not found or the Features have not been defined.
+            The request could not be completed. The thing with the given ID was
+            not found or the features have not been defined.
           content:
             application/json:
               schema:
@@ -1358,9 +1354,9 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify all Features of a specific Thing at once
+      summary: Create or modify all features of a specific thing at once
       description: |-
-        Create or modify all features of a Thing identified by the `thingId`
+        Create or modify all features of a thing identified by the `thingId`
         path parameter.
         ### Create all features at once
         In case at the initial creation of your thing you have not specified any features, these can be created here.
@@ -1409,7 +1405,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Features were successfully created.
+          description: The features were successfully created.
           headers:
             ETag:
               description: |-
@@ -1418,7 +1414,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Features resource
+              description: The location of the created features resource
               schema:
                 type: string
           content:
@@ -1428,7 +1424,7 @@ paths:
               example:
                 {}
         '204':
-          description: The Features were successfully modified.
+          description: The features were successfully modified.
           headers:
             ETag:
               description: |-
@@ -1464,7 +1460,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -1515,7 +1511,7 @@ paths:
 
         required: true
     delete:
-      summary: Delete all Features of a specific Thing
+      summary: Delete all features of a specific thing
       description: |-
         Deletes all features of the thing identified by the `thingId` path
         parameter.
@@ -1530,7 +1526,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Features were successfully deleted.
+          description: The features were successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1556,8 +1552,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
-            not found or the Features have not been defined.
+            The request could not be completed. The thing with the given ID was
+            not found or the features have not been defined.
           content:
             application/json:
               schema:
@@ -1566,7 +1562,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}':
     get:
-      summary: Retrieve a specific Feature of a specific Thing
+      summary: Retrieve a specific feature of a specific thing
       description: |-
         Returns a specific feature identified by the `featureId` path parameter
         of the thing identified by the `thingId` path parameter.
@@ -1581,7 +1577,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The Feature was successfully retrieved.
+          description: The feature was successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -1613,8 +1609,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID or
-            the Feature with the specified `featureId` was not found.
+            The request could not be completed. The thing with the given ID or
+            the feature with the specified `featureId` was not found.
           content:
             application/json:
               schema:
@@ -1622,7 +1618,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify a specific Feature of a specific Thing
+      summary: Create or modify a specific feature of a specific thing
       description: |-
         Create or modify a specific feature identified by the `featureId` path
         parameter of the thing identified by the `thingId` path parameter.
@@ -1656,7 +1652,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Feature was successfully created.
+          description: The feature was successfully created.
           headers:
             ETag:
               description: |-
@@ -1665,7 +1661,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Feature resource
+              description: The location of the created feature resource
               schema:
                 type: string
           content:
@@ -1673,7 +1669,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Feature'
         '204':
-          description: The Feature was successfully modified.
+          description: The feature was successfully modified.
           headers:
             ETag:
               description: |-
@@ -1709,7 +1705,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID was
+            The request could not be completed. The thing with the given ID was
             not found.
           content:
             application/json:
@@ -1740,7 +1736,7 @@ paths:
           * a nested object with multiple model definitions and multiple properties as shown in the example value field
         required: true
     delete:
-      summary: Delete a specific Feature of a specific Thing
+      summary: Delete a specific feature of a specific thing
       description: |-
         Deletes a specific feature identified by the `featureId` path parameter
         of the thing identified by the `thingId` path parameter.
@@ -1756,7 +1752,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Feature was successfully deleted.
+          description: The feature was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1783,8 +1779,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing with the given ID or
-            the Feature at the specified path was not found.
+            The request could not be completed. The thing with the given ID or
+            the feature at the specified path was not found.
           content:
             application/json:
               schema:
@@ -1793,7 +1789,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/definition':
     get:
-      summary: List the Definition of a Feature
+      summary: List the definition of a feature
       description: |-
         Returns the complete definition field of the feature identified by the `thingId` and
         `featureId` path parameter.
@@ -1807,7 +1803,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The Definition was successfully retrieved.
+          description: The definition was successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -1838,8 +1834,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified Feature has no
-            Definition or the Thing with the specified `thingId` or the Feature
+            The request could not be completed. The specified feature has no
+            definition or the thing with the specified `thingId` or the feature
             with `featureId` was not found.
           content:
             application/json:
@@ -1848,7 +1844,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update the Definition of a Feature
+      summary: Create or update the definition of a feature
       description: |-
         Create or update the complete definition of a feature identified by the `thingId`
         and `featureId` path parameter.
@@ -1866,7 +1862,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Definition was successfully created.
+          description: The definition was successfully created.
           headers:
             ETag:
               description: |-
@@ -1875,7 +1871,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Definition resource
+              description: The location of the created definition resource
               schema:
                 type: string
           content:
@@ -1883,7 +1879,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureDefinition'
         '204':
-          description: The Definition was successfully updated.
+          description: The definition was successfully updated.
           headers:
             ETag:
               description: |-
@@ -1918,7 +1914,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing or the Feature with
+            The request could not be completed. The thing or the feature with
             the given ID was not found.
           content:
             application/json:
@@ -1943,7 +1939,7 @@ paths:
           enforced.
         required: true
     delete:
-      summary: Delete the Definition of a Feature
+      summary: Delete the definition of a feature
       description: |-
         Deletes the complete definition of the feature identified by the `thingId` and
         `featureId` path parameter.
@@ -1959,7 +1955,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Definition was successfully deleted.
+          description: The definition was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1986,8 +1982,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified Feature has no
-            Definition or the Thing with the specified `thingId` or the Feature
+            The request could not be completed. The specified feature has no
+            definition or the thing with the specified `thingId` or the feature
             with `featureId` was not found.
           content:
             application/json:
@@ -1997,7 +1993,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/properties':
     get:
-      summary: List all Properties of a Feature
+      summary: List all properties of a feature
       description: |-
         Returns all properties of the feature identified by the `thingId` and
         `featureId` path parameter.
@@ -2012,7 +2008,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The Properties were successfully retrieved.
+          description: The properties were successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -2044,8 +2040,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The specified Feature has no
-            Properties or the Thing with the specified `thingId` or the Feature
+            The request could not be completed. The specified feature has no
+            properties or the thing with the specified `thingId` or the feature
             with `featureId` was not found.
           content:
             application/json:
@@ -2054,7 +2050,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update all Properties of a Feature at once
+      summary: Create or update all properties of a feature at once
       description: |-
         Create or update the properties of a feature identified by the `thingId`
         and `featureId` path parameter.
@@ -2072,7 +2068,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Properties were successfully created.
+          description: The properties were successfully created.
           headers:
             ETag:
               description: |-
@@ -2085,7 +2081,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureProperties'
         '204':
-          description: The Properties were successfully updated.
+          description: The properties were successfully updated.
           headers:
             ETag:
               description: |-
@@ -2121,7 +2117,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing or the Feature with
+            The request could not be completed. The thing or the feature with
             the given ID was not found.
           content:
             application/json:
@@ -2158,7 +2154,7 @@ paths:
 
         required: true
     delete:
-      summary: Delete all Properties of a Feature
+      summary: Delete all properties of a feature
       description: |-
         Deletes all properties of the feature identified by the `thingId` and
         `featureId` path parameter.
@@ -2174,7 +2170,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Properties were successfully deleted.
+          description: The properties were successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2201,8 +2197,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified Feature has no
-            Properties or the Thing with the specified `thingId` or the Feature
+            The request could not be completed. The specified feature has no
+            properties or the thing with the specified `thingId` or the feature
             with `featureId` was not found.
           content:
             application/json:
@@ -2212,7 +2208,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
-      summary: Retrieve a specific Property of a Feature
+      summary: Retrieve a specific property of a feature
       description: |-
         Returns the a specific property path of the feature identified by the `thingId` and
         `featureId` path parameter.
@@ -2235,7 +2231,7 @@ paths:
         - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
-          description: The Property was successfully retrieved.
+          description: The property was successfully retrieved.
           headers:
             ETag:
               description: |-
@@ -2262,8 +2258,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The specified Property or the
-            Thing with the specified `thingId` or the Feature with `featureId`
+            The request could not be completed. The specified property or the
+            thing with the specified `thingId` or the feature with `featureId`
             was not found.
           content:
             application/json:
@@ -2272,15 +2268,15 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update a specific Property of a Feature
+      summary: Create or update a specific property of a feature
       description: |-
         Create or update a specific property of a feature identified by the
         `thingId` and `featureId` path parameter.
 
-        The Property will be created
+        The property will be created
         if it doesn't exist or else updated.
 
-        The Property (JSON) can be
+        The property (JSON) can be
         referenced hierarchically, by applying JSON Pointer notation (RFC-6901),
 
         ### Example
@@ -2301,7 +2297,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Property was successfully created.
+          description: The property was successfully created.
           headers:
             ETag:
               description: |-
@@ -2310,7 +2306,7 @@ paths:
               schema:
                 type: string
         '204':
-          description: The Property was successfully updated.
+          description: The property was successfully updated.
           headers:
             ETag:
               description: |-
@@ -2347,7 +2343,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Thing or the Feature with
+            The request could not be completed. The thing or the feature with
             the given ID was not found.
           content:
             application/json:
@@ -2360,12 +2356,12 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/Value'
     delete:
-      summary: Delete a specific Property of a Feature
+      summary: Delete a specific property of a feature
       description: |-
         Deletes a specific property of the feature identified by the `thingId`
         and `featureId` path parameter.
 
-        The Property (JSON) can be referenced
+        The property (JSON) can be referenced
         hierarchically, by applying JSON Pointer notation (RFC-6901)
 
         ### Example
@@ -2385,7 +2381,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Property was successfully deleted.
+          description: The property was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2403,8 +2399,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The specified Property or the
-            Thing with the specified `thingId` or the Feature with `featureId`
+            The request could not be completed. The specified property or the
+            thing with the specified `thingId` or the feature with `featureId`
             was not found.
           content:
             application/json:
@@ -2417,7 +2413,7 @@ paths:
   ###
   '/things/{thingId}/inbox/claim':
     post:
-      summary: Initiates claiming a specific Thing in order to gain access
+      summary: Initiates claiming a specific thing in order to gain access
       description: |-
         ### Why
         A claiming process may enable an end-user to claim things and proof ownership thereof.
@@ -2428,7 +2424,7 @@ paths:
         At this resource you can send a "claim" message to the thing identified
         by the `thingId` path parameter in order to gain access to it. The "claim" message is forwarded
         together with the request body and `Content-Type` header to client(s)
-        which registered for Claim messages of the specific Thing.
+        which registered for Claim messages of the specific thing.
 
         The decision whether to grant access (by setting permissions) is
         completely up to the client(s) which handle the "claim" message.
@@ -2494,7 +2490,7 @@ paths:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/inbox/messages/{messageSubject}':
     post:
-      summary: Send a message TO a specific Thing
+      summary: Send a message TO a specific thing
       description: |-
         ### Why
         A message can be sent to a thing or one of its features in order to invoke an operation on the device.
@@ -2535,7 +2531,7 @@ paths:
       responses:
         '202':
           description: |-
-            The message was sent but not necessarily received by the Thing (fire and forget).
+            The message was sent but not necessarily received by the thing (fire and forget).
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2567,7 +2563,7 @@ paths:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
     post:
-      summary: Send a message FROM a specific Thing
+      summary: Send a message FROM a specific thing
       description: |-
         Send a message with the subject `messageSubject` **from** the thing
         identified by the `thingId` path parameter. The request body contains
@@ -2624,13 +2620,13 @@ paths:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
     post:
-      summary: Send a message TO a specific Feature of a specific Thing
+      summary: Send a message TO a specific feature of a specific thing
       description: |-
         Send a message with the subject `messageSubject` **to** the feature
         specified by the `featureId` and `thingId` path parameter. The request
         body contains the message payload and the `Content-Type` header defines
         its type. The API does not provide any kind of acknowledgement that the
-        message was received by the Feature.
+        message was received by the feature.
 
         The HTTP request blocks until a response to the message is available
         or until the `timeout` is expired. If many clients respond to
@@ -2653,7 +2649,7 @@ paths:
       responses:
         '202':
           description: |-
-            The message was sent but not necessarily received by the Feature
+            The message was sent but not necessarily received by the feature
             (fire and forget).
         '400':
           description: |-
@@ -2686,7 +2682,7 @@ paths:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
     post:
-      summary: Send a message FROM a specific Feature of a specific Thing
+      summary: Send a message FROM a specific feature of a specific thing
       description: |-
         Send a message with the subject `messageSubject` **from** the feature
         specified by the `featureId` and `thingId` path parameter. The request
@@ -2748,7 +2744,7 @@ paths:
   ###
   '/policies/{policyId}':
     get:
-      summary: Retrieve a specific Policy
+      summary: Retrieve a specific policy
       description: |-
         Returns the complete policy identified by the `policyId` path parameter. The
         response contains the policy as JSON object.
@@ -2765,7 +2761,7 @@ paths:
         '200':
           description: |-
             The request successfully returned completed and returned is the
-            Policy.
+            policy.
           headers:
             ETag:
               description: |-
@@ -2797,7 +2793,7 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -2806,13 +2802,13 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or update a Policy with a specified ID
+      summary: Create or update a policy with a specified ID
       description: |-
         Create or update the policy specified by the policyId path parameter.
         * If you set a new policyId in the path, a new policy will be created.
         * If you set an existing policyId in the path, the policy will be updated.
 
-        ### Create a new Policy
+        ### Create a new policy
         At the initial creation of a policy, at least one valid entry is required. However, you can create a full-fledged policy all at once.
 
         Example: To create a policy for multiple coffee maker things,
@@ -2875,7 +2871,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Policy was successfully created.
+          description: The policy was successfully created.
           headers:
             ETag:
               description: |-
@@ -2884,7 +2880,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Policy resource
+              description: The location of the created policy resource
               schema:
                 type: string
           content:
@@ -2892,7 +2888,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Policy'
         '204':
-          description: The Policy was successfully updated.
+          description: The policy was successfully updated.
           headers:
             ETag:
               description: |-
@@ -2930,7 +2926,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -2980,15 +2976,15 @@ paths:
                        }
                      }
         description: |-
-          JSON representation of the Policy.
+          JSON representation of the policy.
           Use the placeholder `{{ request:subjectId }}` in order to let the
           backend insert the authenticated subjectId of the HTTP request.
         required: true
     delete:
-      summary: Delete a specific Policy
+      summary: Delete a specific policy
       description: |-
         Deletes the policy identified by the `policyId` path parameter. Deleting
-        a policy does not implicitly delete other entities (e.g. Things) which
+        a policy does not implicitly delete other entities (e.g. things) which
         use this policy.
 
         Note: Delete the respective things **before** deleting the
@@ -3005,7 +3001,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Policy was successfully deleted.
+          description: The policy was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -3033,7 +3029,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -3043,7 +3039,7 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/policies/{policyId}/entries':
     get:
-      summary: Retrieve the entries of a specific Policy
+      summary: Retrieve the entries of a specific policy
       description: |-
         Returns all policy entries of the policy identified by the `policyId`
         path parameter.
@@ -3058,7 +3054,7 @@ paths:
         '200':
           description: |-
             The request successfully returned completed and returned are the
-            Policy entries.
+            policy entries.
           headers:
             ETag:
               description: |-
@@ -3090,7 +3086,7 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -3099,7 +3095,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Modify the entries of a specific Policy
+      summary: Modify the entries of a specific policy
       description: |-
         Modify the policy entries of the policy identified by the `policyId`
         path parameter.
@@ -3107,7 +3103,7 @@ paths:
         Note: Take care to not lock yourself out. Use the placeholder {{ request:subjectId }}
         in order to let the backend insert the authenticated subjectId of the HTTP request.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/ifMatchHeaderParamHash'
@@ -3116,7 +3112,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Policy entries were successfully updated.
+          description: The policy entries were successfully updated.
           headers:
             ETag:
               description: |-
@@ -3154,7 +3150,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -3202,19 +3198,19 @@ paths:
                        }
                      }
         description: |-
-          JSON representation of the Policy entries.
+          JSON representation of the policy entries.
           Use the placeholder `{{ request:subjectId }}` in order to let the
           backend insert the authenticated subjectId of the HTTP request.
         required: true
   '/policies/{policyId}/entries/{label}':
     get:
-      summary: Retrieve the entries of a specific Label of a specific Policy
+      summary: Retrieve the entries of a specific Label of a specific policy
       description: |-
         Returns all entries (subjects, resources, etc.) of the policy identified by the `policyId` path
         parameter, and by the `label` path parameter.
         Example label: DEFAULT.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3225,7 +3221,7 @@ paths:
         '200':
           description: |-
             The request successfully returned completed and returned is the
-            Policy entry.
+            policy entry.
           headers:
             ETag:
               description: |-
@@ -3257,8 +3253,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
             user.
           content:
             application/json:
@@ -3267,7 +3263,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify the entries of a specific Label of a specific Policy
+      summary: Create or modify the entries of a specific Label of a specific policy
       description: |-
         Create or modify the policy entry identified by the
         `policyId` path parameter and with the label identified by the `label`
@@ -3275,7 +3271,7 @@ paths:
         * If you specify a new label, the respective policy entry will be created
         * If you specify an existig label, the respective policy entry will be updated
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3285,7 +3281,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '201':
-          description: The Policy entry was successfully created.
+          description: The policy entry was successfully created.
           headers:
             ETag:
               description: |-
@@ -3294,7 +3290,7 @@ paths:
               schema:
                 type: string
             Location:
-              description: The location of the created Policy entry
+              description: The location of the created policy entry
               schema:
                 type: string
           content:
@@ -3302,7 +3298,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PolicyEntry'
         '204':
-          description: The Policy entry was successfully updated.
+          description: The policy entry was successfully updated.
           headers:
             ETag:
               description: |-
@@ -3340,7 +3336,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -3387,7 +3383,7 @@ paths:
                      }
 
         description: |-
-          JSON representation of the Policy entry.
+          JSON representation of the policy entry.
           Use the placeholder `{{ request:subjectId }}` in order to let the
           backend insert the authenticated subjectId of the HTTP request.
 
@@ -3424,12 +3420,12 @@ paths:
           ```
         required: true
     delete:
-      summary: Delete the entries of a specific Label of a specific Policy
+      summary: Delete the entries of a specific Label of a specific policy
       description: |-
         Deletes the entry of the policy identified by the `policyId` path
         parameter and with the label identified by the `label` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3439,7 +3435,7 @@ paths:
         - $ref: '#/components/parameters/responseRequiredParam'
       responses:
         '204':
-          description: The Policy entry was successfully deleted.
+          description: The policy entry was successfully deleted.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -3468,7 +3464,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -3478,13 +3474,13 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}/subjects':
     get:
-      summary: Retrieve all Subjects for a specific Label of a specific Policy
+      summary: Retrieve all Subjects for a specific Label of a specific policy
       description: |-
         Returns all subject entries of the policy identified by the
         `policyId` path parameter, and by the `label`
         path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3525,8 +3521,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
             user.
           content:
             application/json:
@@ -3535,7 +3531,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify all Subjects for a specific Label of a specific Policy
+      summary: Create or modify all Subjects for a specific Label of a specific policy
       description: |-
         Create or modify at once ALL subjects of the policy entry identified
         by the `policyId` path parameter, and by the `label` path parameter.
@@ -3554,7 +3550,7 @@ paths:
         }
         ```
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3603,7 +3599,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID was
+            The request could not be completed. The policy with the given ID was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -3628,12 +3624,12 @@ paths:
         required: true
   '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
     get:
-      summary: Retrieve one specific Subject for a specific Label of a specific Policy
+      summary: Retrieve one specific Subject for a specific Label of a specific policy
       description: |-
         Returns the subject with ID `subjectId` of the policy entry identified
         by the `policyId` path parameter, and by the `label` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3677,8 +3673,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Subject was not found in the context of the
+            The request could not be completed. The policy with the given ID,
+            the policy entry or the Subject was not found in the context of the
             authenticated user.
           content:
             application/json:
@@ -3687,13 +3683,13 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify one specific Subject for a specific Label of a specific Policy
+      summary: Create or modify one specific Subject for a specific Label of a specific policy
       description: |-
         Create or modify the subject with ID `subjectId` of the policy identified
         by the `policyId` path parameter, and
         by the `label` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3759,8 +3755,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
             user.
           content:
             application/json:
@@ -3779,7 +3775,7 @@ paths:
         description: JSON representation of the Subject
         required: true
     delete:
-      summary: Delete one specific Subject for a specific Label of a specific Policy
+      summary: Delete one specific Subject for a specific Label of a specific policy
       description: |-
         Deletes the subject with ID `subjectId` from the policy identified
         by the `policyId` path parameter and
@@ -3789,7 +3785,7 @@ paths:
         i.e. it will not lose those permissions, but only the permissions defined in the
         label specified at this path.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3829,8 +3825,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Subject was not found in the context of the
+            The request could not be completed. The policy with the given ID,
+            the policy entry or the Subject was not found in the context of the
             authenticated user.
           content:
             application/json:
@@ -3840,13 +3836,13 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}/resources':
     get:
-      summary: Retrieve all Resources for a specific Label of a specific Policy
+      summary: Retrieve all Resources for a specific Label of a specific policy
       description: |-
         Returns all resource entries of the policy identified by
         the `policyId` path parameter,
         and by the `label` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3887,8 +3883,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
             user.
           content:
             application/json:
@@ -3897,7 +3893,7 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify all Resources for a specific Label of a specific Policy
+      summary: Create or modify all Resources for a specific Label of a specific policy
       description: |-
         Create or modify all resources of the policy
         identified by the `policyId` path parameter,
@@ -3948,7 +3944,7 @@ paths:
           }
           ```
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3996,8 +3992,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
             user.
           content:
             application/json:
@@ -4017,13 +4013,13 @@ paths:
         required: true
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     get:
-      summary: Retrieve one specific Resource for a specific Label of a specific Policy
+      summary: Retrieve one specific Resource for a specific Label of a specific policy
       description: |-
         Returns the resource with path `resourcePath` of the policy identified
         by the `policyId` path parameter, and
         by the `label` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -4067,8 +4063,8 @@ paths:
 
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Resource was not found in the context of the
+            The request could not be completed. The policy with the given ID,
+            the policy entry or the Resource was not found in the context of the
             authenticated user.
           content:
             application/json:
@@ -4077,13 +4073,13 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
     put:
-      summary: Create or modify one specific Resource for a specific Label of a specific Policy
+      summary: Create or modify one specific Resource for a specific Label of a specific policy
       description: |-
-        Create or modify the Resource with path `resourcePath` of the Policy
-        entry identified by the `label` path parameter belonging to the Policy
+        Create or modify the Resource with path `resourcePath` of the policy
+        entry identified by the `label` path parameter belonging to the policy
         identified by the `policyId` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -4151,8 +4147,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The policy with the given ID or
+            the policy entry was not found in the context of the authenticated
             user.
           content:
             application/json:
@@ -4171,13 +4167,13 @@ paths:
         description: JSON representation of the Resource
         required: true
     delete:
-      summary: Delete one specific Resource for a specific Label of a specific Policy
+      summary: Delete one specific Resource for a specific Label of a specific policy
       description: |-
         Deletes the resource with path `resourcePath` from the policy
         identified by the the `policyId` path parameter, and by the
         `label` path parameter.
       tags:
-        - Policies
+        - policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -4217,8 +4213,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Resource was not found in the context of the
+            The request could not be completed. The policy with the given ID,
+            the policy entry or the Resource was not found in the context of the
             authenticated user.
           content:
             application/json:
@@ -4231,7 +4227,7 @@ paths:
   ###
   /search/things:
     get:
-      summary: Search for Things
+      summary: Search for things
       description: |-
         This resource can be used to search for things.
 
@@ -4332,7 +4328,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
   /search/things/count:
     get:
-      summary: Count Things
+      summary: Count things
       description: |-
         This resource can be used to count things.
 
@@ -4427,7 +4423,7 @@ components:
         - message
     Attributes:
       type: object
-      description: An arbitrary JSON object describing the attributes of a Thing.
+      description: An arbitrary JSON object describing the attributes of a thing.
     Definition:
       type: string
       description: "A single fully qualified identifier of a definition in the form 'namespace:name:version'"
@@ -4437,7 +4433,7 @@ components:
       description: The definitions of a feature.
       items:
         type: string
-        description: "A single fully qualified identifier of a Feature Definition in the form 'namespace:name:version'"
+        description: "A single fully qualified identifier of a feature definition in the form 'namespace:name:version'"
         pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureProperties:
       type: object
@@ -4466,26 +4462,26 @@ components:
           allOf:
             - $ref: '#/components/schemas/Policy'
           description: |-
-            The initial Policy to create for this Thing. This will create a separate Policy entity managed by resource `/policies/{thingId}`.
+            The initial policy to create for this thing. This will create a separate policy entity managed by resource `/policies/{thingId}`.
 
 
             Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
         _copyPolicyFrom:
           type: string
           description: |-
-            This field may contain the Policy ID of an existing Policy.
-            The Policy is copied and used for this newly created Thing. This field may also contain a placeholder
-            reference to a Thing in the format `{{ ref:things/[thingId]/policyId }}` where you need to replace `[thingId]`
-            with a valid Thing ID. The newly created Thing will then obtain a copy of the Policy of the referenced Thing.
-            In the case of using a reference, the caller needs to have READ access to both the Thing and the Policy of the Thing.
-            In the case of using an explicit policy id to copy from, the caller needs to have READ access to the Policy.
-            If you want to specify a Policy ID for the copied policy, use the policyId field.
+            This field may contain the policy ID of an existing policy.
+            The policy is copied and used for this newly created thing. This field may also contain a placeholder
+            reference to a thing in the format `{{ ref:things/[thingId]/policyId }}` where you need to replace `[thingId]`
+            with a valid thing ID. The newly created thing will then obtain a copy of the policy of the referenced thing.
+            In the case of using a reference, the caller needs to have READ access to both the thing and the policy of the thing.
+            In the case of using an explicit policy id to copy from, the caller needs to have READ access to the policy.
+            If you want to specify a policy ID for the copied policy, use the policyId field.
             This field must not be used together with the field `_policy`. If you specify both `_policy` and
             `_copyPolicyFrom` this will lead to an error response.
         policyId:
           type: string
           description: |-
-            The Policy ID used for controlling access to this Thing. Managed by
+            The policy ID used for controlling access to this thing. Managed by
             resource `/policies/{policyId}`.
         definition:
           $ref: '#/components/schemas/Definition'
@@ -4507,7 +4503,7 @@ components:
           description: Unique identifier representing the thing
         policyId:
           type: string
-          description: The ID of the policy which controls the access to this thing. Policies are managed by resource `/policies/{policyId}`
+          description: The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`
         definition:
           $ref: '#/components/schemas/Definition'
         attributes:
@@ -4516,13 +4512,13 @@ components:
           $ref: '#/components/schemas/Features'
     Policy:
       type: object
-      description: Policy consisting of PolicyEntries
+      description: policy consisting of policy entries
       properties:
         entries:
           $ref: '#/components/schemas/PolicyEntries'
     PolicyEntries:
       type: object
-      description: PolicyEntries containing one PolicyEntry for each arbitrary `label` key
+      description: Policy entries containing one policy entry for each arbitrary `label` key
       properties:
         label1:
           $ref: '#/components/schemas/PolicyEntry'
@@ -4530,7 +4526,7 @@ components:
           $ref: '#/components/schemas/PolicyEntry'
     PolicyEntry:
       type: object
-      description: Single Policy entry containing Subjects and Resources.
+      description: Single policy entry containing Subjects and Resources.
       required:
         - subjects
         - resources
@@ -4608,7 +4604,7 @@ components:
     Features:
       type: object
       description: |-
-        List of Features where the key represents the `featureId` of each Feature.
+        List of features where the key represents the `featureId` of each feature.
         The `featureId` key must be unique in the list.
       additionalProperties:
         $ref: '#/components/schemas/Feature'
@@ -4690,14 +4686,14 @@ components:
     featureIdPathPathParam:
       name: featureId
       in: path
-      description: The ID of the Feature - has to conform to RFC-3986 (URI)
+      description: The ID of the feature - has to conform to RFC-3986 (URI)
       required: true
       schema:
         type: string
     attributePathPathParam:
       name: attributePath
       in: path
-      description: The path to the Attribute, e.g. **manufacturer/name**
+      description: The path to the attribute, e.g. **manufacturer/name**
       required: true
       schema:
         type: string
@@ -4752,7 +4748,7 @@ components:
       in: query
       description: |-
         Contains the "requested acknowledgements" for this modifying request as comma separated list. The HTTP call will
-        block until all requested acknowledgements were aggregated or will time out based on specified the `timeout`
+        block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
         parameter.
 
         The default (if omitted) requested acks is `requested-acks=twin-persisted` which will block the
@@ -4768,7 +4764,7 @@ components:
         acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
         together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
 
-        The default (if omitted) is `10s`. Maximum value: `60s`.
+        The default (if omitted) timeout is `10s`. Maximum value: `60s`.
 
         A value of `0` applies fire and forget semantics for the command resulting in setting `response-required=false`.
       required: false
@@ -4781,7 +4777,7 @@ components:
         Defines whether a response is required to the API call or not - if set to `false` the response will directly
         sent back with a status code of `202` (Accepted).
 
-        The default (if ommited) is `true`.
+        The default (if ommited) response is `true`.
       required: false
       schema:
         type: boolean
@@ -4790,7 +4786,7 @@ components:
     labelPathParam:
       name: label
       in: path
-      description: The label of a Policy entry
+      description: The label of a policy entry
       required: true
       schema:
         type: string
@@ -4811,7 +4807,7 @@ components:
     propertyPathPathParam:
       name: propertyPath
       in: path
-      description: The path to the Property
+      description: The path to the property
       required: true
       schema:
         type: string
@@ -4820,7 +4816,7 @@ components:
       in: query
       description: |-
         Contains a comma-separated list of fields to be included in the returned
-        JSON. Attributes can be selected in the same manner.
+        JSON. attributes can be selected in the same manner.
 
         #### Selectable fields
 
@@ -4854,7 +4850,7 @@ components:
 
         * `features`
 
-          Supports selecting arbitrary fields in features similar to `attributes` (see also Features documentation for more details)
+          Supports selecting arbitrary fields in features similar to `attributes` (see also features documentation for more details)
 
         * `_namespace`
 
@@ -4862,11 +4858,11 @@ components:
 
         * `_revision`
 
-          Specifically selects the revision of the Thing. The revision is a counter, which is incremented on each modification of a Thing.
+          Specifically selects the revision of the thing. The revision is a counter, which is incremented on each modification of a thing.
 
         * `_modified`
 
-          Specifically selects the modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each modification of a Thing.
+          Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
 
         * `_policy`
 
@@ -4950,24 +4946,24 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields from one or more Features to be
+        Contains a comma-separated list of fields from one or more features to be
         included in the returned JSON.
 
         #### Selectable fields
 
-        * `{featureId}` The ID of the Feature to select properties in
+        * `{featureId}` The ID of the feature to select properties in
           * `properties`
             Supports selecting arbitrary sub-fields by using a comma-separated list:
               * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
                 For example:
-                  * `?fields={featureId}/properties/color` would select only `color` property value (if present) of the Feature identified with `{featureId}`
-                  * `?fields={featureId}/properties/color,properties/brightness` would select only `color` and `brightness` property values (if present) of the Feature identified with `{featureId}`
+                  * `?fields={featureId}/properties/color` would select only `color` property value (if present) of the feature identified with `{featureId}`
+                  * `?fields={featureId}/properties/color,properties/brightness` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
             Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
               * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
               * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
                 For example:
-                 * `?fields={featureId}/properties(color,brightness)` would select only `color` and `brightness` property values (if present) of the Feature identified with `{featureId}`
-                 * `?fields={featureId}/properties(location/longitude)` would select the `longitude` value inside the `location` object of the Feature identified with `{featureId}`
+                 * `?fields={featureId}/properties(color,brightness)` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
+                 * `?fields={featureId}/properties(location/longitude)` would select the `longitude` value inside the `location` object of the feature identified with `{featureId}`
 
 
         #### Examples
@@ -4980,7 +4976,7 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields from the selected Feature to be
+        Contains a comma-separated list of fields from the selected feature to be
         included in the returned JSON.
 
         #### Selectable fields
@@ -5119,7 +5115,7 @@ components:
         JSON string of the definition to be modified. Consider that the
         value has to be a JSON string or `null`, examples:
 
-          * an string: `{ ""value"}` -}. Currently the Definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
+          * an string: `{ ""value"}` -}. Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
           * an empty string: `""`
 
     Attributes:
