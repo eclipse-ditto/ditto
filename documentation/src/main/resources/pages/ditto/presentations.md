@@ -11,7 +11,7 @@ This page contains a collection of presentations, videos and workshops about Ecl
 
 Topic: Eclipse Ditto: Digital Twins as part of an open IoT platform
 
-The video was streamed to [YouTube](https://youtu.be/D33JrN2RWiI) and the recording will stay available there.
+{% include youtube.html youtube-id="D33JrN2RWiI" width="560" height="315" %}
 
 The slides can be found here: [2020_04_16-ttn-virtual-conference](slides/2020_04_16-ttn-virtual-conference/index.html).
 
@@ -47,6 +47,6 @@ Topic: "Digital twins go open source: Eclipse Ditto introduction"
 u
 On 07.02.2018 we gave an introduction into Eclipse Ditto via [Meetup](https://www.meetup.com/Virtual-IoT/events/247048104/).
 
-The slides can be found here: [2018_02_07-virtualiot-meetup](slides/2018_02_07-virtualiot-meetup/index.html).
+{% include youtube.html youtube-id="NpC4ROGqwKc" width="560" height="315" %}
 
-The video was streamed to [YouTube](https://youtu.be/NpC4ROGqwKc) and the recording will stay available there.
+The slides can be found here: [2018_02_07-virtualiot-meetup](slides/2018_02_07-virtualiot-meetup/index.html).
