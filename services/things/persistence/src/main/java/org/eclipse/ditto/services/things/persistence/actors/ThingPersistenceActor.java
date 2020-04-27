@@ -39,7 +39,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.persistence.RecoveryCompleted;
 
@@ -175,7 +174,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(final ThingEvent event) {
-        distributedPub.publish(event, ActorRef.noSender());
+        distributedPub.publish(event, getSender());
     }
 
     @Override

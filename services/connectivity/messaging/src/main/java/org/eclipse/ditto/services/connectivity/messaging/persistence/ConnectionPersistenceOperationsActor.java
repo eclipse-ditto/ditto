@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
+import org.eclipse.ditto.model.connectivity.ConnectivityConstants;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
@@ -19,7 +20,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoE
 import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
@@ -40,7 +40,7 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
-                ConnectivityCommand.RESOURCE_TYPE,
+                ConnectivityConstants.ENTITY_TYPE,
                 null,
                 entitiesOps,
                 persistenceOperationsConfig,

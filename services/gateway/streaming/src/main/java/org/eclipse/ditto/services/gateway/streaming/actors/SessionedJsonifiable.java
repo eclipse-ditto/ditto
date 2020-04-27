@@ -118,7 +118,7 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable ack(final StreamingType streamingType, final boolean subscribed,
-            final String connectionCorrelationId) {
+            final CharSequence connectionCorrelationId) {
         return new SessionedResponseErrorOrAck(
                 new StreamingAck(streamingType, subscribed),
                 DittoHeaders.newBuilder().correlationId(connectionCorrelationId).build()

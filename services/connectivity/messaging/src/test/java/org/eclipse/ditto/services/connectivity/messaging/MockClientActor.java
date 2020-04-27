@@ -41,7 +41,7 @@ import akka.japi.Creator;
 public class MockClientActor extends AbstractActor {
 
     public static final ClientActorPropsFactory mockClientActorPropsFactory =
-            (connection, conciergeForwarder, connectionActor) -> MockClientActor.props();
+            (connection, connectionActor, conciergeForwarder) -> MockClientActor.props();
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef delegate;
@@ -104,13 +104,13 @@ public class MockClientActor extends AbstractActor {
 
                     // simulate consumer and pusblisher actor response
                     sender().tell(ConnectivityModelFactory.newSourceStatus("client1",
-                            ConnectivityStatus.OPEN, "source1","consumer started"),
+                            ConnectivityStatus.OPEN, "source1", "consumer started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newSourceStatus("client1",
-                            ConnectivityStatus.OPEN, "source2","consumer started"),
+                            ConnectivityStatus.OPEN, "source2", "consumer started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
-                            ConnectivityStatus.OPEN, "target1","publisher started"),
+                            ConnectivityStatus.OPEN, "target1", "publisher started"),
                             getSelf());
                 })
                 .match(RetrieveConnectionLogs.class, rcl -> {
@@ -119,11 +119,12 @@ public class MockClientActor extends AbstractActor {
                     if (null != delegate) {
                         delegate.forward(rcl, getContext());
                     } else {
-                        log.error("No delegate found in MockClientActor. RetrieveConnectionLogs needs a delegate which" +
-                                " needs to respond with a RetrieveConnectionLogsResponse to the sender of the command");
+                        log.error(
+                                "No delegate found in MockClientActor. RetrieveConnectionLogs needs a delegate which" +
+                                        " needs to respond with a RetrieveConnectionLogsResponse to the sender of the command");
                     }
                 })
-                .match(EnableConnectionLogs.class, ecl-> {
+                .match(EnableConnectionLogs.class, ecl -> {
                     log.info("Enable connection logs...");
                     forward(ecl);
                 })

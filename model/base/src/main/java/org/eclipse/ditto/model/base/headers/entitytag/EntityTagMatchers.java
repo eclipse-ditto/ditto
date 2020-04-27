@@ -24,8 +24,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -33,6 +35,11 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class EntityTagMatchers implements Iterable<EntityTagMatcher> {
+
+    /**
+     * Regular expression pattern for splitting a comma separated CharSequence of {@link EntityTagMatcher}s.
+     */
+    public static final Pattern ENTITY_TAG_MATCHERS_PATTERN = Pattern.compile("\\s*,\\s*");
 
     private final List<EntityTagMatcher> entityTagMatcherList;
 
@@ -42,39 +49,38 @@ public final class EntityTagMatchers implements Iterable<EntityTagMatcher> {
     }
 
     /**
-     * Builds {@link EntityTagMatchers} from a String that contains comma separated values of entity-tag-matchers.
+     * Builds {@code EntityTagMatchers} from a String that contains comma separated values of entity-tag-matchers.
      * Spaces before and after the comma will be removed.
      *
-     * @param commaSeparatedEntityTagString The String that contains comma separated values of entity-tag-matchers.
-     * @return {@link EntityTagMatchers} that contain all {@link EntityTagMatcher entity-tag-matchers} of the comma
-     * separated String.
+     * @param commaSeparatedEntityTagString the String that contains comma separated values of
+     * {@link EntityTagMatcher}s.
+     * @return EntityTagMatchers that contain all EntityTagMatchers of the comma separated String.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if one of the values in the comma
-     * separated String is neither an {@link EntityTagMatcher#ASTERISK} nor a valid {@link EntityTag} according to
-     * {@link EntityTag#isValid(String)}.
+     * separated String is neither an {@value EntityTagMatcher#ASTERISK} nor a valid {@link EntityTag} according to
+     * {@link EntityTag#isValid(CharSequence)}.
      */
     public static EntityTagMatchers fromCommaSeparatedString(final String commaSeparatedEntityTagString) {
-        return fromStrings(commaSeparatedEntityTagString.split("\\s*,\\s*"));
+        return fromStrings(ENTITY_TAG_MATCHERS_PATTERN.split(commaSeparatedEntityTagString));
     }
 
     /**
-     * Builds {@link EntityTagMatchers} from a Strings that contain values of entity-tag-matchers.
+     * Builds {@code EntityTagMatchers} from a Strings that contain values of entity-tag-matchers.
      *
      * @param entityTagMatcherStrings The Strings that contain values of entity-tag-matchers.
-     * @return {@link EntityTagMatchers} that contain all {@link EntityTagMatcher entity-tag-matchers} of the Strings.
+     * @return EntityTagMatchers that contain all {@link EntityTagMatcher}s of the given Strings.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if one of the Strings is not a valid
-     * {@link EntityTag} according to {@link EntityTag#isValid(String)}.
+     * {@link EntityTag} according to {@link EntityTag#isValid(CharSequence)}.
      */
     public static EntityTagMatchers fromStrings(final String... entityTagMatcherStrings) {
         return fromList(Arrays.stream(entityTagMatcherStrings).map(EntityTagMatcher::fromString).collect(toList()));
     }
 
     /**
-     * Builds {@link EntityTagMatchers} from a List of {@link EntityTagMatcher entity-tag-matchers}.
+     * Builds {@code EntityTagMatchers} from a List of {@link EntityTagMatcher}s.
      *
-     * @param entityTagMatchers The list of {@link EntityTagMatcher entity-tag-matchers} that should be contained in
-     * the new instance of {@link EntityTagMatchers}.
-     * @return An instance of {@link EntityTagMatchers} containing the given list of
-     * {@link EntityTagMatcher entity-tag-matchers}.
+     * @param entityTagMatchers the list of EntityTagMatchers that should be contained in the returned instance.
+     * @return an instance of EntityTagMatchers containing the given list of EntityTagMatchers.
+     * @throws NullPointerException if {@code entityTagMatchers} is {@code null}.
      */
     public static EntityTagMatchers fromList(final List<EntityTagMatcher> entityTagMatchers) {
         return new EntityTagMatchers(entityTagMatchers);
@@ -100,25 +106,29 @@ public final class EntityTagMatchers implements Iterable<EntityTagMatcher> {
 
     @Override
     public void forEach(final Consumer<? super EntityTagMatcher> action) {
-        this.entityTagMatcherList.forEach(action);
+        entityTagMatcherList.forEach(action);
     }
 
     @Override
     public Spliterator<EntityTagMatcher> spliterator() {
-        return this.entityTagMatcherList.spliterator();
+        return entityTagMatcherList.spliterator();
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final EntityTagMatchers that = (EntityTagMatchers) o;
         return Objects.equals(entityTagMatcherList, that.entityTagMatcherList);
     }
 
     @Override
     public int hashCode() {
-
         return Objects.hash(entityTagMatcherList);
     }
+
 }

@@ -164,7 +164,7 @@ public final class PolicyPersistenceActor
 
     @Override
     protected void publishEvent(final PolicyEvent event) {
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
     }
 
     @Override

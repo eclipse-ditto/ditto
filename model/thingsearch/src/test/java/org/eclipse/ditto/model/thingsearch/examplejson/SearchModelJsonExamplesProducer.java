@@ -30,12 +30,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 
@@ -54,7 +55,8 @@ public final class SearchModelJsonExamplesProducer {
         final List<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
         authorizationSubjects.add(newAuthSubject("the_firstSubject"));
         authorizationSubjects.add(newAuthSubject("the_anotherSubject"));
-        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(authorizationSubjects);
+        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED, authorizationSubjects);
 
         final Path authorizationDir = rootPath.resolve(Paths.get("authorization"));
         Files.createDirectories(authorizationDir);

@@ -17,7 +17,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +39,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -206,7 +206,8 @@ public final class MessageMappingProcessorActorTest {
             final AuthorizationSubject targetAuthSubjectWithoutIssuer = AuthorizationSubject.newInstance("auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
-                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                             .withExtraFields(extraFields)
                             .build())
@@ -276,14 +277,16 @@ public final class MessageMappingProcessorActorTest {
             final AuthorizationSubject targetAuthSubjectWithoutIssuer = AuthorizationSubject.newInstance("auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
-                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                             .withExtraFields(extraFields)
                             .build())
                     .build();
             final Target targetWithEnrichmentAnd1PayloadMapper = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address/mapped/1")
-                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                             .withExtraFields(extraFields)
                             .build())
@@ -291,7 +294,8 @@ public final class MessageMappingProcessorActorTest {
                     .build();
             final Target targetWithEnrichmentAnd2PayloadMappers = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address/mapped/2")
-                    .authorizationContext(AuthorizationContext.newInstance(targetAuthSubject))
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                             .withExtraFields(extraFields)
                             .build())
@@ -497,15 +501,18 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testReplacementOfPlaceholders() {
         final String correlationId = UUID.randomUUID().toString();
-        final AuthorizationContext contextWithPlaceholders = AuthorizationModelFactory.newAuthContext(
-                AuthorizationModelFactory.newAuthSubject(
-                        "integration:{{header:correlation-id}}:hub-{{   header:content-type   }}"),
-                AuthorizationModelFactory.newAuthSubject(
-                        "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
+        final AuthorizationContext contextWithPlaceholders =
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationModelFactory.newAuthSubject(
+                                "integration:{{header:correlation-id}}:hub-{{   header:content-type   }}"),
+                        AuthorizationModelFactory.newAuthSubject(
+                                "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
 
-        final AuthorizationContext expectedAuthContext = TestConstants.Authorization.withUnprefixedSubjects(AuthorizationModelFactory.newAuthContext(
-                AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"),
-                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId)));
+        final AuthorizationContext expectedAuthContext = TestConstants.Authorization.withUnprefixedSubjects(
+                AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"),
+                        AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId)));
 
         testMessageMapping(correlationId, contextWithPlaceholders, ModifyAttribute.class, modifyAttribute -> {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
@@ -524,6 +531,7 @@ public final class MessageMappingProcessorActorTest {
         final String correlationId = UUID.randomUUID().toString();
 
         final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED,
                 AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"));
 
         new TestKit(actorSystem) {{
@@ -560,6 +568,7 @@ public final class MessageMappingProcessorActorTest {
     public void testMessageWithoutCorrelationId() {
 
         final AuthorizationContext connectionAuthContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED,
                 AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"),
                 AuthorizationModelFactory.newAuthSubject("integration:hub-application/json"));
 
@@ -604,6 +613,7 @@ public final class MessageMappingProcessorActorTest {
         final String correlationId = UUID.randomUUID().toString();
 
         final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED,
                 AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"));
 
         new TestKit(actorSystem) {{
@@ -643,6 +653,7 @@ public final class MessageMappingProcessorActorTest {
         final String placeholderKey = "header:unknown";
         final String placeholder = "{{" + placeholderKey + "}}";
         final AuthorizationContext contextWithUnknownPlaceholder = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED,
                 AuthorizationModelFactory.newAuthSubject("integration:" + placeholder));
 
         testMessageMapping(UUID.randomUUID().toString(), contextWithUnknownPlaceholder,

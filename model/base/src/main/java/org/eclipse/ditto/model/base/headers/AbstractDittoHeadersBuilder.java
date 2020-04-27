@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,8 +36,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -65,7 +69,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final Map<String, String> initialHeaders,
-            final Collection<HeaderDefinition> definitions, final Class<?> selfType) {
+            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
@@ -83,7 +87,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      * @param definitions perform the actual validation.
      */
     protected void validateValueTypes(final Map<String, String> headers,
-            final Collection<HeaderDefinition> definitions) {
+            final Collection<? extends HeaderDefinition> definitions) {
 
         for (final HeaderDefinition definition : definitions) {
             final String value = headers.get(definition.getKey());
@@ -141,7 +145,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S authorizationContext(@Nullable final AuthorizationContext authorizationContext) {
         if (null != authorizationContext) {
-            return authorizationSubjects(authorizationContext.getAuthorizationSubjectIds());
+            putJsonValue(DittoHeaderDefinition.AUTHORIZATION_CONTEXT, authorizationContext.toJson());
+        } else {
+            removeHeader(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
         }
         return myself;
     }
@@ -172,19 +178,25 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    @Deprecated
     public S authorizationSubjects(final Collection<String> authorizationSubjectIds) {
-        final List<String> onlyWithIssuerPrefix = keepSubjectsWithIssuerPrefix(authorizationSubjectIds);
-        putStringCollection(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS, onlyWithIssuerPrefix);
+        authorizationContext(keepSubjectsWithIssuerPrefix(authorizationSubjectIds));
         return myself;
     }
 
-    private static List<String> keepSubjectsWithIssuerPrefix(
+    private static AuthorizationContext keepSubjectsWithIssuerPrefix(
             final Collection<String> subjectsWithAndWithoutPrefix) {
-        return AbstractDittoHeaders.keepSubjectsWithIssuer(subjectsWithAndWithoutPrefix.stream())
+
+        final List<AuthorizationSubject> authSubjects = subjectsWithAndWithoutPrefix.stream()
+                .map(AuthorizationSubject::newInstance)
                 .collect(Collectors.toList());
+        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(authSubjects);
+
+        return AbstractDittoHeaders.keepAuthContextSubjectsWithIssuer(authorizationContext);
     }
 
     @Override
+    @Deprecated
     public S authorizationSubjects(final CharSequence authorizationSubject,
             final CharSequence... furtherAuthorizationSubjects) {
 
@@ -289,6 +301,65 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S acknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests) {
+        checkNotNull(acknowledgementRequests, "acknowledgementRequests");
+        putJsonValue(DittoHeaderDefinition.REQUESTED_ACKS, acknowledgementRequests.stream()
+                .map(AcknowledgementRequest::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()));
+        return myself;
+    }
+
+    @Override
+    public S acknowledgementRequest(final AcknowledgementRequest acknowledgementRequest,
+            final AcknowledgementRequest... furtherAcknowledgementRequests) {
+
+        checkNotNull(acknowledgementRequest, "acknowledgementRequest");
+        checkNotNull(furtherAcknowledgementRequests, "furtherAcknowledgementRequests");
+        final Collection<AcknowledgementRequest> ackRequests =
+                new ArrayList<>(1 + furtherAcknowledgementRequests.length);
+
+        ackRequests.add(acknowledgementRequest);
+        Collections.addAll(ackRequests, furtherAcknowledgementRequests);
+        return acknowledgementRequests(ackRequests);
+    }
+
+    @Override
+    public S timeout(@Nullable final CharSequence timeoutStr) {
+        if (null != timeoutStr) {
+            return timeout(tryToParseDuration(timeoutStr));
+        }
+        return timeout((DittoDuration) null);
+    }
+
+    private static DittoDuration tryToParseDuration(final CharSequence duration) {
+        try {
+            return DittoDuration.parseDuration(duration);
+        } catch (final IllegalArgumentException e) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(DittoHeaderDefinition.TIMEOUT.getKey(), duration,
+                    "duration").build();
+        }
+    }
+
+    @Override
+    public S timeout(@Nullable final Duration timeout) {
+        if (null != timeout) {
+            return timeout(DittoDuration.of(timeout));
+        }
+        return timeout((DittoDuration) null);
+    }
+
+    private S timeout(@Nullable final DittoDuration timeout) {
+        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
+        if (null != timeout) {
+            putCharSequence(definition, timeout.toString());
+        } else {
+            removeHeader(definition.getKey());
+        }
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
@@ -303,7 +374,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     protected void validateValueType(final CharSequence key, final CharSequence value) {
         definitions.stream()
-                .filter(definition -> Objects.equals(definition.getKey(), key))
+                .filter(definition -> Objects.equals(definition.getKey(), key.toString()))
                 .findAny()
                 .ifPresent(definition -> definition.validateValue(value));
     }
@@ -332,8 +403,37 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public R build() {
+        // do it here
+        calculateIsResponseRequired();
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
+    }
+
+    private void  calculateIsResponseRequired() {
+        // The order is important. A timeout of zero eventually determines response-required to be false.
+        calculateIsResponseRequiredViaRequestedAcks();
+        calculateIsResponseRequiredViaTimeout();
+    }
+
+    private void calculateIsResponseRequiredViaRequestedAcks() {
+        @Nullable final String ackRequests = headers.get(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
+        if (null != ackRequests && !headers.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
+            // only if "response-required" was not already set, assume the default
+            final boolean containsAckRequests = !JsonArray.of(ackRequests).isEmpty();
+            responseRequired(containsAckRequests);
+        }
+    }
+
+    private void calculateIsResponseRequiredViaTimeout() {
+        @Nullable final String timeoutValue = headers.get(DittoHeaderDefinition.TIMEOUT.getKey());
+        if (null != timeoutValue) {
+            final DittoDuration dittoDuration = DittoDuration.parseDuration(timeoutValue);
+
+            // sets response-required explicitly to false, which is desired in that case
+            if (dittoDuration.isZero()) {
+                responseRequired(false);
+            }
+        }
     }
 
     @Override

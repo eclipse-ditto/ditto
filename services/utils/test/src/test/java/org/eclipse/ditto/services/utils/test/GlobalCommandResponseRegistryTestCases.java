@@ -27,6 +27,8 @@ import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,6 +96,8 @@ public abstract class GlobalCommandResponseRegistryTestCases {
                     final int m = c.getModifiers();
                     return !(Modifier.isAbstract(m) || Modifier.isInterface(m));
                 })
+                .filter(c -> !Acknowledgements.class.isAssignableFrom(c)) // exclude implementations of this very special CommandResponse -> it is registered differently
+                .filter(c -> !Acknowledgement.class.isAssignableFrom(c)) // exclude implementations of this very special CommandResponse -> it is registered differently
                 .forEach(c -> assertThat(c.isAnnotationPresent(JsonParsableCommandResponse.class))
                         .as("Check that '%s' is annotated with JsonParsableCommandResponse.", c.getName())
                         .isTrue());

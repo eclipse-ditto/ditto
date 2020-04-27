@@ -14,12 +14,25 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import java.util.Map;
 
-public final class DefaultMappingStrategies extends AbstractMappingStrategies {
+import javax.annotation.concurrent.Immutable;
+
+/**
+ * Default implementation of {@link MappingStrategies}.
+ */
+@Immutable
+final class DefaultMappingStrategies extends MappingStrategies {
 
     private DefaultMappingStrategies(final Map<String, MappingStrategy> strategies) {
         super(strategies);
     }
 
+    /**
+     * Returns an instance of DefaultMappingStrategies.
+     *
+     * @param strategies the key-value pairs of the returned mapping strategies.
+     * @return the instance.
+     * @throws NullPointerException if {@code strategies} is {@code null}.
+     */
     public static DefaultMappingStrategies of(final Map<String, MappingStrategy> strategies) {
         return new DefaultMappingStrategies(strategies);
     }

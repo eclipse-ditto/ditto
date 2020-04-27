@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -79,7 +78,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         // filter headers by header translator, then inject any missing information from topic path
         final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
         final DittoHeaders filteredHeaders = addTopicPathInfo(
-                headerTranslator.fromExternalHeaders(externalHeaders),
+                DittoHeaders.of(headerTranslator.fromExternalHeaders(externalHeaders)),
                 externalAdaptable.getTopicPath());
 
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.find(type);
@@ -154,8 +153,8 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
         final Adaptable adaptable = mapSignalToAdaptable(signal, channel);
         final Map<String, String> externalHeaders;
-        if (signal instanceof CommandResponse) {
-            externalHeaders = headerTranslator.toFilteredExternalHeaders(adaptable.getDittoHeaders());
+        if (filterOutUnknownExternalHeaders(signal, channel)) {
+            externalHeaders = headerTranslator.toExternalAndRetainKnownHeaders(adaptable.getDittoHeaders());
         } else {
             externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
         }
@@ -164,10 +163,23 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     }
 
     /**
+     * Called in order to determine whether to filter out unknown headers (then return {@code true}) or to keep all
+     * unknown headers (then return {@code false}).
+     * By default for CommandResponses the unknown headers will be filtered.
+     *
+     * @param signal the signal which can be used to determine the decision on.
+     * @param channel the channel of the signal.
+     * @return {@code true} when unknown external headers should be filtered, {@code false} otherwise.
+     */
+    protected boolean filterOutUnknownExternalHeaders(final T signal, final TopicPath.Channel channel) {
+        return channel == TopicPath.Channel.TWIN && signal instanceof CommandResponse;
+    }
+
+    /**
      * Subclasses must implement the method to map from the given {@link org.eclipse.ditto.signals.base.Signal} to an
      * {@link Adaptable}.
      *
-     * @param  signal the signal to map.
+     * @param signal the signal to map.
      * @param channel the channel to which the signal belongs.
      * @return the mapped {@link Adaptable}
      */

@@ -19,6 +19,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -78,7 +79,8 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     @Override
     protected Object getCreateEntityCommand(final ConnectionId id) {
         final AuthorizationContext authorizationContext =
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("subject"));
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("subject"));
         final Source source =
                 ConnectivityModelFactory.newSource(authorizationContext, "address");
         final Connection connection =

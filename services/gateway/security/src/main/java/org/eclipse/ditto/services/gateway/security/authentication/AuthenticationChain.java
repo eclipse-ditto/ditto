@@ -23,6 +23,7 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +39,11 @@ import akka.http.javadsl.server.RequestContext;
 public final class AuthenticationChain {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationChain.class);
-    private final Collection<AuthenticationProvider> authenticationProviderChain;
+    private final Collection<AuthenticationProvider<?>> authenticationProviderChain;
     private final Executor authenticationDispatcher;
     private final AuthenticationFailureAggregator authenticationFailureAggregator;
 
-    private AuthenticationChain(final Collection<AuthenticationProvider> authenticationProviders,
+    private AuthenticationChain(final Collection<AuthenticationProvider<?>> authenticationProviders,
             final AuthenticationFailureAggregator authenticationFailureAggregator,
             final Executor authenticationDispatcher) {
 
@@ -67,7 +68,7 @@ public final class AuthenticationChain {
      * @throws NullPointerException if argument is {@code null}.
      * @throws IllegalArgumentException if {@code authenticationProviders} is empty.
      */
-    public static AuthenticationChain getInstance(final Collection<AuthenticationProvider> authenticationProviders,
+    public static AuthenticationChain getInstance(final Collection<AuthenticationProvider<?>> authenticationProviders,
             final AuthenticationFailureAggregator authenticationFailureAggregator,
             final Executor authenticationDispatcher) {
 
@@ -80,18 +81,18 @@ public final class AuthenticationChain {
      * {@link AuthenticationResult result}.
      *
      * @param requestContext the request context that should be authenticated.
-     * @param correlationId the correlation ID of the request.
+     * @param dittoHeaders the (potentially not completely set) DittoHeaders of the request.
      * @return A future resolving to the {@link AuthenticationResult authentication result}.
      */
     public CompletableFuture<AuthenticationResult> authenticate(final RequestContext requestContext,
-            final CharSequence correlationId) {
+            final DittoHeaders dittoHeaders) {
 
         return CompletableFuture
-                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), authenticationDispatcher)
-                .thenApply(voidValue -> doAuthenticate(requestContext, correlationId));
+                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(dittoHeaders), authenticationDispatcher)
+                .thenApply(voidValue -> doAuthenticate(requestContext, dittoHeaders));
     }
 
-    private AuthenticationResult doAuthenticate(final RequestContext requestContext, final CharSequence correlationId) {
+    private AuthenticationResult doAuthenticate(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
         final HttpRequest httpRequest = requestContext.getRequest();
         final Uri requestUri = httpRequest.getUri();
 
@@ -107,7 +108,7 @@ public final class AuthenticationChain {
 
             LOGGER.debug("Applying authentication provider <{}> to URI <{}>.", authProviderName, requestUri);
             final AuthenticationResult authenticationResult =
-                    authenticationProvider.authenticate(requestContext, correlationId);
+                    authenticationProvider.authenticate(requestContext, dittoHeaders);
 
             if (authenticationResult.isSuccess()) {
                 LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
@@ -121,7 +122,7 @@ public final class AuthenticationChain {
         }
 
         if (failedAuthenticationResults.isEmpty()) {
-            return DefaultAuthenticationResult.failed(
+            return DefaultAuthenticationResult.failed(dittoHeaders,
                     new IllegalStateException("No applicable authentication provider was found!"));
         }
 
@@ -129,7 +130,7 @@ public final class AuthenticationChain {
             return failedAuthenticationResults.get(0);
         }
 
-        return DefaultAuthenticationResult.failed(
+        return DefaultAuthenticationResult.failed(dittoHeaders,
                 authenticationFailureAggregator.aggregateAuthenticationFailures(failedAuthenticationResults));
     }
 

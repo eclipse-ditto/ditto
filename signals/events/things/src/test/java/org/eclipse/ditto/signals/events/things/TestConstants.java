@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -55,7 +56,10 @@ final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")))
+            .build();
 
     /**
      * Empty command headers.
@@ -66,21 +70,26 @@ final class TestConstants {
      * A known timestamp.
      */
     public static final Instant TIMESTAMP = Instant.EPOCH;
+
     /**
      * Known JSON parse options.
      */
-    public static final JsonParseOptions JSON_PARSE_OPTIONS =
-            JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+    public static final JsonParseOptions JSON_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
+            .withoutUrlDecoding()
+            .build();
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
             JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
             JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
@@ -112,7 +121,8 @@ final class TestConstants {
          * An Authorization Context which contains all known Authorization Subjects.
          */
         public static final AuthorizationContext AUTH_CONTEXT =
-                AuthorizationModelFactory.newAuthContext(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
 
         public static final List<AuthorizationSubject> authorizationSubjects =
                 Arrays.asList(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
@@ -133,6 +143,7 @@ final class TestConstants {
         private Authorization() {
             throw new AssertionError();
         }
+
     }
 
 
@@ -205,6 +216,7 @@ final class TestConstants {
         private Thing() {
             throw new AssertionError();
         }
+
     }
 
     /**
@@ -261,6 +273,7 @@ final class TestConstants {
         private Feature() {
             throw new AssertionError();
         }
+
     }
 
 }

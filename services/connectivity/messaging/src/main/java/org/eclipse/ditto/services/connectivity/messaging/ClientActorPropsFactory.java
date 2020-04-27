@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.connectivity.Connection;
 
 import akka.actor.ActorRef;
@@ -27,9 +29,10 @@ public interface ClientActorPropsFactory {
      *
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param connectionActor the connection actor acting as the parent of the client actors.
-     * @return the actor props.
+     * @param connectionActor the connectionPersistenceActor which creates this client.
+     * @return the actor props
      */
-    Props getActorPropsForType(Connection connection, ActorRef conciergeForwarder, ActorRef connectionActor);
+    Props getActorPropsForType(Connection connection, @Nullable ActorRef conciergeForwarder,
+            ActorRef connectionActor);
 
 }

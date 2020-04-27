@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -99,8 +100,8 @@ public interface Scenario {
                 .map(AuthorizationSubject::newInstance)
                 .collect(Collectors.toList());
 
-        return AuthorizationContext.newInstance(AuthorizationSubject.newInstance(
-                SubjectId.newInstance(SubjectIssuer.GOOGLE, authorizationSubject)),
+        return AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, authorizationSubject)),
                 authorizationSubjectList.toArray(new AuthorizationSubject[authorizationSubjects.length]));
     }
 

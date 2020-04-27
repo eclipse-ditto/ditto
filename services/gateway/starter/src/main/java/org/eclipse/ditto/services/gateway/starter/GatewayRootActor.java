@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
@@ -137,9 +138,13 @@ final class GatewayRootActor extends DittoRootActor {
                 JwtAuthenticationFactory.newInstance(authenticationConfig.getOAuthConfig(),
                         gatewayConfig.getCachesConfig().getPublicKeysConfig(), httpClient);
 
+        final ProtocolAdapterProvider protocolAdapterProvider =
+                ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
+        final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory,
-                        gatewayConfig.getStreamingConfig(), pubSubMediator, conciergeForwarder));
+                        gatewayConfig.getStreamingConfig(), headerTranslator, pubSubMediator, conciergeForwarder));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
@@ -152,7 +157,8 @@ final class GatewayRootActor extends DittoRootActor {
         }
 
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
-                healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory);
+                healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory, protocolAdapterProvider,
+                headerTranslator);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
@@ -206,7 +212,9 @@ final class GatewayRootActor extends DittoRootActor {
             final ActorRef healthCheckingActor,
             final ActorRef pubSubMediator,
             final HealthCheckConfig healthCheckConfig,
-            final JwtAuthenticationFactory jwtAuthenticationFactory) {
+            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final ProtocolAdapterProvider protocolAdapterProvider,
+            final HeaderTranslator headerTranslator) {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
 
@@ -216,10 +224,6 @@ final class GatewayRootActor extends DittoRootActor {
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory,
                         authenticationDispatcher);
-
-        final ProtocolAdapterProvider protocolAdapterProvider =
-                ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
-        final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
         final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final StatusAndHealthProvider statusAndHealthProvider =
@@ -238,23 +242,27 @@ final class GatewayRootActor extends DittoRootActor {
                 signalEnrichmentProvider(signalEnrichmentConfig, actorSystem);
 
         final StreamingConfig streamingConfig = gatewayConfig.getStreamingConfig();
+        final CommandConfig commandConfig = gatewayConfig.getCommandConfig();
 
         return RootRoute.getBuilder(httpConfig)
-                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
+                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
+                        headerTranslator))
                 .statusRoute(new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem))
                 .overallStatusRoute(new OverallStatusRoute(clusterStateSupplier, statusAndHealthProvider, devOpsConfig))
                 .cachingHealthRoute(
                         new CachingHealthRoute(statusAndHealthProvider, gatewayConfig.getPublicHealthConfig()))
-                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
-                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
+                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
+                        headerTranslator))
+                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig, pubSubMediator)
-                        .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
-                .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
-                        gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
-                .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
+                .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        gatewayConfig.getMessageConfig(), gatewayConfig.getClaimMessageConfig(), headerTranslator))
+                .thingSearchRoute(
+                        new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig)
-                        .withSignalEnrichmentProvider(signalEnrichmentProvider))
+                        .withSignalEnrichmentProvider(signalEnrichmentProvider)
+                        .withHeaderTranslator(headerTranslator))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)

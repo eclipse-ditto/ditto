@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.security.authentication;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
  * The result of an authentication.
@@ -27,7 +28,8 @@ public interface AuthenticationResult {
     boolean isSuccess();
 
     /**
-     * Call this method only if {@link #isSuccess()} evaluates to {@code true}.
+     * Returns the authorization context if the authentication was successful.
+     * <em>Call this method only if {@link #isSuccess()} evaluates to {@code true}.</em>
      *
      * @return the authorization context if the authentication was successful.
      * @throws java.lang.RuntimeException the reason of failure if this method is called when {@link #isSuccess()}
@@ -36,7 +38,16 @@ public interface AuthenticationResult {
     AuthorizationContext getAuthorizationContext();
 
     /**
-     * Call this method only if {@link #isSuccess()} evaluates to {@code false}.
+     * Returns the DittoHeaders of the either succeeded or failed AuthenticationResult.
+     *
+     * @return the DittoHeaders of this authentication result.
+     * @since 1.1.0
+     */
+    DittoHeaders getDittoHeaders();
+
+    /**
+     * Returns he reason why the authentication failed.
+     * <em>Call this method only if {@link #isSuccess()} evaluates to {@code false}.</em>
      *
      * @return the reason why the authentication failed.
      * @throws java.lang.IllegalStateException if this methods is called when {@link #isSuccess()} evaluates to

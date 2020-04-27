@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -79,31 +80,31 @@ public final class SignalFilterTest {
 
         final Target twinAuthd = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/authorized")
-                .authorizationContext(newAuthContext(AUTHORIZED, DUMMY))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED, DUMMY))
                 .headerMapping(HEADER_MAPPING)
                 .topics(TWIN_EVENTS, LIVE_MESSAGES)
                 .build();
         final Target twinUnauthd = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/unauthorized")
-                .authorizationContext(newAuthContext(DUMMY, UNAUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, DUMMY, UNAUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(TWIN_EVENTS, LIVE_MESSAGES)
                 .build();
         final Target liveAuthd = ConnectivityModelFactory.newTargetBuilder()
                 .address("live/authorized")
-                .authorizationContext(newAuthContext(DUMMY, AUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, DUMMY, AUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(LIVE_EVENTS, LIVE_MESSAGES)
                 .build();
         final Target liveUnauthd = ConnectivityModelFactory.newTargetBuilder()
                 .address("live/unauthorized")
-                .authorizationContext(newAuthContext(UNAUTHORIZED, DUMMY))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED, DUMMY))
                 .headerMapping(HEADER_MAPPING)
                 .topics(LIVE_EVENTS, LIVE_MESSAGES)
                 .build();
         final Target emptyContext = ConnectivityModelFactory.newTargetBuilder()
                 .address("live/unauthorized")
-                .authorizationContext(newAuthContext(UNAUTHORIZED))
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED))
                 .headerMapping(HEADER_MAPPING)
                 .topics(LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS, LIVE_COMMANDS)
                 .build();

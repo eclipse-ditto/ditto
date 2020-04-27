@@ -14,20 +14,21 @@ package org.eclipse.ditto.signals.commands.common.purge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
 import org.junit.Before;
@@ -41,13 +42,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class PurgeEntitiesTest {
 
     private static final List<EntityId> ENTITY_IDS =
-            Collections.unmodifiableList(
-                    Arrays.asList(DefaultEntityId.of("my.ns1:id"), DefaultEntityId.of("my.ns2:id")));
-    private static final String ENTITY_TYPE = "policy";
+            Lists.list(DefaultEntityId.of("my.ns1:id"), DefaultEntityId.of("my.ns2:id"));
+    private static final EntityType ENTITY_TYPE = EntityType.of("policy");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(CommonCommandResponse.JsonFields.TYPE, PurgeEntities.TYPE)
-            .set(PurgeEntities.JsonFields.ENTITY_TYPE, ENTITY_TYPE)
+            .set(PurgeEntities.JsonFields.ENTITY_TYPE, ENTITY_TYPE.toString())
             .set(PurgeEntities.JsonFields.ENTITY_IDS, JsonArray.of(ENTITY_IDS))
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder()
@@ -64,6 +64,7 @@ public final class PurgeEntitiesTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(PurgeEntities.class, areImmutable(),
+                provided(EntityType.class).isAlsoImmutable(),
                 assumingFields("entityIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 

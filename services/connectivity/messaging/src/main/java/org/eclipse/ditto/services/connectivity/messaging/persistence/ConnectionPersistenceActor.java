@@ -75,6 +75,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -86,6 +87,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -108,6 +110,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscri
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -338,9 +341,9 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected void recoveryCompleted(RecoveryCompleted event) {
+    protected void recoveryCompleted(final RecoveryCompleted event) {
         log.info("Connection <{}> was recovered: {}", entityId, entity);
-        if (entity != null && !entity.getLifecycle().isPresent()) {
+        if (entity != null && entity.getLifecycle().isEmpty()) {
             entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
         }
         if (isDesiredStateOpen()) {
@@ -456,10 +459,12 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected void matchAnyAfterInitialization(final Object message) {
-        if (message instanceof ThingSearchCommand) {
+        if (message instanceof Acknowledgement) {
+            handleAcknowledgement((Acknowledgement) message);
+        } else if (message instanceof ThingSearchCommand) {
             forwardThingSearchCommandToClientActors((ThingSearchCommand<?>) message);
         } else if (message instanceof Signal) {
-            forwardSignalToClientActors((Signal<?>) message);
+            handleSignal((Signal<?>) message);
         } else if (message == CheckLoggingActive.INSTANCE) {
             checkLoggingEnabled();
         } else {
@@ -467,9 +472,24 @@ public final class ConnectionPersistenceActor
         }
     }
 
-    private void checkLoggingEnabled() {
-        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
-        broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
+    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+        final ActorContext context = getContext();
+        final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
+        final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)
+                .info("Received Acknowledgement but no AcknowledgementForwarderActor was present: <{}>",
+                        acknowledgement);
+
+        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+                .ifPresentOrElse(action, emptyAction);
+    }
+
+    private void handleSignal(final Signal<?> signal) {
+        if (signal instanceof ThingEvent) {
+            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingEvent.getThingEntityId(),
+                    signal.getDittoHeaders(), config.getAcknowledgementConfig());
+        }
+        forwardSignalToClientActors(signal);
     }
 
     private void forwardSignalToClientActors(final Signal<?> signal) {
@@ -538,7 +558,8 @@ public final class ConnectionPersistenceActor
             augmentWithPrefixAndForward(clientActorRouter, (CreateSubscription) command);
         } else if (command instanceof RequestFromSubscription) {
             // forward the command to a client actor according to the prefix of the subscription ID
-            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(), command);
+            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(),
+                    command);
         } else if (command instanceof CancelSubscription) {
             // same as RequestSubscription
             computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);
@@ -574,6 +595,11 @@ public final class ConnectionPersistenceActor
 
     private int getSubscriptionPrefixLength() {
         return Integer.toHexString(getClientCount()).length();
+    }
+
+    private void checkLoggingEnabled() {
+        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
+        broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
 
     private void prepareForSignalForwarding(final StagedCommand command) {
