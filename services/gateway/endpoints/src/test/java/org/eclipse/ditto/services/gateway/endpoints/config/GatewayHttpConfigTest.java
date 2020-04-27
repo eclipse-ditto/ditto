@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import akka.http.javadsl.model.MediaTypes;
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -37,6 +39,7 @@ import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfi
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -56,13 +59,17 @@ public final class GatewayHttpConfigTest {
         gatewayHttpTestConfig = ConfigFactory.load("gateway-http-test");
     }
 
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
     @Test
     public void assertImmutability() {
         assertInstancesOf(GatewayHttpConfig.class,
                 areImmutable(),
                 provided(Pattern.class).isAlsoImmutable(),
-                assumingFields("queryParamsAsHeaders", "schemaVersions")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                assumingFields("queryParamsAsHeaders", "additionalAcceptedMediaTypes", "schemaVersions")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                assumingFields("redirectToHttpsBlacklistPattern").areNotModifiedAndDoNotEscape());
     }
 
     @Test
@@ -79,7 +86,7 @@ public final class GatewayHttpConfigTest {
 
         final Set<JsonSchemaVersion> actual = underTest.getSupportedSchemaVersions();
 
-        assertThat(actual).isEqualTo(expected);
+        softly.assertThat(actual).isEqualTo(expected);
     }
 
     private static Set<JsonSchemaVersion> getDefaultSchemaVersions() {
@@ -99,7 +106,7 @@ public final class GatewayHttpConfigTest {
 
         final Set<JsonSchemaVersion> actual = underTest.getSupportedSchemaVersions();
 
-        assertThat(actual).isEqualTo(expected);
+        softly.assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -125,7 +132,7 @@ public final class GatewayHttpConfigTest {
 
         final Set<HeaderDefinition> actual = underTest.getQueryParametersAsHeaders();
 
-        assertThat(actual).isEqualTo(expected);
+        softly.assertThat(actual).isEqualTo(expected);
     }
 
     private static Set<HeaderDefinition> getDefaultQueryParamsAsHeaders() {
@@ -146,7 +153,7 @@ public final class GatewayHttpConfigTest {
 
         final Set<HeaderDefinition> actual = underTest.getQueryParametersAsHeaders();
 
-        assertThat(actual).isEqualTo(expected);
+        softly.assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -163,6 +170,40 @@ public final class GatewayHttpConfigTest {
                 .isThrownBy(() -> GatewayHttpConfig.of(config))
                 .withMessage("The query parameter names <%s> do not denote known header keys!", unknownHeaderKeys)
                 .withNoCause();
+    }
+
+    @Test
+    public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
+        final GatewayHttpConfig underTest = GatewayHttpConfig.of(ConfigFactory.empty());
+
+        softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
+                .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                .contains(MediaTypes.APPLICATION_OCTET_STREAM.toString());
+    }
+
+    @Test
+    public void testMultipleCommaSeparatedMediaTypes() {
+        final Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = " +
+                "\"application/json,application/x-www-form-urlencoded,text/plain\"\n}");
+
+        final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
+
+        softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
+                .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                .contains(MediaTypes.APPLICATION_JSON.toString(),
+                        MediaTypes.APPLICATION_X_WWW_FORM_URLENCODED.toString(),
+                        MediaTypes.TEXT_PLAIN.toString());
+    }
+
+    @Test
+    public void testNonParsableMediaType() {
+        final Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = \"application-json\"\n}");
+
+        final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
+
+        softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
+                .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                .contains("application-json");
     }
 
 }
