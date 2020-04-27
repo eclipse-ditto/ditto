@@ -295,21 +295,26 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void manageConnection() {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
-                            (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
+                    connectionId, actorSystem, conciergeForwarder,
+                    (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
+                    TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
+                    pubSubMediator
+            );
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
+            expectRemoveSubscriber(1);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // close connection
             underTest.tell(closeConnection, getRef());
             probe.expectMsg(closeConnection);
             expectMsg(closeConnectionResponse);
+            expectRemoveSubscriber(2);
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
@@ -317,6 +322,35 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             probe.expectNoMessage();
             expectTerminated(underTest);
         }};
+    }
+
+    @Test
+    public void deleteConnectionUpdatesSubscriptions() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
+                    connectionId, actorSystem, conciergeForwarder,
+                    (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
+                    TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
+                    pubSubMediator
+            );
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+            expectRemoveSubscriber(1);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+            expectRemoveSubscriber(2);
+            probe.expectNoMessage();
+            expectTerminated(underTest);
+        }};
+
     }
 
     @Test
