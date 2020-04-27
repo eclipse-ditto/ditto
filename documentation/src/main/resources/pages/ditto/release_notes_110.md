@@ -39,6 +39,12 @@ His findings using [CBOR](https://cbor.io) as an alternative to plain JSON resul
 roundtrip times and throughput.
 The Ditto team was happy to accept his pull request, again improving overall performance in Ditto.
 
+##### [More strict Content-Type parsing for HTTP request payload](https://github.com/eclipse/ditto/pull/650)
+
+In the past, Ditto did not evaluate the HTTP `Content-Type` header of HTTP requests sending along payload. As this 
+can be a potential security issue (e.g. in scope of CORS requests), the `Content-Type` is now strictly enforced to
+be of `application/json` wherever Ditto only accepts JSON request payload. 
+
 
 #### New features
 
@@ -48,7 +54,8 @@ The [policy](basic-policy.html) entities can now - in addition to their HTTP API
 [Ditto Protocol](protocol-specification-policies.html). That means also via 
 [WebSocket](httpapi-protocol-bindings-websocket.html) and [connections](basic-connections.html) (e.g. AMQP, MQTT, ..).
 
-APIs for policy management were also added to the [Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/46).
+APIs for [policy management](client-sdk-java.html#manage-policies) were also added to the 
+[Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/46).
 
 ##### [Searching things via Ditto Protocol and in Java client](https://github.com/eclipse/ditto/issues/575)
 
@@ -57,7 +64,8 @@ via the Ditto Protocol and also get results via an asynchronous channel. As a re
 possible via [WebSocket](httpapi-protocol-bindings-websocket.html) and [connections](basic-connections.html) 
 (e.g. AMQP, MQTT, ..).
 
-APIs for searching things were also added to the [Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/53).
+APIs for [searching things](client-sdk-java.html#search-for-things) were also added to the 
+[Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/53).
 
 ##### [Enriching messages and events before publishing to external subscribers](https://github.com/eclipse/ditto/issues/561)
 
@@ -68,7 +76,8 @@ the payload with additional "extra fields" from the thing which was affected by 
 This can be useful when e.g. only a sensor value of a device changes, but your application also needs to be aware of 
 additional context of the affected thing (e.g. a location which does not change with each sensor update).
 
-APIs for enriching changes were also added to the [Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/43).
+APIs for [enriching changes](client-sdk-java.html#subscribe-to-enriched-change-notifications) were also added to the 
+[Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/43).
 
 ##### [Establish connections to MQTT 5 brokers](https://github.com/eclipse/ditto/issues/561)
 
@@ -88,7 +97,8 @@ The follow-up issue [#661](https://github.com/eclipse/ditto/issues/661) will aut
 in Ditto managed connections, configured for connection sources and targets, providing QoS 1 (at least once) semantic
 for message processing in Ditto via connections.
 
-APIs for requesting and issuing acknowledgements were also added to the [Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/56).
+APIs for [requesting and issuing acknowledgements](client-sdk-java.html#request-and-issue-acknowledgements) were also 
+added to the [Ditto Java Client](https://github.com/eclipse/ditto-clients/pull/56).
 
 ##### [Pre-authenticated authentication mechanism](https://github.com/eclipse/ditto/issues/560)
 
