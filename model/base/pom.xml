@@ -68,8 +68,19 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <!-- Widened interfaces to accept CharSequence instead of String. -->
+                            <exclude>org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException#newInvalidTypeBuilder(java.lang.String,java.lang.String,java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.entitytag.EntityTag#isValid(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher#isValid(java.lang.String)</exclude>
+                            <!-- Made default method of interface a normal abstract interface method. -->
+                            <exclude>org.eclipse.ditto.model.base.headers.HeaderDefinition#validateValue(java.lang.CharSequence)</exclude>
+                            <!-- Static factory methods return specific type. -->
+                            <exclude>org.eclipse.ditto.model.base.entity.id.DefaultEntityId#of(java.lang.CharSequence)</exclude>
+                            <exclude>org.eclipse.ditto.model.base.entity.id.DefaultEntityId#dummy()</exclude>
+                            <exclude>org.eclipse.ditto.model.base.entity.id.DefaultEntityId#generateRandom()</exclude>
+                            <!-- Removed Ditto internal header in favor of "ditto-auth-context". -->
+                            <exclude>org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#AUTHORIZATION_SUBJECTS</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

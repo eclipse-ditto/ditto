@@ -14,13 +14,22 @@ package org.eclipse.ditto.services.gateway.util.config.endpoints;
 
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
@@ -36,7 +45,7 @@ public final class GatewayHttpConfig implements HttpConfig {
 
     private final String hostname;
     private final int port;
-    private final Set<Integer> schemaVersions;
+    private final Set<JsonSchemaVersion> schemaVersions;
     private final boolean forceHttps;
     private final boolean redirectToHttps;
     private final Pattern redirectToHttpsBlacklistPattern;
@@ -44,42 +53,42 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final Duration requestTimeout;
     private final String actorPropsFactoryFullQualifiedClassname;
     private final Set<String> additionalAcceptedMediaTypes;
+    private final Set<HeaderDefinition> queryParamsAsHeaders;
 
-    private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig,
-            final Pattern redirectToHttpsBlacklistPattern) {
-
+    private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig) {
         hostname = basicHttpConfig.getHostname();
         port = basicHttpConfig.getPort();
-        schemaVersions = Set.copyOf(scopedConfig.getIntList(GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath()));
+        schemaVersions = Collections.unmodifiableSet(getJsonSchemaVersions(scopedConfig));
         forceHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.FORCE_HTTPS.getConfigPath());
         redirectToHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.REDIRECT_TO_HTTPS.getConfigPath());
-        this.redirectToHttpsBlacklistPattern = redirectToHttpsBlacklistPattern;
+        redirectToHttpsBlacklistPattern = tryToCreateBlacklistPattern(scopedConfig);
         enableCors = scopedConfig.getBoolean(GatewayHttpConfigValue.ENABLE_CORS.getConfigPath());
         requestTimeout = scopedConfig.getDuration(GatewayHttpConfigValue.REQUEST_TIMEOUT.getConfigPath());
         actorPropsFactoryFullQualifiedClassname = scopedConfig.getString(
                 GatewayHttpConfigValue.ACTOR_PROPS_FACTORY.getConfigPath());
-        this.additionalAcceptedMediaTypes =
+        queryParamsAsHeaders = Collections.unmodifiableSet(getQueryParameterNamesAsHeaderDefinitions(scopedConfig));
+        additionalAcceptedMediaTypes =
                 Set.of(scopedConfig.getString(GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
                         .split(","));
     }
 
-    /**
-     * Returns an instance of {@code GatewayHttpConfig} based on the settings of the specified Config.
-     *
-     * @param config is supposed to provide the HTTP settings of the Gateway service.
-     * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
-     */
-    public static GatewayHttpConfig of(final Config config) {
-        final DefaultHttpConfig basicHttpConfig = DefaultHttpConfig.of(config);
-        final ConfigWithFallback httpScopedConfig =
-                ConfigWithFallback.newInstance(config, basicHttpConfig.getConfigPath(),
-                        GatewayHttpConfigValue.values());
+    private static Set<JsonSchemaVersion> getJsonSchemaVersions(final Config httpScopedConfig) {
+        final List<Integer> schemaVersionNumbers =
+                httpScopedConfig.getIntList(GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath());
 
-        return new GatewayHttpConfig(basicHttpConfig, httpScopedConfig, tryToCreateBlacklistPattern(httpScopedConfig));
+        final Set<JsonSchemaVersion> result = EnumSet.noneOf(JsonSchemaVersion.class);
+        schemaVersionNumbers.forEach(schemaVersionNumber -> {
+            final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(schemaVersionNumber)
+                    .orElseThrow(() -> {
+                        final String msgPattern = "Schema version <{0}> is not supported!";
+                        return new DittoConfigError(MessageFormat.format(msgPattern, schemaVersionNumber));
+                    });
+            result.add(jsonSchemaVersion);
+        });
+        return result;
     }
 
-    private static Pattern tryToCreateBlacklistPattern(final ScopedConfig httpScopedConfig) {
+    private static Pattern tryToCreateBlacklistPattern(final Config httpScopedConfig) {
         try {
             return createBlacklistPattern(httpScopedConfig);
         } catch (final PatternSyntaxException e) {
@@ -93,6 +102,52 @@ public final class GatewayHttpConfig implements HttpConfig {
                 httpScopedConfig.getString(GatewayHttpConfigValue.REDIRECT_TO_HTTPS_BLACKLIST_PATTERN.getConfigPath()));
     }
 
+    private static Set<HeaderDefinition> getQueryParameterNamesAsHeaderDefinitions(final Config scopedConfig) {
+        final List<String> queryParamNames =
+                scopedConfig.getStringList(GatewayHttpConfigValue.QUERY_PARAMS_AS_HEADERS.getConfigPath());
+
+        final Set<HeaderDefinition> result = new LinkedHashSet<>(queryParamNames.size() << 1);
+        final Set<String> unknownHeaderKeys = new LinkedHashSet<>(3);
+        for (final String queryParamName : queryParamNames) {
+            final Optional<HeaderDefinition> headerDefinitionOptional = DittoHeaderDefinition.forKey(queryParamName);
+            if (headerDefinitionOptional.isPresent()) {
+                result.add(headerDefinitionOptional.get());
+            } else {
+                unknownHeaderKeys.add(queryParamName);
+            }
+        }
+        throwConfigErrorIfHeaderKeysUnknown(unknownHeaderKeys);
+        return result;
+    }
+
+    private static void throwConfigErrorIfHeaderKeysUnknown(final Set<String> unknownHeaderKeys) {
+        final int unknownHeaderKeysSize = unknownHeaderKeys.size();
+        if (0 < unknownHeaderKeysSize) {
+            final String msgPattern;
+            if (1 == unknownHeaderKeysSize) {
+                msgPattern = "The query parameter name <{0}> does not denote a known header key!";
+            } else {
+                msgPattern = "The query parameter names <{0}> do not denote known header keys!";
+            }
+            throw new DittoConfigError(MessageFormat.format(msgPattern, unknownHeaderKeys));
+        }
+    }
+
+    /**
+     * Returns an instance of {@code GatewayHttpConfig} based on the settings of the specified Config.
+     *
+     * @param config is supposed to provide the HTTP settings of the Gateway service.
+     * @return the instance.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     */
+    public static GatewayHttpConfig of(final Config config) {
+        final DefaultHttpConfig basicHttpConfig = DefaultHttpConfig.of(config);
+
+        return new GatewayHttpConfig(basicHttpConfig,
+                ConfigWithFallback.newInstance(config, basicHttpConfig.getConfigPath(),
+                        GatewayHttpConfigValue.values()));
+    }
+
     @Override
     public String getHostname() {
         return hostname;
@@ -104,7 +159,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
-    public Set<Integer> getSupportedSchemaVersions() {
+    public Set<JsonSchemaVersion> getSupportedSchemaVersions() {
         return schemaVersions;
     }
 
@@ -139,6 +194,11 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
+    public Set<HeaderDefinition> getQueryParametersAsHeaders() {
+        return queryParamsAsHeaders;
+    }
+
+    @Override
     public Set<String> getAdditionalAcceptedMediaTypes() {
         return additionalAcceptedMediaTypes;
     }
@@ -146,7 +206,7 @@ public final class GatewayHttpConfig implements HttpConfig {
 
     @SuppressWarnings("OverlyComplexMethod")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -163,6 +223,7 @@ public final class GatewayHttpConfig implements HttpConfig {
                 redirectToHttpsBlacklistPattern.equals(that.redirectToHttpsBlacklistPattern) &&
                 requestTimeout.equals(that.requestTimeout) &&
                 actorPropsFactoryFullQualifiedClassname.equals(that.actorPropsFactoryFullQualifiedClassname) &&
+                queryParamsAsHeaders.equals(that.queryParamsAsHeaders) &&
                 additionalAcceptedMediaTypes.equals(that.additionalAcceptedMediaTypes);
     }
 
@@ -170,7 +231,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     public int hashCode() {
         return Objects.hash(hostname, port, schemaVersions, forceHttps, redirectToHttps,
                 redirectToHttpsBlacklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
-                additionalAcceptedMediaTypes);
+                queryParamsAsHeaders, additionalAcceptedMediaTypes);
     }
 
     @Override
@@ -185,6 +246,7 @@ public final class GatewayHttpConfig implements HttpConfig {
                 ", enableCors=" + enableCors +
                 ", requestTimeout=" + requestTimeout +
                 ", actorPropsFactoryFullQualifiedClassname=" + actorPropsFactoryFullQualifiedClassname +
+                ", queryParamsAsHeaders=" + queryParamsAsHeaders +
                 ", additionalAcceptedMediaTypes=" + additionalAcceptedMediaTypes +
                 "]";
     }

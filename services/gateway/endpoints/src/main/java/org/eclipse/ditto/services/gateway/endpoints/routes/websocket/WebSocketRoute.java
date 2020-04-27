@@ -26,6 +26,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -54,6 +55,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -64,6 +66,7 @@ import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
@@ -79,7 +82,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
@@ -89,7 +91,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.event.EventStream;
 import akka.event.Logging;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -158,6 +159,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketAuthorizationEnforcer authorizationEnforcer;
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
+    private HeaderTranslator headerTranslator;
 
     private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig) {
 
@@ -170,6 +172,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         authorizationEnforcer = new NoOpAuthorizationEnforcer();
         webSocketSupervisor = new NoOpWebSocketSupervisor();
         signalEnrichmentProvider = null;
+        headerTranslator = HeaderTranslator.empty();
     }
 
     /**
@@ -215,25 +218,30 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return this;
     }
 
+    @Override
+    public WebSocketRouteBuilder withHeaderTranslator(final HeaderTranslator headerTranslator) {
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        return this;
+    }
+
     /**
      * Builds the {@code /ws} route.
      *
      * @return the {@code /ws} route.
      */
     @Override
-    public Route build(final Integer version,
+    public Route build(final JsonSchemaVersion version,
             final CharSequence correlationId,
-            final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
         return Directives.extractUpgradeToWebSocket(
                 upgradeToWebSocketHeader -> Directives.extractRequest(
                         request -> {
-                            authorizationEnforcer.checkAuthorization(request, connectionAuthContext, additionalHeaders);
+                            authorizationEnforcer.checkAuthorization(dittoHeaders);
                             return Directives.completeWithFuture(
                                     createWebSocket(upgradeToWebSocketHeader, version, correlationId.toString(),
-                                            connectionAuthContext, additionalHeaders, chosenProtocolAdapter, request));
+                                            dittoHeaders, chosenProtocolAdapter, request));
                         }));
     }
 
@@ -243,25 +251,28 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
-            final Integer version,
-            final String connectionCorrelationId,
-            final AuthorizationContext authContext,
-            final DittoHeaders additionalHeaders,
+            final JsonSchemaVersion version,
+            final String requestCorrelationId,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
         @Nullable final SignalEnrichmentFacade signalEnrichmentFacade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
 
+        final StreamingSessionIdentifier connectionCorrelationId =
+                StreamingSessionIdentifier.of(requestCorrelationId, UUID.randomUUID().toString());
+
+        final AuthorizationContext authContext = dittoHeaders.getAuthorizationContext();
         LOGGER.withCorrelationId(connectionCorrelationId)
                 .info("Creating WebSocket for connection authContext: <{}>", authContext);
 
         return retrieveWebsocketConfig().thenApply(websocketConfig -> {
             final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                    createIncoming(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request,
+                    createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
                             websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                    createOutgoing(version, connectionCorrelationId, additionalHeaders, adapter, request,
+                    createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
                             websocketConfig, signalEnrichmentFacade);
 
             return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
@@ -293,10 +304,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      *            StreamingActor                DittoRuntimeException
      */
     @SuppressWarnings("unchecked")
-    private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final Integer version,
-            final String connectionCorrelationId,
+    private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final JsonSchemaVersion version,
+            final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders,
+            final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig) {
@@ -309,7 +320,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
-                            additionalHeaders, adapter));
+                            dittoHeaders, adapter));
 
             final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
@@ -345,7 +356,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
 
-    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request, final String correlationId) {
+    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request,
+            final CharSequence correlationId) {
         return Flow.<Message>create()
                 .via(Flow.fromFunction(msg -> {
                     IN_COUNTER.increment();
@@ -373,8 +385,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
     selectStreamControlOrSignal(
-            final Integer version,
-            final String connectionCorrelationId,
+            final JsonSchemaVersion version,
+            final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
@@ -388,9 +400,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 return Right.apply(Left.apply(streamControlMessage.get()));
             } else {
                 try {
-                    final Signal signal =
-                            buildSignal(cmdString, version, connectionCorrelationId, connectionAuthContext,
-                                    additionalHeaders, adapter);
+                    final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
+                            connectionAuthContext, additionalHeaders, adapter, headerTranslator);
                     return Right.apply(Right.apply(signal));
                 } catch (final DittoRuntimeException dre) {
                     // This is a client error usually; log at level DEBUG without stack trace.
@@ -410,8 +421,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
-            final int version,
-            final String connectionCorrelationId,
+            final JsonSchemaVersion version,
+            final CharSequence connectionCorrelationId,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
@@ -428,8 +439,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 publisherActor -> {
                     webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
                     streamingActor.tell(
-                            new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS,
-                                    JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST),
+                            new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS, version,
                                     optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
                             ActorRef.noSender());
                     return NotUsed.getInstance();
@@ -507,18 +517,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static Signal buildSignal(final String cmdString,
-            final Integer version,
-            final String connectionCorrelationId,
+            final JsonSchemaVersion version,
+            final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
-            final ProtocolAdapter adapter) {
-
-        final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
-                .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
+            final ProtocolAdapter adapter,
+            final HeaderTranslator headerTranslator) {
 
         // initial internal header values
         final DittoHeaders initialInternalHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(jsonSchemaVersion)
+                .schemaVersion(version)
                 .authorizationContext(connectionAuthContext)
                 .correlationId(connectionCorrelationId) // for logging
                 .origin(connectionCorrelationId)
@@ -540,7 +548,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             throw e.setDittoHeaders(e.getDittoHeaders().toBuilder().origin(connectionCorrelationId).build());
         }
 
-        final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> internalHeadersBuilder = DittoHeaders.newBuilder();
 
         try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(connectionCorrelationId)) {
             logger.debug("WebSocket message has been converted to signal <{}>.", signal);
@@ -550,8 +558,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
             internalHeadersBuilder.putHeaders(initialInternalHeaders);
             // add headers given by parent route first so that protocol message may override them
-            logger.trace("Adding additionalHeaders: <{}>.", additionalHeaders);
-            internalHeadersBuilder.putHeaders(additionalHeaders);
+            final Map<String, String> wellKnownAdditionalHeaders =
+                    headerTranslator.retainKnownHeaders(additionalHeaders);
+            logger.trace("Adding wellKnownAdditionalHeaders: <{}>.", wellKnownAdditionalHeaders);
+            internalHeadersBuilder.putHeaders(wellKnownAdditionalHeaders);
             // add any headers from protocol adapter to internal headers
             logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
             internalHeadersBuilder.putHeaders(signalHeaders);
@@ -719,8 +729,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final HttpRequest request, final AuthorizationContext authorizationContext,
-                final DittoHeaders dittoHeaders) {
+        public void checkAuthorization(final DittoHeaders dittoHeaders) {
 
             // Does nothing.
         }

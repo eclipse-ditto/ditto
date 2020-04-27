@@ -18,6 +18,7 @@ import java.util.List;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -40,7 +41,7 @@ public final class TestConstants {
     public static final String URI = "amqps://username:password@my.endpoint:443";
 
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     public static final List<Source> SOURCES = Arrays.asList(
             ConnectivityModelFactory.newSourceBuilder()

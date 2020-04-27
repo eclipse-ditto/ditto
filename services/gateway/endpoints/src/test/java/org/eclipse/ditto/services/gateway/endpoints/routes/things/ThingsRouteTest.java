@@ -18,13 +18,16 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
@@ -42,6 +45,10 @@ import akka.http.scaladsl.model.HttpEntity;
  */
 public final class ThingsRouteTest extends EndpointTestBase {
 
+    @Rule
+    public final TestName testName = new TestName();
+
+    private DittoHeaders dittoHeaders;
     private ThingsRoute thingsRoute;
 
     private TestRoute underTest;
@@ -51,10 +58,12 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        thingsRoute = new ThingsRoute(createDummyResponseActor(), actorSystem, messageConfig, claimMessageConfig,
-                httpConfig, adapterProvider.getHttpHeaderTranslator());
+        thingsRoute = new ThingsRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig, messageConfig,
+                claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
 
-        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.empty()));
+        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
+        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, dittoHeaders));
         underTest = testRoute(route);
     }
 
@@ -90,11 +99,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putPolicyIdAssumesJsonContentType() {
-        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/policyId")
+        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
                 .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
-        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/policyId")
+        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
                 .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
                         .withContentType(ContentTypes.APPLICATION_JSON)))
                 .entityString();
@@ -103,11 +112,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putDefinitionAssumesJsonContentType() {
-        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
+        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
-        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
+        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
                         .withContentType(ContentTypes.APPLICATION_JSON)))
                 .entityString();
@@ -116,11 +125,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putAndRetrieveNullDefinition() {
-        final String putResult = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3At1/definition")
+        final String putResult = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity(ContentTypes.APPLICATION_JSON, "null")).entityString();
         assertThat(JsonObject.of(putResult)).contains(JsonKey.of("type"), ModifyThingDefinition.TYPE);
 
-        final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/org.eclipse.ditto%3At1/definition"));
+        final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition"));
         getResult.assertStatusCode(StatusCodes.OK);
     }
 
@@ -129,7 +138,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final TestRouteResult result = underTest.run(HttpRequest.GET("/things?ids="));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
         final MissingThingIdsException expectedEx = MissingThingIdsException.newBuilder()
-                .dittoHeaders(DittoHeaders.empty())
+                .dittoHeaders(dittoHeaders)
                 .build();
         result.assertEntity(expectedEx.toJsonString());
     }
@@ -137,8 +146,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void getAttributesWithTrailingSlash() {
         final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributes/");
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.OK);
         final String entityString = result.entityString();
         assertThat(entityString).contains(RetrieveAttributes.TYPE);
@@ -147,8 +155,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void getAttributesWithoutSlashButRandomText() {
         final HttpRequest request = HttpRequest.GET("/things/org.eclipse.ditto%3Adummy/attributesasfsafa");
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -157,8 +164,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String body = "\"bumlux\"";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes//bar")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
@@ -167,8 +173,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String tooLongNumber = "89314404000484999942";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes/attribute")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, tooLongNumber));
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
@@ -177,8 +182,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final String attributeJson = "{\"/attributeTest\":\"test\"}";
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, attributeJson));
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 

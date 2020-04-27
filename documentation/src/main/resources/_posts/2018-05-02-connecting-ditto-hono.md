@@ -214,7 +214,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }]
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result should be:
@@ -363,7 +363,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
 ```
 
 When establishing the connection + parsing the JavaScript worked, we get a success result as HTTP response again, 
@@ -386,7 +386,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
         "type": "connectivity.commands:retrieveConnectionMetrics",
         "connectionId": "hono-sandbox-connection-1"
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result looks like this:

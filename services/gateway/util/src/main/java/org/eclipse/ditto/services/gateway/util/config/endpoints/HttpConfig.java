@@ -14,11 +14,15 @@ package org.eclipse.ditto.services.gateway.util.config.endpoints;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import akka.http.javadsl.model.MediaTypes;
@@ -34,7 +38,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
      *
      * @return an unmodifiable unsorted Set containing the schema versions.
      */
-    Set<Integer> getSupportedSchemaVersions();
+    Set<JsonSchemaVersion> getSupportedSchemaVersions();
 
     /**
      * Indicates whether transport encryption via HTTPS should be enforced.
@@ -82,6 +86,16 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     String getActorPropsFactoryFullQualifiedClassname();
 
     /**
+     * Returns definitions of headers which should be derived from query parameters.
+     * I. e. if query parameters are supplied with the same name as the configured header keys then the query parameters
+     * will be converted to header key-value pairs.
+     *
+     * @return the definitions of headers which should be derived from query parameters.
+     * @since 1.1.0
+     */
+    Set<HeaderDefinition> getQueryParametersAsHeaders();
+
+    /**
      * Whitelisted Media-Types, which should also be accepted by the endpoints besides the one they accept.
      *
      * @return media-types.
@@ -97,7 +111,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The schema versions the API Gateway should support.
          */
-        SCHEMA_VERSIONS("http.schema-versions", Arrays.asList(1, 2)),
+        SCHEMA_VERSIONS("http.schema-versions", List.of(1, 2)),
 
         /**
          * Determines whether transport encryption via HTTPS should be enforced.
@@ -125,7 +139,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The timeout for HTTP requests.
          */
-        REQUEST_TIMEOUT("request_timeout", Duration.ofMinutes(1L)),
+        REQUEST_TIMEOUT("request-timeout", Duration.ofMinutes(1L)),
 
         /**
          * The full qualified classname of the HttpRequestActorPropsFactory to instantiate.
@@ -134,14 +148,23 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
                 "org.eclipse.ditto.services.gateway.endpoints.actors.DefaultHttpRequestActorPropsFactory"),
 
         /**
+         * Denotes the name of query parameters that equal the names of well-known headers; the here defined query
+         * parameters will be converted to key-value pairs of request headers for further processing.
+         *
+         * @since 1.1.0
+         */
+        QUERY_PARAMS_AS_HEADERS("query-params-as-headers", Arrays.asList(DittoHeaderDefinition.CORRELATION_ID.getKey(),
+                DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
+                DittoHeaderDefinition.TIMEOUT.getKey())),
+
+        /**
          * PUT and POST resources validate that the content-type of a request is supported. With this config value
          * additional media-types can be specified, which will also be accepted. Default value
          * 'application/octet-stream' is for unknown or not further specified payload and request without any
          * content-type declaration will also be mapped to this type by akka-http.
          */
-        ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types",
-                MediaTypes.APPLICATION_OCTET_STREAM.toString())
-        ;
+        ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types", MediaTypes.APPLICATION_OCTET_STREAM.toString());
 
         private final String path;
         private final Object defaultValue;

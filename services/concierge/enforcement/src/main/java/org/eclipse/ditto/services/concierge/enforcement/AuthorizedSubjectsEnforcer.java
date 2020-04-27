@@ -21,7 +21,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.DefaultEffectedSubjects;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
@@ -36,17 +35,17 @@ import org.eclipse.ditto.model.policies.ResourceKey;
  */
 final class AuthorizedSubjectsEnforcer implements Enforcer {
 
-    private final AuthorizationContext authorizedSubjects;
+    private final AuthorizationContext authorizationContext;
 
-    AuthorizedSubjectsEnforcer(final Set<AuthorizationSubject> authorizedSubjects) {
-        this.authorizedSubjects = AuthorizationModelFactory.newAuthContext(authorizedSubjects);
+    AuthorizedSubjectsEnforcer(final AuthorizationContext authorizationContext) {
+        this.authorizationContext = authorizationContext;
     }
 
     @Override
     public boolean hasUnrestrictedPermissions(final ResourceKey resourceKey,
             final AuthorizationContext authorizationContext, final Permissions permissions) {
 
-        final List<AuthorizationSubject> authorizationSubjects = authorizedSubjects.getAuthorizationSubjects();
+        final List<AuthorizationSubject> authorizationSubjects = this.authorizationContext.getAuthorizationSubjects();
         return authorizationContext.stream().anyMatch(authorizationSubjects::contains);
     }
 
@@ -54,26 +53,26 @@ final class AuthorizedSubjectsEnforcer implements Enforcer {
     public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
 
-        return ImmutableEffectedSubjectIds.of(authorizedSubjects.getAuthorizationSubjectIds(), Collections.emptySet());
+        return ImmutableEffectedSubjectIds.of(authorizationContext.getAuthorizationSubjectIds(), Collections.emptySet());
     }
 
     @Override
     public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
-        return DefaultEffectedSubjects.of(authorizedSubjects.getAuthorizationSubjects(), Collections.emptyList());
+        return DefaultEffectedSubjects.of(authorizationContext.getAuthorizationSubjects(), Collections.emptyList());
     }
 
     @Override
     public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
 
-        return new HashSet<>(authorizedSubjects.getAuthorizationSubjectIds());
+        return new HashSet<>(authorizationContext.getAuthorizationSubjectIds());
     }
 
     @Override
     public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
 
-        return new HashSet<>(authorizedSubjects.getAuthorizationSubjects());
+        return new HashSet<>(authorizationContext.getAuthorizationSubjects());
     }
 
     @Override

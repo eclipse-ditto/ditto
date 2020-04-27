@@ -132,6 +132,11 @@ public abstract class ProtocolAdapterProvider {
         }
 
         @Override
+        public void validateValue(@Nullable final CharSequence value) {
+            // do nothing
+        }
+
+        @Override
         public String toString() {
             return getKey();
         }

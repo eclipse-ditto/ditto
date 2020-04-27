@@ -19,8 +19,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -31,7 +32,7 @@ import akka.http.javadsl.server.Route;
  */
 public final class CorrelationIdEnsuringDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CorrelationIdEnsuringDirective.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CorrelationIdEnsuringDirective.class);
 
     private static final String CORRELATION_ID_HEADER =
             org.eclipse.ditto.services.gateway.security.HttpHeader.X_CORRELATION_ID.getName();
@@ -53,10 +54,11 @@ public final class CorrelationIdEnsuringDirective {
             final String correlationId;
             if (correlationIdOpt.isPresent()) {
                 correlationId = correlationIdOpt.get();
-                LOGGER.debug("CorrelationId already exists in request: {}", correlationId);
+                LOGGER.withCorrelationId(correlationId)
+                        .debug("CorrelationId already exists in request: {}", correlationId);
             } else {
                 correlationId = UUID.randomUUID().toString();
-                LOGGER.debug("Created new CorrelationId: {}", correlationId);
+                LOGGER.withCorrelationId(correlationId).debug("Created new CorrelationId: {}", correlationId);
             }
 
             return enhanceLogWithCorrelationId(correlationId, () -> inner.apply(correlationId));
@@ -64,7 +66,8 @@ public final class CorrelationIdEnsuringDirective {
     }
 
     private static Optional<String> extractCorrelationId(final HttpRequest request) {
-        return request.getHeader(CORRELATION_ID_HEADER).map(HttpHeader::value);
+        return request.getHeader(CORRELATION_ID_HEADER).map(HttpHeader::value)
+                .or(() -> request.getHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()).map(HttpHeader::value));
     }
 
 }

@@ -17,29 +17,35 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import java.util.Objects;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 /**
  * Default implementation of an entity ID.
  */
+@Immutable
 public final class DefaultEntityId implements EntityId {
 
-    private static final EntityId DUMMY_ID = DefaultEntityId.of("none");
+    private static final DefaultEntityId DUMMY_ID = DefaultEntityId.of("none");
 
     private final String id;
 
     private DefaultEntityId(final CharSequence id) {
-        this.id = argumentNotEmpty(id, "ID").toString();
+        this.id = argumentNotEmpty(id, "entityId").toString();
     }
 
     /**
-     * Returns a {@link EntityId} based on the given entityId. May return the same instance as the parameter if the
-     * given parameter is already a {@link DefaultEntityId}.
+     * Returns an instance of this class based on the given entity ID.
+     * May return the argument itself if it is already a DefaultEntityId.
      *
      * @param entityId the entity ID.
      * @return the Entity ID instance.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws IllegalArgumentException if {@code entityId} is empty.
      */
-    public static EntityId of(final CharSequence entityId) {
+    public static DefaultEntityId of(final CharSequence entityId) {
         if (entityId instanceof DefaultEntityId) {
-            return (EntityId) entityId;
+            return (DefaultEntityId) entityId;
         }
         return new DefaultEntityId(entityId);
     }
@@ -49,17 +55,18 @@ public final class DefaultEntityId implements EntityId {
      *
      * @return the generated entity ID.
      */
-    public static EntityId generateRandom() {
+    public static DefaultEntityId generateRandom() {
         return new DefaultEntityId(UUID.randomUUID().toString());
     }
 
     /**
-     * Returns a dummy {@link EntityId}. This ID should not be used. It can be identified by
-     * checking {@link EntityId#isDummy()}.
+     * Returns a dummy {@link EntityId}.
+     * This ID should not be used.
+     * It can be identified by checking {@link EntityId#isDummy()}.
      *
      * @return the dummy ID.
      */
-    public static EntityId dummy() {
+    public static DefaultEntityId dummy() {
         return DUMMY_ID;
     }
 
@@ -69,15 +76,13 @@ public final class DefaultEntityId implements EntityId {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
-
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         final DefaultEntityId that = (DefaultEntityId) o;
         return Objects.equals(id, that.id);
     }
@@ -86,7 +91,6 @@ public final class DefaultEntityId implements EntityId {
     public int hashCode() {
         return Objects.hash(id);
     }
-
 
     @Override
     public String toString() {

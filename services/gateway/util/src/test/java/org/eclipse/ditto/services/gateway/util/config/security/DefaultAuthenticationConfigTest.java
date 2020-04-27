@@ -60,17 +60,17 @@ public final class DefaultAuthenticationConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultAuthenticationConfig underTest = DefaultAuthenticationConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.isDummyAuthenticationEnabled())
-                .as(AuthenticationConfig.AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getConfigPath())
-                .isEqualTo(AuthenticationConfig.AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getDefaultValue());
+        softly.assertThat(underTest.isPreAuthenticationEnabled())
+                .as(AuthenticationConfig.AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getConfigPath())
+                .isEqualTo(AuthenticationConfig.AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultAuthenticationConfig underTest = DefaultAuthenticationConfig.of(authenticationTestConf);
 
-        softly.assertThat(underTest.isDummyAuthenticationEnabled())
-                .as(AuthenticationConfig.AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getConfigPath())
+        softly.assertThat(underTest.isPreAuthenticationEnabled())
+                .as(AuthenticationConfig.AuthenticationConfigValue.PRE_AUTHENTICATION_ENABLED.getConfigPath())
                 .isTrue();
         softly.assertThat(underTest.getHttpProxyConfig())
                 .as("httpProxyConfig")

@@ -51,6 +51,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
@@ -249,9 +250,13 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                     return publisherSource.mapMaterializedValue(
                             publisherActor -> {
-                                final String connectionCorrelationId = dittoHeaders.getCorrelationId()
+                                final String requestCorrelationId = dittoHeaders.getCorrelationId()
                                         .orElseThrow(() -> new IllegalStateException(
-                                                "Expect connectionCorrelationId: " + dittoHeaders));
+                                                "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
+
+                                final CharSequence connectionCorrelationId = StreamingSessionIdentifier.of(
+                                        requestCorrelationId, UUID.randomUUID().toString());
+
                                 final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,

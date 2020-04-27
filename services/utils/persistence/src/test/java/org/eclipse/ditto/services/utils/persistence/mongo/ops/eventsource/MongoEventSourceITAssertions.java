@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
@@ -299,7 +300,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
             expectTerminated(actorToPurge2);
 
             // purge the 2 entities
-            final String entityType = getResourceType();
+            final EntityType entityType = EntityType.of(getResourceType());
             final PurgeEntities purgeEntities =
                     PurgeEntities.of(entityType, Arrays.asList(purgedId1, purgedId2), dittoHeaders);
             underTest.tell(purgeEntities, getRef());

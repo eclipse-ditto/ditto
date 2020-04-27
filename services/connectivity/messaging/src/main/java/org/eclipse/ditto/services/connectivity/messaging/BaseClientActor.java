@@ -77,6 +77,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -129,9 +130,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ClientConfig clientConfig;
 
     private final Connection connection;
+    private final ActorRef connectionActor;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
-    private final ActorRef connectionActor;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
@@ -146,6 +147,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
             final ActorRef connectionActor) {
         this.connection = connection;
+        this.connectionActor = connectionActor;
 
         checkNotNull(connection, "connection");
 
@@ -158,7 +160,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientConfig = connectivityConfig.getClientConfig();
         this.conciergeForwarder =
                 Optional.ofNullable(conciergeForwarder).orElse(getContext().getSystem().deadLetters());
-        this.connectionActor = connectionActor;
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
@@ -332,7 +333,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CheckConnectionLogsActive.class, BaseClientData.class,
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
+                .event(Acknowledgement.class, BaseClientData.class, this::handleAcknowledgement)
                 .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Acknowledgement acknowledgement,
+            final BaseClientData baseClientData) {
+
+        log.info("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);
+        connectionActor.forward(acknowledgement, getContext());
+        return stay();
     }
 
     /**
@@ -1176,7 +1186,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef startSubscriptionManager(final ActorRef conciergeForwarder) {
         final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final ActorMaterializer mat = ActorMaterializer.create(getContext());
-        final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator, conciergeForwarder, mat);
+        final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
+                conciergeForwarder, mat);
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
     }
 

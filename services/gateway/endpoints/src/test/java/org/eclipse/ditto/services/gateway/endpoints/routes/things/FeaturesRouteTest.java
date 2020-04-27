@@ -30,7 +30,9 @@ import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
@@ -57,6 +59,9 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     private static final String FEATURE_ENTRY_INBOX_MESSAGES_PATH = FEATURE_ENTRY_PATH + "/" +
             MessagesRoute.PATH_INBOX + "/" + MessagesRoute.PATH_MESSAGES;
 
+    @Rule
+    public final TestName testName = new TestName();
+
     private FeaturesRoute featuresRoute;
 
     private TestRoute underTest;
@@ -66,10 +71,13 @@ public final class FeaturesRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        featuresRoute = new FeaturesRoute(createDummyResponseActor(), actorSystem, messageConfig, claimMessageConfig,
-                httpConfig, adapterProvider.getHttpHeaderTranslator());
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName())
+                .build();
+
+        featuresRoute = new FeaturesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
+                messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
         final Route route = extractRequestContext(
-                ctx -> featuresRoute.buildFeaturesRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID));
+                ctx -> featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, KNOWN_THING_ID));
         underTest = testRoute(route);
     }
 

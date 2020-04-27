@@ -37,7 +37,8 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
     public DittoConnectivityCommandValidator(
             final ClientActorPropsFactory propsFactory,
             final ActorRef conciergeForwarder,
-            final ActorRef connectionActor, final ConnectionValidator connectionValidator,
+            final ActorRef connectionActor,
+            final ConnectionValidator connectionValidator,
             final ActorSystem actorSystem) {
         this.propsFactory = propsFactory;
         this.conciergeForwarder = conciergeForwarder;

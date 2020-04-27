@@ -25,6 +25,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -57,7 +58,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     protected final DittoDiagnosticLoggingAdapter logger;
 
     private final ActorRef pubSubMediator;
-    private final String resourceType;
+    private final EntityType entityType;
     @Nullable private final NamespacePersistenceOperations namespaceOps;
     @Nullable private final EntityPersistenceOperations entitiesOps;
     private final ActorMaterializer materializer;
@@ -66,14 +67,14 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     private final Duration delayAfterPersistenceActorShutdown;
 
     private AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
-            final String resourceType,
+            final EntityType entityType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
             @Nullable final EntityPersistenceOperations entitiesOps,
             final PersistenceOperationsConfig persistenceOperationsConfig,
             final Collection<Closeable> toCloseWhenStopped) {
 
         this.pubSubMediator = checkNotNull(pubSubMediator, "pub-sub mediator");
-        this.resourceType = checkNotNull(resourceType, "resource type");
+        this.entityType = checkNotNull(entityType, "entityType");
         if (namespaceOps == null && entitiesOps == null) {
             throw new IllegalArgumentException("At least one of namespaceOps or entitiesOps must be specified.");
         }
@@ -89,7 +90,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
      * Constructs a new instance of this actor.
      *
      * @param pubSubMediator the pubSubMediator.
-     * @param resourceType the resource type.
+     * @param entityType the entity type.
      * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is
      * not {@code null}.
      * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not
@@ -101,14 +102,14 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
      * @throws IllegalArgumentException if {@code namespaceOps} <em>and</em> {@code entitiesOps} is {@code null}.
      */
     protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
-            final String resourceType,
+            final EntityType entityType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
             @Nullable final EntityPersistenceOperations entitiesOps,
             final PersistenceOperationsConfig persistenceOperationsConfig,
             final Closeable toCloseWhenStopped,
             final Closeable ... optionalToCloseWhenStopped) {
 
-        this(pubSubMediator, resourceType, namespaceOps, entitiesOps, persistenceOperationsConfig,
+        this(pubSubMediator, entityType, namespaceOps, entitiesOps, persistenceOperationsConfig,
                 toList(toCloseWhenStopped, optionalToCloseWhenStopped));
     }
 
@@ -127,8 +128,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     /**
      * Constructs a new instance of this actor.
      *
-     * @param pubSubMediator the pubSubMediator
-     * @param resourceType the resource type
+     * @param pubSubMediator the pubSubMediator.
+     * @param entityType the entity type.
      * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is
      * not {@code null}.
      * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not
@@ -138,13 +139,13 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
      * @throws IllegalArgumentException if {@code namespaceOps} <em>and</em> {@code entitiesOps} is {@code null}.
      */
     protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
-            final String resourceType,
+            final EntityType entityType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
             @Nullable final EntityPersistenceOperations entitiesOps,
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         this(pubSubMediator,
-                resourceType,
+                entityType,
                 namespaceOps,
                 entitiesOps,
                 persistenceOperationsConfig,
@@ -182,7 +183,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     private void subscribeForEntitiesCommands() {
         if (null != entitiesOps) {
             final ActorRef self = getSelf();
-            final String topic = PurgeEntities.getTopic(resourceType);
+            final String topic = PurgeEntities.getTopic(entityType);
             final DistributedPubSubMediator.Subscribe subscribe =
                     DistPubSubAccess.subscribeViaGroup(topic, getSubscribeGroup(), self);
 
@@ -220,13 +221,13 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                 .thenAccept(errors -> {
                     final PurgeNamespaceResponse response;
                     if (errors.isEmpty()) {
-                        response = PurgeNamespaceResponse.successful(namespace, resourceType,
+                        response = PurgeNamespaceResponse.successful(namespace, entityType,
                                 purgeNamespace.getDittoHeaders());
                     } else {
                         logger.setCorrelationId(purgeNamespace);
                         errors.forEach(error -> logger.error(error, "Error purging namespace <{}>!", namespace));
                         logger.discardCorrelationId();
-                        response = PurgeNamespaceResponse.failed(namespace, resourceType,
+                        response = PurgeNamespaceResponse.failed(namespace, entityType,
                                 purgeNamespace.getDittoHeaders());
                     }
                     sender.tell(response, getSelf());
@@ -246,9 +247,9 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             logger.withCorrelationId(purgeEntities).warning("Cannot handle entities command: <{}>.", purgeEntities);
             return;
         }
-        if (!resourceType.equals(purgeEntities.getEntityType())) {
+        if (!entityType.equals(purgeEntities.getEntityType())) {
             logger.withCorrelationId(purgeEntities)
-                    .warning("Expected command with entityType <{}>, but got: <{}>.", resourceType, purgeEntities);
+                    .warning("Expected command with entityType <{}>, but got: <{}>.", entityType, purgeEntities);
             return;
         }
 
@@ -277,7 +278,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         }
 
         logger.withCorrelationId(purgeEntities).info("Running <{}>.", purgeEntities);
-        final String entityType = purgeEntities.getEntityType();
+        final EntityType purgeEntityType = purgeEntities.getEntityType();
         final List<EntityId> entityIds = purgeEntities.getEntityIds();
 
         entitiesOps.purgeEntities(purgeEntities.getEntityIds())
@@ -285,18 +286,17 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                 .thenAccept(errors -> {
                     final PurgeEntitiesResponse response;
                     if (errors.isEmpty()) {
-                        response = PurgeEntitiesResponse.successful(entityType, purgeEntities.getDittoHeaders());
+                        response = PurgeEntitiesResponse.successful(purgeEntityType, purgeEntities.getDittoHeaders());
                     } else {
                         logger.setCorrelationId(purgeEntities);
                         errors.forEach(error -> logger.error(error, "Error purging entities of type <{}>: <{}>",
-                                entityType, entityIds));
+                                purgeEntityType, entityIds));
                         logger.discardCorrelationId();
-                        response = PurgeEntitiesResponse.failed(purgeEntities.getEntityType(),
-                                purgeEntities.getDittoHeaders());
+                        response = PurgeEntitiesResponse.failed(purgeEntityType, purgeEntities.getDittoHeaders());
                     }
                     initiator.tell(response, getSelf());
                     logger.withCorrelationId(purgeEntities)
-                            .info("Successfully purged entities of type <{}>: <{}>", entityType, entityIds);
+                            .info("Successfully purged entities of type <{}>: <{}>", purgeEntityType, entityIds);
                 })
                 .exceptionally(error -> {
                     // Reply nothing - Error should not occur (DB errors were converted to stream elements and handled)

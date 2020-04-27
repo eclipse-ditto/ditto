@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -154,7 +155,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     public void getWithAcceptHeaderAndNoQueryParametersOpensSseConnection() {
         executeThingsRouteTest(HttpRequest.GET(THINGS_ROUTE).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet())).build());
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet())).build());
     }
 
     @Test
@@ -225,7 +227,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet()))
                         .withFilter(filter)
                         .build());
     }
@@ -238,7 +241,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet()))
                         .withNamespaces(namespaces)
                         .build());
     }
@@ -251,7 +255,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(Collections.emptySet()))
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet()))
                         .withExtraFields(extraFields)
                         .build());
     }
@@ -277,7 +282,17 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
             final StartStreaming receivedStartStreaming = streamingActor.expectMsgClass(StartStreaming.class);
 
-            assertThat(receivedStartStreaming).isEqualTo(expectedStartStreaming);
+            // exclude connectionCorrelationId from being equal as the backend adds a random UUID to it:
+            assertThat(receivedStartStreaming.getAuthorizationContext())
+                    .isEqualTo(expectedStartStreaming.getAuthorizationContext());
+            assertThat(receivedStartStreaming.getExtraFields())
+                    .isEqualTo(expectedStartStreaming.getExtraFields());
+            assertThat(receivedStartStreaming.getFilter())
+                    .isEqualTo(expectedStartStreaming.getFilter());
+            assertThat(receivedStartStreaming.getNamespaces())
+                    .isEqualTo(expectedStartStreaming.getNamespaces());
+            assertThat(receivedStartStreaming.getStreamingType())
+                    .isEqualTo(expectedStartStreaming.getStreamingType());
 
             publisherActor.tell(
                     CloseStreamExceptionally.getInstance(GatewayServiceUnavailableException.newBuilder().build(),

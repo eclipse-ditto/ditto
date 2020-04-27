@@ -23,7 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -69,10 +71,11 @@ public final class TestSetup {
     public static final String POLICY_SUDO = "policy-sudo";
 
     public static final ThingId THING_ID = ThingId.of("thing", "id");
-    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
+    public static final String SUBJECT_ID = "subject";
+    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:" + SUBJECT_ID);
 
-    public static final Config RAW_CONFIG = ConfigFactory.load("test");
-    public static final CachesConfig CACHES_CONFIG;
+    private static final Config RAW_CONFIG = ConfigFactory.load("test");
+    private static final CachesConfig CACHES_CONFIG;
 
     static {
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(RAW_CONFIG);
@@ -88,19 +91,22 @@ public final class TestSetup {
         return newEnforcerActor(system, testActorRef, mockEntitiesActor, null);
     }
 
-    public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
+    public static ActorRef newEnforcerActor(final ActorSystem system,
+            final ActorRef testActorRef,
             final ActorRef mockEntitiesActor,
             @Nullable final PreEnforcer preEnforcer) {
 
         return newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor, preEnforcer);
     }
 
-    public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
-            final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
+    public static ActorRef newEnforcerActor(final ActorSystem system,
+            final ActorRef testActorRef,
+            final ActorRef thingsShardRegion,
+            final ActorRef policiesShardRegion,
             @Nullable final PreEnforcer preEnforcer) {
 
         final ActorRef conciergeForwarder =
-                new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
+                new TestProbe(system, createUniqueName()).ref();
         final Duration askTimeout = CACHES_CONFIG.getAskTimeout();
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
@@ -124,19 +130,22 @@ public final class TestSetup {
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache,
                         new DummyLiveSignalPub(testActorRef)));
 
-        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder,
-                preEnforcer, null, null, null);
+        final Props props =
+                EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null, null,
+                        null);
         return system.actorOf(props, EnforcerActor.ACTOR_NAME);
     }
 
-    private static String createUniqueName(final String prefix) {
-        return prefix + UUID.randomUUID().toString();
+    private static String createUniqueName() {
+        return "conciergeForwarder-" + UUID.randomUUID();
     }
 
 
     public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
-                .authorizationSubjects(SUBJECT.getId(), String.format("%s:%s", GOOGLE, SUBJECT))
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
+                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
                 .schemaVersion(schemaVersion)
                 .build();
     }
@@ -166,13 +175,12 @@ public final class TestSetup {
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
         return clazz.cast(
-                testKit.fishForMessage(FiniteDuration.apply(3, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance)
-        );
+                testKit.fishForMessage(FiniteDuration.apply(3, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance));
     }
 
     private static final class DummyLiveSignalPub implements LiveSignalPub {
 
-        final ActorRef pubSubMediator;
+        private final ActorRef pubSubMediator;
 
         private DummyLiveSignalPub(final ActorRef pubSubMediator) {
             this.pubSubMediator = pubSubMediator;
@@ -180,7 +188,7 @@ public final class TestSetup {
 
         @Override
         public DistributedPub<Command> command() {
-            return new DistributedPub<Command>() {
+            return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
                     return pubSubMediator;
@@ -195,7 +203,7 @@ public final class TestSetup {
 
         @Override
         public DistributedPub<Event> event() {
-            return new DistributedPub<Event>() {
+            return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
                     return pubSubMediator;
@@ -210,7 +218,7 @@ public final class TestSetup {
 
         @Override
         public DistributedPub<Signal> message() {
-            return new DistributedPub<Signal>() {
+            return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
                     return pubSubMediator;
@@ -222,5 +230,7 @@ public final class TestSetup {
                 }
             };
         }
+
     }
+
 }

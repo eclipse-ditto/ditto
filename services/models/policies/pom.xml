@@ -22,7 +22,6 @@
     </parent>
 
     <artifactId>ditto-services-models-policies</artifactId>
-    <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Policies</name>
 
     <dependencies>
@@ -71,23 +70,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Import-Package>
-                            !org.eclipse.ditto.utils.jsr305.annotations,
-                            org.eclipse.ditto.*
-                        </Import-Package>
-                        <Export-Package>
-                            org.eclipse.ditto.services.models.policies.*
-                        </Export-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

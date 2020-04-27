@@ -16,6 +16,9 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH;
 
+import java.nio.charset.StandardCharsets;
+
+import org.assertj.core.data.Offset;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.thingsearch.persistence.util.TestStringGenerator;
@@ -55,18 +58,31 @@ public final class IndexLengthRestrictionEnforcerTest {
 
     @Test
     public void enforceRestrictionsOnViolation() {
+        // GIVEN:
         final String key = "/attributes/enforceRestrictionsOnViolation";
         final int maxAllowedValueForKey = MAX_INDEX_CONTENT_LENGTH - OVERHEAD - key.length();
-        final String value = TestStringGenerator.createString(maxAllowedValueForKey + 1);
-        assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
-                .contains(JsonValue.of(value.substring(0, maxAllowedValueForKey)));
+        final String value = TestStringGenerator.createStringOfBytes(maxAllowedValueForKey + 1);
+
+        // WHEN:
+        final String enforcedValue = indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value))
+                .orElseThrow()
+                .asString();
+        final int enforcedValueBytes = enforcedValue.getBytes(StandardCharsets.UTF_8).length;
+
+        // THEN: value is truncated to fit in the max allowed value bytes
+        assertThat(value).startsWith(enforcedValue);
+        assertThat(enforcedValueBytes).isLessThanOrEqualTo(maxAllowedValueForKey);
+
+        // THEN: value is not truncated more than needed
+        final int maxUtf8Bytes = 4;
+        assertThat(enforcedValueBytes).isCloseTo(maxAllowedValueForKey, Offset.offset(maxUtf8Bytes));
     }
 
     @Test
     public void doNotTruncateWithoutViolation() {
         final String key = "/attributes/doesNotTruncateWithoutViolation";
         final int maxAllowedValueForKey = MAX_INDEX_CONTENT_LENGTH - OVERHEAD - key.length();
-        final String value = TestStringGenerator.createString(maxAllowedValueForKey);
+        final String value = TestStringGenerator.createStringOfBytes(maxAllowedValueForKey);
         assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
                 .contains(JsonValue.of(value));
     }
@@ -77,7 +93,7 @@ public final class IndexLengthRestrictionEnforcerTest {
         final String baseKey = "/attributes/giveUpIfKeyIsTooLong/";
         final int maxAllowed =
                 MAX_INDEX_CONTENT_LENGTH - OVERHEAD - baseKey.length();
-        final String key = baseKey + TestStringGenerator.createString(maxAllowed + 1);
+        final String key = baseKey + TestStringGenerator.createStringOfBytes(maxAllowed + 1);
         assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
                 .isEmpty();
     }

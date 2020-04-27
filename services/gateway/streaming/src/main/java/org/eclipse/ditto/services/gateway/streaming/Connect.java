@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,11 +45,14 @@ public final class Connect {
      * @param jsonSchemaVersion schema version of the request for the streaming session.
      * @param sessionExpirationTime how long to keep the session alive when idling.
      */
-    public Connect(final ActorRef eventAndResponsePublisher, final String connectionCorrelationId,
-            final String type, final JsonSchemaVersion jsonSchemaVersion,
+    public Connect(final ActorRef eventAndResponsePublisher,
+            final CharSequence connectionCorrelationId,
+            final String type,
+            final JsonSchemaVersion jsonSchemaVersion,
             @Nullable final Instant sessionExpirationTime) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
-        this.connectionCorrelationId = connectionCorrelationId;
+        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                .toString();
         this.type = type;
         this.jsonSchemaVersion = jsonSchemaVersion;
         this.sessionExpirationTime = sessionExpirationTime;
