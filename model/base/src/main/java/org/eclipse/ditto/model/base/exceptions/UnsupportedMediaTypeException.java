@@ -43,7 +43,6 @@
 
      private static final HttpStatusCode STATUS_CODE = HttpStatusCode.UNSUPPORTED_MEDIA_TYPE;
 
-
      /**
       * Constructs a new {@code UnsupportedMediaTypeException} object.
       *
@@ -54,11 +53,11 @@
       * @param href a link to a resource which provides further information about the exception.
       * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
       */
-     protected UnsupportedMediaTypeException(final DittoHeaders dittoHeaders,
-             @Nullable final String message,
-             @Nullable final String description,
-             @Nullable final Throwable cause,
-             @Nullable final URI href) {
+     private UnsupportedMediaTypeException(final DittoHeaders dittoHeaders,
+                                           @Nullable final String message,
+                                           @Nullable final String description,
+                                           @Nullable final Throwable cause,
+                                           @Nullable final URI href) {
          super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
      }
 

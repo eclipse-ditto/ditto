@@ -33,31 +33,6 @@
      public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
      @Test
-     public void testMultipleCommaSeparatedMediaTypes() {
-         Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = " +
-                 "\"application/json,application/x-www-form-urlencoded,text/plain\"\n}");
-
-         final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
-
-         softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
-                 .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
-                 .contains(MediaTypes.APPLICATION_JSON.toString(),
-                         MediaTypes.APPLICATION_X_WWW_FORM_URLENCODED.toString(),
-                         MediaTypes.TEXT_PLAIN.toString());
-     }
-
-     @Test
-     public void testNonParsableMediaType() {
-         Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = \"application-json\"\n}");
-
-         final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
-
-         softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
-                 .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
-                 .contains("application-json");
-     }
-
-     @Test
      public void assertImmutability() {
          assertInstancesOf(GatewayHttpConfig.class, areImmutable(),
                  assumingFields("schemaVersions", "additionalAcceptedMediaTypes")
@@ -79,5 +54,30 @@
          softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
                  .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
                  .contains(MediaTypes.APPLICATION_OCTET_STREAM.toString());
+     }
+
+     @Test
+     public void testMultipleCommaSeparatedMediaTypes() {
+         final Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = " +
+                 "\"application/json,application/x-www-form-urlencoded,text/plain\"\n}");
+
+         final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
+
+         softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
+                 .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                 .contains(MediaTypes.APPLICATION_JSON.toString(),
+                         MediaTypes.APPLICATION_X_WWW_FORM_URLENCODED.toString(),
+                         MediaTypes.TEXT_PLAIN.toString());
+     }
+
+     @Test
+     public void testNonParsableMediaType() {
+         final Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = \"application-json\"\n}");
+
+         final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
+
+         softly.assertThat(underTest.getAdditionalAcceptedMediaTypes())
+                 .as(HttpConfig.GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                 .contains("application-json");
      }
  }

@@ -99,6 +99,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
      * Whitelisted Media-Types, which should also be accepted by the endpoints besides the one they accept.
      *
      * @return media-types.
+     * @since 1.1.0
      */
     Set<String> getAdditionalAcceptedMediaTypes();
 
@@ -163,6 +164,8 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
          * additional media-types can be specified, which will also be accepted. Default value
          * 'application/octet-stream' is for unknown or not further specified payload and request without any
          * content-type declaration will also be mapped to this type by akka-http.
+         *
+         * @since 1.1.0
          */
         ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types", MediaTypes.APPLICATION_OCTET_STREAM.toString());
 

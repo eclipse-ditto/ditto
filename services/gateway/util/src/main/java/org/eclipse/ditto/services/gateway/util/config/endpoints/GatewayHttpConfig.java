@@ -52,8 +52,8 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final boolean enableCors;
     private final Duration requestTimeout;
     private final String actorPropsFactoryFullQualifiedClassname;
-    private final Set<String> additionalAcceptedMediaTypes;
     private final Set<HeaderDefinition> queryParamsAsHeaders;
+    private final Set<String> additionalAcceptedMediaTypes;
 
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig) {
         hostname = basicHttpConfig.getHostname();
@@ -203,10 +203,9 @@ public final class GatewayHttpConfig implements HttpConfig {
         return additionalAcceptedMediaTypes;
     }
 
-
     @SuppressWarnings("OverlyComplexMethod")
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

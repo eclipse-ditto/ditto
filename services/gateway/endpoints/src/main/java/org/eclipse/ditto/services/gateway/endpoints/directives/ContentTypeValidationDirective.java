@@ -32,19 +32,19 @@
  import akka.http.javadsl.server.Route;
 
  /**
-  * Used to validate the Content-Type of a request.
+  * Used to validate the content-type of a http request.
   */
  public final class ContentTypeValidationDirective {
 
      private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
 
      private ContentTypeValidationDirective() {
-         // no op
+         throw new AssertionError();
      }
 
      /**
-      * verifies that the content-type of the entity is one of the allowed media-types,
-      * otherwise the request will be completed with 415 ("Unsupported Media Type").
+      * Verifies that the content-type of the entity is one of the allowed media-types,
+      * otherwise the request will be completed with status code 415 ("Unsupported Media Type").
       *
       * @param supportedMediaTypes the media-type which are allowed for the wrapped route.
       * @param ctx the context of the request.
@@ -73,15 +73,6 @@
          });
      }
 
-     protected static String requestToLogString(final HttpRequest request) {
-         final String msgPatten = "{0} {1} {2}";
-         return MessageFormat.format(msgPatten,
-                 request.getUri().getHost().address(),
-                 request.method().value(),
-                 request.getUri().getPathString());
-     }
-
-
      /**
       * Uses either the raw-header or the content-type parsed by akka-http.
       * The parsed content-type is never null, because akka-http sets a default.
@@ -95,13 +86,21 @@
       * @return the extracted media-type.
       * @see <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
       */
-     protected static String extractMediaType(HttpRequest request) {
+     private static String extractMediaType(final HttpRequest request) {
          final Optional<HttpHeader> rawContentType = StreamSupport.stream(request.getHeaders().spliterator(), false)
-                 .filter(header -> header.name().equals(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
+                 .filter(header -> header.name().toLowerCase().equals(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
                  .findFirst();
 
          return rawContentType.map(HttpHeader::value)
                  .orElse(request.entity().getContentType().mediaType().toString());
+     }
+
+     private static String requestToLogString(final HttpRequest request) {
+         final String msgPatten = "{0} {1} {2}";
+         return MessageFormat.format(msgPatten,
+                 request.getUri().getHost().address(),
+                 request.method().value(),
+                 request.getUri().getPathString());
      }
 
  }

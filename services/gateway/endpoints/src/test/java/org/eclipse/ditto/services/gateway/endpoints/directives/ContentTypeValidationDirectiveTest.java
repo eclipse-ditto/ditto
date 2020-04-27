@@ -46,7 +46,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     @Test
     public void testValidContentType() {
         // Arrange
-        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final ContentType type = ContentTypes.APPLICATION_JSON;
 
         // Act
@@ -63,7 +63,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     @Test
     public void testNonValidContentType() {
         // Arrange
-        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final String type = MediaTypes.APPLICATION_JSON.toString();
         final ContentType differentType = ContentTypes.APPLICATION_X_WWW_FORM_URLENCODED;
 
@@ -83,7 +83,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     @Test
     public void testWithContentTypeWithoutCharset() {
         // Arrange
-        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final String type = MediaTypes.TEXT_PLAIN.toString();
         final ContentType typeMissingCharset = MediaTypes.TEXT_PLAIN.toContentTypeWithMissingCharset();
 
@@ -100,7 +100,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     @Test
     public void testWithoutEntityNoNPEExpected() {
         // Arrange
-        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final String type = ContentTypes.APPLICATION_JSON.mediaType().toString();
 
         final RequestContext mockedCtx = mock(RequestContext.class);
@@ -118,7 +118,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     @Test
     public void testExceptionContainsDittoHeaders() {
         // Arrange
-        DittoHeaders dittoHeaders = DittoHeaders.of(Map.of("someHeaderKey", "someHeaderVal"));
+        final DittoHeaders dittoHeaders = DittoHeaders.of(Map.of("someHeaderKey", "someHeaderVal"));
         final String type = ContentTypes.APPLICATION_JSON.mediaType().toString();
 
         final RequestContext mockedCtx = mock(RequestContext.class);
@@ -140,7 +140,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     @Test
     public void testWithNonParsableContentType() {
         // Arrange
-        DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final String nonParsableMediaType = "application-json";
 
         // Act
@@ -155,4 +155,21 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
         result.assertStatusCode(StatusCodes.OK);
     }
 
+    @Test
+    public void testWithUpperCaseContentTypeHeaderName() {
+        // Arrange
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final String type = MediaTypes.APPLICATION_JSON.toString();
+
+        // Act
+        final TestRouteResult result =
+                testRoute(extractRequestContext(
+                        ctx -> ensureValidContentType(Set.of(type), ctx, dittoHeaders, COMPLETE_OK)))
+                        .run(HttpRequest.PUT("someUrl")
+                                .addHeader(HttpHeader.parse("CONTENT-TYPE", type))
+                                .withEntity(ContentTypes.APPLICATION_OCTET_STREAM, "something".getBytes()));
+
+        // Assert
+        result.assertStatusCode(StatusCodes.OK);
+    }
 }
