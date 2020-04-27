@@ -35,7 +35,7 @@
      @Test
      public void assertImmutability() {
          assertInstancesOf(GatewayHttpConfig.class, areImmutable(),
-                 assumingFields("schemaVersions", "additionalAcceptedMediaTypes")
+                 assumingFields("schemaVersions", "queryParamsAsHeaders","additionalAcceptedMediaTypes")
                          .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                  assumingFields("redirectToHttpsBlacklistPattern").areNotModifiedAndDoNotEscape());
      }
