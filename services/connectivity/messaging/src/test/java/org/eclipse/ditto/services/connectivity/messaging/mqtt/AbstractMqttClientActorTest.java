@@ -55,7 +55,10 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +93,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             .qos(1)
             .build();
     protected static final ConnectionType connectionType = ConnectionType.MQTT;
-    
+
     protected ActorSystem actorSystem;
     protected TestProbe mockConnectionActor;
 
@@ -123,8 +126,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "ssl") : connection;
     }
 
     @Override
@@ -135,7 +138,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -151,7 +154,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Test
     public void testTestConnection() {
         new TestKit(actorSystem) {{
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef mqttClientActor = watch(actorSystem.actorOf(props));
 
             mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -370,7 +373,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     public void testPublishToTopic() {
         new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
@@ -402,7 +405,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                 .build();
         new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());

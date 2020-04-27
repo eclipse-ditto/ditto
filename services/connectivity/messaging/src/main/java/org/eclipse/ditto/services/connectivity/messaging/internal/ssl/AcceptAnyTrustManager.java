@@ -12,8 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
+import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
+import javax.annotation.Nullable;
+import javax.net.ssl.ManagerFactoryParameters;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.TrustManagerFactorySpi;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -22,17 +28,51 @@ import javax.net.ssl.X509TrustManager;
  */
 public final class AcceptAnyTrustManager implements X509TrustManager {
 
+    /**
+     * Create a trust manager factory that only creates this trust manager.
+     *
+     * @param delegate the delegate to provide provider and algorithms.
+     * @return the accept-any trust manager factory.
+     */
+    public static TrustManagerFactory factory(final TrustManagerFactory delegate) {
+        return new Factory(delegate);
+    }
+
+    @Override
+    @Nullable
     public X509Certificate[] getAcceptedIssuers() {
         return null;
     }
 
+    @Override
     @SuppressWarnings("squid:S4424") // ignore SSL security on purpose
     public void checkClientTrusted(final X509Certificate[] chain, final String authType) {
         // do not check
     }
 
+    @Override
     @SuppressWarnings("squid:S4424") // ignore SSL security on purpose
     public void checkServerTrusted(final X509Certificate[] chain, final String authType) {
         // do not check
+    }
+
+    private static final class Factory extends TrustManagerFactory {
+
+        private Factory(final TrustManagerFactory delegate) {
+            super(new TrustManagerFactorySpi() {
+                @Override
+                protected void engineInit(KeyStore keyStore) {
+                }
+
+                @Override
+                protected void engineInit(ManagerFactoryParameters managerFactoryParameters) {
+                }
+
+                @Override
+                protected TrustManager[] engineGetTrustManagers() {
+                    return new TrustManager[]{new AcceptAnyTrustManager()};
+                }
+            }, delegate.getProvider(), delegate.getAlgorithm());
+        }
     }
 }

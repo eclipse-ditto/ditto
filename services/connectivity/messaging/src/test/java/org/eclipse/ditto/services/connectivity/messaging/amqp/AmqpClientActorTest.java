@@ -156,6 +156,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private final List<MessageProducer> mockProducers = new LinkedList<>();
 
     private ArgumentCaptor<JmsConnectionListener> listenerArgumentCaptor;
+    private TestProbe connectionActorProbe;
+    private ActorRef connectionActor;
 
     @BeforeClass
     public static void setUp() {
@@ -184,6 +186,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         listenerArgumentCaptor = ArgumentCaptor.forClass(JmsConnectionListener.class);
         doNothing().when(mockConnection).addConnectionListener(listenerArgumentCaptor.capture());
         prepareSession(mockSession, mockConsumer);
+        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
+        connectionActor = connectionActorProbe.ref();
     }
 
     private void prepareSession(final Session mockSession, final JmsMessageConsumer mockConsumer) throws JMSException {
@@ -882,13 +886,14 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "amqps") : connection;
     }
 
     @Override
-    protected Props createClientActor(final ActorRef testProbe) {
-        return AmqpClientActor.propsForTests(connection, testProbe, testProbe, (ac, el) -> mockConnection);
+    protected Props createClientActor(final ActorRef conciergeForwarder, final Connection connection) {
+        return AmqpClientActor.propsForTests(connection, conciergeForwarder, connectionActor,
+                (ac, el) -> mockConnection);
     }
 
     @Override
