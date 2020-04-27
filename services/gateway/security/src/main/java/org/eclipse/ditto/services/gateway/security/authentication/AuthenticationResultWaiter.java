@@ -56,6 +56,7 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      *
      * @param authenticationResultFuture the Future that should eventually resolve to an authentication result.
      * @param dittoHeaders the correlation ID for this authentication.
+     * @param <R> the type of the AuthenticationResult.
      * @return the created instance.
      */
     public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(
