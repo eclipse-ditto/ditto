@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.base.assertions;
 
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -84,21 +83,11 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
 
     public DittoHeadersAssert hasNoAuthorizationSubjects() {
         isNotNull();
-        final List<String> actualAuthorizationSubjects = actual.getAuthorizationSubjects();
-        Assertions.assertThat(actualAuthorizationSubjects)
+        final AuthorizationContext authorizationContext = actual.getAuthorizationContext();
+        Assertions.assertThat(authorizationContext)
                 .overridingErrorMessage("Expected DittoHeaders not to have authorization subjects but it had <%s>",
-                        actualAuthorizationSubjects)
+                        authorizationContext)
                 .isEmpty();
-        return myself;
-    }
-
-    public DittoHeadersAssert hasAuthorizationSubject(final String expectedAuthorizationSubject,
-            final String... furtherExpectedAuthorizationSubjects) {
-        isNotNull();
-        final List<String> actualAuthorizationSubjects = actual.getAuthorizationSubjects();
-        Assertions.assertThat(actualAuthorizationSubjects)
-                .contains(expectedAuthorizationSubject)
-                .contains(furtherExpectedAuthorizationSubjects);
         return myself;
     }
 

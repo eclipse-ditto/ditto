@@ -87,7 +87,8 @@ public final class WithDittoHeadersChecker {
 
     public void containsAuthorizationSubject(final String... expectedAuthSubject) {
         final DittoHeaders actualDittoHeaders = actual.getDittoHeaders();
-        final List<String> actualAuthorizationSubjects = actualDittoHeaders.getAuthorizationSubjects();
+        final List<String> actualAuthorizationSubjects = actualDittoHeaders.getAuthorizationContext()
+                .getAuthorizationSubjectIds();
         Assertions.assertThat(actualAuthorizationSubjects)
                 .overridingErrorMessage("Expected command headers to contain <%s> but it did not", expectedAuthSubject)
                 .contains(expectedAuthSubject);

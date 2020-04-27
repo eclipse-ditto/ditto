@@ -165,6 +165,9 @@ entries:
     - title: Search
       url: /basic-search.html
       output: web
+    - title: Acknowledgements
+      url: /basic-acknowledgements.html
+      output: web
 
   - title: Architecture
     output: web
@@ -301,6 +304,9 @@ entries:
           output: web
         - title: Delete
           url: /protocol-specification-things-delete.html
+          output: web
+        - title: Acknowledgements
+          url: /protocol-specification-acks.html
           output: web
 
       - title: → search/messages

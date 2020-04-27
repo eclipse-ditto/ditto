@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -49,7 +50,9 @@ public final class PolicyModelJsonExamplesProducer {
         final Collection<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
         authorizationSubjects.add(newAuthSubject("the_firstSubject"));
         authorizationSubjects.add(newAuthSubject("the_anotherSubject"));
-        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(authorizationSubjects);
+        final AuthorizationContext authContext =
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        authorizationSubjects);
 
         final Path authorizationDir = rootPath.resolve(Paths.get("authorization"));
         Files.createDirectories(authorizationDir);

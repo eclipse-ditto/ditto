@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import java.util.Collection;
 
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
@@ -135,12 +136,13 @@ public interface RootRouteBuilder {
     RootRouteBuilder wsAuthenticationDirective(GatewayAuthenticationDirective directive);
 
     /**
-     * Sets the supported api versions.
+     * Sets the supported API versions.
      *
      * @param versions the versions to set.
      * @return the Builder to allow method chaining.
+     * @throws NullPointerException if {@code versions} is {@code null}.
      */
-    RootRouteBuilder supportedSchemaVersions(Collection<Integer> versions);
+    RootRouteBuilder supportedSchemaVersions(Collection<JsonSchemaVersion> versions);
 
     /**
      * Sets the protocol adapter provider.

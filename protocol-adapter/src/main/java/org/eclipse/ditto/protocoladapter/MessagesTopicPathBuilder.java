@@ -24,5 +24,5 @@ public interface MessagesTopicPathBuilder extends TopicPathBuildable {
      * @param subject the subject to set on the topic path.
      * @return this builder to allow method chaining.
      */
-    MessagesTopicPathBuilder subject(final String subject);
+    MessagesTopicPathBuilder subject(String subject);
 }

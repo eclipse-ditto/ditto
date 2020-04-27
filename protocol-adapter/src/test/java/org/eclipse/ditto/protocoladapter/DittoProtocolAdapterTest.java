@@ -13,20 +13,29 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
 import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -408,5 +417,93 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertThat(topicPath.getSubject()).contains(subject);
         assertThat(topicPath.getId()).isEqualTo(thingId);
+    }
+
+    @Test
+    public void acknowledgementToAdaptable() {
+        final Acknowledgement acknowledgement =
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+
+        final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acknowledgement);
+
+        assertThat(adaptable.getTopicPath())
+                .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks/twin-persisted"));
+        assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
+        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.CONTINUE);
+    }
+
+    @Test
+    public void acknowledgementFromAdaptable() {
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of("{\n" +
+                "  \"topic\": \"thing/id/things/twin/acks/the-ack-label\",\n" +
+                "  \"path\": \"/\",\n" +
+                "  \"status\": 508\n" +
+                "}"));
+
+        final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);
+
+        assertThat(acknowledgement).isEqualTo(
+                Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
+                        HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty())
+        );
+    }
+
+    @Test
+    public void acknowledgementsToAdaptable() {
+        final Acknowledgement ack1 =
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+        final Acknowledgement ack2 =
+                Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
+                        HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty());
+        final Acknowledgements acks = Acknowledgements.of(Arrays.asList(ack1, ack2), DittoHeaders.empty());
+
+        final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acks);
+
+        final JsonObject expectedPayloadJson = JsonObject.of("{\n" +
+                "  \"twin-persisted\":{\"status\":100},\n" +
+                "  \"the-ack-label\":{\"status\":508}\n" +
+                "}");
+
+        assertThat(adaptable.getTopicPath())
+                .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks"));
+        assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
+        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.FAILED_DEPENDENCY);
+        assertThat(adaptable.getPayload().getValue()).contains(expectedPayloadJson);
+    }
+
+    @Test
+    public void acknowledgementsFromJson() {
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of("{\n" +
+                "  \"topic\": \"thing/id/things/twin/acks\",\n" +
+                "  \"path\": \"/\",\n" +
+                "  \"value\": {\n" +
+                "    \"twin-persisted\": { \"status\": 100 },\n" +
+                "    \"the-ack-label\": { \"status\": 508 }\n" +
+                "  },\n" +
+                "  \"status\": 424,\n" +
+                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\" }\n" +
+                "}"));
+
+        final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);
+
+        assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
+                Arrays.asList(
+                        Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"),
+                                HttpStatusCode.CONTINUE,
+                                DittoHeaders.empty()
+                        ),
+                        Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
+                                HttpStatusCode.LOOP_DETECTED,
+                                DittoHeaders.empty()
+                        )
+                ),
+                DittoHeaders.newBuilder()
+                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                        .build()
+        ));
+
+        final Adaptable reverseAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(
+                underTest.toAdaptable(acknowledgement));
+        assertThat(reverseAdaptable).isEqualTo(adaptable);
     }
 }

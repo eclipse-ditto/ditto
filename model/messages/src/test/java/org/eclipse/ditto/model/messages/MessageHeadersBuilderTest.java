@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,10 +84,10 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithInvalidSubject() {
         final String invalidSubject = "{foo}";
 
-        assertThatExceptionOfType(SubjectInvalidException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, invalidSubject))
-                .withMessageStartingWith(
-                        "The subject <" + invalidSubject + "> is invalid because it did not match the pattern")
+                .withMessageContaining(invalidSubject)
+                .withMessageEndingWith("is not a valid message subject.")
                 .withNoCause();
     }
 
@@ -165,7 +164,6 @@ public final class MessageHeadersBuilderTest {
         final Map<String, String> validHeaders = new HashMap<>();
         validHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
         validHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        validHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
         validHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID);
 
         final MessageHeaders messageHeaders = underTest.putHeaders(validHeaders).build();
@@ -181,28 +179,11 @@ public final class MessageHeadersBuilderTest {
         final Map<String, String> invalidHeaders = new HashMap<>();
         invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
         invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        invalidHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
         invalidHeaders.put(key, invalidValue);
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
                 .withMessage("The value '%s' of the header '%s' is not a valid boolean.", invalidValue, key)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToPutMapWithInvalidMessageHeader() {
-        final String key = MessageHeaderDefinition.TIMEOUT.getKey();
-        final String invalidValue = "bar";
-
-        final Map<String, String> invalidHeaders = new HashMap<>();
-        invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        invalidHeaders.put(key, invalidValue);
-
-        assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("The value '%s' of the header '%s' is not a valid long.", invalidValue, key)
                 .withNoCause();
     }
 
@@ -222,10 +203,10 @@ public final class MessageHeadersBuilderTest {
         final String key = MessageHeaderDefinition.TIMESTAMP.getKey();
         final String invalidValue = "foo";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, invalidValue))
-                .withMessage("<foo> is not a valid timestamp!")
-                .withCauseInstanceOf(DateTimeParseException.class);
+                .withMessageContaining(invalidValue)
+                .withMessageEndingWith("is not a valid timestamp.");
     }
 
     @Test

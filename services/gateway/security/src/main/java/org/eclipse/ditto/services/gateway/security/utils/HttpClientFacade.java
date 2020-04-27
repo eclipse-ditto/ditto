@@ -26,6 +26,7 @@ public interface HttpClientFacade {
     /**
      * Creates a CompletionStage for the passed {@link HttpRequest} containing the {@link HttpResponse}.
      *
+     * @param request the HTTP to create the response for.
      * @return the HttpResponse CompletionStage.
      */
     CompletionStage<HttpResponse> createSingleHttpRequest(HttpRequest request);

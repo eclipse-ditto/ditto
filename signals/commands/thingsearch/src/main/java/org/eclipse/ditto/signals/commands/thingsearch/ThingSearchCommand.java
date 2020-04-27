@@ -18,6 +18,7 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.thingsearch.ThingSearchConstants;
 import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -39,7 +40,7 @@ public interface ThingSearchCommand<T extends ThingSearchCommand>
     /**
      * Thing Search resource type.
      */
-    String RESOURCE_TYPE = "thing-search";
+    String RESOURCE_TYPE = ThingSearchConstants.ENTITY_TYPE.toString();
 
     /**
      * Returns the selected fields which are to be included in the JSON of the retrieved entity.

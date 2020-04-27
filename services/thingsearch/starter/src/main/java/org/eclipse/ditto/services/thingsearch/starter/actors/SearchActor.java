@@ -185,7 +185,7 @@ public final class SearchActor extends AbstractActor {
                     final Source<Long, NotUsed> countResultSource = isSudo
                             ? searchPersistence.sudoCount(query)
                             : searchPersistence.count(query,
-                            countCommand.getDittoHeaders().getAuthorizationSubjects());
+                            countCommand.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
                     return processSearchPersistenceResult(countResultSource, dittoHeaders)
                             .via(Flow.fromFunction(result -> {
@@ -261,8 +261,8 @@ public final class SearchActor extends AbstractActor {
                         final StartedTimer databaseAccessTimer =
                                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                        final List<String> subjectIds = command.getDittoHeaders().getAuthorizationSubjects();
-
+                        final List<String> subjectIds = command.getDittoHeaders().getAuthorizationContext()
+                                .getAuthorizationSubjectIds();
                         final Source<ResultList<ThingId>, NotUsed> findAllResult =
                                 searchPersistence.findAll(query, subjectIds, namespaces);
                         return processSearchPersistenceResult(findAllResult, dittoHeaders)

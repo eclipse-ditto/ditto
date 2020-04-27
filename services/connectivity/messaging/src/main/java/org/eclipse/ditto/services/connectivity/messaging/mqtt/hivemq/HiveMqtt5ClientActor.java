@@ -99,7 +99,7 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
      * @param connectionActor the parent connection actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
             final ActorRef connectionActor) {
         return Props.create(HiveMqtt5ClientActor.class, validateConnection(connection),
                 conciergeForwarder, connectionActor);

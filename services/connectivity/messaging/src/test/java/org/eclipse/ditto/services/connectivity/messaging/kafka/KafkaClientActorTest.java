@@ -86,12 +86,6 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     private ConnectionId connectionId;
     private Connection connection;
-    private TestProbe connectionActorProbe;
-
-    @Before
-    public void startConnectionActorProbe() {
-        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
-    }
 
     @BeforeClass
     public static void setUp() {
@@ -230,7 +224,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status,
             final Connection connection) {
-        return KafkaClientActor.props(connection, ref, connectionActorProbe.ref(),
+        return KafkaClientActor.props(connection, ref, ref,
                 new KafkaPublisherActorFactory() {
                     @Override
                     public String getActorName() {
@@ -256,8 +250,8 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder, final Connection connection) {
-        return getKafkaClientActorProps(conciergeForwarder, connection);
+    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
+        return getKafkaClientActorProps(testProbe, connection);
     }
 
     @Override

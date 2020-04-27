@@ -19,13 +19,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
@@ -79,7 +81,7 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link PolicyCommandEnforcement} and {@link PolicyEnforcerCacheLoader} in context of an
  * {@link EnforcerActor}.
  */
-public class PolicyCommandEnforcementTest {
+public final class PolicyCommandEnforcementTest {
 
     /**
      * Configure ask-timeout with a quite high value for easier debugging.
@@ -96,7 +98,8 @@ public class PolicyCommandEnforcementTest {
     private static final EntityIdWithResourceType ENTITY_ID = EntityIdWithResourceType.of(RESOURCE_TYPE, POLICY_ID);
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
-            .authorizationSubjects(AUTH_SUBJECT_ID)
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance(AUTH_SUBJECT_ID)))
             .correlationId(CORRELATION_ID)
             .build();
 
@@ -360,7 +363,7 @@ public class PolicyCommandEnforcementTest {
 
         final Collection<JsonPointer> whiteList =
                 Collections.singletonList(Policy.JsonFields.ID.getPointer());
-        final List<JsonPointer> expectedFields = new ArrayList<>();
+        final Collection<JsonPointer> expectedFields = new ArrayList<>();
         expectedFields.add(Policy.JsonFields.ENTRIES.getPointer());
         expectedFields.addAll(whiteList);
 
@@ -371,6 +374,7 @@ public class PolicyCommandEnforcementTest {
                 RetrievePolicyResponse.of(POLICY_ID, expectedJson, DITTO_HEADERS);
         final RetrievePolicyResponse actualResponse =
                 testKit.expectMsgClass(expectedResponse.getClass());
+
         assertRetrievePolicyResponse(actualResponse, expectedResponse);
     }
 
@@ -520,10 +524,8 @@ public class PolicyCommandEnforcementTest {
     }
 
     private ActorRef createEnforcer() {
-        final ActorRef pubSubMediator =
-                new TestProbe(system, createUniqueName("pubSubMediator-")).ref();
-        final ActorRef conciergeForwarder =
-                new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
+        final ActorRef pubSubMediator = new TestProbe(system, createUniqueName("pubSubMediator-")).ref();
+        final ActorRef conciergeForwarder = new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
 
         final PolicyCommandEnforcement.Provider enforcementProvider =
                 new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), enforcerCache);
@@ -539,8 +541,7 @@ public class PolicyCommandEnforcementTest {
         return prefix + UUID.randomUUID().toString();
     }
 
-    private static <K, V> CaffeineCache<K, V> createCache(
-            final AsyncCacheLoader<K, V> loader) {
+    private static <K, V> CaffeineCache<K, V> createCache(final AsyncCacheLoader<K, V> loader) {
         return CaffeineCache.of(Caffeine.newBuilder(), loader);
     }
 

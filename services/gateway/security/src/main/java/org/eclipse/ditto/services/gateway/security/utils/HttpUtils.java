@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -103,6 +104,7 @@ public final class HttpUtils {
                 .filter(credentials -> BASIC.equalsIgnoreCase(credentials.scheme()))
                 .map(BasicHttpCredentials.class::cast)
                 .map(BasicHttpCredentials::username)
+                .filter(Objects::nonNull)
                 .filter(username -> username.matches(uuidPattern.toString()))
                 .isPresent();
     }

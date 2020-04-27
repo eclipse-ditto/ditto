@@ -199,7 +199,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' http://localhost:${DITTO_EXTERNAL_PORT}/devops/piggyback/connectivity?timeout=8000
+}' http://localhost:${DITTO_EXTERNAL_PORT}/devops/piggyback/connectivity?timeout=8s
 ```
 
 Explanation - what is done here:

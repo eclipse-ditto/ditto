@@ -15,9 +15,12 @@ package org.eclipse.ditto.signals.commands.things;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -27,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithThingId {
+public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithThingId, WithEntityType {
 
     /**
      * Type Prefix of Thing commands.
@@ -37,7 +40,7 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     /**
      * Thing resource type.
      */
-    String RESOURCE_TYPE = "thing";
+    String RESOURCE_TYPE = ThingConstants.ENTITY_TYPE.toString();
 
     @Override
     default String getTypePrefix() {
@@ -52,6 +55,17 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
+    }
+
+    /**
+     * Returns the entity type {@link ThingConstants#ENTITY_TYPE}.
+     *
+     * @return the Thing entity type.
+     * @since 1.1.0
+     */
+    @Override
+    default EntityType getEntityType() {
+        return ThingConstants.ENTITY_TYPE;
     }
 
     @Override

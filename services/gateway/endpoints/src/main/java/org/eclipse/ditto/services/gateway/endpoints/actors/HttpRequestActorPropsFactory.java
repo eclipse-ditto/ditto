@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 
 import akka.actor.ActorRef;
@@ -36,8 +37,10 @@ public interface HttpRequestActorPropsFactory {
      * @param httpRequest the HTTP request.
      * @param httpResponseFuture promise of an HTTP response to be fulfilled by the actor.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
      * @return Props of the actor.
      */
     Props props(ActorRef proxyActor, HeaderTranslator headerTranslator, HttpRequest httpRequest,
-            CompletableFuture<HttpResponse> httpResponseFuture, HttpConfig httpConfig);
+            CompletableFuture<HttpResponse> httpResponseFuture, HttpConfig httpConfig,
+            CommandConfig commandConfig);
 }

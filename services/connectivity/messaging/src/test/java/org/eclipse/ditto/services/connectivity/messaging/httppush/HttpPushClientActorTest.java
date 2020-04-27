@@ -65,7 +65,6 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -82,7 +81,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<HttpResponse> responseQueue;
-    private TestProbe connectionActorProbe;
 
     @Before
     public void createActorSystem() {
@@ -102,7 +100,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .toCompletableFuture()
                 .join();
         connection = getHttpConnectionToLocalBinding(false, binding.localAddress().getPort());
-        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
     }
 
     @After
@@ -118,8 +115,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder, final Connection connection) {
-        return HttpPushClientActor.props(connection, connectionActorProbe.ref());
+    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
+        return HttpPushClientActor.props(connection, testProbe);
     }
 
     @Override

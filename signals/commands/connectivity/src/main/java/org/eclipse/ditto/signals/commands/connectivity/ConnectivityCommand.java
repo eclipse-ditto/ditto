@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -37,7 +38,7 @@ public interface ConnectivityCommand<T extends ConnectivityCommand> extends Comm
     /**
      * Connectivity resource type.
      */
-    String RESOURCE_TYPE = "connectivity";
+    String RESOURCE_TYPE = ConnectivityConstants.ENTITY_TYPE.toString();
 
     /**
      * Returns the identifier of the Connection.

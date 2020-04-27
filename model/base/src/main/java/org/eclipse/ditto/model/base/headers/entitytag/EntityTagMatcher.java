@@ -25,21 +25,15 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class EntityTagMatcher {
 
-    private static final String ASTERISK = "*";
-    private static final EntityTagMatcher ASTERISK_INSTANCE = new EntityTagMatcher();
+    /**
+     * String constant that represents an asterisk.
+     */
+    static final String ASTERISK = "*";
+
+    private static final EntityTagMatcher ASTERISK_INSTANCE = new EntityTagMatcher(null, true);
+
+    @Nullable private final EntityTag entityTag;
     private final boolean isAsterisk;
-
-    @Nullable
-    private final EntityTag entityTag;
-
-    private EntityTagMatcher() {
-        this(null, true);
-    }
-
-    private EntityTagMatcher(final EntityTag entityTag) {
-        this(entityTag, false);
-        checkNotNull(entityTag, "entityTag");
-    }
 
     private EntityTagMatcher(@Nullable final EntityTag entityTag, final boolean isAsterisk) {
         this.entityTag = entityTag;
@@ -47,20 +41,31 @@ public final class EntityTagMatcher {
     }
 
     /**
-     * Builds an {@link EntityTagMatcher} from a String value.
+     * Builds an {@code EntityTagMatcher} from a String value.
      *
      * @param entityTagMatcher the string representation of the entity-tag-matcher.
-     * @return The {@link EntityTagMatcher} built from the given string value.
+     * @return the EntityTagMatcher built from the given string value.
+     * @throws NullPointerException if {@code EntityTagMatcher} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if the given {@code entityTagMatcher}
-     * is not valid according to {@link #isValid(String)}.
+     * is not valid according to {@link #isValid(CharSequence)}.
      */
     public static EntityTagMatcher fromString(final String entityTagMatcher) {
+
         // use only one instance of asterisk in the JVM
-        if (ASTERISK.equals(entityTagMatcher)) {
+        if (isAsterisk(entityTagMatcher)) {
             return ASTERISK_INSTANCE;
         }
 
-        return new EntityTagMatcher(EntityTag.fromString(entityTagMatcher));
+        final EntityTag parsedEntityTag = EntityTag.fromString(entityTagMatcher);
+        return new EntityTagMatcher(checkNotNull(parsedEntityTag, "entityTag"), false);
+    }
+
+    private static boolean isAsterisk(@Nullable final CharSequence entityTagMatcher) {
+        boolean result = false;
+        if (null != entityTagMatcher) {
+            result = ASTERISK.equals(entityTagMatcher.toString());
+        }
+        return result;
     }
 
     /**
@@ -70,74 +75,82 @@ public final class EntityTagMatcher {
         return ASTERISK_INSTANCE;
     }
 
+    /**
+     * Checks if the given char sequence in terms of being a valid {@code EntityTagMatcher}
+     *
+     * @param entityTagMatcher the char sequence to validate.
+     * @return {@code true} if the given entity tag matcher is valid, {@code false} else.
+     */
+    public static boolean isValid(@Nullable final CharSequence entityTagMatcher) {
+        boolean result = false;
+        if (null != entityTagMatcher) {
+            result = isAsterisk(entityTagMatcher) || EntityTag.isValid(entityTagMatcher);
+        }
+        return result;
+    }
 
     /**
-     * Matches this {@link EntityTagMatcher} to the given {@code entityTagToMatch}.
+     * Matches this {@code EntityTagMatcher} to the given {@code entityTagToMatch}.
      *
      * @param entityTagToMatch The {@link EntityTag} to match against.
-     * @return Always true if this instance is {@link #isAsterisk}. Else returns result of
+     * @return always {@code true} if this instance is {@link #isAsterisk}. Else returns result of
      * {@link EntityTag#strongCompareTo(EntityTag) strong comparison between two entity-tags}.
      */
+    @SuppressWarnings("ConstantConditions")
     public boolean strongMatch(final EntityTag entityTagToMatch) {
         if (isAsterisk) {
             return true;
         }
 
-        return checkNotNull(entityTag).strongCompareTo(entityTagToMatch);
+        return entityTag.strongCompareTo(entityTagToMatch);
     }
 
     /**
-     * Matches this {@link EntityTagMatcher} to the given {@code entityTagToMatch}.
+     * Matches this {@code EntityTagMatcher} to the given {@code entityTagToMatch}.
      *
      * @param entityTagToMatch The {@link EntityTag} to match against.
      * @return Always true if this instance is {@link #isAsterisk}. Else returns result of
      * {@link EntityTag#weakCompareTo(EntityTag)} weak comparison between two entity-tags}.
      */
+    @SuppressWarnings("ConstantConditions")
     public boolean weakMatch(final EntityTag entityTagToMatch) {
         if (isAsterisk) {
             return true;
         }
 
-        return checkNotNull(entityTag).weakCompareTo(entityTagToMatch);
+        return entityTag.weakCompareTo(entityTagToMatch);
     }
 
     /**
-     * Validates the given String in terms of being a valid {@link EntityTagMatcher}
+     * Indicates whether this entity-tag equals {@value #ASTERISK}.
      *
-     * @param entityTagMatcher The String to validate
-     * @return True if valid. False if not.
-     */
-    public static boolean isValid(String entityTagMatcher) {
-        return ASTERISK.equals(entityTagMatcher) || EntityTag.isValid(entityTagMatcher);
-    }
-
-
-    /**
-     * Indicates whether this entity-tag equals {@link #ASTERISK}.
-     *
-     * @return True if entity-tag equal {@link #ASTERISK}. False if not.
+     * @return {@code true} if entity-tag is an asterisk, {@code false} else.
      */
     public boolean isAsterisk() {
-        return this.isAsterisk;
+        return isAsterisk;
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final EntityTagMatcher that = (EntityTagMatcher) o;
-        return isAsterisk == that.isAsterisk &&
-                Objects.equals(entityTag, that.entityTag);
+        return isAsterisk == that.isAsterisk && Objects.equals(entityTag, that.entityTag);
     }
 
     @Override
     public int hashCode() {
-
         return Objects.hash(isAsterisk, entityTag);
     }
 
     @Override
+    @SuppressWarnings("ConstantConditions")
     public String toString() {
-        return isAsterisk ? ASTERISK : checkNotNull(this.entityTag).toString();
+        return isAsterisk ? ASTERISK : entityTag.toString();
     }
+
 }

@@ -17,20 +17,29 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.junit.Before;
 import org.junit.Test;
 
-public class SubjectIdReplacementDefinitionTest {
-    private SubjectIdReplacementDefinition replacementDefinition = SubjectIdReplacementDefinition.getInstance();
+public final class SubjectIdReplacementDefinitionTest {
+
+    private SubjectIdReplacementDefinition underTest;
+
+    @Before
+    public void setUp() {
+        underTest = SubjectIdReplacementDefinition.getInstance();
+    }
 
     @Test
     public void succeedsWhenHeadersContainSubjectId() {
         final String subjectId = "nginx:first";
         final DittoHeaders validHeaders = DittoHeaders.newBuilder()
-                .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance(subjectId),
-                        AuthorizationSubject.newInstance("nginx:second"))).build();
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance(subjectId), AuthorizationSubject.newInstance("nginx:second")))
+                .build();
 
-        final String actualSubjectId = replacementDefinition.apply(validHeaders);
+        final String actualSubjectId = underTest.apply(validHeaders);
 
         assertThat(actualSubjectId).isEqualTo(subjectId);
     }
@@ -38,6 +47,7 @@ public class SubjectIdReplacementDefinitionTest {
     @Test
     public void failsWhenHeadersDoNotContainSubjectId() {
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> replacementDefinition.apply(DittoHeaders.empty()));
+                .isThrownBy(() -> underTest.apply(DittoHeaders.empty()));
     }
+
 }

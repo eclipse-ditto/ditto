@@ -20,11 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -35,6 +37,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -42,21 +45,28 @@ import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
+import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -78,6 +88,8 @@ final class StreamingSessionActor extends AbstractActor {
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef eventAndResponsePublisher;
+    private final AcknowledgementConfig acknowledgementConfig;
+    private final HeaderTranslator headerTranslator;
     private final ActorRef subscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
@@ -90,6 +102,8 @@ final class StreamingSessionActor extends AbstractActor {
     private StreamingSessionActor(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef eventAndResponsePublisher,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps) {
 
         jsonSchemaVersion = connect.getJsonSchemaVersion();
@@ -97,6 +111,8 @@ final class StreamingSessionActor extends AbstractActor {
         type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
+        this.acknowledgementConfig = acknowledgementConfig;
+        this.headerTranslator = headerTranslator;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = AuthorizationModelFactory.emptyAuthContext();
         streamingSessions = new EnumMap<>(StreamingType.class);
@@ -117,16 +133,20 @@ final class StreamingSessionActor extends AbstractActor {
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
      * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
+     * @param acknowledgementConfig the config to apply for Acknowledgements.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @param subscriptionManagerProps Props of the subscription manager for search protocol.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef eventAndResponsePublisher,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps) {
 
         return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher,
-                subscriptionManagerProps);
+                acknowledgementConfig, headerTranslator, subscriptionManagerProps);
     }
 
     @Override
@@ -138,11 +158,29 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CommandResponse.class, response -> {
-                    logger.withCorrelationId(response)
-                            .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
-                                    " about it: {}", type, response);
-                    eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
+                .match(Acknowledgement.class, acknowledgement ->
+                        potentiallyForwardToAckregator(acknowledgement, () -> forwardAcknowledgement(acknowledgement))
+                )
+                .match(ThingCommandResponse.class, response ->
+                        potentiallyForwardToAckregator(response, () -> handleResponse(response))
+                )
+                .match(CommandResponse.class, this::handleResponse)
+                .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
+                .match(ThingModifyCommand.class, thingModifyCommand -> {
+                    final ActorRef self = getSelf();
+                    try {
+                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
+                                acknowledgementConfig,
+                                headerTranslator,
+                                responseSignal -> self.tell(responseSignal, self));
+                    } catch (final DittoRuntimeException e) {
+                        logger.withCorrelationId(thingModifyCommand)
+                                .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
+                                        " {}: <{}>", type, e.getClass().getSimpleName(), e.getMessage());
+                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+                        return;
+                    }
+                    handleSignal(thingModifyCommand);
                 })
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
@@ -231,17 +269,55 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
+    private void potentiallyForwardToAckregator(final CommandResponse<?> response, final Runnable fallbackAction) {
+        final ActorContext context = getContext();
+        final Consumer<ActorRef> action = aggregator -> aggregator.forward(response, context);
+
+        context.findChild(
+                AcknowledgementAggregatorActor.determineActorName(response.getDittoHeaders())
+        ).ifPresentOrElse(action, fallbackAction);
+    }
+
+    private void handleResponse(final CommandResponse<?> response) {
+        logger.withCorrelationId(response)
+                .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
+                        " about it: {}", type, response);
+        eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
+    }
+
+    private void forwardAcknowledgement(final Acknowledgement acknowledgement) {
+        // the Acknowledgement is meant for someone else:
+        final ActorContext context = getContext();
+        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+                .ifPresentOrElse(
+                        forwarder -> forwarder.forward(acknowledgement, context),
+                        () -> logger.withCorrelationId(acknowledgement)
+                                .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
+                                        "was present: <{}>", acknowledgement)
+                );
+    }
+
+    private void handleSignalsToStartAckForwarderFor(final Signal<?> signal, final EntityIdWithType entityIdWithType) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), entityIdWithType,
+                dittoHeaders, acknowledgementConfig);
+        handleSignal(signal);
+    }
+
     private void handleSignal(final Signal<?> signal) {
         logger.setCorrelationId(signal);
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         if (signal instanceof CreateSubscription || signal instanceof RequestFromSubscription ||
                 signal instanceof CancelSubscription) {
             subscriptionManager.tell(signal, getSelf());
-        }
-        if (signal instanceof SubscriptionEvent) {
+        } else if (signal instanceof SubscriptionEvent) {
             logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                     signal.getType(), type, signal);
-            eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent) signal), getSelf());
+            eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent<?>) signal), getSelf());
+        } else if (signal instanceof CommandResponse) {
+            logger.debug("Got CommandResponse <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                    signal.getType(), type, signal);
+            eventAndResponsePublisher.forward(SessionedJsonifiable.response((CommandResponse<?>) signal), getContext());
         } else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);

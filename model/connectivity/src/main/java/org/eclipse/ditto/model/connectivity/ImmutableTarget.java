@@ -39,6 +39,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -169,7 +170,8 @@ final class ImmutableTarget implements Target {
                 .map(AuthorizationSubject::newInstance)
                 .collect(Collectors.toList());
         final AuthorizationContext readAuthorizationContext =
-                AuthorizationModelFactory.newAuthContext(authorizationSubjects);
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                        authorizationSubjects);
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING)

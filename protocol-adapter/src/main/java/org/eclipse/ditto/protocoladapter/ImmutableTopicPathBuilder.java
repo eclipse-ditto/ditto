@@ -13,6 +13,7 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
@@ -26,7 +27,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
  */
 @NotThreadSafe
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
-        CommandsTopicPathBuilder, SearchTopicPathBuilder {
+        CommandsTopicPathBuilder, AcknowledgementTopicPathBuilder, SearchTopicPathBuilder {
 
     private final String namespace;
     private final String name;
@@ -142,6 +143,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public AcknowledgementTopicPathBuilder acks() {
+        this.criterion = TopicPath.Criterion.ACKS;
+        return this;
+    }
+
+    @Override
     public CommandsTopicPathBuilder create() {
         this.action = TopicPath.Action.CREATE;
         return this;
@@ -227,7 +234,19 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public MessagesTopicPathBuilder subject(final String subject) {
-        this.subject = subject;
+        this.subject = checkNotNull(subject, "subject");
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder label(final CharSequence label) {
+        subject = checkNotNull(label, "label").toString();
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder aggregatedAcks() {
+        subject = null;
         return this;
     }
 
@@ -237,10 +256,9 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, action);
         } else if (subject != null) {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, subject);
-        } else if (searchAction != null){
+        } else if (searchAction != null) {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, searchAction);
-        }
-        else {
+        } else {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion);
         }
     }
