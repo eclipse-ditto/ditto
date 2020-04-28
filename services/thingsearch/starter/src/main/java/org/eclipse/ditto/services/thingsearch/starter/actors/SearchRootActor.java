@@ -225,7 +225,9 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
-        final Map<String, String> mappings = new HashMap<>(5);
+        // Not possible to use ModelBasedThingsFieldExpressionFactory
+        // because the field expression factory is supposed to map 'thingId' to '_id', which is only meaningful for MongoDB
+        final Map<String, String> mappings = new HashMap<>(6);
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
         addMapping(mappings, Thing.JsonFields.POLICY_ID);

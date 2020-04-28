@@ -66,6 +66,11 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>>
     }
 
     @Override
+    public boolean requiresSubject() {
+        return true;
+    }
+
+    @Override
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessage.TYPE;

@@ -26,14 +26,15 @@
     <name>Eclipse Ditto :: Services :: Models</name>
 
     <modules>
+        <module>acks</module>
         <module>base</module>
         <module>concierge</module>
         <module>connectivity</module>
         <module>policies</module>
+        <module>signalenrichment</module>
         <module>streaming</module>
         <module>things</module>
         <module>thingsearch</module>
-        <module>signalenrichment</module>
     </modules>
 
     <dependencies>

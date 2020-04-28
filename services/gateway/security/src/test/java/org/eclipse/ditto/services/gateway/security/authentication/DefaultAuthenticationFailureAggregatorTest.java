@@ -31,6 +31,8 @@ import org.junit.Test;
  */
 public final class DefaultAuthenticationFailureAggregatorTest {
 
+    private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.empty();
+
     private DefaultAuthenticationFailureAggregator underTest;
 
     @Before
@@ -47,7 +49,7 @@ public final class DefaultAuthenticationFailureAggregatorTest {
     @Test
     public void aggregateAuthenticationFailuresWithoutDittoRuntimeExceptions() {
         final List<AuthenticationResult> authenticationResults =
-                Collections.singletonList(DefaultAuthenticationResult.failed(new IllegalStateException("Not a DRE")));
+                Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, new IllegalStateException("Not a DRE")));
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.aggregateAuthenticationFailures(authenticationResults));
@@ -59,7 +61,7 @@ public final class DefaultAuthenticationFailureAggregatorTest {
                 DittoRuntimeException.newBuilder("test:my.error", HttpStatusCode.UNAUTHORIZED).build();
         final IllegalStateException reasonOfFailure = new IllegalStateException("Not a DRE", expectedException);
         final List<AuthenticationResult> authenticationResults =
-                Collections.singletonList(DefaultAuthenticationResult.failed(reasonOfFailure));
+                Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, reasonOfFailure));
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.aggregateAuthenticationFailures(authenticationResults));
@@ -73,7 +75,7 @@ public final class DefaultAuthenticationFailureAggregatorTest {
                         .build();
         final IllegalStateException reasonOfFailure = new IllegalStateException("Not a DRE", expectedException);
         final List<AuthenticationResult> authenticationResults =
-                Collections.singletonList(DefaultAuthenticationResult.failed(reasonOfFailure));
+                Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, reasonOfFailure));
 
         final DittoRuntimeException dittoRuntimeException =
                 underTest.aggregateAuthenticationFailures(authenticationResults);
@@ -102,8 +104,8 @@ public final class DefaultAuthenticationFailureAggregatorTest {
                 .build();
 
         final List<AuthenticationResult> authenticationResults =
-                Arrays.asList(DefaultAuthenticationResult.failed(exceptionA),
-                        DefaultAuthenticationResult.failed(exceptionB));
+                Arrays.asList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, exceptionA),
+                        DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, exceptionB));
 
         final DittoRuntimeException dittoRuntimeException =
                 underTest.aggregateAuthenticationFailures(authenticationResults);
@@ -133,8 +135,8 @@ public final class DefaultAuthenticationFailureAggregatorTest {
                         .build();
 
         final List<AuthenticationResult> authenticationResults =
-                Arrays.asList(DefaultAuthenticationResult.failed(exceptionA),
-                        DefaultAuthenticationResult.failed(exceptionB));
+                Arrays.asList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, exceptionA),
+                        DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, exceptionB));
 
         final DittoRuntimeException dittoRuntimeException =
                 underTest.aggregateAuthenticationFailures(authenticationResults);

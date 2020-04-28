@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.fromName;
-
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -23,18 +20,19 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 
 /**
  * Java representation of a validated Thing ID.
  */
 @Immutable
-public final class ThingId implements NamespacedEntityId {
+public final class ThingId extends NamespacedEntityIdWithType {
 
     private static final ThingId DUMMY_ID = ThingId.of(DefaultNamespacedEntityId.dummy());
-    private final NamespacedEntityId entityId;
 
     private ThingId(final NamespacedEntityId entityId) {
-        this.entityId = entityId;
+        super(entityId);
     }
 
     /**
@@ -44,9 +42,9 @@ public final class ThingId implements NamespacedEntityId {
      *
      * @param thingId the thing ID.
      * @return the ID.
+     * @throws ThingIdInvalidException if the given {@code thingId} is invalid.
      */
     public static ThingId of(final CharSequence thingId) {
-
         if (thingId instanceof ThingId) {
             return (ThingId) thingId;
         }
@@ -70,9 +68,10 @@ public final class ThingId implements NamespacedEntityId {
      *
      * @param name the name of the thing.
      * @return the created ID.
+     * @throws ThingIdInvalidException if for the given {@code name} a ThingId cannot be derived.
      */
     public static ThingId inDefaultNamespace(final String name) {
-        return wrapInThingIdInvalidException(() -> new ThingId(fromName(name)));
+        return wrapInThingIdInvalidException(() -> new ThingId(DefaultNamespacedEntityId.fromName(name)));
     }
 
     /**
@@ -81,7 +80,7 @@ public final class ThingId implements NamespacedEntityId {
      * @return the generated thing ID.
      */
     public static ThingId generateRandom() {
-        return wrapInThingIdInvalidException(() -> new ThingId(fromName(UUID.randomUUID().toString())));
+        return wrapInThingIdInvalidException(() -> new ThingId(DefaultNamespacedEntityId.fromName(UUID.randomUUID().toString())));
     }
 
     private static <T> T wrapInThingIdInvalidException(final Supplier<T> supplier) {
@@ -103,42 +102,15 @@ public final class ThingId implements NamespacedEntityId {
         return DUMMY_ID;
     }
 
+    /**
+     * Returns the entity type of a Thing.
+     *
+     * @return always {@link ThingConstants#ENTITY_TYPE}.
+     * @since 1.1.0
+     */
     @Override
-    public boolean isDummy() {
-        return entityId.isDummy();
-    }
-
-    @Override
-    public String getName() {
-        return entityId.getName();
-    }
-
-    @Override
-    public String getNamespace() {
-        return entityId.getNamespace();
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final ThingId thingId = (ThingId) o;
-        return Objects.equals(entityId, thingId.entityId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(entityId);
-    }
-
-
-    @Override
-    public String toString() {
-        return entityId.toString();
+    public EntityType getEntityType() {
+        return ThingConstants.ENTITY_TYPE;
     }
 
 }

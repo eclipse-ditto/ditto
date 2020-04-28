@@ -37,11 +37,9 @@ import org.eclipse.ditto.model.things.ThingId;
  */
 public final class ProtocolFactory {
 
-
     private ProtocolFactory() {
         throw new AssertionError();
     }
-
 
     /**
      * Returns a new {@code AdaptableBuilder} for the specified {@code topicPath}.
@@ -75,7 +73,8 @@ public final class ProtocolFactory {
      * @deprecated since 1.1.0, please use {@link #newAdaptableBuilder(Adaptable)} instead.
      */
     @Deprecated
-    public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable, final TopicPath overwriteTopicPath) {
+    public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable,
+            final TopicPath overwriteTopicPath) {
         return ImmutableAdaptableBuilder.of(overwriteTopicPath).withPayload(existingAdaptable.getPayload())
                 .withHeaders(existingAdaptable.getHeaders().orElse(null));
     }
@@ -149,13 +148,24 @@ public final class ProtocolFactory {
                             TopicPath.Action.forName(parts.pop())
                                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
+                case SEARCH:
+                    final TopicPath.SearchAction searchAction =
+                            TopicPath.SearchAction.forName(parts.pop())
+                                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, searchAction);
                 case ERRORS:
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
-                    // messages Path always contain a subject:
+                case ACKS:
+                    // messages should always contain a non-empty subject:
+                    // ACK Paths contain a custom acknowledgement label or an empty subject for aggregated ACKs:
                     final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
-                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+                    if (subject.isEmpty()) {
+                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
+                    } else {
+                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+                    }
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }
@@ -234,7 +244,6 @@ public final class ProtocolFactory {
         return ImmutableTopicPathBuilder.of(namespace, TopicPath.ID_PLACEHOLDER).things();
     }
 
-
     /**
      * Returns a new {@code Payload} from the specified {@code jsonString}.
      *
@@ -279,7 +288,6 @@ public final class ProtocolFactory {
         return ImmutablePayload.getBuilder(path);
     }
 
-
     /**
      * Returns new empty {@code Headers}.
      *
@@ -296,7 +304,9 @@ public final class ProtocolFactory {
      * @return the headers.
      */
     public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
-        return DittoHeaders.of(headers).toBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE).build();
+        return DittoHeaders.newBuilder(headers)
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .build();
     }
 
     /**

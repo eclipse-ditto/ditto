@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 
+import akka.actor.ActorRef;
 import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -67,6 +68,15 @@ public interface SseRouteBuilder {
      * @return this builder.
      */
     SseRouteBuilder withSignalEnrichmentProvider(@Nullable GatewaySignalEnrichmentProvider provider);
+
+    /**
+     * Set the proxy actor.
+     * If not set or set to null, streaming of search results will fail.
+     *
+     * @param proxyActor the proxy actor.
+     * @return this builder.
+     */
+    SseRouteBuilder withProxyActor(@Nullable ActorRef proxyActor);
 
     /**
      * Creates the Akka HTTP route for SSE.

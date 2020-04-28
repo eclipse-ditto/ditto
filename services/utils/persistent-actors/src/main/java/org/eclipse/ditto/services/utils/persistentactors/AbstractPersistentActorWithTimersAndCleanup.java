@@ -18,12 +18,12 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.persistence.AbstractPersistentActorWithTimers;
 import akka.persistence.DeleteMessagesFailure;
 import akka.persistence.DeleteMessagesSuccess;
@@ -42,7 +42,10 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
 
     private static final int STALE_EVENTS_KEPT_AFTER_CLEANUP = 0;
 
-    protected final DiagnosticLoggingAdapter log;
+    /**
+     * Logger of the actor.
+     */
+    protected final DittoDiagnosticLoggingAdapter log;
 
     @Nullable private ActorRef origin = null;
     @Nullable private SnapshotProtocol.Response deleteSnapshotsResponse = null;
@@ -50,7 +53,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     private long lastCleanupExecutedAtSequenceNumber = 0;
 
     protected AbstractPersistentActorWithTimersAndCleanup() {
-        this.log = LogUtil.obtain(this);
+        this.log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     }
 
     /**

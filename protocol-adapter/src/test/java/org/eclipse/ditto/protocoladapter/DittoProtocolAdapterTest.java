@@ -13,17 +13,29 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
+import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
 import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -37,8 +49,12 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -289,6 +305,68 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     }
 
     @Test
+    public void thingSearchCommandFromAdaptable() {
+        final CreateSubscription createSubscription =
+                CreateSubscription.of(null, null, null, Collections.emptySet(),
+                        DITTO_HEADERS_V_2_NO_STATUS);
+
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
+                .twin()
+                .search()
+                .subscribe()
+                .build();
+
+        final ThingSearchCommand actualCommand =
+                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder().build())
+                        .withHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
+                        .build());
+
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(createSubscription);
+
+        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("thingId");
+        final CreateSubscription createSubscriptionWithFields =
+                CreateSubscription.of(null, null, selectedFields, Collections.emptySet(),
+                        DITTO_HEADERS_V_2);
+
+        final ThingSearchCommand actualCommandWithFields =
+                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+                        .withPayload(Payload.newBuilder()
+                                .withFields(selectedFields)
+                                .build())
+                        .withHeaders(TestConstants.HEADERS_V_2)
+                        .build());
+        assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(createSubscriptionWithFields);
+    }
+
+    @Test
+    public void subscriptionEventFromAdaptable() {
+        final SubscriptionCreated expected =
+                SubscriptionCreated.of(TestConstants.SUBSCRIPTION_ID, DITTO_HEADERS_V_2_NO_STATUS);
+
+        final TopicPath topicPath = TopicPath.fromNamespace("_")
+                .things()
+                .twin()
+                .search()
+                .generated()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(JsonObject.of(
+                                String.format("{\"subscriptionId\": \"%s\"}", TestConstants.SUBSCRIPTION_ID)))
+                        .build())
+                .withHeaders(DITTO_HEADERS_V_2_NO_STATUS)
+                .build();
+        final SubscriptionEvent actual = (SubscriptionEvent) underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+
+    }
+
+    @Test
     public void thingEventFromAdaptable() {
         final ThingModified expected =
                 ThingModified.of(TestConstants.THING, TestConstants.REVISION, DITTO_HEADERS_V_2);
@@ -339,5 +417,93 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertThat(topicPath.getSubject()).contains(subject);
         assertThat(topicPath.getId()).isEqualTo(thingId);
+    }
+
+    @Test
+    public void acknowledgementToAdaptable() {
+        final Acknowledgement acknowledgement =
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+
+        final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acknowledgement);
+
+        assertThat(adaptable.getTopicPath())
+                .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks/twin-persisted"));
+        assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
+        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.CONTINUE);
+    }
+
+    @Test
+    public void acknowledgementFromAdaptable() {
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of("{\n" +
+                "  \"topic\": \"thing/id/things/twin/acks/the-ack-label\",\n" +
+                "  \"path\": \"/\",\n" +
+                "  \"status\": 508\n" +
+                "}"));
+
+        final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);
+
+        assertThat(acknowledgement).isEqualTo(
+                Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
+                        HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty())
+        );
+    }
+
+    @Test
+    public void acknowledgementsToAdaptable() {
+        final Acknowledgement ack1 =
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+        final Acknowledgement ack2 =
+                Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
+                        HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty());
+        final Acknowledgements acks = Acknowledgements.of(Arrays.asList(ack1, ack2), DittoHeaders.empty());
+
+        final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acks);
+
+        final JsonObject expectedPayloadJson = JsonObject.of("{\n" +
+                "  \"twin-persisted\":{\"status\":100},\n" +
+                "  \"the-ack-label\":{\"status\":508}\n" +
+                "}");
+
+        assertThat(adaptable.getTopicPath())
+                .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks"));
+        assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
+        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.FAILED_DEPENDENCY);
+        assertThat(adaptable.getPayload().getValue()).contains(expectedPayloadJson);
+    }
+
+    @Test
+    public void acknowledgementsFromJson() {
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of("{\n" +
+                "  \"topic\": \"thing/id/things/twin/acks\",\n" +
+                "  \"path\": \"/\",\n" +
+                "  \"value\": {\n" +
+                "    \"twin-persisted\": { \"status\": 100 },\n" +
+                "    \"the-ack-label\": { \"status\": 508 }\n" +
+                "  },\n" +
+                "  \"status\": 424,\n" +
+                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\" }\n" +
+                "}"));
+
+        final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);
+
+        assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
+                Arrays.asList(
+                        Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"),
+                                HttpStatusCode.CONTINUE,
+                                DittoHeaders.empty()
+                        ),
+                        Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
+                                HttpStatusCode.LOOP_DETECTED,
+                                DittoHeaders.empty()
+                        )
+                ),
+                DittoHeaders.newBuilder()
+                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                        .build()
+        ));
+
+        final Adaptable reverseAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(
+                underTest.toAdaptable(acknowledgement));
+        assertThat(reverseAdaptable).isEqualTo(adaptable);
     }
 }

@@ -52,6 +52,11 @@
             <artifactId>ditto-signals-events-base</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-acks-base</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -21,6 +22,7 @@ import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClient
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;
@@ -46,26 +48,30 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ActorRef conciergeForwarder) {
+    public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
         final ConnectionType connectionType = connection.getConnectionType();
 
         final Props result;
         switch (connectionType) {
             case AMQP_091:
-                result = RabbitMQClientActor.props(connection, conciergeForwarder);
+                result = RabbitMQClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, conciergeForwarder);
+                result = AmqpClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, conciergeForwarder);
+                result = HiveMqtt3ClientActor.props(connection, conciergeForwarder, connectionActor);
+                break;
+            case MQTT_5:
+                result = HiveMqtt5ClientActor.props(connection, conciergeForwarder, connectionActor);
                 break;
             case KAFKA:
-                result = KafkaClientActor.props(connection, conciergeForwarder,
+                result = KafkaClientActor.props(connection, conciergeForwarder, connectionActor,
                         DefaultKafkaPublisherActorFactory.getInstance());
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection);
+                result = HttpPushClientActor.props(connection, connectionActor);
                 break;
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

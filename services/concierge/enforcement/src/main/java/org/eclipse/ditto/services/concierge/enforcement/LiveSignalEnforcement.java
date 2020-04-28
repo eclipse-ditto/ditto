@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -47,7 +46,6 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
-import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -298,22 +296,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                 .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
 
-        final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
-
-        // answer the sender immediately for fire-and-forget message commands.
-        getResponseForFireAndForgetMessage(commandWithReadSubjects)
-                .ifPresent(this::replyToSender);
-
+        final MessageCommand<?, ?> commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
         return publishLiveSignal(commandWithReadSubjects, liveSignalPub.message());
-    }
-
-    /**
-     * Reply a message to sender.
-     *
-     * @param message message to forward.
-     */
-    private void replyToSender(final Object message) {
-        sender().tell(message, self());
     }
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand command) {
@@ -323,9 +307,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         .build();
 
         log(command).info(
-                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
+                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationContext: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
-                command.getDittoHeaders().getAuthorizationSubjects());
+                command.getDittoHeaders().getAuthorizationContext());
         return error;
     }
 
@@ -358,35 +342,5 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
     }
 
-    /**
-     * Creates an @{SendMessageAcceptedResponse} for a message command if it is fire-and-forget.
-     *
-     * @param command The message command.
-     * @return The HTTP response if the message command is fire-and-forget, {@code Optional.empty()} otherwise.
-     */
-    private static Optional<SendMessageAcceptedResponse> getResponseForFireAndForgetMessage(
-            final MessageCommand<?, ?> command) {
-        if (isFireAndForgetMessage(command)) {
-            return Optional.of(
-                    SendMessageAcceptedResponse.newInstance(command.getThingEntityId(),
-                            command.getMessage().getHeaders(), command.getDittoHeaders()));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Tests whether a message command is fire-and-forget.
-     *
-     * @param command The message command.
-     * @return {@code true} if the message's timeout header is 0 or if the message is flagged not to require a response,
-     * {@code false} otherwise.
-     */
-    private static boolean isFireAndForgetMessage(final MessageCommand<?, ?> command) {
-        return command.getMessage()
-                .getTimeout()
-                .map(Duration::isZero)
-                .orElseGet(() -> !command.getDittoHeaders().isResponseRequired());
-    }
 
 }

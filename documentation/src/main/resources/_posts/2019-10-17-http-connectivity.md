@@ -43,7 +43,7 @@ only publish e.g. `twin events`, where the temperature of a twin exceeded a cert
 {
   "address": "POST:/trigger/<your-event-name>/with/key/<your-key>",
   "topics": [
-    "_/_/things/twin/events?filter=gt(features/temperature/value,25)"
+    "_/_/things/twin/events?filter=gt(features/temperature/properties/value,25)"
   ],
   ...
 }

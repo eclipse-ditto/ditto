@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
@@ -28,7 +29,7 @@ final class RetrieveThingsSignalMapper extends AbstractQuerySignalMapper<Retriev
 
     @Override
     TopicPathBuilder getTopicPathBuilder(final RetrieveThings command) {
-        final String namespace = command.getNamespace().orElse("_");
+        final String namespace = command.getNamespace().orElse(TopicPath.ID_PLACEHOLDER);
         return ProtocolFactory.newTopicPathBuilderFromNamespace(namespace);
     }
 

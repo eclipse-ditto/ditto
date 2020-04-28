@@ -92,7 +92,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -113,7 +113,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -136,7 +136,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -165,7 +165,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -194,7 +194,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -227,7 +227,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -251,7 +251,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -276,7 +276,7 @@ public final class BaseClientActorTest {
                             .toBuilder()
                             .uri("amqps://username:password@127.0.0.1:65536") // port 65536 does not even exist ;)
                             .build();
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -299,7 +299,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -320,7 +320,7 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), delegate);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -400,9 +400,9 @@ public final class BaseClientActorTest {
         private final ActorRef publisherActor;
         private final BaseClientActor delegate;
 
-        public DummyClientActor(final Connection connection, final ActorRef conciergeForwarder,
-                final ActorRef publisherActor, final BaseClientActor delegate) {
-            super(connection, conciergeForwarder);
+        public DummyClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+                final ActorRef connectionActor, final ActorRef publisherActor, final BaseClientActor delegate) {
+            super(connection, conciergeForwarder, connectionActor);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }
@@ -411,13 +411,16 @@ public final class BaseClientActorTest {
          * Creates Akka configuration object for this actor.
          *
          * @param connection the connection.
+         * @param connectionActor the connectionPersistenceActor which created this client.
          * @param conciergeForwarder the actor used to send signals to the concierge service.
          * @param publisherActor the actor that publishes to external system
          * @return the Akka configuration Props object.
          */
-        public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+        public static Props props(final Connection connection, final ActorRef connectionActor,
+                @Nullable final ActorRef conciergeForwarder,
                 final ActorRef publisherActor, final BaseClientActor delegate) {
-            return Props.create(DummyClientActor.class, connection, conciergeForwarder, publisherActor, delegate);
+            return Props.create(DummyClientActor.class, connection, connectionActor, conciergeForwarder,
+                    publisherActor, delegate);
         }
 
         @Override

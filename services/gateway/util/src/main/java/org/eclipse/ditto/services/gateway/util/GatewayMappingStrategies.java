@@ -12,38 +12,63 @@
  */
 package org.eclipse.ditto.services.gateway.util;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategies;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Gateway service containing all
- * {@link Jsonifiable} types known to Gateway.
+ * {@link MappingStrategies} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
  */
-public final class GatewayMappingStrategies extends AbstractGlobalMappingStrategies {
+@Immutable
+public final class GatewayMappingStrategies extends MappingStrategies {
 
-    /**
-     * Constructs a new {@code GatewayMappingStrategies} object.
-     */
-    public GatewayMappingStrategies() {
-        super(getIndividualStrategies());
+    @Nullable private static GatewayMappingStrategies instance = null;
+
+    private GatewayMappingStrategies(final Map<String, MappingStrategy> mappingStrategies) {
+        super(mappingStrategies);
     }
 
-    private static Map<String, MappingStrategy> getIndividualStrategies() {
-        final Map<String, MappingStrategy> combinedStrategy = new HashMap<>();
-        combinedStrategy.putAll(new ThingsMappingStrategies().getStrategies());
-        combinedStrategy.putAll(new PoliciesMappingStrategies().getStrategies());
-        combinedStrategy.putAll(new ThingSearchMappingStrategies().getStrategies());
-        combinedStrategy.putAll(new ConnectivityMappingStrategies().getStrategies());
+    /**
+     * Constructs a new GatewayMappingStrategies object.
+     */
+    @SuppressWarnings("unused") // used via reflection
+    public GatewayMappingStrategies() {
+        this(getGatewayMappingStrategies());
+    }
 
-        return combinedStrategy;
+    /**
+     * Returns an instance of GatewayMappingStrategies.
+     *
+     * @return the instance.
+     */
+    public static GatewayMappingStrategies getInstance() {
+        GatewayMappingStrategies result = instance;
+        if (null == result) {
+            result = new GatewayMappingStrategies(getGatewayMappingStrategies());
+            instance = result;
+        }
+        return result;
+    }
+
+    private static MappingStrategies getGatewayMappingStrategies() {
+        return MappingStrategiesBuilder.newInstance()
+                .putAll(ThingsMappingStrategies.getInstance())
+                .putAll(PoliciesMappingStrategies.getInstance())
+                .putAll(ThingSearchMappingStrategies.getInstance())
+                .putAll(ConnectivityMappingStrategies.getInstance())
+                .putAll(GlobalMappingStrategies.getInstance())
+                .build();
     }
 
 }

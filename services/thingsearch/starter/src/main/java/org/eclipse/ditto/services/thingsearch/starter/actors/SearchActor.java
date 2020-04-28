@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -38,6 +39,8 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -47,19 +50,23 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
+import akka.stream.Graph;
+import akka.stream.SourceRef;
+import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.StreamRefs;
 
 /**
  * Actor handling all supported {@link ThingSearchCommand}s. Currently those are {@link CountThings} and {@link
@@ -90,7 +97,7 @@ public final class SearchActor extends AbstractActor {
     private static final String QUERY_TYPE_TAG = "query_type";
     private static final String API_VERSION_TAG = "api_version";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
@@ -128,14 +135,15 @@ public final class SearchActor extends AbstractActor {
                 .match(SudoCountThings.class, this::sudoCount)
                 .match(QueryThings.class, this::query)
                 .match(SudoRetrieveNamespaceReport.class, this::namespaceReport)
+                .match(StreamThings.class, this::stream)
                 .matchAny(any -> log.warning("Got unknown message '{}'", any))
                 .build();
     }
 
     private void namespaceReport(final SudoRetrieveNamespaceReport namespaceReport) {
         final DittoHeaders dittoHeaders = namespaceReport.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-        log.info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
+        log.withCorrelationId(dittoHeaders)
+                .info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
 
         Patterns.pipe(searchPersistence.generateNamespaceCountReport()
                 .runWith(Sink.head(), materializer), getContext().dispatcher())
@@ -177,7 +185,7 @@ public final class SearchActor extends AbstractActor {
                     final Source<Long, NotUsed> countResultSource = isSudo
                             ? searchPersistence.sudoCount(query)
                             : searchPersistence.count(query,
-                            countCommand.getDittoHeaders().getAuthorizationSubjects());
+                            countCommand.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds());
 
                     return processSearchPersistenceResult(countResultSource, dittoHeaders)
                             .via(Flow.fromFunction(result -> {
@@ -186,28 +194,50 @@ public final class SearchActor extends AbstractActor {
                             }))
                             .map(count -> CountThingsResponse.of(count, dittoHeaders));
                 })
-                .<Object>map(result -> {
-                    stopTimer(countTimer);
-                    return result;
-                })
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
-                        .matchAny(error -> {
-                            stopTimer(countTimer);
-                            return Source.single(asDittoRuntimeException(error, countCommand));
-                        })
-                        .build());
+                .via(stopTimerAndHandleError(countTimer, countCommand));
 
         Patterns.pipe(replySource.runWith(Sink.head(), materializer), getContext().dispatcher()).to(sender);
     }
 
+    private void stream(final StreamThings streamThings) {
+        log.withCorrelationId(streamThings)
+                .info("Processing StreamThings command: {}", streamThings);
+        final JsonSchemaVersion version = streamThings.getImplementedSchemaVersion();
+        final String queryType = "query"; // same as queryThings
+        final StartedTimer searchTimer = startNewTimer(version, queryType);
+        final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
+        final ActorRef sender = getSender();
+        final Set<String> namespaces = streamThings.getNamespaces().orElse(null);
+        final Source<Optional<ThingsSearchCursor>, NotUsed> cursorSource =
+                ThingsSearchCursor.extractCursor(streamThings);
+        final Source<SourceRef<String>, NotUsed> sourceRefSource = cursorSource.flatMapConcat(cursor -> {
+            cursor.ifPresent(c -> c.logCursorCorrelationId(log, streamThings));
+            return createQuerySource(queryParser::parse, streamThings).flatMapConcat(parsedQuery -> {
+                final Query query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
+                stopTimer(queryParsingTimer);
+                searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
+                final List<String> subjectIds = streamThings.getDittoHeaders().getAuthorizationSubjects();
+                final CompletionStage<SourceRef<String>> sourceRefFuture =
+                        searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
+                                .map(ThingId::toString) // for serialization???
+                                .runWith(StreamRefs.sourceRef(), materializer);
+                return Source.fromCompletionStage(sourceRefFuture);
+            });
+        });
+        final Source<Object, NotUsed> replySourceWithErrorHandling =
+                sourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
+
+        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
+                .to(sender);
+    }
+
     private void query(final QueryThings queryThings) {
-        LogUtil.enhanceLogWithCorrelationId(log, queryThings);
-        log.debug("Starting to process QueryThings command: {}", queryThings);
+        log.withCorrelationId(queryThings)
+                .debug("Starting to process QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
         final String queryType = "query";
         final StartedTimer searchTimer = startNewTimer(version, queryType);
-        // TODO: 'startNewSegment' is not thread safe
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
@@ -231,7 +261,8 @@ public final class SearchActor extends AbstractActor {
                         final StartedTimer databaseAccessTimer =
                                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                        final List<String> subjectIds = command.getDittoHeaders().getAuthorizationSubjects();
+                        final List<String> subjectIds = command.getDittoHeaders().getAuthorizationContext()
+                                .getAuthorizationSubjectIds();
                         final Source<ResultList<ThingId>, NotUsed> findAllResult =
                                 searchPersistence.findAll(query, subjectIds, namespaces);
                         return processSearchPersistenceResult(findAllResult, dittoHeaders)
@@ -240,23 +271,30 @@ public final class SearchActor extends AbstractActor {
                                     return result;
                                 }))
                                 .map(ids -> toQueryThingsResponse(command, cursor.orElse(null), ids));
-                    })
-                    .map(result -> {
-                        stopTimer(searchTimer);
-                        return result;
                     });
         });
 
         final Source<Object, ?> replySourceWithErrorHandling =
-                replySource.recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
-                        .matchAny(error -> {
-                            stopTimer(searchTimer);
-                            return Source.single(asDittoRuntimeException(error, queryThings));
-                        })
-                        .build());
+                replySource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
         Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
                 .to(sender);
+    }
+
+    private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
+            final WithDittoHeaders<?> command) {
+        return Flow.<T, Object>fromFunction(
+                element -> {
+                    stopTimer(searchTimer);
+                    return element;
+                })
+                .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Object>, NotUsed>>()
+                        .matchAny(error -> {
+                            stopTimer(searchTimer);
+                            return Source.single(asDittoRuntimeException(error, command));
+                        })
+                        .build()
+                );
     }
 
     private <T> Source<T, NotUsed> processSearchPersistenceResult(Source<T, NotUsed> source,

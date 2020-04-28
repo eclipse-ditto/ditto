@@ -133,9 +133,11 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber4 = TestProbe.apply(system2);
 
             // GIVEN: subscribers of different topics exist on both actor systems
-            sub1.subscribeWithoutAck(asList("he", "av'n", "has", "no", "rage", "nor"), subscriber1.ref());
-            sub2.subscribeWithoutAck(asList("hell", "a", "fury"), subscriber2.ref());
             CompletableFuture.allOf(
+                    sub1.subscribeWithAck(asList("he", "av'n", "has", "no", "rage", "nor"), subscriber1.ref())
+                            .toCompletableFuture(),
+                    sub2.subscribeWithAck(asList("hell", "a", "fury"), subscriber2.ref())
+                            .toCompletableFuture(),
                     sub1.subscribeWithAck(asList("like", "a", "woman", "scorn'd"), subscriber3.ref())
                             .toCompletableFuture(),
                     sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()

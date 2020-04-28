@@ -15,7 +15,8 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -31,8 +32,10 @@ public final class DefaultHttpRequestActorPropsFactory implements HttpRequestAct
     public Props props(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
             final HttpRequest httpRequest,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig) {
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig) {
 
-        return HttpRequestActor.props(proxyActor, headerTranslator, httpRequest, httpResponseFuture, httpConfig);
+        return HttpRequestActor.props(proxyActor, headerTranslator, httpRequest, httpResponseFuture, httpConfig,
+                commandConfig);
     }
 }

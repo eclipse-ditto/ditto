@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.streaming;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -42,12 +41,10 @@ public final class StartStreaming implements StreamControlMessage {
 
     private StartStreaming(final StartStreamingBuilder builder) {
         streamingType = builder.streamingType;
-        connectionCorrelationId = builder.connectionCorrelationId.toString();
+        connectionCorrelationId = builder.connectionCorrelationId;
         authorizationContext = builder.authorizationContext;
         @Nullable final Collection<String> namespacesFromBuilder = builder.namespaces;
-        namespaces = null != namespacesFromBuilder
-                ? Collections.unmodifiableList(new ArrayList<>(namespacesFromBuilder))
-                : Collections.emptyList();
+        namespaces = null != namespacesFromBuilder ? List.copyOf(namespacesFromBuilder) : Collections.emptyList();
         filter = Objects.toString(builder.filter, null);
         extraFields = builder.extraFields;
     }
@@ -148,7 +145,7 @@ public final class StartStreaming implements StreamControlMessage {
     public static final class StartStreamingBuilder {
 
         private final StreamingType streamingType;
-        private final CharSequence connectionCorrelationId;
+        private final String connectionCorrelationId;
         private final AuthorizationContext authorizationContext;
 
         @Nullable private Collection<String> namespaces;
@@ -159,7 +156,8 @@ public final class StartStreaming implements StreamControlMessage {
                 final AuthorizationContext authorizationContext) {
 
             this.streamingType = checkNotNull(streamingType, "streamingType");
-            this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId");
+            this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                    .toString();
             this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
             namespaces = null;
             filter = null;

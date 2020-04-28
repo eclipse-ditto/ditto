@@ -61,6 +61,10 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-acks</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-concierge</artifactId>
         </dependency>
         <dependency>
@@ -108,6 +112,10 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-core_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-search</artifactId>
         </dependency>
     </dependencies>
 

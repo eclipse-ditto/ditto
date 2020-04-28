@@ -16,6 +16,7 @@ import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 
 public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
@@ -23,7 +24,9 @@ public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEven
         super(
                 ConnectionCreated.class,
                 ResourceDeleted.class,
-                FeatureDeleted.class);
+                FeatureDeleted.class,
+                SubscriptionCreated.class
+        );
     }
 
 }

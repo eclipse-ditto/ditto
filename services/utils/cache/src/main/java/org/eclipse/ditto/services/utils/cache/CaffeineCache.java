@@ -229,7 +229,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         return synchronousCacheView.asMap();
     }
 
-    // TODO: replace uses of this method by AsyncCache without loader once Caffeine releases it.
+    // TODO: replace uses of this method by caffeine.buildAsync()
+    // TODO: split this into 2 classes for the loading cache case and non-loading-cache case
     private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
         @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
                 (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;

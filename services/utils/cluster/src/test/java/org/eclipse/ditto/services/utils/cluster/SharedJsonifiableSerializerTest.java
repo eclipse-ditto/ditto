@@ -14,11 +14,13 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.Map;
 
-import org.assertj.core.api.Assertions;
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -34,157 +36,209 @@ import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ExtendedActorSystem;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link JsonJsonifiableSerializer} and {@link CborJsonifiableSerializer}.
  */
-@RunWith(Parameterized.class)
+@RunWith(Enclosed.class)
 public final class SharedJsonifiableSerializerTest {
 
-    private enum SerializerImplementation {
-        JsonifiableSerializer,
-        CborJsonifiableSerializer
-    }
+    private static enum SerializerImplementation {
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<SerializerImplementation> serializerImplementationsToTest() {
-        return Arrays.asList(SerializerImplementation.JsonifiableSerializer,
-                SerializerImplementation.CborJsonifiableSerializer);
-    }
+        JSONIFIABLE_SERIALIZER {
+            @Override
+            public AbstractJsonifiableWithDittoHeadersSerializer getInstance(final ExtendedActorSystem actorSystem) {
+                return new JsonJsonifiableSerializer(actorSystem);
+            }
+        },
+        CBOR_JSONIFIABLE_SERIALIZER {
+            @Override
+            public AbstractJsonifiableWithDittoHeadersSerializer getInstance(final ExtendedActorSystem actorSystem) {
+                return new CborJsonifiableSerializer(actorSystem);
+            }
+        };
 
-    @Parameterized.Parameter
-    public SerializerImplementation serializerClass;
+        abstract AbstractJsonifiableWithDittoHeadersSerializer getInstance(ExtendedActorSystem actorSystem);
+
+    }
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
-            .authorizationSubjects("authSubject")
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("authSubject")))
             .correlationId("correlationId")
             .schemaVersion(JsonSchemaVersion.LATEST)
             .build();
 
-    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "myThing");
-
-    private static final Thing THING = Thing.newBuilder()
-            .setId(THING_ID)
-            .build();
-
-    private AbstractJsonifiableWithDittoHeadersSerializer underTestForThingCommands;
-
-    @Before
-    public void setUp() {
-        final ExtendedActorSystem actorSystem =
-                (ExtendedActorSystem) ExtendedActorSystem.create("test", ConfigFactory.empty()
-                        .withValue("ditto.mapping-strategy.implementation",
-                                ConfigValueFactory.fromAnyRef(ThingCommandsStrategy.class.getName())));
-        underTestForThingCommands = createNewSerializer(actorSystem);
+    private static ExtendedActorSystem getActorSystem(final Class<?> implClass) {
+        final Config cfg = ConfigFactory.parseMap(Map.of("ditto.mapping-strategy.implementation", implClass.getName()));
+        return (ExtendedActorSystem) ExtendedActorSystem.create("test", cfg);
     }
 
-    private AbstractJsonifiableWithDittoHeadersSerializer createNewSerializer(final ExtendedActorSystem actorSystem) {
-        switch (serializerClass) {
-            case JsonifiableSerializer:
-                return new JsonJsonifiableSerializer(actorSystem);
-            case CborJsonifiableSerializer:
-                return new CborJsonifiableSerializer(actorSystem);
-            default:
-                throw new IllegalArgumentException(
-                        "No test logic provided for serializer" + serializerClass.getClass());
-        }
-    }
+    @RunWith(Parameterized.class)
+    public static final class ThingCommandsStrategyTest {
 
-    @Test
-    public void ensureSimpleMappingStrategyWithOnlyDittoHeadersWorks() {
-        final ExtendedActorSystem actorSystem =
-                (ExtendedActorSystem) ExtendedActorSystem.create("test", ConfigFactory.empty()
-                        .withValue("ditto.mapping-strategy.implementation",
-                                ConfigValueFactory.fromAnyRef(DittoHeadersStrategy.class.getName())));
-        final AbstractJsonifiableWithDittoHeadersSerializer underTest = createNewSerializer(actorSystem);
+        private static ThingId thingId;
+        private static Thing thing;
+        private static ExtendedActorSystem actorSystem;
 
-        final byte[] bytes = underTest.toBinary(DITTO_HEADERS);
-        final Object o = underTest.fromBinary(bytes, DittoHeaders.class.getSimpleName());
-        Assertions.assertThat(o).isEqualTo(DITTO_HEADERS);
-    }
+        @Parameterized.Parameter
+        public SerializerImplementation serializerImplementation;
 
-    static final class DittoHeadersStrategy extends AbstractMappingStrategies {
+        private AbstractJsonifiableWithDittoHeadersSerializer underTest;
 
-        protected DittoHeadersStrategy() {
-            super(MappingStrategiesBuilder.newInstance()
-                    .add(DittoHeaders.class, jsonObject -> DittoHeaders.newBuilder(jsonObject).build())
-                    .build().getStrategies());
+        @Parameterized.Parameters(name = "{0}")
+        public static SerializerImplementation[] getSerializers() {
+            return SerializerImplementation.values();
         }
 
+        @BeforeClass
+        public static void setUpClass() {
+            thingId = ThingId.generateRandom();
+            thing = Thing.newBuilder().setId(thingId).build();
+            actorSystem = getActorSystem(ThingCommandsStrategy.class);
+        }
+
+        @AfterClass
+        public static void tearDownClass() {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
+
+        @Before
+        public void setUp() {
+            underTest = serializerImplementation.getInstance(actorSystem);
+        }
+
+        @Test
+        public void thingCommandSerializationWorksAsExpected() {
+            final CreateThing createThing = CreateThing.of(thing, null, DITTO_HEADERS);
+
+            final byte[] serialized = underTest.toBinary(createThing);
+            final Object deserialized = underTest.fromBinary(serialized, underTest.manifest(createThing));
+
+            assertThat(deserialized).isEqualTo(createThing);
+        }
+
+        @Test
+        public void thingCommandResponseSerializationWorksAsExpected() {
+            final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, DITTO_HEADERS);
+
+            final byte[] serialized = underTest.toBinary(createThingResponse);
+            final Object deserialized = underTest.fromBinary(serialized, underTest.manifest(createThingResponse));
+
+            assertThat(deserialized).isEqualTo(createThingResponse);
+        }
+
+        @Test
+        public void shardedMessageEnvelopeSerializationWorksAsExpected() {
+            final EntityId id = DefaultEntityId.generateRandom();
+            final DittoHeaders dittoHeaders = DittoHeaders.empty();
+            final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingId)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+            final JsonObject jsonObject = retrieveThings.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
+
+            final ShardedMessageEnvelope shardedMessageEnvelope =
+                    ShardedMessageEnvelope.of(id, RetrieveThings.TYPE, jsonObject, dittoHeaders);
+
+            final byte[] serialized = underTest.toBinary(shardedMessageEnvelope);
+            final Object deserialized = underTest.fromBinary(serialized, underTest.manifest(shardedMessageEnvelope));
+
+            try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+                softly.assertThat(deserialized)
+                        .as("expected instance type")
+                        .isInstanceOf(ShardedMessageEnvelope.class);
+                softly.assertThat((ShardedMessageEnvelope) deserialized).satisfies(actual -> {
+                    softly.assertThat((CharSequence) actual.getEntityId())
+                            .as("entity ID")
+                            .isEqualTo(shardedMessageEnvelope.getEntityId());
+                    softly.assertThat(actual.getType())
+                            .as("type")
+                            .isEqualTo(shardedMessageEnvelope.getType());
+                    softly.assertThat(actual.getMessage())
+                            .as("message")
+                            .isEqualTo(shardedMessageEnvelope.getMessage());
+                    softly.assertThat(actual.getDittoHeaders())
+                            .as("DittoHeaders")
+                            .isEqualTo(shardedMessageEnvelope.getDittoHeaders());
+                });
+            }
+        }
+
+        private static final class ThingCommandsStrategy extends MappingStrategies {
+
+            ThingCommandsStrategy() {
+                super(MappingStrategiesBuilder.newInstance()
+                        .add(GlobalErrorRegistry.getInstance())
+                        .add(GlobalCommandRegistry.getInstance())
+                        .add(GlobalCommandResponseRegistry.getInstance())
+                        .add(Thing.class, ThingsModelFactory::newThing)
+                        .add(ShardedMessageEnvelope.class, ShardedMessageEnvelope::fromJson)
+                        .build());
+            }
+
+        }
+
     }
 
-    @Test
-    public void thingCommandSerializationWorksAsExpected() {
-        final CreateThing createThing = CreateThing.of(THING, null, DITTO_HEADERS);
+    @RunWith(Parameterized.class)
+    public static final class DittoHeadersStrategyTest {
 
-        final byte[] serialized = underTestForThingCommands.toBinary(createThing);
-        final Object deserialized =
-                underTestForThingCommands.fromBinary(serialized, underTestForThingCommands.manifest(createThing));
+        private static ExtendedActorSystem actorSystem;
 
-        assertThat(deserialized)
-                .isInstanceOf(CreateThing.class)
-                .isEqualTo(createThing);
-    }
+        @Parameterized.Parameter
+        public SerializerImplementation serializerImplementation;
 
-    @Test
-    public void thingCommandResponseSerializationWorksAsExpected() {
-        final CreateThingResponse createThingResponse = CreateThingResponse.of(THING, DITTO_HEADERS);
+        private AbstractJsonifiableWithDittoHeadersSerializer underTest;
 
-        final byte[] serialized = underTestForThingCommands.toBinary(createThingResponse);
-        final Object deserialized = underTestForThingCommands.fromBinary(serialized,
-                underTestForThingCommands.manifest(createThingResponse));
+        @Parameterized.Parameters(name = "{0}")
+        public static SerializerImplementation[] getSerializers() {
+            return SerializerImplementation.values();
+        }
 
-        assertThat(deserialized)
-                .isInstanceOf(CreateThingResponse.class)
-                .isEqualTo(createThingResponse);
-    }
+        @BeforeClass
+        public static void setUpClass() {
+            actorSystem = getActorSystem(DittoHeadersStrategy.class);
+        }
 
-    @Test
-    public void shardedMessageEnvelopeSerializationWorksAsExpected() {
-        final EntityId id = DefaultEntityId.generateRandom();
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(THING_ID)
-                .dittoHeaders(dittoHeaders)
-                .build();
-        final JsonObject jsonObject = retrieveThings.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
+        @AfterClass
+        public static void tearDownClass() {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
 
-        final ShardedMessageEnvelope shardedMessageEnvelope =
-                ShardedMessageEnvelope.of(id, RetrieveThings.TYPE, jsonObject, dittoHeaders);
+        @Before
+        public void setUp() {
+            underTest = serializerImplementation.getInstance(actorSystem);
+        }
 
-        final byte[] serialized = underTestForThingCommands.toBinary(shardedMessageEnvelope);
-        final Object deserialized = underTestForThingCommands.fromBinary(serialized,
-                underTestForThingCommands.manifest(shardedMessageEnvelope));
+        @Test
+        public void ensureSimpleMappingStrategyWithOnlyDittoHeadersWorks() {
+            final byte[] bytes = underTest.toBinary(DITTO_HEADERS);
+            final Object o = underTest.fromBinary(bytes, DittoHeaders.class.getSimpleName());
 
-        assertThat(deserialized).isInstanceOf(ShardedMessageEnvelope.class);
-        assertThat((CharSequence) ((ShardedMessageEnvelope) deserialized).getEntityId())
-                .isEqualTo(shardedMessageEnvelope.getEntityId());
-        assertThat(((ShardedMessageEnvelope) deserialized).getType()).isEqualTo(shardedMessageEnvelope.getType());
-        assertThat(((ShardedMessageEnvelope) deserialized).getMessage().toString())
-                .isEqualTo(shardedMessageEnvelope.getMessage().toString());
-        assertThat(((ShardedMessageEnvelope) deserialized).getDittoHeaders())
-                .isEqualTo(shardedMessageEnvelope.getDittoHeaders());
-    }
+            assertThat(o).isEqualTo(DITTO_HEADERS);
+        }
 
-    static final class ThingCommandsStrategy extends AbstractMappingStrategies {
+        private static final class DittoHeadersStrategy extends MappingStrategies {
 
-        protected ThingCommandsStrategy() {
-            super(MappingStrategiesBuilder.newInstance()
-                    .add(GlobalErrorRegistry.getInstance())
-                    .add(GlobalCommandRegistry.getInstance())
-                    .add(GlobalCommandResponseRegistry.getInstance())
-                    .add(Thing.class, ThingsModelFactory::newThing)
-                    .add(ShardedMessageEnvelope.class, ShardedMessageEnvelope::fromJson)
-                    .build()
-                    .getStrategies());
+            DittoHeadersStrategy() {
+                super(MappingStrategiesBuilder.newInstance()
+                        .add(DittoHeaders.class, jsonObject -> DittoHeaders.newBuilder(jsonObject).build())
+                        .build());
+            }
+
         }
 
     }

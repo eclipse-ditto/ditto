@@ -136,7 +136,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     public void testConnect() {
         new TestKit(actorSystem) {{
             final TestProbe probe = new TestProbe(getSystem());
-            final Props props = getKafkaClientActorProps(probe.ref());
+            final Props props = getKafkaClientActorProps(probe.ref(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -154,7 +154,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(getSystem());
-            final Props props = getKafkaClientActorProps(probe.ref());
+            final Props props = getKafkaClientActorProps(probe.ref(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -183,7 +183,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTestConnection() {
         new TestKit(actorSystem) {{
-            final Props props = getKafkaClientActorProps(getRef());
+            final Props props = getKafkaClientActorProps(getRef(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -195,7 +195,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     public void testTestConnectionFails() {
         new TestKit(actorSystem) {{
             final Props props = getKafkaClientActorProps(getRef(),
-                    new Status.Failure(new IllegalStateException("just for testing")));
+                    new Status.Failure(new IllegalStateException("just for testing")), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -206,7 +206,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {{
-            final Props props = getKafkaClientActorProps(getRef());
+            final Props props = getKafkaClientActorProps(getRef(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
@@ -218,22 +218,24 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-    private Props getKafkaClientActorProps(final ActorRef ref) {
-        return getKafkaClientActorProps(ref, new Status.Success(Done.done()));
+    private Props getKafkaClientActorProps(final ActorRef ref, final Connection connection) {
+        return getKafkaClientActorProps(ref, new Status.Success(Done.done()), connection);
     }
 
-    private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status) {
-        return KafkaClientActor.props(connection, ref, new KafkaPublisherActorFactory() {
-            @Override
-            public String getActorName() {
-                return "testPublisherActor";
-            }
+    private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status,
+            final Connection connection) {
+        return KafkaClientActor.props(connection, ref, ref,
+                new KafkaPublisherActorFactory() {
+                    @Override
+                    public String getActorName() {
+                        return "testPublisherActor";
+                    }
 
-            @Override
-            public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
-                return MockKafkaPublisherActor.props(ref, status);
-            }
-        });
+                    @Override
+                    public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
+                        return MockKafkaPublisherActor.props(ref, status);
+                    }
+                });
     }
 
     private static Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {
@@ -243,13 +245,13 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "ssl") : connection;
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder) {
-        return getKafkaClientActorProps(conciergeForwarder);
+    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
+        return getKafkaClientActorProps(testProbe, connection);
     }
 
     @Override

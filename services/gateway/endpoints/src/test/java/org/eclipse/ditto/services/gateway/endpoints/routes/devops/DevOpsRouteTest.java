@@ -13,10 +13,12 @@
 
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
+import java.util.Collections;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
-import org.eclipse.ditto.services.gateway.security.config.DefaultDevOpsConfig;
-import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.DefaultDevOpsConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -49,10 +51,10 @@ public final class DevOpsRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, getInsecureDevopsConfig(),
-                adapterProvider.getHttpHeaderTranslator());
+        devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
+                getInsecureDevopsConfig(), adapterProvider.getHttpHeaderTranslator());
 
-        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx));
+        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, Collections.emptyMap()));
         underTest = testRoute(route);
     }
 

@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.Reader;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -572,6 +573,30 @@ public final class JsonFactory {
         }
 
         return ImmutableJsonFieldSelector.of(jsonPointers);
+    }
+
+    /**
+     * Parse a nullable string as JSON field selector. Return null if the string is null or contains a single
+     * comma.
+     *
+     * @param jsonFieldSelectorString the string to parse.
+     * @return the Json field selector.
+     * @since 1.1.0
+     */
+    @Nullable
+    public static JsonFieldSelector parseJsonFieldSelector(@Nullable final String jsonFieldSelectorString) {
+        if (jsonFieldSelectorString == null) {
+            return null;
+        } else {
+            final String[] splitFields = jsonFieldSelectorString.split(ImmutableJsonFieldSelector.COMMA);
+            if (splitFields.length < 1) {
+                return null;
+            } else {
+                final String firstField = splitFields[0];
+                final String[] otherFields = Arrays.stream(splitFields).skip(1L).toArray(String[]::new);
+                return JsonFieldSelector.newInstance(firstField, otherFields);
+            }
+        }
     }
 
     /**

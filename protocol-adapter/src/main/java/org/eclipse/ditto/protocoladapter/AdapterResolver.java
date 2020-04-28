@@ -26,6 +26,6 @@ interface AdapterResolver {
      * @param adaptable the adaptable that is converted to a {@link Signal}
      * @return the appropriate {@link Adaptable} capable of converting the {@link Adaptable} to a {@link Signal}
      */
-    Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable);
+    Adapter<? extends Signal<?>> getAdapter(Adaptable adaptable);
 
 }

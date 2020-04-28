@@ -15,7 +15,8 @@ Each example always starts with a command message that initiates an operation at
 {
   "topic": "com.acme/xdk_58/things/twin/commands/modify",
   "headers": {
-    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
+    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636",
+    "requested-acks": [ "twin-persisted","custom-ack" ]
   },
   "path": "/"
   ...
@@ -48,12 +49,64 @@ If Ditto triggers an event (e.g. Thing created, Attribute modified) as a result 
 {
   "topic": "com.acme/thing_id_3141/things/twin/events/modified",
   "headers": {
-    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
+    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636",
+    "requested-acks": [ "custom-ack" ]
   },
   "path": "/",
   "value": {
     ...
   },
   "revision": 1
+}
+```
+
+## Acknowledgements (ACKs)
+
+A command issuer can require a response and specify the acknowledgements (ACKs) which have to be successfully fulfilled
+to regard the command as successfully executed.
+
+Below an example is given for a successfully fulfilled ACK (status 202):
+
+```json
+{
+  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "headers": {
+    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
+  },
+  "path": "/",
+  "status": 202
+}
+```
+
+And here is an example for a failed ACK (status 400):
+
+```json
+{
+  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "headers": {
+    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
+  },
+  "path": "/",
+  "value": "You better try harder",
+  "status": 400
+}
+```
+
+An ACK representing a timeout would look like this:
+
+```json
+{
+  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "headers": {
+    "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
+  },
+  "path": "/",
+  "value": {
+    "status": 408,
+    "error": "acknowledgement:request.timeout",
+    "message": "The acknowledgement request reached the specified timeout of 1,337ms.",
+    "description": "Try increasing the timeout and make sure that the requested acknowledgement is sent back in time."
+  },
+  "status": 408
 }
 ```

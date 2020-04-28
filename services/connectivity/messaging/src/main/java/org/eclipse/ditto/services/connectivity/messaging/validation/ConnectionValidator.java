@@ -240,7 +240,7 @@ public final class ConnectionValidator {
             final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",
                     connectionHost);
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                    .description("It is a blacklisted hostname which may not be used.")
+                    .description("It is a blacklisted or otherwise forbidden hostname which may not be used.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

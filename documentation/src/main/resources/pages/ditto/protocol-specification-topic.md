@@ -112,10 +112,22 @@ They carry a custom payload and can be answered by another, correlated message.
 *errors* are returned for commands which could not be executed due to client errors or internal server errors.
 They contain a *status integer* which reflects an HTTP status code with the same semantics as in HTTP.
 
+### Acks criterion
+
+[Commands](#commands-criterion) can specify a number of [acknowledgements](basic-acknowledgements.html) (ACKs) which 
+have to be successfully fulfilled to regard the command as successfully executed.
+
+*acks* can be returned in response to [events](#events-criterion) which have defined in their `headers`, that specific 
+acknowledgement labels were required by the issuing command.<br/>
+Acks contain a *status integer* which reflects a status code with the same semantics as in HTTP, reflecting whether the
+ack was successful (2xx status range) or not (4xx or 5xx status range).<br/>
+Acks contain *headers* which include at least the `correlation-id` of the command/event to acknowledge, and optionally 
+contain a custom *payload*. 
+
 
 ## Action (optional)
 
-For command, event and messages criteria additional actions are available which further distinguish the purpose of a 
+For command, event, and messages criteria, additional actions are available, which further distinguish the purpose of a 
 Protocol message. 
 
 ### Command criterion actions
@@ -139,5 +151,23 @@ An entity (e.g. a Thing) or an aspect of an entity was
 
 ### Messages criterion actions
 
-For the *messages* criterion the *action* segment specifies the message subject and can be freely chosen by the sender 
+For the *messages* criterion, the *action* segment specifies the message subject, and can be freely chosen by the sender, 
 provided that it conforms to [RFC-3986](https://tools.ietf.org/html/rfc3986) (URI).
+
+### Search criterion actions
+
+The action of a command or an event of the [search protocol](protocol-specification-things-search.html) is
+* `subscribe`,
+* `request`,
+* `cancel`,
+* `created`,
+* `next`,
+* `complete`, or
+* `failed`.
+
+### Acknowledgement criterion actions
+
+For *acks* criterion, the *action* segment specifies the identifier, which is defined by the system which issued the ACK.
+The criterion has to match the regular expression `[a-zA-Z0-9-_]{3,64}`, i.e. letters of the Latin alphabet, numbers,
+dashes, and underscores.
+

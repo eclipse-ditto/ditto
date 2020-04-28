@@ -24,6 +24,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
  * Factory class that instantiates all available {@link SignalMapper}s.
@@ -53,6 +54,10 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<RetrieveThingsResponse> newRetrieveThingsResponseSignalMapper() {
         return new RetrieveThingsResponseSignalMapper();
+    }
+
+    public static SignalMapper<ThingSearchCommand<?>> newThingSearchSignalMapper() {
+        return new ThingSearchSignalMapper<>();
     }
 
     public static SignalMapper<PolicyModifyCommand<?>> newPolicyModifySignalMapper() {

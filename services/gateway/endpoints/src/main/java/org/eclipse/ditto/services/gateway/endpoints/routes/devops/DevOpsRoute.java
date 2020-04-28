@@ -15,8 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -29,10 +28,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.services.gateway.security.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.routes.QueryParametersToHeadersMap;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
@@ -45,7 +46,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.javadsl.unmarshalling.Unmarshaller;
 import akka.japi.function.Function;
 
 /**
@@ -63,11 +63,6 @@ public final class DevOpsRoute extends AbstractRoute {
     private static final String PATH_CONFIG = "config";
 
     /**
-     * Timeout in milliseconds of how long to wait for all responses before returning.
-     */
-    private static final String TIMEOUT_PARAMETER = "timeout";
-
-    /**
      * Path parameter for retrieving config.
      */
     private static final String PATH_PARAMETER = "path";
@@ -78,6 +73,7 @@ public final class DevOpsRoute extends AbstractRoute {
      */
     private static final String DEVOPS_COMMANDS_ACTOR_SELECTION = "/user/devOpsCommandsActor";
 
+    private final HttpConfig httpConfig;
     private final DevOpsConfig devOpsConfig;
 
     /**
@@ -85,6 +81,7 @@ public final class DevOpsRoute extends AbstractRoute {
      *
      * @param actorSystem the Actor System.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
      * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
@@ -92,35 +89,39 @@ public final class DevOpsRoute extends AbstractRoute {
     public DevOpsRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
             final DevOpsConfig devOpsConfig,
             final HeaderTranslator headerTranslator) {
 
-        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        this.httpConfig = httpConfig;
         this.devOpsConfig = checkNotNull(devOpsConfig, "DevOpsConfig");
     }
 
     /**
      * @return the {@code /devops} route.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public Route buildDevOpsRoute(final RequestContext ctx) {
+    public Route buildDevOpsRoute(final RequestContext ctx, final Map<String, String> queryParameters) {
+        checkNotNull(ctx, "ctx");
+        checkNotNull(queryParameters, "queryParameters");
+
         return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
             final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
             return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
-                    parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
-                            concat(
-                                    rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
-                                            () -> // /devops/logging
-                                                    logging(ctx, createHeaders(optionalTimeout))
-                                    ),
-                                    rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
-                                            () -> // /devops/piggyback
-                                                    piggyback(ctx, createHeaders(optionalTimeout))
-                                    ),
-                                    rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
-                                            () -> // /devops/config
-                                                    config(ctx, createHeaders(optionalTimeout)))
-                            )
+                    concat(
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
+                                    () -> // /devops/logging
+                                            logging(ctx, createHeaders(queryParameters))
+                            ),
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
+                                    () -> // /devops/piggyback
+                                            piggyback(ctx, createHeaders(queryParameters))
+                            ),
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
+                                    () -> // /devops/config
+                                            config(ctx, createHeaders(queryParameters)))
                     )
             );
         });
@@ -277,18 +278,15 @@ public final class DevOpsRoute extends AbstractRoute {
 
         return get(() -> parameterOptional(PATH_PARAMETER, path ->
                 handlePerRequest(ctx,
-                        ExecutePiggybackCommand.of(
-                                serviceName, instance, DEVOPS_COMMANDS_ACTOR_SELECTION,
+                        ExecutePiggybackCommand.of(serviceName,
+                                instance,
+                                DEVOPS_COMMANDS_ACTOR_SELECTION,
                                 RetrieveConfig.of(path.orElse(null), headersWithAggregate).toJson(),
-                                headersWithAggregate
-                        )
-                )
-        ));
-
+                                headersWithAggregate))));
     }
 
     private static Function<JsonValue, JsonValue> transformResponse(final CharSequence serviceName,
-            final String instance) {
+            final CharSequence instance) {
 
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
@@ -300,7 +298,7 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private static JsonPointer transformerPointer(@Nullable final CharSequence serviceName,
-            @Nullable final String instance) {
+            @Nullable final CharSequence instance) {
 
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
@@ -312,11 +310,13 @@ public final class DevOpsRoute extends AbstractRoute {
         return newPointer;
     }
 
-    private static DittoHeaders createHeaders(final Optional<Long> optionalTimeout) {
-        final DittoHeadersBuilder headersBuilder =
-                DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString());
-        optionalTimeout.ifPresent(t -> headersBuilder.putHeader(TIMEOUT_PARAMETER, Long.toString(t)));
-        return headersBuilder.build();
+    private DittoHeaders createHeaders(final Map<String, String> queryParameters) {
+        final QueryParametersToHeadersMap queryParamsToHeaders = QueryParametersToHeadersMap.getInstance(httpConfig);
+
+        return DittoHeaders.newBuilder()
+                .randomCorrelationId()
+                .putHeaders(queryParamsToHeaders.apply(queryParameters))
+                .build();
     }
 
     @FunctionalInterface

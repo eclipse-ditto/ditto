@@ -101,7 +101,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
                 propertiesCaptor.capture(),
                 bodyCaptor.capture());
 
-        assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(propertiesCaptor.getValue().getHeaders().get("correlation-id")).isEqualTo(TestConstants.CORRELATION_ID);
         assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader2")).isEqualTo("thing:id");
     }
 

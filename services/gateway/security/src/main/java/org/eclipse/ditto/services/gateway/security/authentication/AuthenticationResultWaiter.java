@@ -40,14 +40,14 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
     private static final Duration AWAIT_AUTH_TIMEOUT = Duration.ofSeconds(5L);
 
     private final Future<R> authenticationResultFuture;
-    private final CharSequence correlationId;
+    private final DittoHeaders dittoHeaders;
     private final Duration awaitAuthTimeout;
 
-    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture, final CharSequence correlationId,
+    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders,
             final Duration awaitAuthTimeout) {
 
         this.authenticationResultFuture = authenticationResultFuture;
-        this.correlationId = correlationId;
+        this.dittoHeaders = dittoHeaders;
         this.awaitAuthTimeout = awaitAuthTimeout;
     }
 
@@ -55,13 +55,14 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      * Returns an instance of this class holding the given future.
      *
      * @param authenticationResultFuture the Future that should eventually resolve to an authentication result.
-     * @param correlationId the correlation ID for this authentication.
+     * @param dittoHeaders the correlation ID for this authentication.
+     * @param <R> the type of the AuthenticationResult.
      * @return the created instance.
      */
     public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(
-            final Future<R> authenticationResultFuture, final CharSequence correlationId) {
+            final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
 
-        return new AuthenticationResultWaiter<>(authenticationResultFuture, correlationId, AWAIT_AUTH_TIMEOUT);
+        return new AuthenticationResultWaiter<>(authenticationResultFuture, dittoHeaders, AWAIT_AUTH_TIMEOUT);
     }
 
     /**
@@ -83,7 +84,7 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
             LOGGER.warn("Error while waiting for authentication result!", e);
             throw GatewayAuthenticationProviderUnavailableException.newBuilder()
-                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                    .dittoHeaders(dittoHeaders)
                     .cause(e)
                     .build();
         }

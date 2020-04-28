@@ -17,17 +17,21 @@ import static java.util.Collections.singletonList;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -63,19 +67,20 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
  */
 public final class TestConstants {
 
+    public static final Set<String> NAMESPACES =
+            new HashSet<>(Arrays.asList("org.eclipse.ditto.test", "org.eclipse.ditto.footest"));
     public static final String NAMESPACE = "org.eclipse.ditto.test";
 
-    static final String NAME = "myThing";
-    static final String NAME2 = "myThing2";
-
+    public static final String NAME = "myThing";
+    public static final String NAME2 = "myThing2";
 
     public static final String CORRELATION_ID = "dittoCorrelationId";
 
     public static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
-    static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
+    public static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
 
-    static final String POLICY_NAME = "myPolicy";
-    static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, POLICY_NAME);
+    public static final String POLICY_NAME = "myPolicy";
+    public static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, POLICY_NAME);
 
     public static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
 
@@ -138,6 +143,12 @@ public final class TestConstants {
             .putHeader(MessageHeaderDefinition.STATUS_CODE.getKey(), "200")
             .build();
 
+    public static final DittoHeaders DITTO_HEADERS_V_2_NO_STATUS = DittoHeaders.newBuilder()
+            .correlationId(CORRELATION_ID)
+            .schemaVersion(JsonSchemaVersion.V_2)
+            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+            .build();
+
     public static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_1);
 
     public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_2);
@@ -179,6 +190,22 @@ public final class TestConstants {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
     }
+
+    public static final String FILTER = "eq(attributes/foo, bar)";
+
+    public static final String OPTIONS = "sort(+thingId), cursor(200)";
+
+    public static final JsonFieldSelector FIELDS = JsonFieldSelector.newInstance("/attributes", "/definition");
+
+    public static final String SUBSCRIPTION_ID = "123456781234";
+
+    public static final long DEMAND = 12;
+
+    public static final JsonArray ITEMS =
+            JsonArray.of(THING.toJson(), THING2.toJson());
+
+    public static final DittoRuntimeException EXCEPTION =
+            DittoRuntimeException.newBuilder("TestException", HttpStatusCode.BAD_REQUEST).build();
 
     public static class Policies {
 

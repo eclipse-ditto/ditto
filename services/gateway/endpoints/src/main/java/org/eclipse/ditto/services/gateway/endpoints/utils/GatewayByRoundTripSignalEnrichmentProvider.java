@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
-import org.eclipse.ditto.services.gateway.streaming.GatewaySignalEnrichmentConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;

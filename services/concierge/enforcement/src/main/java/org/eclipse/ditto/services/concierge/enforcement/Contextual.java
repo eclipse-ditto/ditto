@@ -36,7 +36,6 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * A message together with contextual information about the actor processing it.

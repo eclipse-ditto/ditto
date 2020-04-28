@@ -57,6 +57,10 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-acks-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
         <dependency>
@@ -87,6 +91,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-thingsearch</artifactId>
         </dependency>
 
         <!-- ### Provided ### -->
@@ -216,6 +224,8 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.protocoladapter.HeaderTranslator#fromExternalHeaders(java.util.Map)</exclude>
+                            <exclude>org.eclipse.ditto.protocoladapter.TopicPathBuilder</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

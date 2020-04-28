@@ -36,6 +36,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.assertj.core.api.Fail;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -412,8 +413,8 @@ public final class ConnectionLoggerRegistryTest {
 
     private Connection connection(final ConnectionId connectionId) {
         final Source source = ConnectivityModelFactory.newSource(
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("integration:solution:dummy")),
-                "a:b");
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("integration:solution:dummy")), "a:b");
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.AMQP_10,
                 ConnectivityStatus.CLOSED, "amqp://uri:5672")
                 .sources(Collections.singletonList(source))

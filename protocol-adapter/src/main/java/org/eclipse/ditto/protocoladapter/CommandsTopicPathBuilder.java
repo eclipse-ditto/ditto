@@ -32,6 +32,7 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
      */
     CommandsTopicPathBuilder retrieve();
 
+
     /**
      * Sets the {@code Action} of this builder to {@link TopicPath.Action#MODIFY}. A previously set action is replaced.
      *
@@ -45,4 +46,5 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
      * @return this builder to allow method chaining.
      */
     CommandsTopicPathBuilder delete();
+
 }

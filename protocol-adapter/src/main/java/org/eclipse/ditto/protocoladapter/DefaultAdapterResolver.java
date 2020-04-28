@@ -15,13 +15,16 @@ package org.eclipse.ditto.protocoladapter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.protocoladapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
@@ -33,12 +36,13 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
     private final Function<Adaptable, Adapter<?>> resolver;
 
-    public DefaultAdapterResolver(ThingCommandAdapterProvider thingsAdapters,
-            PolicyCommandAdapterProvider policiesAdapters) {
-        final List<Adapter<?>> adapters =
-                new ArrayList<>(thingsAdapters.getAdapters().size() + policiesAdapters.getAdapters().size());
+    DefaultAdapterResolver(final ThingCommandAdapterProvider thingsAdapters,
+            final PolicyCommandAdapterProvider policiesAdapters,
+            final AcknowledgementAdapterProvider acknowledgementAdapters) {
+        final List<Adapter<?>> adapters = new ArrayList<>();
         adapters.addAll(thingsAdapters.getAdapters());
         adapters.addAll(policiesAdapters.getAdapters());
+        adapters.addAll(acknowledgementAdapters.getAdapters());
         resolver = computeResolver(adapters);
     }
 
@@ -56,42 +60,17 @@ final class DefaultAdapterResolver implements AdapterResolver {
         return list.stream().filter(predicate).collect(Collectors.toList());
     }
 
-    private static <T> List<T> filterNot(final List<T> list, final Predicate<T> predicate) {
-        return filter(list, predicate.negate());
-    }
-
     private static <T> T throwUnknownTopicPathException(final Adaptable adaptable) {
         throw UnknownTopicPathException.newBuilder(adaptable.getTopicPath()).build();
     }
 
-    private static <S, T> Function<S, T> constantFunction(final T result) {
-        return ignored -> result;
+    private static <T> T throwAmbiguityDetectedException(final List<Adapter<?>> adapters) {
+        // Ambiguity detected: Adapters have overlapping topic paths.
+        throw new IllegalStateException("Indistinguishable adapters detected: " + adapters);
     }
 
-    /**
-     * Create an adapter resolution function according to whether an input adaptable is a response.
-     * It is the final stage of adapter resolution.
-     *
-     * @param adapters relevant adapters at this final stage.
-     * @return the adapter resolution function.
-     */
-    private static Function<Adaptable, Adapter<?>> isResponseStep(final List<Adapter<?>> adapters) {
-        final List<Adapter<?>> responseAdapters = filter(adapters, Adapter::isForResponses);
-        final List<Adapter<?>> nonResponseAdapters = filterNot(adapters, Adapter::isForResponses);
-        if (responseAdapters.size() > 1 || nonResponseAdapters.size() > 1) {
-            // Ambiguity detected: Adapters have overlapping topic paths.
-            throw new IllegalStateException("Ambiguity detected: responseAdapters=" + responseAdapters +
-                    ", nonResponseAdapters=" + nonResponseAdapters);
-        }
-        final Function<Adaptable, Adapter<?>> getResponseAdapter = responseAdapters.isEmpty()
-                ? DefaultAdapterResolver::throwUnknownTopicPathException
-                : constantFunction(responseAdapters.get(0));
-        final Function<Adaptable, Adapter<?>> getNonResponseAdapter = nonResponseAdapters.isEmpty()
-                ? DefaultAdapterResolver::throwUnknownTopicPathException
-                : constantFunction(nonResponseAdapters.get(0));
-        return adaptable -> isResponse(adaptable)
-                ? getResponseAdapter.apply(adaptable)
-                : getNonResponseAdapter.apply(adaptable);
+    private static <S, T> Function<S, T> constantFunction(final T result) {
+        return ignored -> result;
     }
 
     /**
@@ -105,27 +84,47 @@ final class DefaultAdapterResolver implements AdapterResolver {
      * @param <T> the enum type.
      * @return the enum map of subroutines.
      */
-    private static <T extends Enum<T>> EnumMap<T, Function<Adaptable, Adapter<?>>> dispatchByEnum(
+    private static <T extends Enum<T>> EnumMapOrFunction<T> dispatchByEnum(
             final List<Adapter<?>> adapters,
             final Class<T> enumClass,
             final T[] enumValues,
             final Function<Adapter<?>, Set<T>> enumExtractor,
             final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStage) {
-        final EnumMap<T, Function<Adaptable, Adapter<?>>> map = new EnumMap<>(enumClass);
-        for (final T enumValue : enumValues) {
-            final List<Adapter<?>> matchingAdapters =
-                    filter(adapters, adapter -> enumExtractor.apply(adapter).contains(enumValue));
-            final Function<Adaptable, Adapter<?>> enumValueMatchResult;
-            if (matchingAdapters.isEmpty()) {
-                enumValueMatchResult = DefaultAdapterResolver::throwUnknownTopicPathException;
-            } else if (matchingAdapters.size() == 1) {
-                enumValueMatchResult = constantFunction(matchingAdapters.get(0));
-            } else {
-                enumValueMatchResult = nextStage.apply(matchingAdapters);
-            }
-            map.put(enumValue, enumValueMatchResult);
+
+        final Map<T, List<Adapter<?>>> matchingAdaptersMap = Arrays.stream(enumValues)
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        enumValue -> filter(adapters, adapter -> enumExtractor.apply(adapter).contains(enumValue))
+                ));
+
+        final Optional<List<Adapter<?>>> matchingAdaptersMapHaveIdenticalValues = matchingAdaptersMap.values()
+                .stream()
+                .map(Optional::of)
+                .reduce((list1, list2) -> list1.equals(list2) ? list1 : Optional.empty())
+                .flatMap(Function.identity());
+
+        if (matchingAdaptersMapHaveIdenticalValues.isPresent()) {
+            return new IsFunction<>(selectMatchedAdapters(matchingAdaptersMapHaveIdenticalValues.get(), nextStage));
+        } else {
+            final EnumMap<T, Function<Adaptable, Adapter<?>>> enumMap = new EnumMap<>(enumClass);
+            matchingAdaptersMap.forEach((enumValue, matchingAdapters) ->
+                    enumMap.put(enumValue, selectMatchedAdapters(matchingAdapters, nextStage))
+            );
+            return new IsEnumMap<>(enumMap);
         }
-        return map;
+    }
+
+    private static Function<Adaptable, Adapter<?>> selectMatchedAdapters(
+            final List<Adapter<?>> matchingAdapters,
+            final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStage) {
+
+        if (matchingAdapters.isEmpty()) {
+            return DefaultAdapterResolver::throwUnknownTopicPathException;
+        } else if (matchingAdapters.size() == 1) {
+            return constantFunction(matchingAdapters.get(0));
+        } else {
+            return nextStage.apply(matchingAdapters);
+        }
     }
 
     /**
@@ -171,45 +170,6 @@ final class DefaultAdapterResolver implements AdapterResolver {
     }
 
     /**
-     * Compute the adapter resolution function according to TopicPath.Action and this#isResponse.
-     *
-     * @param adapters the list of relevant adapters.
-     * @return the adapter resolution function.
-     */
-    private static Function<Adaptable, Adapter<?>> actionStep(final List<Adapter<?>> adapters) {
-        final EnumMap<TopicPath.Action, Function<Adaptable, Adapter<?>>> dispatchByAction =
-                dispatchByEnum(adapters, TopicPath.Action.class, TopicPath.Action.values(),
-                        Adapter::getActions, DefaultAdapterResolver::isResponseStep);
-        // consider adapters that support no action to be those that support adaptables without action,
-        // e. g., message commands and responses
-        final List<Adapter<?>> noActionAdapters = filter(adapters, adapter -> adapter.getActions().isEmpty());
-        return evalEnumMapByOptional(dispatchByAction, isResponseStep(noActionAdapters),
-                forTopicPath(TopicPath::getAction));
-    }
-
-    /**
-     * Compute the adapter resolver function for current and subsequent enum dimensions.
-     *
-     * @param adapters the list of relevant adapters at this step.
-     * @param enumClass the class of the enum type to dispatch at this step.
-     * @param enumValues all values of the enum class.
-     * @param getSupportedEnums the function to extract a set of supported enum values from an adapter.
-     * @param extractEnum the function to extract the enum value from an adaptable for adapter resolution.
-     * @param nextStep the factory for the adapter resolver function for subsequent enum dimensions.
-     * @param <T> the enum type.
-     * @return the adapter resolver function.
-     */
-    private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnum(
-            final List<Adapter<?>> adapters,
-            final Class<T> enumClass,
-            final T[] enumValues,
-            final Function<Adapter<?>, Set<T>> getSupportedEnums,
-            final Function<Adaptable, T> extractEnum,
-            final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
-        return evalEnumMap(dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep), extractEnum);
-    }
-
-    /**
      * Convert an extracting function for TopicPath into one for Adaptable.
      *
      * @param extractor the extracting function for TopicPath.
@@ -232,7 +192,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
     private static Function<Adaptable, Adapter<?>> computeResolverRecursively(final List<Adapter<?>> adapters,
             final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> finalStep,
             final int i,
-            final List<ResolverStep<?>> resolverSteps) {
+            final List<ResolverStep> resolverSteps) {
         if (i >= resolverSteps.size()) {
             return finalStep.apply(adapters);
         } else {
@@ -244,50 +204,109 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
     /**
      * Compute a fast adapter resolution function from a list of known adapters.
-     * <p>
-     * Has potential to construct exponentially many EnumMap objects and iterating on exponentially many adapter lists,
-     * but the Ditto protocol adapters are unambiguous enough such that the total size of all 9 EnumMap objects is 44,
-     * and the total length of iterated adapter lists is 59.
-     * Details by return order of {@code dispatchByEnum}:
-     * <pre>{@code
-     * Constructed size-7 EnumMap from 4 adapters for Action
-     * Constructed size-5 EnumMap from 5 adapters for Criterion
-     * Constructed size-3 EnumMap from 5 adapters for Channel
-     * Constructed size-7 EnumMap from 4 adapters for Action
-     * Constructed size-5 EnumMap from 6 adapters for Criterion
-     * Constructed size-7 EnumMap from 6 adapters for Action
-     * Constructed size-5 EnumMap from 8 adapters for Criterion
-     * Constructed size-3 EnumMap from 8 adapters for Channel
-     * Constructed size-2 EnumMap from 13 adapters for Group
-     * Total EnumMap size: 44
-     * Total adapter list length: 59
-     * }</pre>
      *
      * @param adapters all known adapters.
      * @return a function to find an adapter for an adaptable quickly.
      */
     private static Function<Adaptable, Adapter<?>> computeResolver(final List<Adapter<?>> adapters) {
-        return computeResolverRecursively(adapters, DefaultAdapterResolver::actionStep, 0, Arrays.asList(
-                new ResolverStep<>(TopicPath.Group.class, TopicPath.Group.values(), Adapter::getGroups,
-                        forTopicPath(TopicPath::getGroup)),
-                new ResolverStep<>(TopicPath.Channel.class, TopicPath.Channel.values(), Adapter::getChannels,
-                        forTopicPath(TopicPath::getChannel)),
-                new ResolverStep<>(TopicPath.Criterion.class, TopicPath.Criterion.values(), Adapter::getCriteria,
-                        forTopicPath(TopicPath::getCriterion))
-        ));
+        return computeResolverRecursively(adapters,
+                DefaultAdapterResolver::throwAmbiguityDetectedException,
+                0,
+                Arrays.asList(
+                        new ForEnum<>(TopicPath.Group.class, TopicPath.Group.values(), Adapter::getGroups,
+                                forTopicPath(TopicPath::getGroup)),
+                        new ForEnum<>(TopicPath.Channel.class, TopicPath.Channel.values(), Adapter::getChannels,
+                                forTopicPath(TopicPath::getChannel)),
+                        new ForEnum<>(TopicPath.Criterion.class, TopicPath.Criterion.values(), Adapter::getCriteria,
+                                forTopicPath(TopicPath::getCriterion)),
+                        new ForEnumOptional<>(TopicPath.Action.class, TopicPath.Action.values(), Adapter::getActions,
+                                forTopicPath(TopicPath::getAction)),
+                        new ForEnumOptional<>(TopicPath.SearchAction.class, TopicPath.SearchAction.values(),
+                                Adapter::getSearchActions, forTopicPath(TopicPath::getSearchAction)),
+                        new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::isForResponses),
+                                Bool.compose(DefaultAdapterResolver::isResponse)),
+                        new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::requiresSubject),
+                                Bool.compose(adaptable -> adaptable.getTopicPath().getSubject().isPresent())
+                        )
+                ));
     }
 
     /**
-     * Describe 1 resolver step that dispatches an Adaptable according to 1 attribute of Enum type.
+     * Describe 1 resolver step.
+     */
+    private interface ResolverStep {
+
+        /**
+         * Compute an adapter resolver function by combining with the computation for the adapter resolver after
+         * the current selection step.
+         *
+         * @param currentAdapters the list of adapters to select from.
+         * @param nextStep the computation for the next step in the selection process.
+         * @return the adapter selector.
+         */
+        Function<Adaptable, Adapter<?>> combine(
+                List<Adapter<?>> currentAdapters,
+                Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep);
+    }
+
+    /**
+     * Describes 1 resolver step that dispatches an Adaptable according to 1 <b>optional</b> attribute of Enum type.
+     * Fields of this class are arguments of {@code forEnumOptional} except the current adapters and the next step.
      *
      * @param <T> the type of the distinguishing attribute. Must be an Enum for performance.
      */
-    private static final class ResolverStep<T extends Enum<T>> {
+    private static final class ForEnumOptional<T extends Enum<T>> implements ResolverStep {
 
-        final Class<T> enumClass;
-        final T[] enumValues;
-        final Function<Adapter<?>, Set<T>> getSupportedEnums;
-        final Function<Adaptable, T> extractEnum;
+        private final Class<T> enumClass;
+        private final T[] enumValues;
+        private final Function<Adapter<?>, Set<T>> getSupportedEnums;
+        private final Function<Adaptable, Optional<T>> extractEnum;
+
+        private ForEnumOptional(final Class<T> enumClass, final T[] enumValues,
+                final Function<Adapter<?>, Set<T>> getSupportedEnums,
+                final Function<Adaptable, Optional<T>> extractEnum) {
+            this.enumClass = enumClass;
+            this.enumValues = enumValues;
+            this.getSupportedEnums = getSupportedEnums;
+            this.extractEnum = extractEnum;
+        }
+
+        @Override
+        public Function<Adaptable, Adapter<?>> combine(
+                final List<Adapter<?>> currentAdapters,
+                final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
+            return forEnumOptional(currentAdapters, enumClass, enumValues, getSupportedEnums, extractEnum, nextStep);
+        }
+
+        private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnumOptional(
+                final List<Adapter<?>> adapters,
+                final Class<T> enumClass,
+                final T[] enumValues,
+                final Function<Adapter<?>, Set<T>> getSupportedEnums,
+                final Function<Adaptable, Optional<T>> extractEnum,
+                final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
+            final EnumMapOrFunction<T> dispatchByT =
+                    DefaultAdapterResolver.dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep);
+            // consider adapters that support no enum value to be those that support adaptables without enum values.
+            // e. g., search signals for actions, non-search signals for search actions, non-message signals for subjects
+            final List<Adapter<?>> noEnumValueAdapters =
+                    filter(adapters, adapter -> getSupportedEnums.apply(adapter).isEmpty());
+            return dispatchByT.evalByOptional(nextStep.apply(noEnumValueAdapters), extractEnum);
+        }
+    }
+
+    /**
+     * Describes 1 resolver step that dispatches an Adaptable according to 1 attribute of Enum type.
+     * Fields of this class are arguments of {@code forEnum} except the current adapters and the next step.
+     *
+     * @param <T> the type of the distinguishing attribute. Must be an Enum for performance.
+     */
+    private static final class ForEnum<T extends Enum<T>> implements ResolverStep {
+
+        private final Class<T> enumClass;
+        private final T[] enumValues;
+        private final Function<Adapter<?>, Set<T>> getSupportedEnums;
+        private final Function<Adaptable, T> extractEnum;
 
         /**
          * Construct a resolver step.
@@ -297,7 +316,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
          * @param getSupportedEnums extract the set of supported enum values from an adapter.
          * @param extractEnum extract the enum value from an adaptable to restrict possible adapters.
          */
-        private ResolverStep(final Class<T> enumClass,
+        private ForEnum(final Class<T> enumClass,
                 final T[] enumValues,
                 final Function<Adapter<?>, Set<T>> getSupportedEnums,
                 final Function<Adaptable, T> extractEnum) {
@@ -307,10 +326,102 @@ final class DefaultAdapterResolver implements AdapterResolver {
             this.extractEnum = extractEnum;
         }
 
-        private Function<Adaptable, Adapter<?>> combine(
+        @Override
+        public Function<Adaptable, Adapter<?>> combine(
                 final List<Adapter<?>> currentAdapters,
                 final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
             return forEnum(currentAdapters, enumClass, enumValues, getSupportedEnums, extractEnum, nextStep);
+        }
+
+        /**
+         * Compute the adapter resolver function for current and subsequent enum dimensions.
+         *
+         * @param adapters the list of relevant adapters at this step.
+         * @param enumClass the class of the enum type to dispatch at this step.
+         * @param enumValues all values of the enum class.
+         * @param getSupportedEnums the function to extract a set of supported enum values from an adapter.
+         * @param extractEnum the function to extract the enum value from an adaptable for adapter resolution.
+         * @param nextStep the factory for the adapter resolver function for subsequent enum dimensions.
+         * @param <T> the enum type.
+         * @return the adapter resolver function.
+         */
+        private static <T extends Enum<T>> Function<Adaptable, Adapter<?>> forEnum(
+                final List<Adapter<?>> adapters,
+                final Class<T> enumClass,
+                final T[] enumValues,
+                final Function<Adapter<?>, Set<T>> getSupportedEnums,
+                final Function<Adaptable, T> extractEnum,
+                final Function<List<Adapter<?>>, Function<Adaptable, Adapter<?>>> nextStep) {
+            return DefaultAdapterResolver.dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep)
+                    .eval(extractEnum);
+        }
+    }
+
+    private interface EnumMapOrFunction<T> {
+
+        Function<Adaptable, Adapter<?>> eval(Function<Adaptable, T> extractor);
+
+        Function<Adaptable, Adapter<?>> evalByOptional(
+                Function<Adaptable, Adapter<?>> emptyResult,
+                Function<Adaptable, Optional<T>> optionalEnumExtractor);
+    }
+
+    private static final class IsEnumMap<T extends Enum<T>> implements EnumMapOrFunction<T> {
+
+        private final EnumMap<T, Function<Adaptable, Adapter<?>>> enumMap;
+
+        private IsEnumMap(final EnumMap<T, Function<Adaptable, Adapter<?>>> enumMap) {
+            this.enumMap = enumMap;
+        }
+
+        @Override
+        public Function<Adaptable, Adapter<?>> eval(final Function<Adaptable, T> extractor) {
+            return evalEnumMap(enumMap, extractor);
+        }
+
+        @Override
+        public Function<Adaptable, Adapter<?>> evalByOptional(
+                final Function<Adaptable, Adapter<?>> emptyResult,
+                final Function<Adaptable, Optional<T>> optionalEnumExtractor) {
+
+            return evalEnumMapByOptional(enumMap, emptyResult, optionalEnumExtractor);
+        }
+    }
+
+    private static final class IsFunction<T> implements EnumMapOrFunction<T> {
+
+        private final Function<Adaptable, Adapter<?>> function;
+
+        private IsFunction(final Function<Adaptable, Adapter<?>> function) {
+            this.function = function;
+        }
+
+        @Override
+        public Function<Adaptable, Adapter<?>> eval(final Function<Adaptable, T> extractor) {
+            return function;
+        }
+
+        @Override
+        public Function<Adaptable, Adapter<?>> evalByOptional(final Function<Adaptable, Adapter<?>> emptyResult,
+                final Function<Adaptable, Optional<T>> optionalEnumExtractor) {
+            return r -> optionalEnumExtractor.apply(r).isPresent() ? function.apply(r) : emptyResult.apply(r);
+        }
+    }
+
+    private enum Bool {
+        TRUE,
+        FALSE;
+
+        private static Bool of(final boolean bool) {
+            return bool ? TRUE : FALSE;
+        }
+
+        private static <T> Function<T, Bool> compose(final Predicate<T> predicate) {
+            return t -> Bool.of(predicate.test(t));
+        }
+
+        private static <T> Function<T, Set<Bool>> composeAsSet(final Predicate<T> predicate) {
+            return t -> EnumSet.of(Bool.of(predicate.test(t)));
         }
     }
 }

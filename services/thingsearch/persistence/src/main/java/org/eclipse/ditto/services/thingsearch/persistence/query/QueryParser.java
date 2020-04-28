@@ -28,6 +28,7 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThin
 import org.eclipse.ditto.services.models.thingsearch.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 /**
@@ -79,6 +80,11 @@ public final class QueryParser {
             queryThings.getOptions()
                     .map(optionStrings -> String.join(",", optionStrings))
                     .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
+            return queryBuilder.build();
+        } else if (command instanceof StreamThings) {
+            final StreamThings streamThings = (StreamThings) command;
+            final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
+            streamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
             return queryBuilder.build();
         } else {
             return queryBuilderFactory.newUnlimitedBuilder(criteria).build();

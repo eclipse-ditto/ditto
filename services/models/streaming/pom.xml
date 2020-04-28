@@ -22,28 +22,6 @@
     </parent>
 
     <artifactId>ditto-services-models-streaming</artifactId>
-    <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Streaming</name>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Import-Package>
-                            !org.eclipse.ditto.utils.jsr305.annotations,
-                            org.eclipse.ditto.*
-                        </Import-Package>
-                        <Export-Package>
-                            org.eclipse.ditto.services.models.streaming.*
-                        </Export-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>
