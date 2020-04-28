@@ -115,9 +115,9 @@ public final class ConditionalHeadersValidator {
 
     private boolean skipPreconditionHeaderCheck(final Command command, @Nullable final EntityTag
             currentETagValue) {
-        return currentETagValue == null &&
+        return (currentETagValue == null &&
                 (Command.Category.DELETE.equals(command.getCategory()) ||
-                        Command.Category.QUERY.equals(command.getCategory())) || skipExemptedFields(command);
+                        Command.Category.QUERY.equals(command.getCategory()))) || skipExemptedFields(command);
     }
 
     /**
