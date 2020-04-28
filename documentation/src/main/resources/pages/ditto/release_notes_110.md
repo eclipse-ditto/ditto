@@ -33,7 +33,8 @@ are still compatible to Java 8.
 
 ##### [CBOR as Ditto internal serialization provider](https://github.com/eclipse/ditto/pull/598)
 
-As a bachelor thesis, Erik Escher evaluated mechanisms to improve the serialization overhead done in Ditto clusters.
+As a bachelor thesis, [Erik Escher](https://github.com/erikescher) evaluated mechanisms to improve the serialization 
+overhead done in Ditto clusters.
 
 His findings using [CBOR](https://cbor.io) as an alternative to plain JSON resulted an approximate 10% improvement on 
 roundtrip times and throughput.
