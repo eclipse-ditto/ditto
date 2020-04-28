@@ -459,6 +459,24 @@ Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag`
 strong entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto will handle it according to RFC-7232. 
 However, we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary 
 complexity.
+
+### Exempted fields
+
+Assuming you have a thing with an associated policy. When querying the thing with
+
+```
+GET .../things/{thingId}?fields=_policy
+```
+
+you will get the thing containing its revision and associated policy.
+
+If you now modify the associated policy, the revision of the thing will not change! This could lead to an
+inconsistent state if the thing is getting refetched by using the `If-None-Match` header, 
+because this would return a `304 Not Modified`, even if the policy has changed.
+
+To tackle this, Ditto has the following list of exempted fields which automatically bypass the precondition header check:
+
+* `_policy`
     
 ### Examples
 
@@ -556,19 +574,3 @@ You will get one of the following responses:
 * `204 (No Content)` in case the update was successful, i.e. no one else has changed the Thing in the meantime.
 * `412 (Precondition Failed)` in case the update was not successful, i.e. the Thing has been changed by someone else 
 in the meantime.
-
-### Exempted fields
-
-Assume that you have a thing with an associated policy. When querying the Thing with
-
-`GET /things/{thingId}?fields=_policy`
-
-you will get the Thing containing its revision and associated policy.
-
-If you now modify the associated policy, the revision of the Thing will not change! This could lead to an
-inconsistent state if the Thing is getting refetched by using the `If-None-Match` header, because this would return a `304 Not Modified`,
-even if the policy has changed.
-
-To tackle this, ditto has the following list of exempted fields which automatically bypass the precondition header check:
-
-* `_policy`

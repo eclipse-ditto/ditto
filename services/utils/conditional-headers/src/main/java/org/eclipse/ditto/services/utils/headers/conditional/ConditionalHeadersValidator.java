@@ -14,22 +14,16 @@ package org.eclipse.ditto.services.utils.headers.conditional;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
 
 /**
@@ -69,11 +63,12 @@ public final class ConditionalHeadersValidator {
     }
 
     private final ValidationSettings validationSettings;
+    private final Predicate<Command<?>> additionalSkipPreconditionHeaderCheckPredicate;
 
-    private static final Set<JsonPointer> EXEMPTED_FIELDS = Collections.singleton(JsonPointer.of("_policy"));
-
-    private ConditionalHeadersValidator(final ValidationSettings validationSettings) {
+    private ConditionalHeadersValidator(final ValidationSettings validationSettings,
+            final Predicate<Command<?>> additionalSkipPreconditionHeaderCheckPredicate) {
         this.validationSettings = validationSettings;
+        this.additionalSkipPreconditionHeaderCheckPredicate = additionalSkipPreconditionHeaderCheckPredicate;
     }
 
     /**
@@ -83,7 +78,21 @@ public final class ConditionalHeadersValidator {
      * @return the created instance.
      */
     public static ConditionalHeadersValidator of(final ValidationSettings validationSettings) {
-        return new ConditionalHeadersValidator(requireNonNull(validationSettings));
+        return new ConditionalHeadersValidator(requireNonNull(validationSettings), cmd -> false);
+    }
+
+    /**
+     * Creates a new validator instance with the given {@code settings}.
+     *
+     * @param validationSettings the settings.
+     * @param additionalSkipPreconditionCheckPredicate a predicate accepting a Command which - when evaluated to
+     * {@code true} - will skip the precondition check (in addition to the built-in check).
+     * @return the created instance.
+     */
+    public static ConditionalHeadersValidator of(final ValidationSettings validationSettings,
+            final Predicate<Command<?>> additionalSkipPreconditionCheckPredicate) {
+        return new ConditionalHeadersValidator(requireNonNull(validationSettings),
+                additionalSkipPreconditionCheckPredicate);
     }
 
     /**
@@ -107,44 +116,14 @@ public final class ConditionalHeadersValidator {
 
         checkIfMatch(command, currentETagValue);
         checkIfNoneMatch(command, currentETagValue);
-
     }
 
     private boolean skipPreconditionHeaderCheck(final Command command, @Nullable final EntityTag
             currentETagValue) {
         return (currentETagValue == null &&
                 (Command.Category.DELETE.equals(command.getCategory()) ||
-                        Command.Category.QUERY.equals(command.getCategory()))) || skipExemptedFields(command);
-    }
-
-    /**
-     * Skip precondition check if the selected fields contain exempted fields (e.g. {@code _policy} for things
-     * because the revision of a thing does not change if its policy is updated).
-     */
-    private boolean skipExemptedFields(final Command command) {
-
-        @Nullable JsonFieldSelector selectedFields;
-
-        if (command instanceof RetrieveThing) {
-            selectedFields = ((RetrieveThing) command).getSelectedFields().orElse(null);
-        } else if (command instanceof RetrieveThings) {
-            selectedFields = ((RetrieveThings) command).getSelectedFields().orElse(null);
-        } else {
-            return false;
-        }
-
-        if (selectedFields != null) {
-            return this.containsExemptedField(selectedFields.getPointers());
-        }
-
-        return false;
-
-    }
-
-    private boolean containsExemptedField(final Set<JsonPointer> selectedFields) {
-        final Set<JsonPointer> result = new HashSet<>(EXEMPTED_FIELDS);
-        result.retainAll(selectedFields);
-        return !result.isEmpty();
+                        Command.Category.QUERY.equals(command.getCategory()))
+        ) || additionalSkipPreconditionHeaderCheckPredicate.test(command);
     }
 
     private void checkIfMatch(final Command command, @Nullable final EntityTag currentETagValue) {
