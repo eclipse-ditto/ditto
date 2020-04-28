@@ -96,37 +96,37 @@ final class PipelineFunctionParameterResolverFactory {
 
     static class ParameterResolver {
 
-        static final String SINGLE_QUOTED_CONSTANT_GROUP_NAME_PREFIX = "singleQuotedConstant";
+        private static final String SINGLE_QUOTED_CONSTANT_GROUP_NAME_PREFIX = "singleQuotedConstant";
         /**
          * Please note the {0,number} which is used to allow named parameters in a for loop.
          * To resolve it, {@link java.text.MessageFormat} is used.
          */
-        static final String SINGLE_QUOTED_CONSTANT = String.format("(\\s*+'(?<%s{0,number}>%s)'\\s*+)",
+        private static final String SINGLE_QUOTED_CONSTANT = String.format("(\\s*+'(?<%s{0,number}>%s)'\\s*+)",
                 SINGLE_QUOTED_CONSTANT_GROUP_NAME_PREFIX, PipelineFunction.SINGLE_QUOTED_STRING_CONTENT);
 
-        static final String DOUBLE_QUOTED_CONSTANT_GROUP_NAME_PREFIX = "doubleQuotedConstant";
+        private static final String DOUBLE_QUOTED_CONSTANT_GROUP_NAME_PREFIX = "doubleQuotedConstant";
         /**
          * Please note the {0,number} which is used to allow named parameters in a for loop.
          * To resolve it, {@link java.text.MessageFormat} is used.
          */
-        static final String DOUBLE_QUOTED_CONSTANT = String.format("(\\s*+\"(?<%s{0,number}>%s)\"\\s*+)",
+        private static final String DOUBLE_QUOTED_CONSTANT = String.format("(\\s*+\"(?<%s{0,number}>%s)\"\\s*+)",
                 DOUBLE_QUOTED_CONSTANT_GROUP_NAME_PREFIX, PipelineFunction.DOUBLE_QUOTED_STRING_CONTENT);
 
         /**
          * Because single quotation marks have a special meaning for {@link java.text.MessageFormat}, we need
          * to replace them with two single quotation marks in a row.
          */
-        static final MessageFormat STRING_CONSTANT_PATTERN =
+        private static final MessageFormat STRING_CONSTANT_PATTERN =
                 new MessageFormat((SINGLE_QUOTED_CONSTANT + "|" + DOUBLE_QUOTED_CONSTANT).replaceAll("'", "''"));
 
-        static final String PLACEHOLDER_GROUP_NAME_PREFIX = "placeholder";
-        static final String PLACEHOLDER_PATTERN =
-                String.format("\\s*+(?<%s{0}>\\w+:[^,\\s]+)[^,)]*+", PLACEHOLDER_GROUP_NAME_PREFIX);
+        private static final String PLACEHOLDER_GROUP_NAME_PREFIX = "placeholder";
+        private static final MessageFormat PLACEHOLDER_PATTERN =
+                new MessageFormat(String.format("\\s*+(?<%s{0}>\\w+:[^,\\s]+)[^,)]*+", PLACEHOLDER_GROUP_NAME_PREFIX));
 
-        static final String PARAMETER_SEPARATOR = ",";
+        private static final String PARAMETER_SEPARATOR = ",";
 
-        static final String OPEN_PARENTHESIS = "\\(";
-        static final String CLOSED_PARENTHESIS = "\\)";
+        private static final String OPEN_PARENTHESIS = "\\(";
+        private static final String CLOSED_PARENTHESIS = "\\)";
 
         private final Pattern pattern;
         private final int numberOfParameters;
@@ -152,7 +152,7 @@ final class PipelineFunctionParameterResolverFactory {
         private static String buildParameterPattern(final int parameterIndex, final boolean allowPlaceholders) {
             final String stringConstantParameterPattern = STRING_CONSTANT_PATTERN.format(new Object[]{parameterIndex});
             if (allowPlaceholders) {
-                final String placeholderParameterPattern = MessageFormat.format(PLACEHOLDER_PATTERN, parameterIndex);
+                final String placeholderParameterPattern = PLACEHOLDER_PATTERN.format(new Object[]{parameterIndex});
                 return "(?:" + stringConstantParameterPattern + "|" + placeholderParameterPattern + ")";
             } else {
                 return "(?:" + stringConstantParameterPattern + ")";
