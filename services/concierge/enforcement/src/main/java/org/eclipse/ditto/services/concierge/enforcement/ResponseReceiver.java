@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.actor.ActorRef;
@@ -61,8 +64,14 @@ final class ResponseReceiver {
     }
 
     private static DittoHeaders filterRelevantHeaders(final DittoHeaders commandHeaders) {
-        return commandHeaders.getReplyTarget()
-                .map(replyTarget -> DittoHeaders.newBuilder().replyTarget(replyTarget).build())
-                .orElse(DittoHeaders.empty());
+        final Optional<String> inboundPayloadMapper = commandHeaders.getInboundPayloadMapper();
+        final Optional<Integer> replyTarget = commandHeaders.getReplyTarget();
+
+        final DittoHeadersBuilder<?,?> headersBuilder = DittoHeaders.newBuilder();
+
+        inboundPayloadMapper.ifPresent(headersBuilder::inboundPayloadMapper);
+        replyTarget.ifPresent(headersBuilder::replyTarget);
+
+        return headersBuilder.build();
     }
 }
