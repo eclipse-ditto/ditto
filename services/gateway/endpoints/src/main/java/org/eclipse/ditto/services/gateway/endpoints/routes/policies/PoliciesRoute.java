@@ -100,13 +100,15 @@ public final class PoliciesRoute extends AbstractRoute {
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
                         ),
                         put(() -> // PUT /policies/<policyId>
-                                extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                policyJson -> ModifyPolicy
-                                                        .of(policyId, PoliciesModelFactory.newPolicy(
-                                                                createPolicyJsonObjectForPut(policyJson, policyId)),
-                                                                dittoHeaders)
-                                        )
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource ->
+                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        policyJson -> ModifyPolicy
+                                                                .of(policyId, PoliciesModelFactory.newPolicy(
+                                                                        createPolicyJsonObjectForPut(policyJson,
+                                                                                policyId)),
+                                                                        dittoHeaders)
+                                                )
                                 )
                         ),
                         delete(() -> // DELETE /policies/<policyId>

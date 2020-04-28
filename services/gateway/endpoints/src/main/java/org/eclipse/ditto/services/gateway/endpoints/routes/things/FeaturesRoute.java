@@ -118,7 +118,8 @@ final class FeaturesRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /features
-                                extractDataBytes(payloadSource ->
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 featuresJson -> ModifyFeatures
                                                         .of(thingId, ThingsModelFactory.newFeatures(
@@ -152,7 +153,8 @@ final class FeaturesRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /features/<featureId>
-                                        extractDataBytes(payloadSource ->
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         featureJson ->
                                                                 ModifyFeature.of(thingId,
@@ -190,7 +192,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                         RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/definition
-                                                extractDataBytes(payloadSource ->
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, definitionJson ->
                                                                         ModifyFeatureDefinition.of(thingId, featureId,
@@ -235,7 +238,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties
-                                                extractDataBytes(payloadSource ->
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertiesJson ->
                                                                         ModifyFeatureProperties.of(
@@ -278,9 +282,9 @@ final class FeaturesRoute extends AbstractRoute {
                                                 handlePerRequest(ctx, RetrieveFeatureProperty.of(thingId, featureId,
                                                         JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         ),
-                                        put(() ->
-                                                extractDataBytes(payloadSource ->
-                                                        // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
+                                        put(() -> // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertyJson ->
                                                                         ModifyFeatureProperty.of(

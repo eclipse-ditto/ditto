@@ -25,6 +25,8 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import akka.http.javadsl.model.MediaTypes;
+
 /**
  * Provides configuration settings of the Gateway service's HTTP behaviour.
  */
@@ -94,6 +96,14 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     Set<HeaderDefinition> getQueryParametersAsHeaders();
 
     /**
+     * Whitelisted Media-Types, which should also be accepted by the endpoints besides the one they accept.
+     *
+     * @return media-types.
+     * @since 1.1.0
+     */
+    Set<String> getAdditionalAcceptedMediaTypes();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpConfig}.
      */
@@ -147,7 +157,17 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         QUERY_PARAMS_AS_HEADERS("query-params-as-headers", Arrays.asList(DittoHeaderDefinition.CORRELATION_ID.getKey(),
                 DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
-                DittoHeaderDefinition.TIMEOUT.getKey()));
+                DittoHeaderDefinition.TIMEOUT.getKey())),
+
+        /**
+         * PUT and POST resources validate that the content-type of a request is supported. With this config value
+         * additional media-types can be specified, which will also be accepted. Default value
+         * 'application/octet-stream' is for unknown or not further specified payload and request without any
+         * content-type declaration will also be mapped to this type by akka-http.
+         *
+         * @since 1.1.0
+         */
+        ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types", MediaTypes.APPLICATION_OCTET_STREAM.toString());
 
         private final String path;
         private final Object defaultValue;

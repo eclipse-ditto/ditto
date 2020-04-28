@@ -53,6 +53,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final Duration requestTimeout;
     private final String actorPropsFactoryFullQualifiedClassname;
     private final Set<HeaderDefinition> queryParamsAsHeaders;
+    private final Set<String> additionalAcceptedMediaTypes;
 
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig) {
         hostname = basicHttpConfig.getHostname();
@@ -66,6 +67,9 @@ public final class GatewayHttpConfig implements HttpConfig {
         actorPropsFactoryFullQualifiedClassname = scopedConfig.getString(
                 GatewayHttpConfigValue.ACTOR_PROPS_FACTORY.getConfigPath());
         queryParamsAsHeaders = Collections.unmodifiableSet(getQueryParameterNamesAsHeaderDefinitions(scopedConfig));
+        additionalAcceptedMediaTypes =
+                Set.of(scopedConfig.getString(GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
+                        .split(","));
     }
 
     private static Set<JsonSchemaVersion> getJsonSchemaVersions(final Config httpScopedConfig) {
@@ -194,9 +198,14 @@ public final class GatewayHttpConfig implements HttpConfig {
         return queryParamsAsHeaders;
     }
 
+    @Override
+    public Set<String> getAdditionalAcceptedMediaTypes() {
+        return additionalAcceptedMediaTypes;
+    }
+
     @SuppressWarnings("OverlyComplexMethod")
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -213,14 +222,15 @@ public final class GatewayHttpConfig implements HttpConfig {
                 redirectToHttpsBlacklistPattern.equals(that.redirectToHttpsBlacklistPattern) &&
                 requestTimeout.equals(that.requestTimeout) &&
                 actorPropsFactoryFullQualifiedClassname.equals(that.actorPropsFactoryFullQualifiedClassname) &&
-                queryParamsAsHeaders.equals(that.queryParamsAsHeaders);
+                queryParamsAsHeaders.equals(that.queryParamsAsHeaders) &&
+                additionalAcceptedMediaTypes.equals(that.additionalAcceptedMediaTypes);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(hostname, port, schemaVersions, forceHttps, redirectToHttps,
                 redirectToHttpsBlacklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
-                queryParamsAsHeaders);
+                queryParamsAsHeaders, additionalAcceptedMediaTypes);
     }
 
     @Override
@@ -236,6 +246,7 @@ public final class GatewayHttpConfig implements HttpConfig {
                 ", requestTimeout=" + requestTimeout +
                 ", actorPropsFactoryFullQualifiedClassname=" + actorPropsFactoryFullQualifiedClassname +
                 ", queryParamsAsHeaders=" + queryParamsAsHeaders +
+                ", additionalAcceptedMediaTypes=" + additionalAcceptedMediaTypes +
                 "]";
     }
 

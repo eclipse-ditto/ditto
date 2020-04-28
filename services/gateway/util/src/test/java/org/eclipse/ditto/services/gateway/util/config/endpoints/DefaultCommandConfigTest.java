@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints;
+package org.eclipse.ditto.services.gateway.util.config.endpoints;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -18,7 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,54 +30,54 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig}.
  */
-public final class DefaultClaimMessageConfigTest {
+public final class DefaultCommandConfigTest {
 
-    private static Config claimMessageTestConfig;
+    private static Config commandTestConfig;
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
-        claimMessageTestConfig = ConfigFactory.load("claim-message-test");
+        commandTestConfig = ConfigFactory.load("command-test");
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClaimMessageConfig.class, areImmutable());
+        assertInstancesOf(DefaultCommandConfig.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClaimMessageConfig.class)
+        EqualsVerifier.forClass(DefaultCommandConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClaimMessageConfig underTest = DefaultClaimMessageConfig.of(ConfigFactory.empty());
+        final DefaultCommandConfig underTest = DefaultCommandConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getDefaultTimeout())
-                .as(DefaultClaimMessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
+                .as(MessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
         softly.assertThat(underTest.getMaxTimeout())
-                .as(DefaultClaimMessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
+                .as(MessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(60L));
     }
 
     @Test
     public void underTestReturnsValuesOfBaseConfig() {
-        final DefaultClaimMessageConfig underTest = DefaultClaimMessageConfig.of(claimMessageTestConfig);
+        final DefaultCommandConfig underTest = DefaultCommandConfig.of(commandTestConfig);
 
         softly.assertThat(underTest.getDefaultTimeout())
-                .as(DefaultClaimMessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(42L));
+                .as(MessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(33L));
         softly.assertThat(underTest.getMaxTimeout())
-                .as(DefaultClaimMessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(23L));
+                .as(MessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(55L));
     }
 
 }
