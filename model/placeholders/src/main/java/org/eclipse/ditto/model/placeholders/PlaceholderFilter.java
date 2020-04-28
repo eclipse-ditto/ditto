@@ -55,7 +55,7 @@ public final class PlaceholderFilter {
                 .map(id -> apply(id, PlaceholderFactory.newExpressionResolver(headersPlaceholder, headers)))
                 .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());
-        return AuthorizationModelFactory.newAuthContext(subjects);
+        return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), subjects);
     }
 
     /**

@@ -76,6 +76,8 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.search.SubscriptionManager;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -93,6 +95,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionL
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.Done;
 import akka.actor.AbstractFSMWithStash;
@@ -101,8 +104,10 @@ import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
+import akka.stream.ActorMaterializer;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -125,6 +130,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ClientConfig clientConfig;
 
     private final Connection connection;
+    private final ActorRef connectionActor;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
@@ -132,13 +138,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ActorRef messageMappingProcessorActor;
+    private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
-    protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder) {
+    protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
         this.connection = connection;
+        this.connectionActor = connectionActor;
 
         checkNotNull(connection, "connection");
 
@@ -197,6 +206,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
 
         messageMappingProcessorActor = startMessageMappingProcessorActor();
+        subscriptionManager = startSubscriptionManager(this.conciergeForwarder);
 
         initialize();
 
@@ -312,6 +322,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class,
                 (command, data) -> retrieveConnectionMetrics(command))
+                .event(ThingSearchCommand.class, BaseClientData.class, this::forwardThingSearchCommand)
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
                 .event(EnableConnectionLogs.class, BaseClientData.class,
@@ -322,7 +333,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CheckConnectionLogsActive.class, BaseClientData.class,
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
+                .event(Acknowledgement.class, BaseClientData.class, this::handleAcknowledgement)
                 .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Acknowledgement acknowledgement,
+            final BaseClientData baseClientData) {
+
+        log.info("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);
+        connectionActor.forward(acknowledgement, getContext());
+        return stay();
     }
 
     /**
@@ -1126,7 +1146,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
      *
      * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
-     * which will also cause an sideeffect that stores the mapping actor in the local variable {@code
+     * which will also cause a side-effect that stores the mapping actor in the local variable {@code
      * messageMappingProcessorActor}.
      */
     private ActorRef startMessageMappingProcessorActor() {
@@ -1152,9 +1172,33 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
         final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
-                connectionId(), connection.getProcessorPoolSize());
+                connectionId(), connectionActor, connection.getProcessorPoolSize());
 
         return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
+    }
+
+    /**
+     * Start the subscription manager. Requires MessageMappingProcessorActor to be started to work.
+     * Creates an actor materializer.
+     *
+     * @return reference of the subscription manager.
+     */
+    private ActorRef startSubscriptionManager(final ActorRef conciergeForwarder) {
+        final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
+        final ActorMaterializer mat = ActorMaterializer.create(getContext());
+        final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
+                conciergeForwarder, mat);
+        return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> forwardThingSearchCommand(final ThingSearchCommand<?> command,
+            final BaseClientData data) {
+        // Tell subscriptionManager to send search events to messageMappingProcessorActor.
+        // See javadoc of
+        //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
+        // for the message path of the search protocol.
+        subscriptionManager.tell(command, messageMappingProcessorActor);
+        return stay();
     }
 
     protected boolean isDryRun() {

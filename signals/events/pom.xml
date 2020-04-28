@@ -30,6 +30,7 @@
         <module>connectivity</module>
         <module>policies</module>
         <module>things</module>
+        <module>thingsearch</module>
     </modules>
 
     <dependencies>

@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -50,7 +51,8 @@ public final class TreeBasedPolicyEnforcerTest {
         final JsonObject createdJsonView = underTest.buildJsonView(
                 ResourceKey.newInstance("foo", "bar"),
                 JsonFactory.nullObject(),
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("itsMe")),
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("itsMe")),
                 Permissions.none());
 
         final JsonObject expectedJsonView = JsonFactory.nullObject();

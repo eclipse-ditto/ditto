@@ -18,6 +18,13 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
 
 /**
  * Represents the path of a topic for the Ditto Protocol.
@@ -115,6 +122,13 @@ public interface TopicPath {
     Optional<Action> getAction();
 
     /**
+     * Returns an {@link Optional} for an search action part of this {@code TopicPath}.
+     *
+     * @return the search action.
+     */
+    Optional<SearchAction> getSearchAction();
+
+    /**
      * Returns an {@link Optional} for a subject part of this {@code TopicPath}.
      *
      * @return the subject.
@@ -161,8 +175,8 @@ public interface TopicPath {
          * @return the optional Group.
          */
         public static Optional<Group> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -194,7 +208,14 @@ public interface TopicPath {
 
         MESSAGES("messages"),
 
-        ERRORS("errors");
+        ERRORS("errors"),
+
+        /**
+         * Criterion for the topic path of an acknowledgement (ACK).
+         *
+         * @since 1.1.0
+         */
+        ACKS("acks");
 
         private final String name;
 
@@ -210,8 +231,8 @@ public interface TopicPath {
          * @return the optional Criterion.
          */
         public static Optional<Criterion> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -255,8 +276,8 @@ public interface TopicPath {
          * @return the optional Channel.
          */
         public static Optional<Channel> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -309,8 +330,8 @@ public interface TopicPath {
          * @return the optional Action.
          */
         public static Optional<Action> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -318,6 +339,64 @@ public interface TopicPath {
          * Returns the Action name as String.
          *
          * @return the Action name as String.
+         */
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    /**
+     * An enumeration of topic path search-actions.
+     *
+     * @since 1.2.0
+     */
+    enum SearchAction {
+
+
+        SUBSCRIBE(CreateSubscription.NAME),
+
+        CANCEL(CancelSubscription.NAME),
+
+        REQUEST(RequestFromSubscription.NAME),
+
+
+        COMPLETE(SubscriptionComplete.NAME),
+
+        GENERATED(SubscriptionCreated.NAME),
+
+        FAILED(SubscriptionFailed.NAME),
+
+        NEXT(SubscriptionHasNextPage.NAME);
+
+        private final String name;
+
+        SearchAction(final String name) {
+            this.name = name;
+        }
+
+        /**
+         * Creates a SearchAction from the passed SearchAction {@code name} if such an enum value exists, otherwise an empty
+         * Optional.
+         *
+         * @param name the SearchAction name to create the SearchAction enum value of.
+         * @return the optional SearchAction.
+         * @since 1.2.0
+         */
+        public static Optional<SearchAction> forName(final String name) {
+            return Stream.of(values()) //
+                    .filter(a -> Objects.equals(a.getName(), name)) //
+                    .findFirst();
+        }
+
+        /**
+         * Returns the SearchAction name as String.
+         *
+         * @return the SearchAction name as String.
          */
         public String getName() {
             return name;

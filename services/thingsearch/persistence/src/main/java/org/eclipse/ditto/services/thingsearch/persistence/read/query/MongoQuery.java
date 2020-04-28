@@ -82,7 +82,7 @@ public final class MongoQuery implements Query {
     }
 
     @Override
-    public Query withCritera(final Criteria criteria) {
+    public Query withCriteria(final Criteria criteria) {
         return new MongoQuery(criteria, sortOptions, limit, skip);
     }
 

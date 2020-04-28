@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 
 import java.util.concurrent.Executor;
 
-import org.eclipse.ditto.services.gateway.streaming.GatewaySignalEnrichmentConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 

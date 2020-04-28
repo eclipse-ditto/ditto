@@ -36,10 +36,10 @@ import javax.jms.Session;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
@@ -49,7 +49,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -68,7 +69,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private static final Object START_PRODUCER = new Object();
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Session session;
     private final LinkedHashMap<Destination, MessageProducer> dynamicTargets;
@@ -183,7 +184,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
 
-                final ActorRef origin = getSender();
+                final ActorRef sender = getSender();
                 log.debug("Attempt to send message {} with producer {}.", message, producer);
                 producer.send(jmsMessage, new CompletionListener() {
                     @Override
@@ -194,7 +195,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
                     @Override
                     public void onException(final Message messageFailedToSend, final Exception exception) {
-                        handleSendException(message, exception, origin, publishedMonitor);
+                        handleSendException(message, exception, sender, publishedMonitor);
                     }
                 });
             } else {
@@ -202,17 +203,34 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 final String errorMessage = String.format("No producer available for target address '%s'",
                         publishTarget.getJmsDestination());
                 publishedMonitor.exception(message, errorMessage);
-                log.info(errorMessage);
+                log.withCorrelationId(message.getInternalHeaders()).info(errorMessage);
                 final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                         .message(errorMessage)
                         .description("Is the target or reply-to address correct?")
-                        .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
+                        .dittoHeaders(message.getInternalHeaders())
                         .build();
-                getSender().tell(sendFailedException, getSelf());
+                tellSenderForNonTwinEvents(message.getTopicPath().orElse(null), getSender(), sendFailedException);
             }
         } catch (final JMSException e) {
             handleSendException(message, e, getSender(), publishedMonitor);
         }
+    }
+
+    private void tellSenderForNonTwinEvents(@Nullable final TopicPath topicPath, final ActorRef sender,
+            final DittoRuntimeException exception) {
+
+        if (null == topicPath || !isTwinEvent(topicPath)) {
+            sender.tell(exception, getSelf());
+        } else {
+            log.withCorrelationId(exception)
+                    .info("Not sending back encountered DittoRuntimeException as topicPath of to-published " +
+                                    "message <{}> was twin event. {}: {}", topicPath,
+                            exception.getClass().getSimpleName(), exception.getMessage());
+        }
+    }
+
+    private boolean isTwinEvent(final TopicPath tp) {
+        return tp.getChannel() == TopicPath.Channel.TWIN && tp.getCriterion() == TopicPath.Criterion.EVENTS;
     }
 
     private void handleMessageInBackOffMode(final ExternalMessage message, final ConnectionMonitor publishedMonitor,
@@ -220,25 +238,26 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final String errorMessage = String.format("Producer for target address '%s' is in back off mode, as the " +
                 "target configuration seems to contain errors. The message will be dropped.", destination);
         publishedMonitor.exception(message, errorMessage);
-        log.info(errorMessage);
+        log.withCorrelationId(message.getInternalHeaders()).info(errorMessage);
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                 .message(errorMessage)
                 .description("Check if the target or the reply-to configuration is correct.")
-                .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
+                .dittoHeaders(message.getInternalHeaders())
                 .build();
-        getSender().tell(sendFailedException, getSelf());
+        tellSenderForNonTwinEvents(message.getTopicPath().orElse(null), getSender(), sendFailedException);
     }
 
     private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender,
             final ConnectionMonitor publishedMonitor) {
 
-        log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
+        log.withCorrelationId(message.getInternalHeaders())
+                .info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                 .cause(e)
-                .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
+                .dittoHeaders(message.getInternalHeaders())
                 .build();
-        sender.tell(sendFailedException, getSelf());
 
+        tellSenderForNonTwinEvents(message.getTopicPath().orElse(null), sender, sendFailedException);
         monitorSendFailure(message, sendFailedException, publishedMonitor);
     }
 

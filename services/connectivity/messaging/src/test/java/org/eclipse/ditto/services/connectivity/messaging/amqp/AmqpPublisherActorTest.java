@@ -94,7 +94,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
 
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing").build();
             final ThingEvent thingEvent = ThingDeleted.of(TestConstants.Things.THING_ID, 25L, dittoHeaders);
             final Target target = decorateTarget(createTestTarget());
             final OutboundSignal outboundSignal =
@@ -273,7 +274,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
         final Message message = messageCaptor.getValue();
 
-        assertThat(message.getStringProperty("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(message.getJMSCorrelationID()).isEqualTo(TestConstants.CORRELATION_ID);
         assertThat(message.getStringProperty("mappedHeader2")).isEqualTo("thing:id");
     }
 

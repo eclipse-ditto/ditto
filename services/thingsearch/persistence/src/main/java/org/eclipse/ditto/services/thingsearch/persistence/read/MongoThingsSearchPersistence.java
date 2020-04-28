@@ -67,6 +67,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
+import com.mongodb.reactivestreams.client.FindPublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -96,6 +97,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      *
      * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Akka ActorSystem.
+     * @since 1.0.0
      */
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
@@ -200,6 +202,33 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
             @Nullable final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces) {
 
+        final int skip = query.getSkip();
+        final int limit = query.getLimit();
+        final int limitPlusOne = limit + 1;
+
+        return findAllInternal(query, authorizationSubjectIds, namespaces, limitPlusOne, maxQueryTime)
+                .grouped(limitPlusOne)
+                .orElse(Source.single(Collections.emptyList()))
+                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions()))
+                .mapError(handleMongoExecutionTimeExceededException())
+                .log("findAll");
+    }
+
+    @Override
+    public Source<ThingId, NotUsed> findAllUnlimited(final Query query, final List<String> authorizationSubjectIds,
+            @Nullable final Set<String> namespaces) {
+
+        final Integer limit = query.getLimit() == Integer.MAX_VALUE ? null : query.getLimit();
+        return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null)
+                .map(MongoThingsSearchPersistence::toId)
+                .idleTimeout(maxQueryTime);
+    }
+
+    private Source<Document, NotUsed> findAllInternal(final Query query, final List<String> authorizationSubjectIds,
+            @Nullable final Set<String> namespaces,
+            @Nullable final Integer limit,
+            @Nullable final Duration maxQueryTime) {
+
         checkNotNull(query, "query");
 
         final BsonDocument queryFilter = getMongoFilter(query, authorizationSubjectIds);
@@ -209,24 +238,22 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
         final Bson sortOptions = getMongoSort(query);
 
-        final int limit = query.getLimit();
         final int skip = query.getSkip();
-        final int limitPlusOne = limit + 1;
         final Bson projection = GetSortBsonVisitor.projections(query.getSortOptions());
-
-        return Source.fromPublisher(
+        final FindPublisher<Document> findPublisher =
                 collection.find(queryFilter, Document.class)
                         .hint(hints.getHint(namespaces).orElse(null))
                         .sort(sortOptions)
-                        .limit(limitPlusOne)
                         .skip(skip)
-                        .projection(projection)
-                        .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS))
-                .grouped(limitPlusOne)
-                .orElse(Source.single(Collections.emptyList()))
-                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions()))
-                .mapError(handleMongoExecutionTimeExceededException())
-                .log("findAll");
+                        .projection(projection);
+        final FindPublisher<Document> findPublisherWithLimit = limit != null
+                ? findPublisher.limit(limit)
+                : findPublisher;
+        final FindPublisher<Document> findPublisherWithMaxQueryTime = maxQueryTime != null
+                ? findPublisherWithLimit.maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS)
+                : findPublisherWithLimit;
+
+        return Source.fromPublisher(findPublisherWithMaxQueryTime);
     }
 
     @Override
@@ -269,9 +296,12 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private static List<ThingId> toIds(final List<Document> docs) {
         return docs.stream()
-                .map(doc -> doc.getString(FIELD_ID))
-                .map(ThingId::of)
+                .map(MongoThingsSearchPersistence::toId)
                 .collect(Collectors.toList());
+    }
+
+    private static ThingId toId(final Document doc) {
+        return ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
     }
 
     private static BsonDocument getMongoFilter(final Query query,

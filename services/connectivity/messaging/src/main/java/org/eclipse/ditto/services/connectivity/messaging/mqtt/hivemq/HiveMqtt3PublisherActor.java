@@ -28,8 +28,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -109,7 +109,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
             return MqttQos.AT_MOST_ONCE;
         } else {
             final int qos = target.getQos().orElse(DEFAULT_TARGET_QOS);
-            return MqttValidator.getHiveQoS(qos);
+            return AbstractMqttValidator.getHiveQoS(qos);
         }
     }
 

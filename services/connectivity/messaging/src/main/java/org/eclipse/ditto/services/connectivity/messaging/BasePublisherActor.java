@@ -56,6 +56,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.event.DiagnosticLoggingAdapter;
@@ -109,7 +110,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ReceiveBuilder receiveBuilder = receiveBuilder();
         preEnhancement(receiveBuilder);
 
-        receiveBuilder.match(OutboundSignal.Mapped.class, BasePublisherActor::isResponseOrError,
+        receiveBuilder.match(OutboundSignal.Mapped.class, BasePublisherActor::isResponseOrErrorOrSearchEvent,
                 outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
@@ -254,13 +255,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected abstract DiagnosticLoggingAdapter log();
 
     /**
-     * Checks whether the passed in {@code outboundSignal} is a response or an error.
+     * Checks whether the passed in {@code outboundSignal} is a response or an error or a search event.
+     * Those messages are supposed to be published at the reply target of the source whence the original command came.
      *
      * @param outboundSignal the OutboundSignal to check.
      * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
      */
-    private static boolean isResponseOrError(final OutboundSignal.Mapped outboundSignal) {
-        return outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError();
+    private static boolean isResponseOrErrorOrSearchEvent(final OutboundSignal.Mapped outboundSignal) {
+        return outboundSignal.getExternalMessage().isResponse() ||
+                outboundSignal.getExternalMessage().isError() ||
+                outboundSignal.getSource() instanceof SubscriptionEvent;
     }
 
     /**

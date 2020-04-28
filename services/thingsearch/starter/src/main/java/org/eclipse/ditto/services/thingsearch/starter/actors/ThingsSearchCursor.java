@@ -25,6 +25,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -65,6 +66,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.JsonToBs
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -273,7 +275,7 @@ final class ThingsSearchCursor {
      * @return a new query object starting at the location of this cursor.
      */
     private Query adjustQuery(final Query query, final CriteriaFactory cf) {
-        return query.withCritera(cf.and(Arrays.asList(query.getCriteria(),
+        return query.withCriteria(cf.and(Arrays.asList(query.getCriteria(),
                 getNextPageFilter(query.getSortOptions(), values, cf))));
     }
 
@@ -380,7 +382,7 @@ final class ThingsSearchCursor {
     static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final QueryThings queryThings,
             final ActorMaterializer materializer) {
 
-        try {
+        return catchExceptions(queryThings.getDittoHeaders(), () -> {
             final List<Option> options = getOptions(queryThings);
             final List<CursorOption> cursorOptions = findAll(CursorOption.class, options);
             final List<LimitOption> limitOptions = findAll(LimitOption.class, options);
@@ -400,11 +402,41 @@ final class ThingsSearchCursor {
                                 .<Source<Optional<ThingsSearchCursor>, NotUsed>>map(Source::failed)
                                 .orElse(Source.single(Optional.of(cursor))));
             }
+        });
+    }
+
+    static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final StreamThings streamThings) {
+        return catchExceptions(streamThings.getDittoHeaders(), () -> {
+            final Optional<JsonArray> sortValuesOptional = streamThings.getSortValues();
+            if (sortValuesOptional.isEmpty()) {
+                return Source.single(Optional.empty());
+            }
+            final JsonArray sortValues = sortValuesOptional.get();
+            final List<Option> options = streamThings.getSort().map(RqlOptionParser::parseOptions).orElseGet(List::of);
+            final SortOption sortOption = findUniqueSortOption(options);
+            if (sortValues.getSize() != sortOption.getSize()) {
+                return Source.failed(
+                        invalidCursor("sort option and sort values have different dimensions", streamThings));
+            }
+            final ThingsSearchCursor cursor = new ThingsSearchCursor(streamThings.getNamespaces().orElse(null),
+                    streamThings.getDittoHeaders().getCorrelationId().orElse(null),
+                    sortOption,
+                    streamThings.getFilter().orElse(null),
+                    sortValues
+            );
+            return Source.single(Optional.of(cursor));
+        });
+    }
+
+    private static <T> Source<T, NotUsed> catchExceptions(final DittoHeaders dittoHeaders,
+            final Supplier<Source<T, NotUsed>> sourceSupplier) {
+        try {
+            return sourceSupplier.get();
         } catch (final ParserException | IllegalArgumentException e) {
             return Source.failed(InvalidRqlExpressionException.newBuilder()
                     .message(e.getMessage())
                     .cause(e)
-                    .dittoHeaders(queryThings.getDittoHeaders())
+                    .dittoHeaders(dittoHeaders)
                     .build());
         } catch (final Throwable error) {
             return Source.failed(error);

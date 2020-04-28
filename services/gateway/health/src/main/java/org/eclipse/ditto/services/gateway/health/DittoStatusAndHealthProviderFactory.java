@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.health;
 
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.status.StatusHealthSupplier;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplier;

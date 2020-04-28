@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -69,6 +70,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
     protected static ActorSystem actorSystem;
     protected static ProtocolAdapterProvider protocolAdapterProvider;
+    protected TestProbe connectionActorProbe;
 
     @Rule
     public TestName name = new TestName();
@@ -77,6 +79,11 @@ public abstract class AbstractConsumerActorTest<M> {
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
+    }
+
+    @Before
+    public void init() {
+        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
     }
 
     @AfterClass
@@ -241,7 +248,7 @@ public abstract class AbstractConsumerActorTest<M> {
                         connectivityConfig, protocolAdapterProvider, logger);
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
-                        CONNECTION_ID, 43);
+                        CONNECTION_ID, connectionActorProbe.ref(), 43);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

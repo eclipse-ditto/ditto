@@ -57,6 +57,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -200,11 +201,11 @@ public final class TestConstants {
 
     public static final Instant INSTANT = Instant.now();
 
-    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
+    public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
         return dummyDittoProtocolSub(pubSubMediator, null);
     }
 
-    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator,
+    public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator,
             @Nullable final DittoProtocolSub delegate) {
         return new DittoProtocolSub() {
             @Override
@@ -257,19 +258,20 @@ public final class TestConstants {
 
     public static final class Authorization {
 
-        static final String SUBJECT_ID = "some:subject";
-        static final String SOURCE_SUBJECT_ID = "source:subject";
-        static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
-        static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
-        static final AuthorizationSubject SOURCE_SUBJECT = AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID);
-        static final AuthorizationSubject UNAUTHORIZED_SUBJECT =
+        public static final String SUBJECT_ID = "some:subject";
+        public static final String SOURCE_SUBJECT_ID = "source:subject";
+        public static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
+        public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
+        public static final AuthorizationSubject SOURCE_SUBJECT = AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID);
+        public static final AuthorizationSubject UNAUTHORIZED_SUBJECT =
                 AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID);
 
-        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(SUBJECT);
+        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SUBJECT);
         public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
-                SOURCE_SUBJECT);
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SOURCE_SUBJECT);
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-                UNAUTHORIZED_SUBJECT);
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, UNAUTHORIZED_SUBJECT);
 
 
         public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
@@ -280,7 +282,7 @@ public final class TestConstants {
                     .map(AuthorizationSubject::newInstance)
                     .forEach(mergedSubjects::add);
 
-            return AuthorizationModelFactory.newAuthContext(mergedSubjects);
+            return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), mergedSubjects);
         }
 
     }
@@ -755,7 +757,7 @@ public final class TestConstants {
         return new HashSet<>(asList(array));
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef conciergeForwarder,
             final DittoProtocolSub dittoProtocolSub) {
@@ -763,7 +765,7 @@ public final class TestConstants {
                 mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -772,7 +774,7 @@ public final class TestConstants {
                 clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder) {
@@ -781,7 +783,7 @@ public final class TestConstants {
                 mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory,

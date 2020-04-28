@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 
 /**
  * Placeholder implementation that replaces {@code entity:id}, {@code entity:namespace} and {@code entity:name}. The
@@ -44,6 +45,11 @@ final class ImmutableEntityPlaceholder extends AbstractEntityPlaceholder<Namespa
     public Optional<String> resolve(final CharSequence entityId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(entityId, "Entity ID");
-        return doResolve(DefaultNamespacedEntityId.of(entityId), placeholder);
+        try {
+            return doResolve(DefaultNamespacedEntityId.of(entityId), placeholder);
+        } catch (final NamespacedEntityIdInvalidException e) {
+            // not a namespaced entity ID; does not resolve.
+            return Optional.empty();
+        }
     }
 }

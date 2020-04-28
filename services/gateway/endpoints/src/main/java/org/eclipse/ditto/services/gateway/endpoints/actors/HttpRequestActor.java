@@ -15,7 +15,8 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
@@ -34,9 +35,10 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig) {
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig) {
 
-        super(proxyActor, headerTranslator, request, httpResponseFuture, httpConfig);
+        super(proxyActor, headerTranslator, request, httpResponseFuture, httpConfig, commandConfig);
     }
 
     /**
@@ -49,16 +51,18 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
      * @param request the HTTP request
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
      * @return the configuration object.
      */
     public static Props props(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig) {
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig) {
 
         return Props.create(HttpRequestActor.class, proxyActor, headerTranslator, request, httpResponseFuture,
-                httpConfig);
+                httpConfig, commandConfig);
     }
 
 }

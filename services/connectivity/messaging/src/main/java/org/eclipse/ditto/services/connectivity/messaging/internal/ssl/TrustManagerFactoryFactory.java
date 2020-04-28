@@ -73,7 +73,13 @@ public final class TrustManagerFactoryFactory {
 
     public TrustManagerFactory newTrustManagerFactory(final Connection connection) {
         final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+        final TrustManagerFactory factory =
+                exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+        if (connection.isValidateCertificates()) {
+            return factory;
+        } else {
+            return AcceptAnyTrustManager.factory(factory);
+        }
     }
 
     public TrustManagerFactory newInsecureTrustManagerFactory() {

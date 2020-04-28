@@ -39,6 +39,7 @@ public final class ImmutableJsonifiableAdaptableTest {
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/myThing/things/twin/commands/modify";
     private static final JsonObject KNOWN_HEADERS = JsonObject.newBuilder()
             .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), "cor-id")
+            .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), true)
             .build();
 
     private static final JsonPointer KNOWN_PATH = JsonPointer.empty();

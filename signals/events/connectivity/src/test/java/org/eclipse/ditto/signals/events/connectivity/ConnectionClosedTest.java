@@ -54,7 +54,7 @@ public final class ConnectionClosedTest {
     public void createInstanceWithNullConnectionIdString() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectionClosed.of((String) null, DittoHeaders.empty()))
-                .withMessage("The ID must not be null!")
+                .withMessage("The entityId must not be null!")
                 .withNoCause();
     }
 

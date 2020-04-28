@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 import akka.http.javadsl.server.Route;
 
@@ -29,7 +30,7 @@ public interface CustomApiRoutesProvider {
      * @param correlationId the correlation ID.
      * @return custom route for unauthorized access.
      */
-    Route unauthorized(int apiVersion, CharSequence correlationId);
+    Route unauthorized(JsonSchemaVersion apiVersion, CharSequence correlationId);
 
     /**
      * Provides a custom route for authorized access.

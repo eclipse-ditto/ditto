@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -111,7 +111,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         this.serializerName = serializerName;
 
         mappingStrategies = MappingStrategies.loadMappingStrategies(actorSystem);
-        this.manifestProvider = requireNonNull(manifestProvider, "manifest provider");
+        this.manifestProvider = checkNotNull(manifestProvider, "manifestProvider");
 
         final ActorSystem.Settings settings = actorSystem.settings();
         final Config config = settings.config();
@@ -257,12 +257,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
-        final Optional<MappingStrategy> mappingStrategy = this.mappingStrategies.getMappingStrategyFor(manifest);
-
-        if (mappingStrategy.isEmpty()) {
-            LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
-            throw new NotSerializableException(manifest);
-        }
+        final MappingStrategy mappingStrategy = mappingStrategies.getMappingStrategy(manifest)
+                .orElseThrow(() -> {
+                    LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
+                    return new NotSerializableException(manifest);
+                });
 
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
 
@@ -285,7 +284,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .map(DittoHeaders::newBuilder)
                 .orElseGet(DittoHeaders::newBuilder);
 
-        return mappingStrategy.get().map(payload, dittoHeadersBuilder.build());
+        return mappingStrategy.map(payload, dittoHeadersBuilder.build());
     }
 
     /**

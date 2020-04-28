@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.messages;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
@@ -82,13 +82,6 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public Optional<Duration> getTimeout() {
-        return getStringForDefinition(MessageHeaderDefinition.TIMEOUT)
-                .map(Long::parseLong)
-                .map(Duration::ofSeconds);
-    }
-
-    @Override
     public Optional<OffsetDateTime> getTimestamp() {
         return getStringForDefinition(MessageHeaderDefinition.TIMESTAMP).map(OffsetDateTime::parse);
     }
@@ -102,7 +95,12 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
 
     @Override
     protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
-        return MessageHeaderDefinition.forKey(key);
+        // keep the order to guarantee proper result because of timeout definitions
+        Optional<HeaderDefinition> result = DittoHeaderDefinition.forKey(key);
+        if (!result.isPresent()) {
+            result = MessageHeaderDefinition.forKey(key);
+        }
+        return result;
     }
 
     @Override

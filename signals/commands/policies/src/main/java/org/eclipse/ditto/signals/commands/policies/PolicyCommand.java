@@ -14,9 +14,12 @@ package org.eclipse.ditto.signals.commands.policies;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -25,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
+public interface PolicyCommand<T extends PolicyCommand> extends Command<T>, WithEntityType {
 
     /**
      * Type Prefix of Policy commands.
@@ -35,7 +38,7 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
     /**
      * Policy resource type.
      */
-    String RESOURCE_TYPE = "policy";
+    String RESOURCE_TYPE = PolicyConstants.ENTITY_TYPE.toString();
 
     @Override
     default String getTypePrefix() {
@@ -62,6 +65,17 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    /**
+     * Returns the entity type {@link PolicyConstants#ENTITY_TYPE}.
+     *
+     * @return the Policy entity type.
+     * @since 1.1.0
+     */
+    @Override
+    default EntityType getEntityType() {
+        return PolicyConstants.ENTITY_TYPE;
+    }
 
     /**
      * This class contains definitions for all specific fields of a {@code PolicyCommand}'s JSON representation.

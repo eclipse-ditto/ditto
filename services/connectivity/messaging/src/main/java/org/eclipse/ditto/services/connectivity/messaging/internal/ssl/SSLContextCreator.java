@@ -84,8 +84,13 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      */
     public static SSLContextCreator fromConnection(final Connection connection,
             @Nullable final DittoHeaders dittoHeaders) {
-        final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-        return of(trustedCertificates, dittoHeaders, connection.getHostname());
+        final boolean isValidateCertificates = connection.isValidateCertificates();
+        if (isValidateCertificates) {
+            final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
+            return of(trustedCertificates, dittoHeaders, connection.getHostname());
+        } else {
+            return withTrustManager(new AcceptAnyTrustManager(), dittoHeaders);
+        }
     }
 
     /**

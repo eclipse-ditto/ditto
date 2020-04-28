@@ -42,6 +42,7 @@ public final class TraceUtils {
 
     /**
      * Prepares an {@link ExpiringTimerBuilder} with default {@link #HTTP_ROUNDTRIP_METRIC_NAME} and tags.
+     *
      * @param request The request to extract tags and request method.
      * @return The prepared {@link ExpiringTimerBuilder}
      */
@@ -58,6 +59,7 @@ public final class TraceUtils {
 
     /**
      * Prepares an {@link ExpiringTimerBuilder} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
+     *
      * @param command The command to extract tags.
      * @return The prepared {@link ExpiringTimerBuilder}
      */
@@ -70,6 +72,7 @@ public final class TraceUtils {
 
     /**
      * Prepares an {@link ExpiringTimerBuilder} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
+     *
      * @param command The command to extract tags.
      * @return The prepared {@link ExpiringTimerBuilder}
      */
@@ -85,20 +88,23 @@ public final class TraceUtils {
 
     /**
      * Prepares an {@link ExpiringTimerBuilder} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
+     *
      * @param authenticationType The name of the authentication type (i.e. jwt, ..)
      * @return The prepared {@link ExpiringTimerBuilder}
      */
-    public static ExpiringTimerBuilder newAuthFilterTimer(final String authenticationType) {
+    public static ExpiringTimerBuilder newAuthFilterTimer(final CharSequence authenticationType) {
         return newAuthFilterTimer(authenticationType, new HashMap<>());
     }
 
     /**
      * Prepares an {@link ExpiringTimerBuilder} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
+     *
      * @param authenticationType The name of the authentication type (i.e. jwt,...)
      * @param request The HttpRequest used to extract required tags.
      * @return The prepared {@link ExpiringTimerBuilder}
      */
-    public static ExpiringTimerBuilder newAuthFilterTimer(final String authenticationType, final HttpRequest request) {
+    public static ExpiringTimerBuilder newAuthFilterTimer(final CharSequence authenticationType,
+            final HttpRequest request) {
         final String requestPath = request.getUri().toRelative().path();
 
         final TraceInformation traceInformation = determineTraceInformation(requestPath);
@@ -106,7 +112,7 @@ public final class TraceUtils {
         return newAuthFilterTimer(authenticationType, traceInformation.getTags());
     }
 
-    private static ExpiringTimerBuilder newAuthFilterTimer(final String authenticationType,
+    private static ExpiringTimerBuilder newAuthFilterTimer(final CharSequence authenticationType,
             final Map<String, String> requestTags) {
 
         Map<String, String> defaultTags = new HashMap<>();
@@ -116,7 +122,7 @@ public final class TraceUtils {
         return newExpiringTimer(FILTER_AUTH_METRIC_NAME)
                 .tags(requestTags)
                 .tags(defaultTags)
-                .tag(TracingTags.AUTH_TYPE, authenticationType)
+                .tag(TracingTags.AUTH_TYPE, authenticationType.toString())
                 .expirationHandling(expiredTimer ->
                         expiredTimer
                                 .tag(TracingTags.AUTH_SUCCESS, false)

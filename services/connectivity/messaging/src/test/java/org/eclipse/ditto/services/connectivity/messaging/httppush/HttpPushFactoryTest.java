@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
@@ -269,7 +270,7 @@ public final class HttpPushFactoryTest {
                 ConnectionType.HTTP_PUSH,
                 ConnectivityStatus.OPEN,
                 "http://127.0.0.1:" + binding.localAddress().getPort())
-                .targets(singletonList(HttpPushClientActorTest.TARGET))
+                .targets(singletonList(AbstractBaseClientActorTest.HTTP_TARGET))
                 .build();
     }
 

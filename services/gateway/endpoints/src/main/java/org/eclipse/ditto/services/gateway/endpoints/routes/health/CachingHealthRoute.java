@@ -22,7 +22,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.PublicHealthConfig;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter.adaptables;
 
+import org.eclipse.ditto.signals.base.ErrorRegistry;
+
 /**
  * Factory class to get instances of all {@link MappingStrategies}.
  */
@@ -49,8 +51,17 @@ public final class MappingStrategiesFactory {
         return ThingQueryCommandResponseMappingStrategies.getInstance();
     }
 
+    public static ThingSearchCommandMappingStrategies getThingSearchCommandMappingStrategies() {
+        return ThingSearchCommandMappingStrategies.getInstance();
+    }
+
     public static ThingEventMappingStrategies getThingEventMappingStrategies() {
         return ThingEventMappingStrategies.getInstance();
+    }
+
+    public static SubscriptionEventMappingStrategies getSubscriptionEventMappingStrategies(
+            final ErrorRegistry<?> errorRegistry) {
+        return SubscriptionEventMappingStrategies.getInstance(errorRegistry);
     }
 
     public static MessageCommandMappingStrategies getMessageCommandMappingStrategies() {
