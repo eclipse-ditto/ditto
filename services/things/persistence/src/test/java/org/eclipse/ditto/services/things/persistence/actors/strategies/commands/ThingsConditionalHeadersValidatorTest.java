@@ -28,11 +28,13 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.assertj.core.api.ThrowableAssertAlternative;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.Command.Category;
@@ -67,7 +69,7 @@ public class ThingsConditionalHeadersValidatorTest {
         final String ifMatchHeaderValue = "\"rev:1\"";
         final String ifNoneMatchHeaderValue = "\"rev:2\"";
         final EntityTag actualEntityTag = EntityTag.fromString("\"rev:1\"");
-        final Command commandMock = createCommandMock(MODIFY, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
+        final Command commandMock = createCommandMock(MODIFY, ifMatchHeaderValue, ifNoneMatchHeaderValue);
 
         SUT.checkConditionalHeaders(commandMock, actualEntityTag);
     }
@@ -127,50 +129,58 @@ public class ThingsConditionalHeadersValidatorTest {
         final String expectedMessage =
                 format(IF_NONE_MATCH_NOT_MODIFIED_MESSAGE_PATTERN, ifNoneMatchHeaderValue, actualEntityTag);
 
-        assertNotModified(ifMatchHeaderValue, ifNoneMatchHeaderValue, actualEntityTag, expectedMessage, null);
+        assertNotModified(ifMatchHeaderValue, ifNoneMatchHeaderValue, actualEntityTag, expectedMessage);
     }
 
     @Test
     public void assertNotThrowingNotModifiedWhenSelectedFieldsContainsPolicy() {
-        final String ifMatchHeaderValue = "\"rev:1\"";
         final String ifNoneMatchHeaderValue = "\"rev:1\"";
         final EntityTag actualEntityTag = EntityTag.fromString("\"rev:1\"");
 
-        final Command commandMockWithPolicy =
-                createCommandMock(QUERY, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
-        when(commandMockWithPolicy.toJson()).thenReturn(JsonObject.of("{\"selectedFields\":\"_policy\"}"));
+        final SudoRetrieveThing retrieveThing = createRetrieveThingCommand(ifNoneMatchHeaderValue, "_policy");
 
-        SUT.checkConditionalHeaders(commandMockWithPolicy, actualEntityTag);
+        SUT.checkConditionalHeaders(retrieveThing, actualEntityTag);
     }
 
     @Test
     public void assertThrowingNotModifiedWhenSelectedFieldDoesNotContainPolicy() {
-        final String ifMatchHeaderValue = "\"rev:1\"";
         final String ifNoneMatchHeaderValue = "\"rev:1\"";
         final EntityTag actualEntityTag = EntityTag.fromString("\"rev:1\"");
         final String expectedMessage =
                 format(IF_NONE_MATCH_NOT_MODIFIED_MESSAGE_PATTERN, ifNoneMatchHeaderValue, actualEntityTag);
 
-        JsonObject selectedFields = JsonObject.of("{\"selectedFields\":\"policyId\"}");
+        final SudoRetrieveThing retrieveThing = createRetrieveThingCommand(ifNoneMatchHeaderValue, "_revision");
 
-        assertNotModified(ifMatchHeaderValue, ifNoneMatchHeaderValue, actualEntityTag, expectedMessage, selectedFields);
+        final ThrowableAssertAlternative<ThingPreconditionNotModifiedException> assertion =
+                assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
+                        .isThrownBy(() -> SUT.checkConditionalHeaders(retrieveThing, actualEntityTag))
+                        .withMessage(expectedMessage);
+
+        assertion.satisfies(exception -> assertETagHeaderInDre(exception, actualEntityTag));
+    }
+
+    private SudoRetrieveThing createRetrieveThingCommand(final String ifNoneMatchHeaderValue, final String selectedFields) {
+
+        final JsonFieldSelector fieldSelector = JsonFieldSelector.newInstance(selectedFields);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .ifNoneMatch(EntityTagMatchers.fromCommaSeparatedString(ifNoneMatchHeaderValue))
+                .build();
+
+        return SudoRetrieveThing.of(ThingId.of("underTest:thingId"), fieldSelector, dittoHeaders);
+
     }
 
     private Command createCommandMock(final Category commandCategory, final String ifMatchHeaderValue,
-            final String ifNoneMatchHeaderValue, final @Nullable JsonObject selectedFields) {
+            final String ifNoneMatchHeaderValue) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .ifMatch(EntityTagMatchers.fromCommaSeparatedString(ifMatchHeaderValue))
                 .ifNoneMatch(EntityTagMatchers.fromCommaSeparatedString(ifNoneMatchHeaderValue))
                 .build();
-        final Command commandMock = mock(Command.class);
+        final Command commandMock;
+
+        commandMock = mock(Command.class);
         when(commandMock.getDittoHeaders()).thenReturn(dittoHeaders);
         when(commandMock.getCategory()).thenReturn(commandCategory);
-
-        if (Optional.ofNullable(selectedFields).isPresent()) {
-            when(commandMock.toJson()).thenReturn(Optional.of(selectedFields).get());
-        } else {
-            when(commandMock.toJson()).thenReturn(JsonObject.empty());
-        }
 
         return commandMock;
     }
@@ -180,7 +190,7 @@ public class ThingsConditionalHeadersValidatorTest {
         final String ifNoneMatchHeaderValue = "\"rev:1\"";
         final EntityTag actualEntityTag = null;
         final Command commandMock =
-                createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
+                createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue);
 
         SUT.checkConditionalHeaders(commandMock, actualEntityTag);
     }
@@ -196,7 +206,7 @@ public class ThingsConditionalHeadersValidatorTest {
             final String ifNoneMatchHeaderValue, @Nullable final EntityTag actualEntityTag,
             final Category commandCategory, final String expectedMessage) {
         final Command commandMock =
-                createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
+                createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue);
 
         final ThrowableAssertAlternative<ThingPreconditionFailedException> assertion =
                 assertThatExceptionOfType(ThingPreconditionFailedException.class)
@@ -212,8 +222,9 @@ public class ThingsConditionalHeadersValidatorTest {
 
     private void assertNotModified(final String ifMatchHeaderValue,
             final String ifNoneMatchHeaderValue, @Nullable final EntityTag actualEntityTag,
-            final String expectedMessage, final @Nullable JsonObject selectedFields) {
-        final Command commandMock = createCommandMock(QUERY, ifMatchHeaderValue, ifNoneMatchHeaderValue, selectedFields);
+            final String expectedMessage) {
+        final Command commandMock =
+                createCommandMock(QUERY, ifMatchHeaderValue, ifNoneMatchHeaderValue);
 
         final ThrowableAssertAlternative<ThingPreconditionNotModifiedException> assertion =
                 assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)

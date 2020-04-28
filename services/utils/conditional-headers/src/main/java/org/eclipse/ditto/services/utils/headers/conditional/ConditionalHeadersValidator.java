@@ -136,7 +136,7 @@ public final class ConditionalHeadersValidator {
         } else if (command instanceof SudoRetrieveThings) {
             selectedFields = ((SudoRetrieveThings) command).getSelectedFields().orElse(null);
         } else {
-            selectedFields = null;
+            return false;
         }
 
         if (selectedFields != null) {
@@ -144,6 +144,7 @@ public final class ConditionalHeadersValidator {
         }
 
         return false;
+
     }
 
     private boolean containsExemptedField(final Set<JsonPointer> selectedFields) {
