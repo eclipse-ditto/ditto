@@ -21,15 +21,18 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+
 
 /**
  * Checks conditional (http) headers based on a given ETag. Has to be configured with {@link ValidationSettings}.
@@ -114,27 +117,37 @@ public final class ConditionalHeadersValidator {
             currentETagValue) {
         return currentETagValue == null &&
                 (Command.Category.DELETE.equals(command.getCategory()) ||
-                        Command.Category.QUERY.equals(command.getCategory())) || skipDueToRelation(command);
+                        Command.Category.QUERY.equals(command.getCategory())) || skipExemptedFields(command);
     }
 
     /**
      * Skip precondition check if the selected fields contain exempted fields (e.g. {@code _policy} for things
      * because the revision of a thing does not change if its policy is updated).
      */
-    private boolean skipDueToRelation(final Command command) {
-        return command.toJson().getValue(SELECTED_FIELDS)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
-                        .withoutUrlDecoding()
-                        .build()))
-                .map(JsonFieldSelector::getPointers)
-                .map(this::containsExemptedField)
-                .orElse(false);
+    private boolean skipExemptedFields(final Command command) {
+
+        @Nullable JsonFieldSelector selectedFields;
+        if (command instanceof RetrieveThing) {
+            selectedFields = ((RetrieveThing) command).getSelectedFields().orElse(null);
+        } else if (command instanceof RetrieveThings) {
+            selectedFields = ((RetrieveThings) command).getSelectedFields().orElse(null);
+        } else if (command instanceof SudoRetrieveThing) {
+            selectedFields = ((SudoRetrieveThing) command).getSelectedFields().orElse(null);
+        } else if (command instanceof SudoRetrieveThings) {
+            selectedFields = ((SudoRetrieveThings) command).getSelectedFields().orElse(null);
+        } else {
+            selectedFields = null;
+        }
+
+        if (selectedFields != null) {
+            return this.containsExemptedField(selectedFields.getPointers());
+        }
+
+        return false;
     }
 
     private boolean containsExemptedField(final Set<JsonPointer> selectedFields) {
-        final HashSet<JsonPointer> result = new HashSet<>(EXEMPTED_FIELDS);
+        final Set<JsonPointer> result = new HashSet<>(EXEMPTED_FIELDS);
         result.retainAll(selectedFields);
         return !result.isEmpty();
     }
