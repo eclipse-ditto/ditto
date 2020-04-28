@@ -197,6 +197,13 @@
                 </executions>
             </plugin>
         </plugins>
+        <extensions>
+            <extension>
+                <groupId>org.torquebox.mojo</groupId>
+                <artifactId>mavengem-wagon</artifactId>
+                <version>1.0.3</version>
+            </extension>
+        </extensions>
     </build>
 
     <!-- Jekyll Linux Build -->
@@ -205,17 +212,8 @@
             <id>build-documentation</id>
             <repositories>
                 <repository>
-                    <id>rubygems-proxy</id>
-                    <name>Rubygems Proxy</name>
-                    <url>http://rubygems-proxy.torquebox.org/releases</url>
-                    <layout>default</layout>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                        <updatePolicy>never</updatePolicy>
-                    </snapshots>
+                    <id>mavengems</id>
+                    <url>mavengem:https://rubygems.org</url>
                 </repository>
             </repositories>
             <dependencies>
@@ -298,17 +296,8 @@
             <id>validate-documentation</id>
             <repositories>
                 <repository>
-                    <id>rubygems-proxy</id>
-                    <name>Rubygems Proxy</name>
-                    <url>http://rubygems-proxy.torquebox.org/releases</url>
-                    <layout>default</layout>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                        <updatePolicy>never</updatePolicy>
-                    </snapshots>
+                    <id>mavengems</id>
+                    <url>mavengem:https://rubygems.org</url>
                 </repository>
             </repositories>
             <dependencyManagement>
