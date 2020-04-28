@@ -34,12 +34,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.Command.Category;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModifiedException;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.Test;
 
 /**
@@ -137,7 +137,7 @@ public class ThingsConditionalHeadersValidatorTest {
         final String ifNoneMatchHeaderValue = "\"rev:1\"";
         final EntityTag actualEntityTag = EntityTag.fromString("\"rev:1\"");
 
-        final SudoRetrieveThing retrieveThing = createRetrieveThingCommand(ifNoneMatchHeaderValue, "_policy");
+        final RetrieveThing retrieveThing = createRetrieveThingCommand(ifNoneMatchHeaderValue, "_policy");
 
         SUT.checkConditionalHeaders(retrieveThing, actualEntityTag);
     }
@@ -149,7 +149,7 @@ public class ThingsConditionalHeadersValidatorTest {
         final String expectedMessage =
                 format(IF_NONE_MATCH_NOT_MODIFIED_MESSAGE_PATTERN, ifNoneMatchHeaderValue, actualEntityTag);
 
-        final SudoRetrieveThing retrieveThing = createRetrieveThingCommand(ifNoneMatchHeaderValue, "_revision");
+        final RetrieveThing retrieveThing = createRetrieveThingCommand(ifNoneMatchHeaderValue, "_revision");
 
         final ThrowableAssertAlternative<ThingPreconditionNotModifiedException> assertion =
                 assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
@@ -159,14 +159,14 @@ public class ThingsConditionalHeadersValidatorTest {
         assertion.satisfies(exception -> assertETagHeaderInDre(exception, actualEntityTag));
     }
 
-    private SudoRetrieveThing createRetrieveThingCommand(final String ifNoneMatchHeaderValue, final String selectedFields) {
+    private RetrieveThing createRetrieveThingCommand(final String ifNoneMatchHeaderValue, final String selectedFields) {
 
         final JsonFieldSelector fieldSelector = JsonFieldSelector.newInstance(selectedFields);
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromCommaSeparatedString(ifNoneMatchHeaderValue))
                 .build();
 
-        return SudoRetrieveThing.of(ThingId.of("underTest:thingId"), fieldSelector, dittoHeaders);
+        return RetrieveThing.getBuilder(ThingId.of("under:test"), dittoHeaders).withSelectedFields(fieldSelector).build();
 
     }
 

@@ -27,8 +27,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -73,7 +71,6 @@ public final class ConditionalHeadersValidator {
     private final ValidationSettings validationSettings;
 
     private static final Set<JsonPointer> EXEMPTED_FIELDS = Collections.singleton(JsonPointer.of("_policy"));
-    private static final String SELECTED_FIELDS = "selectedFields";
 
     private ConditionalHeadersValidator(final ValidationSettings validationSettings) {
         this.validationSettings = validationSettings;
@@ -127,14 +124,11 @@ public final class ConditionalHeadersValidator {
     private boolean skipExemptedFields(final Command command) {
 
         @Nullable JsonFieldSelector selectedFields;
+
         if (command instanceof RetrieveThing) {
             selectedFields = ((RetrieveThing) command).getSelectedFields().orElse(null);
         } else if (command instanceof RetrieveThings) {
             selectedFields = ((RetrieveThings) command).getSelectedFields().orElse(null);
-        } else if (command instanceof SudoRetrieveThing) {
-            selectedFields = ((SudoRetrieveThing) command).getSelectedFields().orElse(null);
-        } else if (command instanceof SudoRetrieveThings) {
-            selectedFields = ((SudoRetrieveThings) command).getSelectedFields().orElse(null);
         } else {
             return false;
         }
@@ -204,6 +198,5 @@ public final class ConditionalHeadersValidator {
         }
         return dittoHeaders.toBuilder().eTag(entityTag).build();
     }
-
 
 }
