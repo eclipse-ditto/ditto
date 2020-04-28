@@ -176,9 +176,7 @@ public class ThingsConditionalHeadersValidatorTest {
                 .ifMatch(EntityTagMatchers.fromCommaSeparatedString(ifMatchHeaderValue))
                 .ifNoneMatch(EntityTagMatchers.fromCommaSeparatedString(ifNoneMatchHeaderValue))
                 .build();
-        final Command commandMock;
-
-        commandMock = mock(Command.class);
+        final Command commandMock = mock(Command.class);
         when(commandMock.getDittoHeaders()).thenReturn(dittoHeaders);
         when(commandMock.getCategory()).thenReturn(commandCategory);
 
