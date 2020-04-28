@@ -17,6 +17,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.STOP_CLIENT_ACTORS;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.util.Arrays;
@@ -52,8 +53,8 @@ final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy
                 DeleteConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
         // Not closing the connection asynchronously; rely on client actors to cleanup all resources when stopped.
         final List<ConnectionAction> actions =
-                Arrays.asList(PERSIST_AND_APPLY_EVENT, STOP_CLIENT_ACTORS, SEND_RESPONSE, DISABLE_LOGGING,
-                        BECOME_DELETED);
+                Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, STOP_CLIENT_ACTORS,
+                        DISABLE_LOGGING, SEND_RESPONSE, BECOME_DELETED);
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }
 }
