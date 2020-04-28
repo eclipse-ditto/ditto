@@ -17,18 +17,27 @@ import java.util.Optional;
 
 /**
  * Factory for supported filter functions.
+ *
+ * @since 1.1.0
  */
-public enum FilterFunctions implements FilterFunction{
+public enum FilterFunctions implements FilterFunction {
 
     /**
-     * The {@link EqFunction} keeps the value if both passed parameters are equal to each other.
+     * The {@code 'eq'} function keeps the value if both passed parameters are equal to each other.
      */
     EQ(new EqFunction()),
 
     /**
-     * The {@link NeFunction} keeps the value if both passed parameters are not equal to each other.
+     * The {@code 'ne'} function keeps the value if both passed parameters are not equal to each other.
      */
-    NE(new NeFunction());
+    NE(new NeFunction()),
+
+    /**
+     * The {@code 'like'} function keeps the value if the first passed parameter matches the pattern given by
+     * the second parameter, where {@code ?} matches a character and {@code *} matches 0 or more characters.
+     * Consult the documentation about the RQL expression {@code like} for pattern examples.
+     */
+    LIKE(new LikeFunction());
 
     private final FilterFunction rqlFunction;
 

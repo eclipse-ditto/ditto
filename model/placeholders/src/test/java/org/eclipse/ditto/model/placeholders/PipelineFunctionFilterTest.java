@@ -75,4 +75,33 @@ public final class PipelineFunctionFilterTest {
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
 
+    @Test
+    public void filterByLike() {
+        // single character case
+        testPatternMatching("x", "y", false);
+        testPatternMatching("x", "x", true);
+        testPatternMatching("x", "*", true);
+        testPatternMatching("x", "?", true);
+
+        // argument order matters
+        testPatternMatching("*y", "xy", false);
+        testPatternMatching("xy", "*y", true);
+
+        // match wildcard and single characters at various positions
+        testPatternMatching("1234567", "*2?7", false);
+        testPatternMatching("1234567", "*5?7", true);
+        testPatternMatching("1234567", "1?4*", false);
+        testPatternMatching("1234567", "1?3*", true);
+        testPatternMatching("1234567", "*?1?3?*", false);
+        testPatternMatching("1234567", "*?3?5?*", true);
+    }
+
+    private void testPatternMatching(final String arg, final String pattern, final boolean shouldMatch) {
+        final String params = String.format("('%s','like','%s')", arg, pattern);
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver))
+                .describedAs("Match <%s> against <%s> should %s", arg, pattern,
+                        shouldMatch ? "succeed." : "fail.")
+                .isEqualTo(shouldMatch ? KNOWN_INPUT : PipelineElement.unresolved());
+    }
+
 }
