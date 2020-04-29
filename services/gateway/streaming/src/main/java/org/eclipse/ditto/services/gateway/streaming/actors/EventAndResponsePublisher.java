@@ -75,7 +75,7 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
                 }).build();
     }
 
-    private Receive connected(final String connectionCorrelationId) {
+    private Receive connected(final CharSequence connectionCorrelationId) {
         unstashAll();
 
         return ReceiveBuilder.create()
@@ -103,10 +103,8 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
                     deliverBuf();
                 })
                 .match(ActorPublisherMessage.Cancel.class, cancel -> getContext().stop(getSelf()))
-                .matchAny(any -> {
-                    logger.withCorrelationId(connectionCorrelationId)
-                            .warning("Got unknown message during connected phase: '{}'", any);
-                })
+                .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
+                        .warning("Got unknown message during connected phase: '{}'", any))
                 .build();
     }
 

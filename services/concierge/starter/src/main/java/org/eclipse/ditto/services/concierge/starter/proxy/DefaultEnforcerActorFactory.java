@@ -17,13 +17,14 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
@@ -164,21 +165,20 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
      * @param originalSignal A signal with authorization context.
      * @return A copy of the signal with the header "ditto-originator" set.
      */
-    public static WithDittoHeaders setOriginatorHeader(final WithDittoHeaders originalSignal) {
-        final List<String> authSubjects = originalSignal.getDittoHeaders().getAuthorizationSubjects();
-        if (authSubjects.isEmpty()) {
-            return originalSignal;
-        } else {
-            final String originatorSubjectId = authSubjects.get(0);
-            return originalSignal.setDittoHeaders(originalSignal.getDittoHeaders()
-                    .toBuilder()
-                    .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
-                    .build());
-        }
+    public static <T extends WithDittoHeaders<T>> WithDittoHeaders<T> setOriginatorHeader(final T originalSignal) {
+        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
+        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
+        return authorizationContext.getFirstAuthorizationSubject()
+                .map(AuthorizationSubject::getId)
+                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
+                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
+                        .build())
+                .map(originalSignal::setDittoHeaders)
+                .orElse(originalSignal);
     }
 
-    private static PreEnforcer newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
+    private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
+            final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
@@ -189,12 +189,13 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static WithDittoHeaders prependDefaultNamespaceToCreateThing(final WithDittoHeaders signal) {
+    private static WithDittoHeaders prependDefaultNamespaceToCreateThing(final WithDittoHeaders<?> signal) {
         if (signal instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) signal;
-            if (!createThing.getThing().getNamespace().isPresent()) {
-                final Thing thingInDefaultNamespace = createThing.getThing()
-                        .toBuilder()
+            final Thing thing = createThing.getThing();
+            final Optional<String> namespace = thing.getNamespace();
+            if (namespace.isEmpty()) {
+                final Thing thingInDefaultNamespace = thing.toBuilder()
                         .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getThingEntityId().toString()))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);

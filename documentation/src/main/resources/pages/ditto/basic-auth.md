@@ -21,10 +21,10 @@ User authentication at the HTTP API
 
 A user who calls the HTTP API can be authenticated using two mechanisms:
 
-* HTTP BASIC Authentication by providing username and password of users managed within for example nginx acting as
-  reverse proxy.
+* Pre-authentication by an HTTP reverse proxy in front of Ditto, e.g. doing HTTP BASIC Authentication by providing 
+  username and password as [documented in the installation/operation guide](installation-operating.html#pre-authentication).
 * A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google or other
-  OpenID Connect providers.
+  OpenID Connect providers as [documented in the installation/operation guide](installation-operating.html#openid-connect).
 
 ## Authorization
 

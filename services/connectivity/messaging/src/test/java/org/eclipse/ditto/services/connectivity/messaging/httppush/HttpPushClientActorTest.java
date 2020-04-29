@@ -26,11 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -69,22 +65,12 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClientActor}.
  */
 public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
-
-    static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
-            .address("POST:/target/address")
-            .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-            .headerMapping(ConnectivityModelFactory.newHeaderMapping(
-                    Collections.singletonMap("content-type", "application/json")
-            ))
-            .topics(Topic.TWIN_EVENTS, Topic.values())
-            .build();
 
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
@@ -95,7 +81,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<HttpResponse> responseQueue;
-    private TestProbe connectionActorProbe;
 
     @Before
     public void createActorSystem() {
@@ -114,8 +99,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
                 .toCompletableFuture()
                 .join();
-        connection = getConnectionToLocalBinding(false);
-        connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
+        connection = getHttpConnectionToLocalBinding(false, binding.localAddress().getPort());
     }
 
     @After
@@ -126,13 +110,13 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "https") : connection;
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder) {
-        return HttpPushClientActor.props(connection, connectionActorProbe.ref());
+    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
+        return HttpPushClientActor.props(connection, testProbe);
     }
 
     @Override
@@ -143,7 +127,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void connectAndDisconnect() {
         new TestKit(actorSystem) {{
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
@@ -157,7 +141,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTCPConnection() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef(), getConnection(false))));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success("successfully connected + initialized mapper"));
             expectTerminated(underTest);
@@ -168,7 +152,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     public void testTCPConnectionFails() {
         new TestKit(actorSystem) {{
             binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
-            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef(), getConnection(false))));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             final Status.Failure failure = expectMsgClass(Status.Failure.class);
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
@@ -179,7 +163,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTLSConnectionFails() {
         // GIVEN: server has a self-signed certificate
-        connection = getConnectionToLocalBinding(true);
+        connection = getHttpConnectionToLocalBinding(true, binding.localAddress().getPort());
         final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
@@ -199,7 +183,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
         new TestKit(actorSystem) {{
             // WHEN: the connection is tested
-            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef())));
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef(), getConnection(false))));
             underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
 
             // THEN: the test fails
@@ -215,7 +199,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     public void publishTwinEvent() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: local HTTP connection is connected
-            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef()));
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), getConnection(false)));
             underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
 
@@ -225,7 +209,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                             .correlationId("internal-correlation-id")
                             .build());
             final OutboundSignal outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(TARGET));
+                    OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(HTTP_TARGET));
             underTest.tell(outboundSignal, getRef());
 
             // THEN: a POST-request is forwarded to the path defined in the target
@@ -256,7 +240,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
         new TestKit(actorSystem) {{
             // GIVEN: local HTTP connection is connected
-            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef()));
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), getConnection(false)));
             underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
 
@@ -277,13 +261,4 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
         return ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
     }
 
-    private Connection getConnectionToLocalBinding(final boolean isSecure) {
-        return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
-                ConnectionType.HTTP_PUSH,
-                ConnectivityStatus.CLOSED,
-                (isSecure ? "https" : "http") + "://127.0.0.1:" + binding.localAddress().getPort())
-                .targets(singletonList(TARGET))
-                .validateCertificate(isSecure)
-                .build();
-    }
 }

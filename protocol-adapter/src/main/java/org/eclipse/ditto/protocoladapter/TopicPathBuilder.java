@@ -95,4 +95,13 @@ public interface TopicPathBuilder {
      */
     MessagesTopicPathBuilder messages();
 
+    /**
+     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ACKS}. A previously set criterion is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 1.1.0
+     */
+    AcknowledgementTopicPathBuilder acks();
+
 }

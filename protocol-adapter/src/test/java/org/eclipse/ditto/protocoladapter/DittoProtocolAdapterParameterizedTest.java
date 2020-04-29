@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.protocoladapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
@@ -191,6 +192,7 @@ public final class DittoProtocolAdapterParameterizedTest {
 
         final ThingCommandAdapterProvider thingCommandAdapterProvider = mock(ThingCommandAdapterProvider.class);
         final PolicyCommandAdapterProvider policyCommandAdapterProvider = mock(PolicyCommandAdapterProvider.class);
+        final AcknowledgementAdapterProvider acknowledgementAdapterProvider = mock(AcknowledgementAdapterProvider.class);
 
         when(thingCommandAdapterProvider.getQueryCommandAdapter())
                 .thenReturn(thingQueryCommandAdapter);
@@ -223,7 +225,7 @@ public final class DittoProtocolAdapterParameterizedTest {
         final AdapterResolver adapterResolver = mock(AdapterResolver.class);
 
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
-                policyCommandAdapterProvider, adapterResolver);
+                policyCommandAdapterProvider, acknowledgementAdapterProvider, adapterResolver);
 
         reset(thingQueryCommandAdapter);
         reset(thingQueryCommandResponseAdapter);

@@ -21,7 +21,9 @@ automatically update digital twins of devices connected via LoRaWAN to the TTN b
 You can find the slides [here](slides/2020_04_16-ttn-virtual-conference/index.html).
 
 This blogpost helps setting up this kind of connection and shall also be used as a step-by-step tutorial during
- the workshop. 
+ the workshop.
+ 
+{% include youtube.html youtube-id="D33JrN2RWiI" width="560" height="315" %} 
 
 ## Requirements
 
@@ -199,7 +201,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' http://localhost:${DITTO_EXTERNAL_PORT}/devops/piggyback/connectivity?timeout=8000
+}' http://localhost:${DITTO_EXTERNAL_PORT}/devops/piggyback/connectivity?timeout=8s
 ```
 
 Explanation - what is done here:

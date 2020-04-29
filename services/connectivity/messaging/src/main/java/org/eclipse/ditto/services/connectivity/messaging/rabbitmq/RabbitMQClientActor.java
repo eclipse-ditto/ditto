@@ -27,13 +27,9 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -92,7 +88,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
-            final ActorRef conciergeForwarder,
+            @Nullable final ActorRef conciergeForwarder,
             final ActorRef connectionActor) {
 
         super(connection, conciergeForwarder, connectionActor);
@@ -108,7 +104,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private RabbitMQClientActor(final Connection connection, final ActorRef conciergeForwarder,
+    private RabbitMQClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
             final ActorRef connectionActor) {
 
         this(connection, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder,
@@ -120,10 +116,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param connectionActor the connection actor acting as the parent of this actor.
+     * @param connectionActor the connectionPersistenceActor which created this client.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
             final ActorRef connectionActor) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), conciergeForwarder,
@@ -135,14 +131,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param connectionActor the connection actor acting as the parent of this actor.
+     * @param connectionActor the connectionPersistenceActor which created this client.
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
      * @return the Akka configuration Props object.
      */
-    static Props propsForTests(final Connection connection,
-            final ActorRef conciergeForwarder,
-            final ActorRef connectionActor,
-            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+    static Props propsForTests(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), rabbitConnectionFactoryFactory,
                 conciergeForwarder, connectionActor);
@@ -356,10 +350,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 source.getAddresses().forEach(sourceAddress -> {
                     for (int i = 0; i < source.getConsumerCount(); i++) {
                         final String addressWithIndex = sourceAddress + "-" + i;
-                        final AuthorizationContext authorizationContext = source.getAuthorizationContext();
-                        final Enforcement enforcement = source.getEnforcement().orElse(null);
-                        final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
-                        final PayloadMapping payloadMapping = source.getPayloadMapping();
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source,

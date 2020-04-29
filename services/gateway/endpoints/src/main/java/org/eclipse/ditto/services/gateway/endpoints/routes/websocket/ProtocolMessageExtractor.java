@@ -53,7 +53,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
             .build();
 
     private final AuthorizationContext connectionAuthContext;
-    private final String connectionCorrelationId;
+    private final CharSequence connectionCorrelationId;
 
     /**
      * Constructs a new {@code ProtocolMessageExtractor} object.
@@ -61,7 +61,8 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
      * @param connectionAuthContext the {@link AuthorizationContext} of the connection.
      * @param connectionCorrelationId the correlation ID of the connection.
      */
-    ProtocolMessageExtractor(final AuthorizationContext connectionAuthContext, final String connectionCorrelationId) {
+    ProtocolMessageExtractor(final AuthorizationContext connectionAuthContext,
+            final CharSequence connectionCorrelationId) {
         this.connectionAuthContext = connectionAuthContext;
         this.connectionCorrelationId = connectionCorrelationId;
     }

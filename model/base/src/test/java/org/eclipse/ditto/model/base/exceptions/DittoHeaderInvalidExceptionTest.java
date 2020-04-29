@@ -45,8 +45,7 @@ public class DittoHeaderInvalidExceptionTest {
     @Test
     public void buildForInvalidType() {
         final DittoHeaderInvalidException headerInvalidException =
-                DittoHeaderInvalidException.newInvalidTypeBuilder("theHeaderName", "theValue",
-                        "theExpectedType")
+                DittoHeaderInvalidException.newInvalidTypeBuilder("theHeaderName", "theValue", "theExpectedType")
                         .build();
 
         assertThat(headerInvalidException.getMessage())

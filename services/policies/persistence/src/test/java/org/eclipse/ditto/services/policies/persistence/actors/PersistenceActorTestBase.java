@@ -15,14 +15,15 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUBJECT_TYPE;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -105,18 +106,20 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static DittoHeaders createDittoHeaders(final JsonSchemaVersion schemaVersion,
-            final String... authSubjects) {
+            final String... authSubjectIds) {
 
-        final List<String> authSubjectsStr = Arrays.asList(authSubjects);
-        final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
-        authSubjectsStr.stream().map(AuthorizationModelFactory::newAuthSubject).forEach(authSubjectsList::add);
+        final List<AuthorizationSubject> authSubjects = Arrays.stream(authSubjectIds)
+                .map(AuthorizationModelFactory::newAuthSubject)
+                .collect(Collectors.toList());
 
         return DittoHeaders.newBuilder()
                 .correlationId(null)
                 .responseRequired(false)
                 .schemaVersion(schemaVersion)
-                .authorizationSubjects(authSubjectsStr)
-                .authorizationContext(AuthorizationModelFactory.newAuthContext(authSubjectsList)).build();
+                .authorizationContext(
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                authSubjects))
+                .build();
     }
 
     protected static Policy createPolicyWithRandomId() {

@@ -75,7 +75,7 @@ public final class HttpPushClientActor extends BaseClientActor {
      * Create the {@code Props} object for an {@code HttpPushClientActor}.
      *
      * @param connection the HTTP-push connection.
-     * @param connectionActor the connection actor acting as parent of this actor.
+     * @param connectionActor the connectionPersistenceActor which created this client.
      * @return the {@code Props} object.
      */
     public static Props props(final Connection connection, final ActorRef connectionActor) {

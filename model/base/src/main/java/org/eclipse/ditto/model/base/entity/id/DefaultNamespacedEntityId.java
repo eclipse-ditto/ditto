@@ -40,7 +40,6 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
     private final String stringRepresentation;
 
     private DefaultNamespacedEntityId(final String namespace, final String name, final boolean shouldValidate) {
-
         if (shouldValidate) {
             stringRepresentation = validate(namespace, name);
         } else {
@@ -51,7 +50,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         this.name = name;
     }
 
-    private DefaultNamespacedEntityId(final CharSequence entityId) {
+    private DefaultNamespacedEntityId(@Nullable final CharSequence entityId) {
         if (entityId == null) {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
@@ -63,8 +62,8 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         final Matcher nsMatcher = ID_PATTERN.matcher(entityId);
 
         if (nsMatcher.matches()) {
-            this.namespace = nsMatcher.group(NAMESPACE_GROUP_NAME);
-            this.name = nsMatcher.group(ENTITY_NAME_GROUP_NAME);
+            namespace = nsMatcher.group(NAMESPACE_GROUP_NAME);
+            name = nsMatcher.group(ENTITY_NAME_GROUP_NAME);
             stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
         } else {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
@@ -76,8 +75,9 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
      * the parameter if the given parameter is already a DefaultNamespacedEntityId. Skips validation if the given
      * {@code entityId} is an instance of NamespacedEntityId.
      *
-     * @param entityId The entity ID.
+     * @param entityId the entity ID.
      * @return the namespaced entity ID.
+     * @throws NamespacedEntityIdInvalidException if the given {@code entityId} is invalid.
      */
     public static NamespacedEntityId of(final CharSequence entityId) {
         if (entityId instanceof DefaultNamespacedEntityId) {
@@ -98,6 +98,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
      *
      * @param entityName the name of the entity.
      * @return the created namespaced entity ID.
+     * @throws NamespacedEntityIdInvalidException if the given {@code entityName} is invalid.
      */
     public static NamespacedEntityId fromName(final String entityName) {
         return of(DEFAULT_NAMESPACE, entityName);
@@ -139,7 +140,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         return namespace;
     }
 
-    private static String validate(@Nullable final String namespace, @Nullable final String name) {
+    private static String validate(@Nullable final CharSequence namespace, @Nullable final CharSequence name) {
         final String stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
 
         if (name == null) {
@@ -166,11 +167,10 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
-
         if (o == null || getClass() != o.getClass()) {
             return false;
         }

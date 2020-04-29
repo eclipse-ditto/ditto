@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
@@ -24,8 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -35,6 +37,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.compress.utils.Sets;
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -58,6 +64,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
@@ -92,6 +99,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -119,9 +127,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     private static final Set<String> SUBJECTS = Sets.newHashSet(TestConstants.Authorization.SUBJECT_ID,
             TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS =
-            Sets.newHashSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
+            EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES =
-            Sets.newHashSet(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
+            EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
     private ActorSystem actorSystem;
     private ActorRef pubSubMediator;
     private ActorRef conciergeForwarder;
@@ -206,18 +214,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .liveStatus(ConnectivityStatus.OPEN)
                         .connectedSince(INSTANT)
                         .clientStatus(
-                                asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
+                                List.of(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
                                         "connection is open", INSTANT)))
-                        .sourceStatus(asList(
-                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source1",
-                                        "consumer started"),
-                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2",
-                                        "consumer started")
-                        ))
+                        .sourceStatus(
+                                List.of(ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN,
+                                        "source1", "consumer started"),
+                                        ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN,
+                                                "source2", "consumer started")
+                                ))
                         .targetStatus(
-                                asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
-                                        "target1",
-                                        "publisher started")))
+                                List.of(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
+                                        "target1", "publisher started")))
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
         thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
@@ -288,21 +295,26 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void manageConnection() {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
-                            (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
+                    connectionId, actorSystem, conciergeForwarder,
+                    (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
+                    TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
+                    pubSubMediator
+            );
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
+            expectRemoveSubscriber(1);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // close connection
             underTest.tell(closeConnection, getRef());
             probe.expectMsg(closeConnection);
             expectMsg(closeConnectionResponse);
+            expectRemoveSubscriber(2);
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
@@ -310,6 +322,35 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             probe.expectNoMessage();
             expectTerminated(underTest);
         }};
+    }
+
+    @Test
+    public void deleteConnectionUpdatesSubscriptions() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
+                    connectionId, actorSystem, conciergeForwarder,
+                    (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
+                    TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
+                    pubSubMediator
+            );
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+            expectRemoveSubscriber(1);
+            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+            expectRemoveSubscriber(2);
+            probe.expectNoMessage();
+            expectTerminated(underTest);
+        }};
+
     }
 
     @Test
@@ -486,7 +527,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId,
                             actorSystem,
-                            conciergeForwarder, (connection, concierge, connectionActor) -> {
+                            conciergeForwarder, (connection, conciergeForwarder, connectionActor) -> {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
                             },
@@ -984,6 +1025,94 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
+    public void testHandleSignalWithAcknowledgementRequest() {
+        new TestKit(actorSystem) {{
+            final TestKit probe = new TestKit(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    TestActor.props(probe));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            expectMsgClass(Object.class);
+
+            final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .timeout("2s")
+                    .randomCorrelationId()
+                    .build();
+
+            final AttributeModified attributeModified = AttributeModified.of(
+                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, dittoHeaders);
+            underTest.tell(attributeModified, getRef());
+
+            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
+            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
+
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                            dittoHeaders);
+            underTest.tell(acknowledgement, getRef());
+
+            expectMsg(acknowledgement);
+        }};
+    }
+
+    @Test
+    public void testHandleSignalWithAcknowledgementRequestUsingDuplicateCorrelationId() {
+        new TestKit(actorSystem) {{
+            final TestKit probe = new TestKit(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
+                                    TestActor.props(probe));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            expectMsgClass(Object.class);
+
+            final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .timeout("10s")
+                    .randomCorrelationId()
+                    .build();
+
+            // WHEN: an event with acknowledgementRequest is processed
+            final AttributeModified attributeModified = AttributeModified.of(
+                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L,
+                    dittoHeaders);
+            underTest.tell(attributeModified, getRef());
+
+            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
+            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
+
+            // WHEN: a second event reuses the DittoHeaders - and therefore the correlation-id - and asks for 2 acks
+            final AcknowledgementLabel acknowledgementLabel2 = AcknowledgementLabel.of("test-ack-2");
+            final AcknowledgementLabel acknowledgementLabel3 = AcknowledgementLabel.of("test-ack-3");
+            final DittoHeaders dittoHeaders2 = dittoHeaders.toBuilder()
+                    .acknowledgementRequest(
+                            AcknowledgementRequest.of(acknowledgementLabel2),
+                            AcknowledgementRequest.of(acknowledgementLabel3)
+                    ).build();
+            final AttributeModified attributeModified2 = AttributeModified.of(
+                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("you"), 6L, dittoHeaders2);
+            underTest.tell(attributeModified2, getRef());
+
+            // THEN: expect 2 NACKs to arrive with status 409, for both of the requested AcknowledgementLabels
+            final Acknowledgement nack1 = expectMsgClass(Acknowledgement.class);
+            assertThat(nack1.getStatusCode()).isEqualByComparingTo(HttpStatusCode.CONFLICT);
+            final Acknowledgement nack2 = expectMsgClass(Acknowledgement.class);
+            assertThat(nack2.getStatusCode()).isEqualByComparingTo(HttpStatusCode.CONFLICT);
+        }};
+    }
+
     public void forwardSearchCommands() {
         new TestKit(actorSystem) {{
             final ConnectionId myConnectionId = ConnectionId.of(UUID.randomUUID().toString());
@@ -1091,7 +1220,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         latch.await();
     }
 
-    static class TestActor extends AbstractActor {
+    static final class TestActor extends AbstractActor {
 
         private final TestKit probe;
 
@@ -1100,7 +1229,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }
 
         static Props props(final TestKit probe) {
-            return Props.create(TestActor.class, new Creator<TestActor>() {
+            return Props.create(TestActor.class, new Creator<>() {
                 private static final long serialVersionUID = 1L;
 
                 @Override
@@ -1118,14 +1247,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }
     }
 
-    private void expectSubscribe(final Set<StreamingType> streamingTypes, final Set<String> subjects) {
-        verify(dittoProtocolSubMock, timeout(500)).subscribe(
-                argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
-                eq(subjects),
-                any(ActorRef.class));
+    private void expectSubscribe(final Collection<StreamingType> streamingTypes, final Set<String> subjects) {
+        verify(dittoProtocolSubMock, timeout(500))
+                .subscribe(argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
+                        eq(subjects),
+                        any(ActorRef.class));
     }
 
-    private void expectRemoveSubscriber(int howManyTimes) {
+    private void expectRemoveSubscriber(final int howManyTimes) {
         verify(dittoProtocolSubMock, timeout(500).times(howManyTimes)).removeSubscriber(any(ActorRef.class));
     }
 
@@ -1135,4 +1264,5 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     false);
         }
     }
+
 }

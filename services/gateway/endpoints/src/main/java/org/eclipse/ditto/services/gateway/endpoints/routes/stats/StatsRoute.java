@@ -23,9 +23,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
@@ -66,6 +67,7 @@ public final class StatsRoute extends AbstractRoute {
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the akka actor system.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
      * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
@@ -73,10 +75,11 @@ public final class StatsRoute extends AbstractRoute {
     public StatsRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
             final DevOpsConfig devOpsConfig,
             final HeaderTranslator headerTranslator) {
 
-        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
         this.devOpsConfig = devOpsConfig;
     }
 
@@ -129,13 +132,13 @@ public final class StatsRoute extends AbstractRoute {
                 ));
     }
 
-    private Route handleDevOpsPerRequest(final RequestContext ctx, final DevOpsCommand command) {
+    private Route handleDevOpsPerRequest(final RequestContext ctx, final DevOpsCommand<?> command) {
         return handleDevOpsPerRequest(ctx, Source.empty(), emptyRequestBody -> command);
     }
 
     private Route handleDevOpsPerRequest(final RequestContext ctx,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, DevOpsCommand> requestJsonToCommandFunction) {
+            final Function<String, DevOpsCommand<?>> requestJsonToCommandFunction) {
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
         payloadSource

@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
@@ -553,9 +554,10 @@ public abstract class AbstractPolicyAlgorithmTest {
 
         final boolean actual = policyEnforcer
                 .hasPartialPermissions(PoliciesResourceType.thingResource("/"),
-                        AuthorizationContext.newInstance(AuthorizationSubject.newInstance(
-                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED)
-                                        .toString())),
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                AuthorizationSubject.newInstance(
+                                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED)
+                                                .toString())),
                         "READ");
         assertThat(actual).isFalse();
     }

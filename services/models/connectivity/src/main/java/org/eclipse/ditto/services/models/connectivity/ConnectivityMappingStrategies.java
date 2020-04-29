@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -33,68 +33,68 @@ import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Connectivity service containing all
- * {@link Jsonifiable} types known to this service.
+ * {@link MappingStrategies} for the Connectivity service containing all {@link Jsonifiable} types known to this
+ * service.
  */
-public final class ConnectivityMappingStrategies implements MappingStrategies {
+@Immutable
+public final class ConnectivityMappingStrategies extends MappingStrategies {
 
-    private final Map<String, MappingStrategy> strategies;
+    @Nullable private static ConnectivityMappingStrategies instance = null;
 
-    /**
-     * Constructs a new Mapping Strategy for Connectivity service.
-     */
-    public ConnectivityMappingStrategies() {
-        strategies = Collections.unmodifiableMap(getConnectivityMappingStrategies());
+    private ConnectivityMappingStrategies(final Map<String, MappingStrategy> strategies) {
+        super(strategies);
     }
 
-    private Map<String, MappingStrategy> getConnectivityMappingStrategies() {
-        final Map<String, MappingStrategy> combinedStrategies = new HashMap<>();
+    /**
+     * Constructs a new ConnectivityMappingStrategies object.
+     */
+    @SuppressWarnings("unused") // used via reflection
+    public ConnectivityMappingStrategies() {
+        this(getConnectivityMappingStrategies());
+    }
 
-        combinedStrategies.putAll(new ThingsMappingStrategies().getStrategies());
-        combinedStrategies.putAll(new PoliciesMappingStrategies().getStrategies());
+    /**
+     * Returns an instance of ConnectivityMappingStrategies.
+     *
+     * @return the instance.
+     */
+    public static ConnectivityMappingStrategies getInstance() {
+        ConnectivityMappingStrategies result = instance;
+        if (null == result) {
+            result = new ConnectivityMappingStrategies(getConnectivityMappingStrategies());
+            instance = result;
+        }
+        return result;
+    }
 
+    private static MappingStrategies getConnectivityMappingStrategies() {
         final MappingStrategies strategies = MappingStrategiesBuilder.newInstance()
+                .putAll(ThingsMappingStrategies.getInstance())
+                .putAll(PoliciesMappingStrategies.getInstance())
                 .add(GlobalCommandRegistry.getInstance())
                 .add(GlobalCommandResponseRegistry.getInstance())
                 .add(GlobalEventRegistry.getInstance())
                 .add(GlobalErrorRegistry.getInstance())
-                .add(Connection.class, jsonObject -> ConnectivityModelFactory.connectionFromJson(
-                        jsonObject)) // do not replace with lambda!
-                .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(
-                        jsonObject)) // do not replace with lambda!
-                .add(OutboundSignal.class,
-                        jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject,
-                                this)) // do not replace with lambda!
-                .add("UnmappedOutboundSignal",
-                        jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject,
-                                this)) // do not replace with lambda!
-                .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(
-                        jsonObject)) // do not replace with lambda!
-                .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(
-                        jsonObject)) // do not replace with lambda!
+                .add(Connection.class, jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
+                .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
+                .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
+                .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
                 .add(ConnectionTag.class, jsonObject -> ConnectionTag.fromJson(jsonObject))
                 .add(BatchedEntityIdWithRevisions.typeOf(ConnectionTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ConnectionTag.fromJson(jsonObject)))
                 .build();
 
-        combinedStrategies.putAll(strategies.getStrategies());
+        final MappingStrategies specialStrategies = MappingStrategiesBuilder.newInstance()
+                .add(OutboundSignal.class,
+                        jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies)) // do not replace with lambda!
+                .add("UnmappedOutboundSignal",
+                        jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies))
+                .build();// do not replace with lambda!
 
-        return combinedStrategies;
-    }
-
-    @Override
-    public Optional<MappingStrategy> getMappingStrategyFor(final String key) {
-        return Optional.ofNullable(strategies.get(key));
-    }
-
-    @Override
-    public boolean containsMappingStrategyFor(final String key) {
-        return strategies.containsKey(key);
-    }
-
-    @Override
-    public Map<String, MappingStrategy> getStrategies() {
-        return strategies;
+        return MappingStrategiesBuilder.newInstance()
+                .putAll(strategies)
+                .putAll(specialStrategies)
+                .build();
     }
 
 }

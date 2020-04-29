@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings for the {@code messages} resources of the Things service.
+ * Provides configuration settings for the {@code messages} resources of the gateway.
  */
 @Immutable
 public interface MessageConfig {
@@ -47,17 +47,17 @@ public interface MessageConfig {
         /**
          * The default timeout of claim messages initiated via /messages resource.
          */
-        DEFAULT_TIMEOUT("default-timeout", "35s"),
+        DEFAULT_TIMEOUT("default-timeout", "10s"),
 
         /**
          * The maximum possible timeout of claim messages initiated via /messages resource.
          */
-        MAX_TIMEOUT("max-timeout", "5.5m");
+        MAX_TIMEOUT("max-timeout", "1m");
 
         private final String path;
         private final Object defaultValue;
 
-        private MessageConfigValue(final String thePath, final Object theDefaultValue) {
+        MessageConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

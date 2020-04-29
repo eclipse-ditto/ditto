@@ -77,12 +77,9 @@ public final class DefaultHiveMqtt5ClientFactory implements HiveMqtt5ClientFacto
 
             final MqttClientSslConfigBuilder sslConfigBuilder = MqttClientSslConfig.builder();
 
-            if (connection.isValidateCertificates()) {
-                // create DittoTrustManagerFactory to apply hostname verification
-                final TrustManagerFactory trustManagerFactory =
-                        DittoTrustManagerFactory.from(connection);
-                sslConfigBuilder.trustManagerFactory(trustManagerFactory);
-            }
+            // create DittoTrustManagerFactory to apply hostname verification
+            // or to disable certificate check when the connection requires it
+            sslConfigBuilder.trustManagerFactory(DittoTrustManagerFactory.from(connection));
 
             connection.getCredentials()
                     .map(credentials -> credentials.accept(KeyManagerFactoryFactory.getInstance()))

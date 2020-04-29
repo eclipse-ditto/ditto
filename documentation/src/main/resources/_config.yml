@@ -116,3 +116,5 @@ docVersions:
     basePath: ""
   - label: "1.0"
     basePath: "1.0"
+  - label: "1.1"
+    basePath: "1.1"

@@ -175,8 +175,8 @@ public interface TopicPath {
          * @return the optional Group.
          */
         public static Optional<Group> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -208,7 +208,14 @@ public interface TopicPath {
 
         MESSAGES("messages"),
 
-        ERRORS("errors");
+        ERRORS("errors"),
+
+        /**
+         * Criterion for the topic path of an acknowledgement (ACK).
+         *
+         * @since 1.1.0
+         */
+        ACKS("acks");
 
         private final String name;
 
@@ -224,8 +231,8 @@ public interface TopicPath {
          * @return the optional Criterion.
          */
         public static Optional<Criterion> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -269,8 +276,8 @@ public interface TopicPath {
          * @return the optional Channel.
          */
         public static Optional<Channel> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -323,8 +330,8 @@ public interface TopicPath {
          * @return the optional Action.
          */
         public static Optional<Action> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 

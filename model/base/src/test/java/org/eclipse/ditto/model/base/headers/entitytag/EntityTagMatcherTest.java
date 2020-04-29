@@ -12,10 +12,11 @@
  */
 package org.eclipse.ditto.model.base.headers.entitytag;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.JUnitSoftAssertions;
+import org.junit.Rule;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -23,7 +24,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Tests {@link EntityTagMatcher}
  */
-public class EntityTagMatcherTest {
+public final class EntityTagMatcherTest {
 
     private static final EntityTagMatcher ASTERISK = EntityTagMatcher.asterisk();
     private static final EntityTag WEAK_1 = EntityTag.fromString("W/\"1\"");
@@ -31,9 +32,13 @@ public class EntityTagMatcherTest {
     private static final EntityTag STRONG_1 = EntityTag.fromString("\"1\"");
     private static final EntityTag STRONG_2 = EntityTag.fromString("\"2\"");
 
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(EntityTagMatcher.class)
+                .usingGetClass()
                 .verify();
     }
 
@@ -45,35 +50,35 @@ public class EntityTagMatcherTest {
     @Test
     public void asteriskFromString() {
         final String asteriskStr = "*";
-        assertThat(EntityTagMatcher.isValid(asteriskStr)).isTrue();
+        softly.assertThat(EntityTagMatcher.isValid(asteriskStr)).isTrue();
 
         final EntityTagMatcher entityTagMatcherFromString = EntityTagMatcher.fromString(asteriskStr);
-        assertThat(entityTagMatcherFromString.isAsterisk()).isTrue();
-        assertThat(entityTagMatcherFromString).isEqualTo(ASTERISK);
+        softly.assertThat(entityTagMatcherFromString.isAsterisk()).isTrue();
+        softly.assertThat(entityTagMatcherFromString).isEqualTo(ASTERISK);
         // there should be only one instance of ASTERISK
-        assertThat(entityTagMatcherFromString).isSameAs(ASTERISK);
+        softly.assertThat(entityTagMatcherFromString).isSameAs(ASTERISK);
     }
 
     @Test
     public void weakMatchEvaluatesAlwaysToTrueIfMatcherIsAsterisk() {
-        assertThat(ASTERISK.weakMatch(STRONG_1)).isTrue();
-        assertThat(ASTERISK.weakMatch(WEAK_1)).isTrue();
-        assertThat(ASTERISK.weakMatch(WEAK_2)).isTrue();
-        assertThat(ASTERISK.weakMatch(STRONG_2)).isTrue();
+        softly.assertThat(ASTERISK.weakMatch(STRONG_1)).isTrue();
+        softly.assertThat(ASTERISK.weakMatch(WEAK_1)).isTrue();
+        softly.assertThat(ASTERISK.weakMatch(WEAK_2)).isTrue();
+        softly.assertThat(ASTERISK.weakMatch(STRONG_2)).isTrue();
     }
 
     @Test
     public void strongMatchEvaluatesAlwaysToTrueIfMatcherIsAsterisk() {
-
-        assertThat(ASTERISK.strongMatch(STRONG_1)).isTrue();
-        assertThat(ASTERISK.strongMatch(WEAK_1)).isTrue();
-        assertThat(ASTERISK.strongMatch(WEAK_2)).isTrue();
-        assertThat(ASTERISK.strongMatch(STRONG_2)).isTrue();
+        softly.assertThat(ASTERISK.strongMatch(STRONG_1)).isTrue();
+        softly.assertThat(ASTERISK.strongMatch(WEAK_1)).isTrue();
+        softly.assertThat(ASTERISK.strongMatch(WEAK_2)).isTrue();
+        softly.assertThat(ASTERISK.strongMatch(STRONG_2)).isTrue();
     }
 
     @Test
     public void toStringTest() {
-        assertThat(ASTERISK.toString()).isEqualTo("*");
-        assertThat(EntityTagMatcher.fromString("W/\"1\"").toString()).isEqualTo("W/\"1\"");
+        softly.assertThat(ASTERISK.toString()).isEqualTo("*");
+        softly.assertThat(EntityTagMatcher.fromString("W/\"1\"").toString()).isEqualTo("W/\"1\"");
     }
+
 }

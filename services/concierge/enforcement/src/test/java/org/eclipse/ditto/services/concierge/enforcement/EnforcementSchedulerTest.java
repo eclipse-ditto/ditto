@@ -44,7 +44,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
-public class EnforcementSchedulerTest {
+public final class EnforcementSchedulerTest {
 
     private static ActorSystem actorSystem;
 

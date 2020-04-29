@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,7 +30,7 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
     private static final DittoHeaders EMPTY_DITTO_HEADERS = ImmutableDittoHeaders.of(Collections.emptyMap());
 
     private DefaultDittoHeadersBuilder(final Map<String, String> headers) {
-        super(headers, Arrays.asList(DittoHeaderDefinition.values()), DefaultDittoHeadersBuilder.class);
+        super(headers, EnumSet.allOf(DittoHeaderDefinition.class), DefaultDittoHeadersBuilder.class);
     }
 
     /**

@@ -19,7 +19,6 @@ import java.util.List;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttClientActorTest;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -71,7 +70,7 @@ public class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5P
     }
 
     @Override
-    protected Props createClientActor(final ActorRef testProbe) {
+    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
         return HiveMqtt5ClientActor.props(connection, testProbe,
                 mockHiveMqtt5ClientFactory.withTestProbe(testProbe), mockConnectionActor.ref());
     }

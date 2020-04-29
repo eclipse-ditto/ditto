@@ -53,4 +53,5 @@ public interface EntityId extends CharSequence, Comparable<EntityId> {
      * @return true if this ID is a dummy ID, otherwise false.
      */
     boolean isDummy();
+
 }

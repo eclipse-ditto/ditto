@@ -28,6 +28,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.assertj.core.api.ThrowableAssertAlternative;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -66,7 +67,7 @@ public class PoliciesConditionalHeadersValidatorTest {
         final String ifMatchHeaderValue = "\"rev:1\"";
         final String ifNoneMatchHeaderValue = "\"rev:2\"";
         final EntityTag actualEntityTag = EntityTag.fromString("\"rev:1\"");
-        final Command commandMock = createCommandMock(MODIFY, ifMatchHeaderValue, ifNoneMatchHeaderValue);
+        final Command commandMock = createCommandMock(MODIFY, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
 
         SUT.checkConditionalHeaders(commandMock, actualEntityTag);
     }
@@ -126,11 +127,11 @@ public class PoliciesConditionalHeadersValidatorTest {
         final String expectedMessage =
                 format(IF_NONE_MATCH_NOT_MODIFIED_MESSAGE_PATTERN, ifNoneMatchHeaderValue, actualEntityTag);
 
-        assertNotModified(ifMatchHeaderValue, ifNoneMatchHeaderValue, actualEntityTag, expectedMessage);
+        assertNotModified(ifMatchHeaderValue, ifNoneMatchHeaderValue, actualEntityTag, expectedMessage, null);
     }
 
     private Command createCommandMock(final Category commandCategory, final String ifMatchHeaderValue,
-            final String ifNoneMatchHeaderValue) {
+            final String ifNoneMatchHeaderValue, final @Nullable JsonObject selectedFields) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .ifMatch(EntityTagMatchers.fromCommaSeparatedString(ifMatchHeaderValue))
                 .ifNoneMatch(EntityTagMatchers.fromCommaSeparatedString(ifNoneMatchHeaderValue))
@@ -138,6 +139,13 @@ public class PoliciesConditionalHeadersValidatorTest {
         final Command commandMock = mock(Command.class);
         when(commandMock.getDittoHeaders()).thenReturn(dittoHeaders);
         when(commandMock.getCategory()).thenReturn(commandCategory);
+
+        if (Optional.ofNullable(selectedFields).isPresent()) {
+            when(commandMock.toJson()).thenReturn(Optional.of(selectedFields).get());
+        } else {
+            when(commandMock.toJson()).thenReturn(JsonObject.empty());
+        }
+
         return commandMock;
     }
 
@@ -145,7 +153,8 @@ public class PoliciesConditionalHeadersValidatorTest {
         final String ifMatchHeaderValue = "\"rev:2\"";
         final String ifNoneMatchHeaderValue = "\"rev:1\"";
         final EntityTag actualEntityTag = null;
-        final Command commandMock = createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue);
+        final Command commandMock =
+                createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
 
         SUT.checkConditionalHeaders(commandMock, actualEntityTag);
     }
@@ -160,7 +169,8 @@ public class PoliciesConditionalHeadersValidatorTest {
     private void assertPreconditionFailed(final String ifMatchHeaderValue,
             final String ifNoneMatchHeaderValue, @Nullable final EntityTag actualEntityTag,
             final Category commandCategory, final String expectedMessage) {
-        final Command commandMock = createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue);
+        final Command commandMock =
+                createCommandMock(commandCategory, ifMatchHeaderValue, ifNoneMatchHeaderValue, null);
 
         final ThrowableAssertAlternative<PolicyPreconditionFailedException> assertion =
                 assertThatExceptionOfType(PolicyPreconditionFailedException.class)
@@ -175,8 +185,10 @@ public class PoliciesConditionalHeadersValidatorTest {
     }
 
     private void assertNotModified(final String ifMatchHeaderValue,
-            final String ifNoneMatchHeaderValue, @Nullable final EntityTag actualEntityTag, final String expectedMessage) {
-        final Command commandMock = createCommandMock(QUERY, ifMatchHeaderValue, ifNoneMatchHeaderValue);
+            final String ifNoneMatchHeaderValue, @Nullable final EntityTag actualEntityTag,
+            final String expectedMessage, final @Nullable JsonObject selectedFields) {
+        final Command commandMock =
+                createCommandMock(QUERY, ifMatchHeaderValue, ifNoneMatchHeaderValue, selectedFields);
 
         final ThrowableAssertAlternative<PolicyPreconditionNotModifiedException> assertion =
                 assertThatExceptionOfType(PolicyPreconditionNotModifiedException.class)
