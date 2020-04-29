@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.placeholders.filter;
 
+import java.util.Objects;
+
 /**
  *  Keeps the value if both passed parameters are not equal to each other.
  */
@@ -27,7 +29,7 @@ final class NeFunction implements FilterFunction {
         if (parameters.length != 2) {
             return false;
         }
-        return !parameters[0].equals(parameters[1]);
+        return !Objects.equals(parameters[0], parameters[1]);
     }
 
 }

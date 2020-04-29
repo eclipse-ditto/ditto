@@ -46,12 +46,12 @@ final class PipelineFunctionFilter implements PipelineFunction {
     public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final Map<String, String>
-                parameters = parseAndResolve(paramsIncludingParentheses, expressionResolver);
+        final Map<String, String> parameters = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
         return value.onResolved(valueThatShouldBeFilteredConditionally -> {
 
-            final Optional<FilterFunction> rqlFunctionOpt = FilterFunctions.fromName(parameters.get(RqlFunctionParam.NAME));
+            final Optional<FilterFunction> rqlFunctionOpt =
+                    FilterFunctions.fromName(parameters.get(RqlFunctionParam.NAME));
             final boolean shouldKeepValue = rqlFunctionOpt.map(rqlFunction -> {
                 final String filterValue = parameters.get(FilterValueParam.NAME);
                 final String comparedValue = parameters.get(ComparedValueParam.NAME);
@@ -79,11 +79,11 @@ final class PipelineFunctionFilter implements PipelineFunction {
         final PipelineElement rqlFunctionParamElement = parameterElements.get(1);
         final PipelineElement comparedValueParamElement = parameterElements.get(2);
 
-        final String filterValueParam = filterValueParamElement.toOptional().orElse(null);
+        final String filterValueParam = filterValueParamElement.toOptional().orElse("");
         final String rqlFunctionParam = rqlFunctionParamElement.toOptional().orElseThrow(() ->
                 PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                         .build());
-        final String comparedValueParam = comparedValueParamElement.toOptional().orElse(null);
+        final String comparedValueParam = comparedValueParamElement.toOptional().orElse("");
 
         final Map<String, String> parameters = new HashMap<>();
 
