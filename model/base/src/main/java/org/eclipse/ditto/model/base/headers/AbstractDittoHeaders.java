@@ -40,8 +40,10 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -137,6 +139,15 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     public AuthorizationContext getAuthorizationContext() {
         return duplicateSubjectsByStrippingIssuerPrefix(AuthorizationModelFactory.newAuthContext(
                 getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)));
+    }
+
+    @Override
+    public AuthorizationContextType getAuthorizationContextType() {
+        // returns the type without too much cost: not creating the AuthContext and not stripping issuer prefixes:
+        return getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)
+                .getValue(AuthorizationContext.JsonFields.TYPE)
+                .map(AuthorizationContextType::of)
+                .orElse(DittoAuthorizationContextType.UNSPECIFIED);
     }
 
     private static AuthorizationContext duplicateSubjectsByStrippingIssuerPrefix(
