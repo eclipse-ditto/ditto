@@ -3103,7 +3103,7 @@ paths:
         Note: Take care to not lock yourself out. Use the placeholder {{ request:subjectId }}
         in order to let the backend insert the authenticated subjectId of the HTTP request.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/ifMatchHeaderParamHash'
@@ -3210,7 +3210,7 @@ paths:
         parameter, and by the `label` path parameter.
         Example label: DEFAULT.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3271,7 +3271,7 @@ paths:
         * If you specify a new label, the respective policy entry will be created
         * If you specify an existig label, the respective policy entry will be updated
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3425,7 +3425,7 @@ paths:
         Deletes the entry of the policy identified by the `policyId` path
         parameter and with the label identified by the `label` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3480,7 +3480,7 @@ paths:
         `policyId` path parameter, and by the `label`
         path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3550,7 +3550,7 @@ paths:
         }
         ```
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3629,7 +3629,7 @@ paths:
         Returns the subject with ID `subjectId` of the policy entry identified
         by the `policyId` path parameter, and by the `label` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3689,7 +3689,7 @@ paths:
         by the `policyId` path parameter, and
         by the `label` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3785,7 +3785,7 @@ paths:
         i.e. it will not lose those permissions, but only the permissions defined in the
         label specified at this path.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3842,7 +3842,7 @@ paths:
         the `policyId` path parameter,
         and by the `label` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -3944,7 +3944,7 @@ paths:
           }
           ```
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -4019,7 +4019,7 @@ paths:
         by the `policyId` path parameter, and
         by the `label` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -4079,7 +4079,7 @@ paths:
         entry identified by the `label` path parameter belonging to the policy
         identified by the `policyId` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
@@ -4173,7 +4173,7 @@ paths:
         identified by the the `policyId` path parameter, and by the
         `label` path parameter.
       tags:
-        - policies
+        - Policies
       parameters:
         - $ref: '#/components/parameters/policyIdPathParam'
         - $ref: '#/components/parameters/labelPathParam'
