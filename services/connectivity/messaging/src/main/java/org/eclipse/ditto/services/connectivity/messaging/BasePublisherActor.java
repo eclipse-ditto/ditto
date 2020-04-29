@@ -15,6 +15,9 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -22,11 +25,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -53,8 +59,10 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
@@ -99,10 +107,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         connectionLogger =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
-    }
-
-    private static String getInstanceIdentifier() {
-        return InstanceIdentifierSupplier.getInstance().get();
     }
 
     @Override
@@ -164,14 +168,32 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                 connectionMonitorRegistry.forOutboundPublished(connectionId,
                                         target.getOriginalAddress());
                         final HeaderMapping headerMapping = target.getHeaderMapping().orElse(null);
-                        catchHeaderMappingException(publishedMonitor, outboundSource, () ->
-                                resolveTargetAddress(resolver, target.getAddress())
-                                        .map(this::toPublishTarget)
-                                        .ifPresent(publishTarget -> {
-                                            final ExternalMessage mappedMessage =
-                                                    applyHeaderMapping(resolver, outbound, headerMapping, log());
-                                            publishMessage(target, publishTarget, mappedMessage, publishedMonitor);
-                                        }));
+                        catchHeaderMappingException(publishedMonitor, outboundSource, () -> {
+                            final Optional<T> publishTargetOptional =
+                                    resolveTargetAddress(resolver, target.getAddress()).map(this::toPublishTarget);
+
+                            if (publishTargetOptional.isPresent()) {
+                                final T publishTarget = publishTargetOptional.get();
+                                final ExternalMessage mappedMessage =
+                                        applyHeaderMapping(resolver, outbound, headerMapping, log());
+                                // TODO: compute quota
+                                final int quota = 100000;
+                                publishMessage(outboundSource, target, publishTarget, mappedMessage, quota)
+                                        .whenComplete((ack, e) -> {
+                                            logResultOrError(message, e, publishedMonitor);
+                                            // TODO: aggregate ack and reply to sender
+                                            log().info("Got ACK: {}", ack);
+                                        });
+                            } else {
+                                if (log().isDebugEnabled()) {
+                                    log().withCorrelationId(message.getInternalHeaders())
+                                            .debug("Message without publishTarget dropped: <{}>", message);
+                                } else {
+                                    log().withCorrelationId(message.getInternalHeaders())
+                                            .info("Message without publishTarget dropped.");
+                                }
+                            }
+                        });
                     });
                 })
                 .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
@@ -203,7 +225,23 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         log().debug("Publishing mapped response/error message of type <{}> to reply address <{}>: {}",
                 outbound.getSource().getType(), address, response);
-        publishMessage(null, address, response, responsePublishedMonitor);
+        // no ack for error or response
+        publishMessage(outbound.getSource(), null, address, response, 0)
+                .whenComplete((result, error) -> logResultOrError(response, error, responsePublishedMonitor));
+    }
+
+    private void logResultOrError(final ExternalMessage message, @Nullable final Throwable e,
+            final ConnectionMonitor publishedMonitor) {
+        // TODO: check for e wrapped in CompletionException in callers of this method
+        if (e == null) {
+            log().withCorrelationId(message.getInternalHeaders())
+                    .debug("Message {} sent successfully.", message);
+            publishedMonitor.success(message);
+        } else {
+            log().withCorrelationId(message.getInternalHeaders())
+                    .info(e.toString());
+            monitorSendFailure(message, e, publishedMonitor);
+        }
     }
 
     private Optional<ReplyTarget> getReplyTargetByIndex(final int replyTargetIndex) {
@@ -246,13 +284,71 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
      * @param publishedMonitor the monitor that can be used for monitoring purposes.
      */
+    // TODO: delete
     protected abstract void publishMessage(@Nullable Target target, T publishTarget,
             ExternalMessage message, ConnectionMonitor publishedMonitor);
 
     /**
+     * Publish a message.
+     *
+     * @param signal the nullable Target for getting even more information about the configured Target to publish to.
+     * @param publishTarget the {@link PublishTarget} to publish to.
+     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
+     * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not
+     * send any acknowledgement.
+     * @return future of acknowledgement to reply to sender, or future of null if ackSizeQuota is 0.
+     */
+    // TODO: make abstract
+    protected CompletionStage<Acknowledgement> publishMessage(Signal<?> signal,
+            @Nullable Target target, T publishTarget,
+            ExternalMessage message, int ackSizeQuota) {
+
+        publishMessage(target, publishTarget, message, responsePublishedMonitor);
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("TODO: implement"));
+    }
+
+    /**
      * @return the logger to use.
      */
-    protected abstract DiagnosticLoggingAdapter log();
+    protected abstract DittoDiagnosticLoggingAdapter log();
+
+    private void monitorSendFailure(final ExternalMessage message, final Throwable exception,
+            final ConnectionMonitor publishedMonitor) {
+        if (exception instanceof DittoRuntimeException) {
+            publishedMonitor.failure(message, (DittoRuntimeException) exception);
+        } else {
+            final Exception e =
+                    exception instanceof Exception ? (Exception) exception : new RuntimeException(exception);
+            publishedMonitor.exception(message, e);
+        }
+    }
+
+    /**
+     * Decode a byte buffer according to the charset specified in an external message.
+     *
+     * @param buffer the byte buffer.
+     * @param message the external message.
+     * @return the decoded string.
+     */
+    protected static String decodeAsHumanReadable(@Nullable final ByteBuffer buffer, final ExternalMessage message) {
+        if (buffer != null) {
+            return getCharsetFromMessage(message).decode(buffer).toString();
+        } else {
+            return "<empty>";
+        }
+    }
+
+    /**
+     * Determine charset from an external message.
+     *
+     * @param message the external message.
+     * @return its charset.
+     */
+    protected static Charset getCharsetFromMessage(final ExternalMessage message) {
+        return message.findContentType()
+                .map(BasePublisherActor::determineCharset)
+                .orElse(StandardCharsets.UTF_8);
+    }
 
     /**
      * Checks whether the passed in {@code outboundSignal} is a response or an error or a search event.
@@ -321,6 +417,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      */
     private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
         return resolver.resolve(value).toOptional();
+    }
+
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
+    }
+
+    private static Charset determineCharset(final CharSequence contentType) {
+        return CharsetDeterminer.getInstance().apply(contentType);
     }
 
 }

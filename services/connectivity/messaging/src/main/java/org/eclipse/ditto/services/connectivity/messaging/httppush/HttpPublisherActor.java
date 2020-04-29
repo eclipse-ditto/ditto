@@ -14,17 +14,28 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -35,13 +46,15 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.http.javadsl.model.Host;
+import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
@@ -58,7 +71,6 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
-import akka.util.ByteString;
 import scala.util.Try;
 
 /**
@@ -73,10 +85,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static final long READ_BODY_TIMEOUT_MS = 1000L;
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final HttpPushFactory factory;
-    private final HttpPushConfig config;
 
     private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
@@ -91,7 +102,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final ConnectionConfig connectionConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
                         .getConnectionConfig();
-        config = connectionConfig.getHttpPushConfig();
+        final HttpPushConfig config = connectionConfig.getHttpPushConfig();
         blacklistedAddresses =
                 ConnectionValidator.calculateBlacklistedAddresses(connectionConfig.getBlacklistedHostnames(), log);
 
@@ -125,21 +136,24 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected void publishMessage(@Nullable final Target target, final HttpPublishTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
-
-        final HttpRequest request = createRequest(publishTarget, message);
-        final Host requestHost = request.getUri().getHost();
-        if (ConnectionValidator.isHostForbidden(requestHost, blacklistedAddresses)) {
-            log.warning("Tried to publish HTTP message to forbidden host: <{}> - dropping!", requestHost);
-            responseDroppedMonitor.failure(message, "Message dropped as the target address <{0}> is blacklisted " +
-                "or otherwise forbidden and may not be used", requestHost);
-        } else {
-            sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
-                    .handle(handleQueueOfferResult(message));
-        }
+        throw new UnsupportedOperationException(getClass().getSimpleName());
     }
 
     @Override
-    protected DiagnosticLoggingAdapter log() {
+    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
+            @Nullable final Target target, final HttpPublishTarget publishTarget,
+            final ExternalMessage message, int ackSizeQuota) {
+
+        final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
+        final HttpRequest request = createRequest(publishTarget, message);
+        final HttpPushContext context = newContext(signal, request, message, ackSizeQuota, resultFuture);
+        sourceQueue.offer(Pair.create(request, context))
+                .handle(handleQueueOfferResult(message, resultFuture));
+        return resultFuture;
+    }
+
+    @Override
+    protected DittoDiagnosticLoggingAdapter log() {
         return log;
     }
 
@@ -173,66 +187,83 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     // Async callback. Must be thread-safe.
-    private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message) {
+    private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message,
+            final CompletableFuture<?> resultFuture) {
         return (queueOfferResult, error) -> {
             if (error != null) {
                 final String errorDescription = "Source queue failure";
                 log.error(error, errorDescription);
-                responseDroppedMonitor.failure(message, "Message dropped because the connection failed");
+                resultFuture.completeExceptionally(error);
                 escalate(error, errorDescription);
             } else if (queueOfferResult == QueueOfferResult.dropped()) {
-                log.debug("HTTP request dropped due to full queue");
-                responseDroppedMonitor.failure(message,
-                        "Message dropped because the number of ongoing requests exceeded <{0}>",
-                        config.getMaxQueueSize());
+                resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
+                        .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
+                        .description("Please improve the performance of the HTTP server " +
+                                "or reduce the rate of outgoing signals.")
+                        .dittoHeaders(message.getInternalHeaders())
+                        .build());
             }
             return null;
         };
     }
 
     // Async callback. Must be thread-safe.
-    private void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithMessage) {
-        final Try<HttpResponse> tryResponse = responseWithMessage.first();
-        final HttpPushContext context = responseWithMessage.second();
-        final ExternalMessage message = context.getExternalMessage();
-        final Uri requestUri = context.getRequestUri();
-        if (tryResponse.isFailure()) {
-            final Throwable error = tryResponse.toEither().left().get();
-            final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
-                    stripUserInfo(requestUri));
-            log.debug("Failed to send message <{}> due to <{}>", message, error);
-            responsePublishedMonitor.failure(message, errorDescription);
-            escalate(error, errorDescription);
-        } else {
-            final HttpResponse response = tryResponse.toEither().right().get();
-            log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
-            if (response.status().isSuccess()) {
-                responsePublishedMonitor.success(message,
-                        "HTTP call to <{0}> successfully responded with status <{1}>.",
-                        stripUserInfo(requestUri), response.status());
-                response.discardEntityBytes(materializer);
+    private void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithContext) {
+        responseWithContext.second().onResponse(responseWithContext.first());
+    }
+
+    private HttpPushContext newContext(final Signal<?> signal,
+            final HttpRequest request, final ExternalMessage message,
+            final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture) {
+
+        return tryResponse -> {
+            final Uri requestUri = stripUserInfo(request.getUri());
+            if (tryResponse.isFailure()) {
+                final Throwable error = tryResponse.toEither().left().get();
+                final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
+                        requestUri);
+                log.debug("Failed to send message <{}> due to <{}>", message, error);
+                resultFuture.completeExceptionally(error);
+                escalate(error, errorDescription);
             } else {
-                getResponseBody(response, materializer)
-                        .thenAccept(body -> responsePublishedMonitor.failure(message,
-                                "HTTP call to <{0}> responded with status <{1}> and body: {2}.",
-                                stripUserInfo(requestUri),
-                                response.status(), body)
-                        )
-                        .exceptionally(bodyReadError -> {
-                            responsePublishedMonitor.failure(message,
-                                    "HTTP call to <{0}> responded with status <{1}>. Failed to read body within {2} ms",
-                                    stripUserInfo(requestUri), response.status(), READ_BODY_TIMEOUT_MS);
-                            LogUtil.enhanceLogWithCorrelationId(log, message.getInternalHeaders());
-                            log.info("Got <{}> when reading body of publish response to <{}>", bodyReadError,
-                                    message);
+                final HttpResponse response = tryResponse.toEither().right().get();
+                log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+                toAcknowledgement(signal, response, ackSizeQuota).thenAccept(resultFuture::complete)
+                        .exceptionally(e -> {
+                            resultFuture.completeExceptionally(e);
                             return null;
                         });
             }
-        }
+
+        };
     }
 
-    private Uri stripUserInfo(final Uri requestUri) {
-        return requestUri.userInfo("");
+    private CompletionStage<Acknowledgement> toAcknowledgement(final Signal<?> signal,
+            final HttpResponse response,
+            final int ackSizeQuota) {
+
+        final EntityId entityId = signal.getEntityId();
+        if (ackSizeQuota <= 0 || entityId.isDummy() || !(entityId instanceof EntityIdWithType)) {
+            response.discardEntityBytes(materializer);
+            return CompletableFuture.completedFuture(null);
+        }
+        final EntityIdWithType entityIdWithType = (EntityIdWithType) entityId;
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        // TODO: extract actual label from target
+        final AcknowledgementLabel label = AcknowledgementLabel.of("dummy-acknowledgement-label");
+        final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
+        if (statusOptional.isEmpty()) {
+            final MessageSendingFailedException error = MessageSendingFailedException.newBuilder()
+                    .message(String.format("Remote server delivers unknown HTTP status code <%d>",
+                            response.status().intValue()))
+                    .build();
+            return CompletableFuture.failedFuture(error);
+        } else {
+            final HttpStatusCode statusCode = statusOptional.get();
+            return getResponseBody(response, ackSizeQuota, materializer).thenApply(body ->
+                    Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, JsonValue.of(body))
+            );
+        }
     }
 
     private void escalate(final Throwable error, final String description) {
@@ -254,11 +285,20 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
     }
 
-    private static CompletionStage<String> getResponseBody(final HttpResponse response,
+    private static CompletionStage<String> getResponseBody(final HttpResponse response, final int maxBytes,
             final ActorMaterializer materializer) {
         return response.entity()
+                .withSizeLimit(maxBytes)
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
-                .thenApply(HttpEntity.Strict::getData)
-                .thenApply(ByteString::utf8String);
+                .thenApply(strictEntity -> {
+                    final Charset charset = strictEntity.getContentType().getCharsetOption()
+                            .map(HttpCharset::nioCharset)
+                            .orElse(StandardCharsets.UTF_8);
+                    return new String(strictEntity.getData().toArray(), charset);
+                });
+    }
+
+    private static Uri stripUserInfo(final Uri requestUri) {
+        return requestUri.userInfo("");
     }
 }

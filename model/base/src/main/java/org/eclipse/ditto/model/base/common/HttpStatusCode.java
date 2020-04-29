@@ -400,6 +400,7 @@ public enum HttpStatusCode {
      * @return the HTTP status code which is associated with {@code statusCodeAsInt} or an empty optional.
      */
     public static Optional<HttpStatusCode> forInt(final int statusCodeAsInt) {
+        // TODO: improve performance
         return Stream.of(values()) //
                 .filter(c -> c.toInt() == statusCodeAsInt) //
                 .findFirst();

@@ -35,6 +35,8 @@ import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -59,7 +61,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
@@ -259,11 +261,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected DiagnosticLoggingAdapter log() {
+    protected DittoDiagnosticLoggingAdapter log() {
         return logWithConnectionId();
     }
 
-    private DiagnosticLoggingAdapter logWithConnectionId() {
+    private DittoDiagnosticLoggingAdapter logWithConnectionId() {
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         return log;
     }

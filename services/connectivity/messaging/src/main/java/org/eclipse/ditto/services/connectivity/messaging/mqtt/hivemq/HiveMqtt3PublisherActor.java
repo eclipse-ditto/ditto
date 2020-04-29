@@ -15,15 +15,13 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
-import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -32,7 +30,10 @@ import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValida
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
@@ -40,7 +41,6 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -52,7 +52,7 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     private static final int DEFAULT_TARGET_QOS = 0;
     static final String NAME = "HiveMqtt3PublisherActor";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final Mqtt3AsyncClient client;
     private final boolean dryRun;
 
@@ -92,16 +92,36 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
     }
 
     @Override
-    protected DiagnosticLoggingAdapter log() {
+    protected DittoDiagnosticLoggingAdapter log() {
         return log;
     }
 
     @Override
     protected void publishMessage(@Nullable final Target target, final MqttPublishTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
+        throw new UnsupportedOperationException(getClass().getSimpleName());
+    }
 
-        final MqttQos targetQoS = determineQos(target);
-        publishMessage(publishTarget, targetQoS, message, publishedMonitor);
+    @Override
+    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
+            @Nullable final Target target,
+            final MqttPublishTarget publishTarget,
+            final ExternalMessage message, int ackSizeQuota) {
+
+        try {
+            final MqttQos qos = determineQos(target);
+            final Mqtt3Publish mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
+            if (log().isDebugEnabled()) {
+                log().debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.getTopic(),
+                        decodeAsHumanReadable(mqttMessage.getPayload().orElse(null), message));
+            }
+            // TODO: check against broker ack
+            return client.publish(mqttMessage).thenApply(msg -> null);
+        } catch (final Exception e) {
+            // TODO: log() needed? - also applies for HiveMqtt5
+            // log().info("Won't publish message, since currently in disconnected state.");
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private MqttQos determineQos(@Nullable final Target target) {
@@ -110,35 +130,6 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
         } else {
             final int qos = target.getQos().orElse(DEFAULT_TARGET_QOS);
             return AbstractMqttValidator.getHiveQoS(qos);
-        }
-    }
-
-    private void publishMessage(final MqttPublishTarget publishTarget, final MqttQos qos, final ExternalMessage message,
-            final ConnectionMonitor publishedMonitor) {
-        try {
-            final Mqtt3Publish mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
-            if (log().isDebugEnabled()) {
-                final String humanReadablePayload = mqttMessage.getPayload()
-                        .map(getCharsetFromMessage(message)::decode)
-                        .map(CharBuffer::toString).orElse("<empty>");
-                log().debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.getTopic(),
-                        humanReadablePayload);
-            }
-            client.publish(mqttMessage).whenComplete((mqtt3Publish, throwable) -> {
-                if (null == throwable) {
-                    log().debug("Successfully published to message of type <{}> to target address <{}>",
-                            mqttMessage.getType(), publishTarget.getTopic());
-                    publishedMonitor.success(message);
-                } else {
-                    final String logMessage =
-                            MessageFormat.format("Error while publishing message: {0}", throwable.getMessage());
-                    log().info(logMessage);
-                    publishedMonitor.exception(message, logMessage);
-                }
-            });
-        } catch (final Exception e) {
-            log().info("Won't publish message, since currently in disconnected state.");
-            publishedMonitor.failure(message, "Won't publish message since currently not connected.");
         }
     }
 
@@ -159,16 +150,6 @@ public final class HiveMqtt3PublisherActor extends BasePublisherActor<MqttPublis
             payload = ByteBufferUtils.empty();
         }
         return Mqtt3Publish.builder().topic(mqttTarget.getTopic()).qos(qos).payload(payload).build();
-    }
-
-    private Charset getCharsetFromMessage(final ExternalMessage message) {
-        return message.findContentType()
-                .map(this::determineCharset)
-                .orElse(StandardCharsets.UTF_8);
-    }
-
-    private Charset determineCharset(final CharSequence contentType) {
-        return CharsetDeterminer.getInstance().apply(contentType);
     }
 
     private boolean isDryRun(final Object message) {

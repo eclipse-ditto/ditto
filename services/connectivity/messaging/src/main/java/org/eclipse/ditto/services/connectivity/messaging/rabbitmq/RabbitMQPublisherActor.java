@@ -30,7 +30,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -39,7 +40,6 @@ import com.rabbitmq.client.AMQP;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -62,7 +62,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      */
     static final String ACTOR_NAME = "rmqPublisherActor";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable private ActorRef channelActor;
 
@@ -132,7 +132,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected DiagnosticLoggingAdapter log() {
+    protected DittoDiagnosticLoggingAdapter log() {
         return log;
     }
 

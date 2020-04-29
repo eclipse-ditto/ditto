@@ -23,6 +23,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigValueFactory;
@@ -40,6 +42,7 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -62,11 +65,17 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     protected void setupMocks(final TestProbe probe) {
         httpPushFactory = new DummyHttpPushFactory("8.8.4.4", request -> {
             received.offer(request);
-            return HttpResponse.create().withStatus(StatusCodes.OK);
+            return HttpResponse.create()
+                    .withStatus(StatusCodes.OK)
+                    .withEntity("The quick brown fox jumps over the lazy dog.");
         });
+
+        // activate debug log to show responses
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelDebug());
     }
 
     @Test
+    @Ignore("TODO: will be removed")
     public void testIpv6Blacklist() {
         final ActorSystem systemWithBlacklist = ActorSystem.create("systemWithBlackList",
                 CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames",
