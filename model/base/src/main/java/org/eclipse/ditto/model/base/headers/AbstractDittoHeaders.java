@@ -146,7 +146,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         // returns the type without too much cost: not creating the AuthContext and not stripping issuer prefixes:
         return getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)
                 .getValue(AuthorizationContext.JsonFields.TYPE)
-                .map(AuthorizationContextType::of)
+                .map(AuthorizationContextType::newInstance)
                 .orElse(DittoAuthorizationContextType.UNSPECIFIED);
     }
 
