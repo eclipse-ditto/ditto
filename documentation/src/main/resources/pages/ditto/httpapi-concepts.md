@@ -453,12 +453,30 @@ The following request headers can be used to issue a conditional request:
       the current entity-tag of the resource as `ETag` header
       * for read requests, status `304 (Not Modified)` without response body, with the current entity-tag of the 
       resource as `ETag` header
-
+      
 Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a 
 `weak` entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this 
 strong entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto will handle it according to RFC-7232. 
 However, we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary 
 complexity.
+
+### Exempted fields
+
+Assuming you have a thing with an associated policy. When querying the thing with
+
+```
+GET .../things/{thingId}?fields=_policy
+```
+
+you will get the thing containing its revision and associated policy.
+
+If you now modify the associated policy, the revision of the thing will not change! This could lead to an
+inconsistent state if the thing is getting refetched by using the `If-None-Match` header, 
+because this would return a `304 Not Modified`, even if the policy has changed.
+
+To tackle this, Ditto has the following list of exempted fields which automatically bypass the precondition header check:
+
+* `_policy`
     
 ### Examples
 
