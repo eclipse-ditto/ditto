@@ -63,7 +63,6 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip> <!-- TODO Ditto 1.1.0: enable once released for the first time -->
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
