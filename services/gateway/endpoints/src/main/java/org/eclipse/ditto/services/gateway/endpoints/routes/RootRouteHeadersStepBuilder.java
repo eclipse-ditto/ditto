@@ -90,7 +90,7 @@ final class RootRouteHeadersStepBuilder {
      * @return the next builder step.
      * @throws NullPointerException if {@code initialDittoHeadersBuilder} is {@code null}.
      */
-    RequestContextStep withInitialDittoHeadersBuilder(final DittoHeadersBuilder<?, ?> initialDittoHeadersBuilder) {
+    RequestContextStep withInitialDittoHeadersBuilder(final DittoHeadersBuilder initialDittoHeadersBuilder) {
         return new RequestContextStep(checkNotNull(initialDittoHeadersBuilder, "initialDittoHeadersBuilder"));
     }
 
@@ -100,9 +100,9 @@ final class RootRouteHeadersStepBuilder {
     @NotThreadSafe
     final class RequestContextStep {
 
-        private final DittoHeadersBuilder<?, ?> dittoHeadersBuilder;
+        private final DittoHeadersBuilder dittoHeadersBuilder;
 
-        private RequestContextStep(final DittoHeadersBuilder<?, ?> dittoHeadersBuilder) {
+        private RequestContextStep(final DittoHeadersBuilder dittoHeadersBuilder) {
             this.dittoHeadersBuilder = dittoHeadersBuilder;
         }
 
@@ -141,11 +141,11 @@ final class RootRouteHeadersStepBuilder {
     @NotThreadSafe
     final class QueryParametersStep {
 
-        private final DittoHeadersBuilder<?, ?> dittoHeadersBuilder;
+        private final DittoHeadersBuilder dittoHeadersBuilder;
         private final RequestContext requestContext;
         private final Map<String, String> filteredExternalHeaders;
 
-        private QueryParametersStep(final DittoHeadersBuilder<?, ?> dittoHeadersBuilder,
+        private QueryParametersStep(final DittoHeadersBuilder dittoHeadersBuilder,
                 final RequestContext requestContext,
                 final Map<String, String> filteredExternalHeaders) {
 
@@ -213,10 +213,10 @@ final class RootRouteHeadersStepBuilder {
     @NotThreadSafe
     final class BuildStep {
 
-        private final DittoHeadersBuilder<?, ?> dittoHeadersBuilder;
+        private final DittoHeadersBuilder dittoHeadersBuilder;
         private final RequestContext requestContext;
 
-        private BuildStep(final DittoHeadersBuilder<?, ?> dittoHeadersBuilder, final RequestContext requestContext) {
+        private BuildStep(final DittoHeadersBuilder dittoHeadersBuilder, final RequestContext requestContext) {
             this.dittoHeadersBuilder = dittoHeadersBuilder;
             this.requestContext = requestContext;
         }

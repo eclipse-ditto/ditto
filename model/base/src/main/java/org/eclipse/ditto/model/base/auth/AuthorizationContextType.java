@@ -41,16 +41,6 @@ public abstract class AuthorizationContextType implements CharSequence, Comparab
         this.type = argumentNotEmpty(type, "type");
     }
 
-    /**
-     * Creates an instance of AuthorizationContextType with the passed {@code type}.
-     *
-     * @param type the char sequence to create the AuthorizationContextType of.
-     * @return the created instance.
-     */
-    public static AuthorizationContextType newInstance(final CharSequence type) {
-        return ImmutableAuthorizationContextType.of(type);
-    }
-
     @Override
     public int length() {
         return type.length();
