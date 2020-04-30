@@ -13,27 +13,31 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.kafka.ProducerMessage;
-import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -44,28 +48,23 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final String OUTBOUND_ADDRESS = "anyTopic/keyA";
 
-    private final List<ProducerMessage.Message<String, String, Object>> received = new LinkedList<>();
+    private final Queue<ProducerRecord<String, String>> received = new ConcurrentLinkedQueue<>();
     private KafkaConnectionFactory connectionFactory;
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void setupMocks(final TestProbe probe) {
         connectionFactory = mock(KafkaConnectionFactory.class);
-        when(connectionFactory.newFlow())
-                .thenReturn(
-                        Flow.fromFunction(envelope -> {
-                            final ProducerMessage.Message<String, String, Object> message =
-                                    (ProducerMessage.Message<String, String, Object>) envelope;
-                            received.add(message);
-                            return createResult(message);
-                        }));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static ProducerMessage.Results<String, String, Object> createResult(
-            final ProducerMessage.Message<String, String, Object> message) {
-        final ProducerMessage.Results<String, String, Object> resultMock = Mockito.mock(ProducerMessage.Results.class);
-        when(resultMock.passThrough()).thenReturn(message.passThrough());
-        return resultMock;
+        final Producer<String, String> mockProducer = mock(Producer.class);
+        when(mockProducer.send(any(), any()))
+                .thenAnswer(invocationOnMock -> {
+                    final ProducerRecord<String, String> record = invocationOnMock.getArgument(0);
+                    final RecordMetadata dummyMetadata = new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0);
+                    invocationOnMock.getArgument(1, Callback.class).onCompletion(dummyMetadata, null);
+                    received.add(record);
+                    return null;
+                });
+        when(connectionFactory.newProducer()).thenReturn(mockProducer);
     }
 
     @Override
@@ -76,12 +75,13 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessage() {
         Awaitility.await().until(() -> !received.isEmpty());
-        assertThat(received).hasSize(1);
-        final ProducerMessage.Message<String, String, Object> message = received.get(0);
-        assertThat(message.record().topic()).isEqualTo("anyTopic");
-        assertThat(message.record().key()).isEqualTo("keyA");
-        assertThat(message.record().value()).isEqualTo("payload");
-        final List<Header> headers = Arrays.asList(message.record().headers().toArray());
+        final ProducerRecord<String, String> record = checkNotNull(received.poll());
+        assertThat(received).isEmpty();
+        assertThat(record).isNotNull();
+        assertThat(record.topic()).isEqualTo("anyTopic");
+        assertThat(record.key()).isEqualTo("keyA");
+        assertThat(record.value()).isEqualTo("payload");
+        final List<Header> headers = Arrays.asList(record.headers().toArray());
         shouldContainHeader(headers, "thing_id", TestConstants.Things.THING_ID.toString());
         shouldContainHeader(headers, "suffixed_thing_id", TestConstants.Things.THING_ID + ".some.suffix");
         shouldContainHeader(headers, "prefixed_thing_id", "some.prefix." + TestConstants.Things.THING_ID);
@@ -92,11 +92,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessageToReplyTarget() {
         Awaitility.await().until(() -> !received.isEmpty());
-        assertThat(received).hasSize(1);
-        final ProducerMessage.Message<String, String, Object> message = received.get(0);
-        assertThat(message.record().topic()).isEqualTo("replyTarget");
-        assertThat(message.record().key()).isEqualTo("thing:id");
-        final List<Header> headers = Arrays.asList(message.record().headers().toArray());
+        final ProducerRecord<String, String> record = checkNotNull(received.poll());
+        assertThat(received).isEmpty();
+        assertThat(record.topic()).isEqualTo("replyTarget");
+        assertThat(record.key()).isEqualTo("thing:id");
+        final List<Header> headers = Arrays.asList(record.headers().toArray());
         shouldContainHeader(headers, "correlation-id", TestConstants.CORRELATION_ID);
         shouldContainHeader(headers, "mappedHeader2", "thing:id");
     }

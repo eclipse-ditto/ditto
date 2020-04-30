@@ -16,10 +16,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 
-import akka.kafka.ProducerMessage;
 import akka.kafka.ProducerSettings;
-import akka.kafka.javadsl.Producer;
-import akka.stream.javadsl.Flow;
 
 /**
  * Creates Kafka sinks.
@@ -55,8 +52,9 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
     }
 
     @Override
-    public <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, akka.NotUsed> newFlow() {
-        return Producer.flexiFlow(settings);
+    public org.apache.kafka.clients.producer.Producer<String, String> newProducer() {
+        // TODO: consider replacing Alpakka settings with bare Kafka client settings to remove Alpakka dependency
+        return settings.createKafkaProducer();
     }
 
 }

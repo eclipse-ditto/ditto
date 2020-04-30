@@ -13,22 +13,23 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.errors.AuthenticationException;
-import org.apache.kafka.common.errors.AuthorizationException;
-import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -41,17 +42,11 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.Done;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.kafka.ProducerMessage;
-import akka.stream.ActorMaterializer;
-import akka.stream.OverflowStrategy;
-import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 
 /**
@@ -60,6 +55,22 @@ import akka.util.ByteString;
  */
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
+    /**
+     * List of retriable producer exceptions.
+     * Please keep up-to-date against {@link org.apache.kafka.clients.producer.Callback}.
+     * Cannot check for containment as set as these classes are not final.
+     * Keep the classes fully qualified to ensure they stay in the right package.
+     */
+    private static final List<Class<?>> RETRIABLE_EXCEPTIONS = List.of(
+            org.apache.kafka.common.errors.CorruptRecordException.class,
+            org.apache.kafka.common.errors.InvalidMetadataException.class,
+            org.apache.kafka.common.errors.NotEnoughReplicasAfterAppendException.class,
+            org.apache.kafka.common.errors.NotEnoughReplicasException.class,
+            org.apache.kafka.common.errors.OffsetOutOfRangeException.class,
+            org.apache.kafka.common.errors.TimeoutException.class,
+            org.apache.kafka.common.errors.UnknownTopicOrPartitionException.class
+    );
+
     static final String ACTOR_NAME = "kafkaPublisher";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
@@ -67,8 +78,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
 
-    private boolean shuttingDown = false;
-    private ActorRef sourceActor;
+    private Producer<String, String> producer;
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection, final KafkaConnectionFactory factory,
@@ -78,7 +88,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         this.dryRun = dryRun;
         connectionFactory = factory;
 
-        startInternalKafkaProducer();
+        startInternalKafkaProducer(connection);
         reportInitialConnectionState();
     }
 
@@ -106,6 +116,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
+    public void postStop() throws Exception {
+        closeProducer();
+        super.postStop();
+    }
+
+    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
                 outbound -> log.info("Message dropped in dry run mode: {}", outbound))
@@ -127,36 +143,49 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             @Nullable final Target target, final KafkaPublishTarget publishTarget,
             final ExternalMessage message, int ackSizeQuota) {
 
-        // TODO: implement
-        publishMessage(publishTarget, message, new PassThrough(responsePublishedMonitor, message));
-        return CompletableFuture.completedFuture(null);
+        if (producer == null) {
+            final MessageSendingFailedException error = MessageSendingFailedException.newBuilder()
+                    .message("Kafka producer is not available.")
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build();
+            escalate(error, "Requested to send Kafka message without producer; this is a bug.");
+            return CompletableFuture.failedFuture(error);
+        } else {
+            final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
+            final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
+            final ProducerCallBack callBack =
+                    new ProducerCallBack(signal, target, ackSizeQuota, resultFuture, this::escalateIfNotRetriable);
+            producer.send(record, callBack);
+            return resultFuture;
+        }
     }
 
-    private void publishMessage(final KafkaPublishTarget publishTarget, final ExternalMessage message,
-            final PassThrough passThrough) {
-
-        final ProducerMessage.Envelope<String, String, PassThrough> kafkaMessage =
-                mapExternalMessageToKafkaMessage(publishTarget, message, passThrough);
-        sourceActor.tell(kafkaMessage, getSelf());
+    /**
+     * Check a send exception. Escalate to parent if it cannot be recovered from.
+     * Called by ProducerCallBack; must be thread-safe.
+     *
+     * @param exception the exception.
+     */
+    private void escalateIfNotRetriable(final Exception exception) {
+        if (!isRetriable(exception)) {
+            escalate(exception, "Got non-retriable exception");
+        }
     }
 
     private boolean isDryRun() {
         return dryRun;
     }
 
-    private static ProducerMessage.Envelope<String, String, PassThrough> mapExternalMessageToKafkaMessage(
-            final KafkaPublishTarget publishTarget, final ExternalMessage externalMessage,
-            final PassThrough passThrough) {
+    private static ProducerRecord<String, String> producerRecord(final KafkaPublishTarget publishTarget,
+            final ExternalMessage externalMessage) {
 
         final String payload = mapExternalMessagePayload(externalMessage);
         final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
 
-        final ProducerRecord<String, String> record =
-                new ProducerRecord<>(publishTarget.getTopic(),
-                        publishTarget.getPartition().orElse(null),
-                        publishTarget.getKey().orElse(null),
-                        payload, headers);
-        return ProducerMessage.single(record, passThrough);
+        return new ProducerRecord<>(publishTarget.getTopic(),
+                publishTarget.getPartition().orElse(null),
+                publishTarget.getKey().orElse(null),
+                payload, headers);
     }
 
     private static Iterable<Header> mapExternalMessageHeaders(final ExternalMessage externalMessage) {
@@ -180,84 +209,22 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         return "";
     }
 
-    private Done handleCompletionOrFailure(final Done done, @Nullable final Throwable throwable) {
-        // when getting here, the Kafka producer will have finished its work either because it got an exception or because
-        // the stream (it is built upon) is finished. Since the stream is never expected to finish, we will try to
-        // restart the producer most of the times. Only when it was intentionally stopped (#shuttingDown), we will not
-        // restart it.
-        if (null == throwable) {
-            logWithConnectionId().info("Internal kafka publisher completed.");
-            restartInternalKafkaProducer();
-
-        } else if (shuttingDown) {
-            logWithConnectionId().info("Received exception while shutting down and thus ignoring it: {}",
-                    throwable.getMessage());
-
-        } else if (throwable instanceof AuthorizationException || throwable instanceof AuthenticationException) {
-            final String message =
-                    MessageFormat.format("Ran into authentication or authorization problems against Kafka broker: {0}",
-                            throwable.getMessage());
-
-            // use response published monitor since we don't know if this comes from publishing to a target or from a response.
-            // we should fix this with #418
-            responsePublishedMonitor.exception(message);
-            logWithConnectionId().info(message);
-            restartInternalKafkaProducer();
-
-        } else if (throwable instanceof TimeoutException) {
-            final String message = MessageFormat.format("Ran into a timeout when accessing Kafka with message: <{0}>. "
-                            + "This might have several reasons, e.g. the Kafka broker not being accessible, the topic or the "
-                            + "partition not being existing, a wrong port etc. ",
-                    throwable.getMessage());
-
-            // use response published monitor since we don't know if this comes from publishing to a target or from a response.
-            // we should fix this with #418
-            responsePublishedMonitor.exception(message);
-            logWithConnectionId().info(message);
-            restartInternalKafkaProducer();
-
-        } else {
-            connectionLogger.exception("An unexpected error happened: {0}", throwable.getMessage());
-            logWithConnectionId().error(throwable,
-                    "An unexpected error happened in the internal Kafka publisher and we can't recover from it.");
-            restartInternalKafkaProducer();
-
-        }
-
-        return done;
-    }
-
-    private void startInternalKafkaProducer() {
+    private void startInternalKafkaProducer(final Connection connection) {
         logWithConnectionId().info("Starting internal Kafka producer.");
-        sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
+        closeProducer();
+        // TODO: configure timeouts so that senders won't have to wait >1m for send failures.
+        producer = connectionFactory.newProducer();
     }
 
-    private void restartInternalKafkaProducer() {
-        logWithConnectionId().info("Restarting internal Kafka producer");
-        sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
-    }
-
-    private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory,
-            final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
-
-        // TODO: convert to bare producer
-        // TODO: handle producer error similar to DefaultKafkaConnectionFactory
-        // TODO: remove dependency
-        final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
-                Source.<ProducerMessage.Envelope<String, String, PassThrough>>actorRef(100,
-                        OverflowStrategy.dropHead())
-                        .via(factory.newFlow())
-                        .toMat(KafkaPublisherActor.publishSuccessSink(), Keep.both())
-                        .run(ActorMaterializer.create(getContext()));
-        materializedFlowedValues.second().handleAsync(completionOrFailureHandler);
-        return materializedFlowedValues.first();
+    private void closeProducer() {
+        if (producer != null) {
+            producer.close();
+        }
     }
 
     private void stopInternalKafkaProducer() {
         logWithConnectionId().info("Stopping internal Kafka producer.");
-        if (null != sourceActor) {
-            sourceActor.tell(new Status.Success("stopped"), ActorRef.noSender());
-        }
+        closeProducer();
     }
 
     private void reportInitialConnectionState() {
@@ -276,10 +243,14 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     private void stopGracefully() {
-        shuttingDown = true;
+        final boolean shuttingDown = true;
         stopInternalKafkaProducer();
         logWithConnectionId().debug("Stopping myself.");
         getContext().stop(getSelf());
+    }
+
+    private static boolean isRetriable(final Exception exception) {
+        return RETRIABLE_EXCEPTIONS.stream().anyMatch(clazz -> clazz.isInstance(exception));
     }
 
     /**
@@ -309,6 +280,36 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             this.externalMessage = message;
         }
 
+    }
+
+    private static final class ProducerCallBack implements Callback {
+
+        private final Signal<?> signal;
+        @Nullable final Target target;
+        final int ackSizeQuota;
+        private final CompletableFuture<Acknowledgement> resultFuture;
+        private final Consumer<Exception> checkException;
+
+        private ProducerCallBack(final Signal<?> signal, @Nullable final Target target,
+                final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture,
+                final Consumer<Exception> checkException) {
+            this.signal = signal;
+            this.target = target;
+            this.ackSizeQuota = ackSizeQuota;
+            this.resultFuture = resultFuture;
+            this.checkException = checkException;
+        }
+
+        @Override
+        public void onCompletion(final RecordMetadata metadata, final Exception exception) {
+            if (exception != null) {
+                resultFuture.completeExceptionally(exception);
+                checkException.accept(exception);
+            } else {
+                // TODO: construct ACK.
+                resultFuture.complete(null);
+            }
+        }
     }
 
 }

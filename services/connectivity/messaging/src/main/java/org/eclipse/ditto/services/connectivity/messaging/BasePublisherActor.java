@@ -189,7 +189,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                         .whenComplete((ack, e) -> {
                                             logResultOrError(message, e, publishedMonitor);
                                             // TODO: aggregate ack and reply to sender
-                                            log().info("Got ACK: {}", ack);
+                                            log().debug("Got ACK: {}", ack);
                                         });
                             } else {
                                 if (log().isDebugEnabled()) {
@@ -342,6 +342,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     /**
      * Escalate an error to the parent to trigger a restart.
+     * This is thread safe because self and parent are thread-safe.
      *
      * @param error the encountered failure.
      * @param description description of the failure.
