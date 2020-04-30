@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.gateway.security.authentication;
 
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -39,11 +39,12 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
 
     private static final Duration AWAIT_AUTH_TIMEOUT = Duration.ofSeconds(5L);
 
-    private final Future<R> authenticationResultFuture;
+    private final CompletableFuture<R> authenticationResultFuture;
     private final DittoHeaders dittoHeaders;
     private final Duration awaitAuthTimeout;
 
-    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders,
+    private AuthenticationResultWaiter(final CompletableFuture<R> authenticationResultFuture,
+            final DittoHeaders dittoHeaders,
             final Duration awaitAuthTimeout) {
 
         this.authenticationResultFuture = authenticationResultFuture;
@@ -60,7 +61,7 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      * @return the created instance.
      */
     public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(
-            final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
+            final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
 
         return new AuthenticationResultWaiter<>(authenticationResultFuture, dittoHeaders, AWAIT_AUTH_TIMEOUT);
     }
