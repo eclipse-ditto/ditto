@@ -73,7 +73,26 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
-        validateValueTypes(initialHeaders, definitions);
+        myself = (S) selfType.cast(this);
+        headers = new HashMap<>(initialHeaders);
+        this.definitions = new HashSet<>(definitions);
+        Collections.addAll(this.definitions, DittoHeaderDefinition.values());
+    }
+
+    /**
+     * performance optimization: only validate values types if they were not yet validated
+     * when passing in DittoHeaders, we can be sure that they already are valid
+     * TODO TJ
+     * @param initialHeaders
+     * @param definitions
+     * @param selfType
+     */
+    @SuppressWarnings("unchecked")
+    protected AbstractDittoHeadersBuilder(final R initialHeaders,
+            final Collection<? extends HeaderDefinition> definitions,final Class<?> selfType) {
+
+        checkNotNull(initialHeaders, "initial headers");
+        checkNotNull(definitions, "header definitions");
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
         this.definitions = new HashSet<>(definitions);
