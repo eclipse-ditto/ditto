@@ -73,6 +73,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
+        validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
         this.definitions = new HashSet<>(definitions);
