@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -34,15 +35,15 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.kafka.ProducerMessage;
@@ -122,12 +123,13 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected void publishMessage(@Nullable final Target target,
-            final KafkaPublishTarget publishTarget,
-            final ExternalMessage message,
-            final ConnectionMonitor publishedMonitor) {
+    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
+            @Nullable final Target target, final KafkaPublishTarget publishTarget,
+            final ExternalMessage message, int ackSizeQuota) {
 
-        publishMessage(publishTarget, message, new PassThrough(publishedMonitor, message));
+        // TODO: implement
+        publishMessage(publishTarget, message, new PassThrough(responsePublishedMonitor, message));
+        return CompletableFuture.completedFuture(null);
     }
 
     private void publishMessage(final KafkaPublishTarget publishTarget, final ExternalMessage message,
@@ -238,6 +240,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory,
             final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
 
+        // TODO: convert to bare producer
+        // TODO: handle producer error similar to DefaultKafkaConnectionFactory
+        // TODO: remove dependency
         final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
                 Source.<ProducerMessage.Envelope<String, String, PassThrough>>actorRef(100,
                         OverflowStrategy.dropHead())

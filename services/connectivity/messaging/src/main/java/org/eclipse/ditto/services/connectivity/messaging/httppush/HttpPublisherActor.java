@@ -41,9 +41,6 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -131,12 +128,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected HttpPublishTarget toPublishTarget(final String address) {
         return HttpPublishTarget.of(address);
-    }
-
-    @Override
-    protected void publishMessage(@Nullable final Target target, final HttpPublishTarget publishTarget,
-            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
-        throw new UnsupportedOperationException(getClass().getSimpleName());
     }
 
     @Override
@@ -264,11 +255,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, JsonValue.of(body))
             );
         }
-    }
-
-    private void escalate(final Throwable error, final String description) {
-        final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), error, description);
-        getContext().getParent().tell(failure, getSelf());
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {

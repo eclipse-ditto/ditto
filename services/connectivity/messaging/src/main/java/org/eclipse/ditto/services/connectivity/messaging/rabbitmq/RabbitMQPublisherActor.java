@@ -17,6 +17,8 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -26,13 +28,15 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
@@ -137,17 +141,16 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected void publishMessage(@Nullable final Target target, final RabbitMQTarget publishTarget,
-            final ExternalMessage message,
-            ConnectionMonitor publishedMonitor) {
+    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
+            @Nullable final Target target, final RabbitMQTarget publishTarget,
+            final ExternalMessage message, int ackSizeQuota) {
+
         if (channelActor == null) {
-            log.info("No channel available, dropping response.");
-            return;
+            return sendFailedFuture(signal, "No channel available, dropping response.");
         }
 
         if (publishTarget.getRoutingKey() == null) {
-            log.warning("No routing key, dropping message.");
-            return;
+            return sendFailedFuture(signal, "No routing key, dropping message.");
         }
 
         final Map<String, String> messageHeaders = message.getHeaders();
@@ -175,21 +178,38 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     .orElse(new byte[]{});
         }
 
+        final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
                 log.debug("Publishing to exchange <{}> and routing key <{}>: {}", publishTarget.getExchange(),
                         publishTarget.getRoutingKey(), basicProperties);
                 channel.basicPublish(publishTarget.getExchange(), publishTarget.getRoutingKey(), basicProperties,
                         body);
-                publishedMonitor.success(message);
+                // TODO: this is incorrect. Use Publisher-confirms instead:
+                // TODO: https://www.rabbitmq.com/confirms.html#publisher-confirms
+                resultFuture.complete(null);
             } catch (final Exception e) {
-                log.warning("Failed to publish message to RabbitMQ: {}", e.getMessage());
-                publishedMonitor.exception(message, e);
+                final String errorMessage = String.format("Failed to publish message to RabbitMQ: %s", e.getMessage());
+                resultFuture.completeExceptionally(sendFailed(signal, errorMessage, e));
             }
             return null;
         }, false);
 
         channelActor.tell(channelMessage, getSelf());
+        return resultFuture;
+    }
+
+    private static <T> CompletionStage<T> sendFailedFuture(final Signal<?> signal, final String errorMessage) {
+        return CompletableFuture.failedFuture(sendFailed(signal, errorMessage, null));
+    }
+
+    private static MessageSendingFailedException sendFailed(final Signal<?> signal, final String errorMessage,
+            @Nullable final Throwable cause) {
+        return MessageSendingFailedException.newBuilder()
+                .message(errorMessage)
+                .dittoHeaders(signal.getDittoHeaders())
+                .cause(cause)
+                .build();
     }
 
 }

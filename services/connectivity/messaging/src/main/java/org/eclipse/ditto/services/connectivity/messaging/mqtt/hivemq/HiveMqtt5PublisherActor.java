@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -107,12 +106,6 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
     @Override
     protected DittoDiagnosticLoggingAdapter log() {
         return log;
-    }
-
-    @Override
-    protected void publishMessage(@Nullable final Target target, final MqttPublishTarget publishTarget,
-            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
-        throw new UnsupportedOperationException(getClass().getSimpleName());
     }
 
     @Override

@@ -45,8 +45,12 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
@@ -81,6 +85,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
+    protected final ConnectionConfig connectionConfig;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectionMonitor responsePublishedMonitor;
     protected final ConnectionMonitor responseDroppedMonitor;
@@ -98,9 +103,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.OPEN,
                                 target.getAddress(), "Started at " + now)));
 
-        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
+        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getMonitoringConfig();
+        );
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        connectionConfig = connectivityConfig.getConnectionConfig();
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
@@ -277,18 +284,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected abstract T toPublishTarget(final String address);
 
     /**
-     * Publishes the passed {@code message} to the passed {@code publishTarget}.
-     *
-     * @param target the nullable Target for getting even more information about the configured Target to publish to.
-     * @param publishTarget the {@link PublishTarget} to publish to.
-     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
-     * @param publishedMonitor the monitor that can be used for monitoring purposes.
-     */
-    // TODO: delete
-    protected abstract void publishMessage(@Nullable Target target, T publishTarget,
-            ExternalMessage message, ConnectionMonitor publishedMonitor);
-
-    /**
      * Publish a message.
      *
      * @param signal the nullable Target for getting even more information about the configured Target to publish to.
@@ -298,14 +293,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * send any acknowledgement.
      * @return future of acknowledgement to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    // TODO: make abstract
-    protected CompletionStage<Acknowledgement> publishMessage(Signal<?> signal,
+    protected abstract CompletionStage<Acknowledgement> publishMessage(Signal<?> signal,
             @Nullable Target target, T publishTarget,
-            ExternalMessage message, int ackSizeQuota) {
-
-        publishMessage(target, publishTarget, message, responsePublishedMonitor);
-        return CompletableFuture.failedFuture(new UnsupportedOperationException("TODO: implement"));
-    }
+            ExternalMessage message, int ackSizeQuota);
 
     /**
      * @return the logger to use.
@@ -348,6 +338,17 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return message.findContentType()
                 .map(BasePublisherActor::determineCharset)
                 .orElse(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Escalate an error to the parent to trigger a restart.
+     *
+     * @param error the encountered failure.
+     * @param description description of the failure.
+     */
+    protected void escalate(final Throwable error, final String description) {
+        final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), error, description);
+        getContext().getParent().tell(failure, getSelf());
     }
 
     /**

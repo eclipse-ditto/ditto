@@ -46,7 +46,6 @@ import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -166,12 +165,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected AmqpTarget toPublishTarget(final String address) {
         return AmqpTarget.fromTargetAddress(address);
-    }
-
-    @Override
-    protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
-            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
-        throw new UnsupportedOperationException(getClass().getSimpleName());
     }
 
     @Override
