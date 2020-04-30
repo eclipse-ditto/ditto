@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -80,8 +79,6 @@ public final class RootRoute extends AllDirectives {
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
 
-    private final HttpConfig httpConfig;
-
     private final StatusRoute ownStatusRoute;
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
@@ -97,6 +94,9 @@ public final class RootRoute extends AllDirectives {
     private final CustomApiRoutesProvider customApiRoutesProvider;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
+    private final CorsEnablingDirective corsDirective;
+    private final HttpsEnsuringDirective httpsDirective;
+    private final RequestTimeoutHandlingDirective requestTimeoutHandlingDirective;
     private final ExceptionHandler exceptionHandler;
     private final Map<Integer, JsonSchemaVersion> supportedSchemaVersions;
     private final ProtocolAdapterProvider protocolAdapterProvider;
@@ -106,7 +106,7 @@ public final class RootRoute extends AllDirectives {
     private final RootRouteHeadersStepBuilder rootRouteHeadersStepBuilder;
 
     private RootRoute(final Builder builder) {
-        httpConfig = builder.httpConfig;
+        final HttpConfig httpConfig = builder.httpConfig;
         ownStatusRoute = builder.statusRoute;
         overallStatusRoute = builder.overallStatusRoute;
         cachingHealthRoute = builder.cachingHealthRoute;
@@ -120,6 +120,9 @@ public final class RootRoute extends AllDirectives {
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
+        requestTimeoutHandlingDirective = RequestTimeoutHandlingDirective.getInstance(httpConfig);
+        httpsDirective = HttpsEnsuringDirective.getInstance(httpConfig);
+        corsDirective = CorsEnablingDirective.getInstance(httpConfig);
         supportedSchemaVersions = new HashMap<>(builder.supportedSchemaVersions);
         protocolAdapterProvider = builder.protocolAdapterProvider;
         dreToHttpResponse = DittoRuntimeExceptionToHttpResponse.getInstance(builder.headerTranslator);
@@ -165,43 +168,41 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Route wrapWithRootDirectives(final java.util.function.Function<String, Route> rootRoute) {
+
         final Function<Function<String, Route>, Route> outerRouteProvider = innerRouteProvider ->
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
-                        ensureCorrelationId(correlationId -> {
-                            final RequestTimeoutHandlingDirective requestTimeoutHandlingDirective =
-                                    RequestTimeoutHandlingDirective.getInstance(httpConfig);
-                            return requestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
-                                    RequestResultLoggingDirective.logRequestResult(correlationId,
-                                            () -> innerRouteProvider.apply(correlationId))
-                            );
-                        })
+                        ensureCorrelationId(correlationId -> requestTimeoutHandlingDirective
+                                .handleRequestTimeout(correlationId, () ->
+                                        RequestResultLoggingDirective.logRequestResult(correlationId, () ->
+                                                innerRouteProvider.apply(correlationId)
+                                        )
+                                )
+                        )
                 );
 
         final Function<String, Route> innerRouteProvider = correlationId ->
-                EncodingEnsuringDirective.ensureEncoding(correlationId, () -> {
-                    final HttpsEnsuringDirective httpsDirective = HttpsEnsuringDirective.getInstance(httpConfig);
-                    final CorsEnablingDirective corsDirective = CorsEnablingDirective.getInstance(httpConfig);
-                    return httpsDirective.ensureHttps(correlationId, () ->
-                            corsDirective.enableCors(() ->
-                                    SecurityResponseHeadersDirective.addSecurityResponseHeaders(() ->
-                                                /* handling the rejections is done by akka automatically, but if we
-                                                   do it here explicitly, we are able to log the status code for the
-                                                   rejection (e.g. 404 or 405) in a wrapping directive. */
-                                            handleRejections(rejectionHandler, () ->
-                                                        /* the inner handleExceptions is for handling exceptions
-                                                           occurring in the route route. It makes sure that the
-                                                           wrapping directives such as addSecurityResponseHeaders are
-                                                           even called in an error case in the route route. */
-                                                    handleExceptions(exceptionHandler, () ->
-                                                            rootRoute.apply(correlationId)
-                                                    )
-                                            )
-                                    )
-                            )
-                    );
-                });
+                EncodingEnsuringDirective.ensureEncoding(() ->
+                        httpsDirective.ensureHttps(correlationId, () ->
+                                corsDirective.enableCors(() ->
+                                        SecurityResponseHeadersDirective.addSecurityResponseHeaders(() ->
+                                            /* handling the rejections is done by akka automatically, but if we
+                                               do it here explicitly, we are able to log the status code for the
+                                               rejection (e.g. 404 or 405) in a wrapping directive. */
+                                                handleRejections(rejectionHandler, () ->
+                                                    /* the inner handleExceptions is for handling exceptions
+                                                       occurring in the route route. It makes sure that the
+                                                       wrapping directives such as addSecurityResponseHeaders are
+                                                       even called in an error case in the route route. */
+                                                        handleExceptions(exceptionHandler, () ->
+                                                                rootRoute.apply(correlationId)
+                                                        )
+                                                )
+                                        )
+                                )
+                        )
+                );
         return outerRouteProvider.apply(innerRouteProvider);
     }
 
