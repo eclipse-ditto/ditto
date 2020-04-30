@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
 import java.text.MessageFormat;
 import java.util.function.Supplier;
@@ -42,8 +41,8 @@ public final class EncodingEnsuringDirective {
         // no op
     }
 
-    public static Route ensureEncoding(final String correlationId, final Supplier<Route> inner) {
-        return extractRequestContext(requestContext -> enhanceLogWithCorrelationId(correlationId, () -> {
+    public static Route ensureEncoding(final Supplier<Route> inner) {
+        return extractRequestContext(requestContext -> {
             final Uri uri = requestContext.getRequest().getUri();
             try {
                 // per default, Akka evaluates the query params "lazily" in the routes and throws an IllegalUriException
@@ -59,6 +58,6 @@ public final class EncodingEnsuringDirective {
             }
 
             return inner.get();
-        }));
+        });
     }
 }
