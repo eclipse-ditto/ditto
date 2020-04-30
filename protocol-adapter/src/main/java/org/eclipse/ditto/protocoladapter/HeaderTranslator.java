@@ -18,9 +18,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,6 +30,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
 /**
@@ -155,15 +158,31 @@ public final class HeaderTranslator {
 
     private static Map<String, String> filterMap(final Map<String, String> headersToFilter,
             final HeaderEntryFilter headerEntryFilter, final boolean lowercaseHeaderKeys) {
-        final Map<String, String> map = new LinkedHashMap<>(headersToFilter.size());
-        headersToFilter.forEach((theKey, theValue) -> {
-            final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;
-            final String filteredValue = headerEntryFilter.apply(key, theValue);
-            if (null != filteredValue) {
-                map.put(key, filteredValue);
-            }
-        });
-        return map;
+
+        if (headersToFilter instanceof DittoHeaders) {
+            // performance optimization as when returning DittoHeaders, a toBuilder() on those can skip the validation
+            //  of known DittoHeaderDefinitions
+            final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder();
+            final Set<String> keys = new HashSet<>(headersToFilter.keySet());
+            keys.forEach(theKey -> {
+                final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;
+                final String filteredValue = headerEntryFilter.apply(key, headersToFilter.get(theKey));
+                if (null != filteredValue) {
+                    dittoHeadersBuilder.putHeader(key, filteredValue);
+                }
+            });
+            return dittoHeadersBuilder.build();
+        } else {
+            final Map<String, String> map = new LinkedHashMap<>(headersToFilter.size());
+            headersToFilter.forEach((theKey, theValue) -> {
+                final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;
+                final String filteredValue = headerEntryFilter.apply(key, theValue);
+                if (null != filteredValue) {
+                    map.put(key, filteredValue);
+                }
+            });
+            return map;
+        }
     }
 
     @Override
