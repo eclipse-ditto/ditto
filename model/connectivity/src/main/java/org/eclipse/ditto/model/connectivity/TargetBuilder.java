@@ -16,7 +16,9 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 /**
  * A builder for a {@link Target} with a fluent API.
@@ -80,6 +82,16 @@ public interface TargetBuilder {
      * @return this builder
      */
     TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics);
+
+    /**
+     * Sets the optional {@link org.eclipse.ditto.model.base.acks.AcknowledgementLabel} of
+     * {@link org.eclipse.ditto.signals.acks.base.Acknowledgement} to be delivered to the target.
+     *
+     * @param acknowledgements the labels of acknowledgements
+     * @return this builder
+     * @since 1.2.0
+     */
+    TargetBuilder acknowledgements(@Nullable Set<AcknowledgementLabel> acknowledgements);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.

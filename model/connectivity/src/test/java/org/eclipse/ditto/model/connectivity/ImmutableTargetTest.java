@@ -18,9 +18,14 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -40,12 +45,15 @@ public final class ImmutableTargetTest {
                     AuthorizationModelFactory.newAuthSubject("ditto"));
     private static final String CUSTOM_MAPPING = "custom-mapping";
     private static final String DITTO_MAPPING = "ditto-mapping";
+    private static final Set<AcknowledgementLabel> ACKNOWLEDGEMENTS = new HashSet<>(
+            Arrays.asList(AcknowledgementLabel.of("custom-ack"), AcknowledgementLabel.of("second-custom-ack")));
 
     private static final Target TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory
             .newTargetBuilder()
             .address(ADDRESS)
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .topics(TWIN_EVENTS)
+            .acknowledgements(ACKNOWLEDGEMENTS)
             .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
@@ -57,6 +65,8 @@ public final class ImmutableTargetTest {
 
     private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .set(Target.JsonFields.ACKNOWLEDGEMENTS,
+                    JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
@@ -89,6 +99,7 @@ public final class ImmutableTargetTest {
                 provided(AuthorizationContext.class,
                         FilteredTopic.class,
                         HeaderMapping.class,
+                        AcknowledgementLabel.class,
                         PayloadMapping.class).areAlsoImmutable());
     }
 

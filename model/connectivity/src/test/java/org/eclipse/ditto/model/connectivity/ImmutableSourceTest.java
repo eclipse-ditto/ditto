@@ -18,15 +18,19 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -46,6 +50,9 @@ public final class ImmutableSourceTest {
 
     private static final Map<String, String> MAPPING;
 
+    private static final Set<AcknowledgementLabel> ACKNOWLEDGEMENTS = new HashSet<>(
+            Arrays.asList(AcknowledgementLabel.of("custom-ack"), AcknowledgementLabel.of("second-custom-ack")));
+
     static {
         final Map<String, String> mapping = new HashMap<>();
         mapping.put("correlation-id", "{{ header:message-id }}");
@@ -63,6 +70,7 @@ public final class ImmutableSourceTest {
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
+                    .acknowledgements(ACKNOWLEDGEMENTS)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
@@ -72,6 +80,8 @@ public final class ImmutableSourceTest {
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
+            .set(Source.JsonFields.ACKNOWLEDGEMENTS,
+                    JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Source.JsonFields.HEADER_MAPPING,
                     JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
                             .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
@@ -126,6 +136,7 @@ public final class ImmutableSourceTest {
                 areImmutable(),
                 provided(AuthorizationContext.class,
                         Enforcement.class,
+                        AcknowledgementLabel.class,
                         HeaderMapping.class,
                         PayloadMapping.class,
                         ReplyTarget.class).areAlsoImmutable());

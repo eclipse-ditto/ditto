@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -84,6 +85,7 @@ final class ImmutableSource implements Source {
     private final int index;
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
+    @Nullable private final Set<AcknowledgementLabel> acknowledgements;
     @Nullable private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
     private final boolean replyTargetEnabled;
@@ -97,6 +99,8 @@ final class ImmutableSource implements Source {
         this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
         this.index = builder.index;
         this.enforcement = builder.enforcement;
+        this.acknowledgements = builder.acknowledgements == null ? null : Collections.unmodifiableSet(
+                new HashSet<>(builder.acknowledgements));
         this.headerMapping = builder.headerMapping;
         this.payloadMapping = builder.payloadMapping;
         this.replyTargetEnabled = builder.replyTargetEnabled;
@@ -131,6 +135,11 @@ final class ImmutableSource implements Source {
     @Override
     public Optional<Enforcement> getEnforcement() {
         return Optional.ofNullable(enforcement);
+    }
+
+    @Override
+    public Optional<Set<AcknowledgementLabel>> getAcknowledgements() {
+        return Optional.ofNullable(acknowledgements);
     }
 
     @Override
@@ -176,6 +185,13 @@ final class ImmutableSource implements Source {
 
         if (enforcement != null) {
             jsonObjectBuilder.set(JsonFields.ENFORCEMENT, enforcement.toJson(schemaVersion, thePredicate), predicate);
+        }
+
+        if (acknowledgements != null && !acknowledgements.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.ACKNOWLEDGEMENTS, acknowledgements.stream()
+                    .map(AcknowledgementLabel::toString)
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray()), predicate);
         }
 
         if (headerMapping != null) {
@@ -230,6 +246,16 @@ final class ImmutableSource implements Source {
         final Enforcement readEnforcement =
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
+        Set<AcknowledgementLabel> acknowledgements = null;
+        if (jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENTS).isPresent()) {
+            acknowledgements = jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENTS)
+                    .orElseGet(() -> JsonArray.newBuilder().build())
+                    .stream()
+                    .map(JsonValue::asString)
+                    .map(AcknowledgementLabel::of)
+                    .collect(Collectors.toSet());
+        }
+
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
 
@@ -253,6 +279,7 @@ final class ImmutableSource implements Source {
                 .consumerCount(readConsumerCount)
                 .index(index)
                 .enforcement(readEnforcement)
+                .acknowledgements(acknowledgements)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
                 .replyTargetEnabled(replyTargetEnabled)
@@ -270,6 +297,7 @@ final class ImmutableSource implements Source {
                 Objects.equals(index, that.index) &&
                 Objects.equals(qos, that.qos) &&
                 Objects.equals(enforcement, that.enforcement) &&
+                Objects.equals(acknowledgements, that.acknowledgements) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
@@ -279,8 +307,8 @@ final class ImmutableSource implements Source {
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping,
-                payloadMapping, replyTargetEnabled, replyTarget);
+        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, acknowledgements,
+                headerMapping, payloadMapping, replyTargetEnabled, replyTarget);
     }
 
     @Override
@@ -292,6 +320,7 @@ final class ImmutableSource implements Source {
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
+                ", requested-acks" + acknowledgements +
                 ", headerMapping=" + headerMapping +
                 ", replyTargetEnabled=" + replyTargetEnabled +
                 ", replyTarget=" + replyTarget +
@@ -349,6 +378,7 @@ final class ImmutableSource implements Source {
         @Nullable private Enforcement enforcement;
         @Nullable private HeaderMapping headerMapping;
         @Nullable private Integer qos = null;
+        @Nullable private Set<AcknowledgementLabel> acknowledgements;
         private boolean replyTargetEnabled = DEFAULT_REPLY_TARGET_ENABLED;
         @Nullable private ReplyTarget replyTarget;
 
@@ -365,6 +395,7 @@ final class ImmutableSource implements Source {
                     .enforcement(source.getEnforcement().orElse(null))
                     .headerMapping(source.getHeaderMapping().orElse(null))
                     .qos(source.getQos().orElse(null))
+                    .acknowledgements(source.getAcknowledgements().orElse(null))
                     .replyTarget(source.getReplyTarget().orElse(null))
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
@@ -413,6 +444,12 @@ final class ImmutableSource implements Source {
         @Override
         public SourceBuilder enforcement(@Nullable final Enforcement enforcement) {
             this.enforcement = enforcement;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder acknowledgements(@Nullable final Set<AcknowledgementLabel> acknowledgements) {
+            this.acknowledgements = acknowledgements;
             return this;
         }
 
