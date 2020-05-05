@@ -12,31 +12,17 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
 
 /**
  * This strategy handles {@link org.eclipse.ditto.signals.events.policies.SubjectModified} events.
  */
-final class SubjectModifiedStrategy implements EventStrategy<SubjectModified, Policy> {
+final class SubjectModifiedStrategy extends AbstractPolicyEventStrategy<SubjectModified> {
 
     @Override
-    public Policy handle(final SubjectModified sm, @Nullable final Policy policy, final long revision) {
-        return checkNotNull(policy, "policy").getEntryFor(sm.getLabel())
-                .map(policyEntry -> PoliciesModelFactory
-                        .newPolicyEntry(sm.getLabel(), policyEntry.getSubjects().setSubject(sm.getSubject()),
-                                policyEntry.getResources()))
-                .map(modifiedPolicyEntry -> policy.toBuilder()
-                        .set(modifiedPolicyEntry)
-                        .setRevision(revision)
-                        .setModified(sm.getTimestamp().orElse(null))
-                        .build())
-                .orElse(policy);
+    protected PolicyBuilder applyEvent(final SubjectModified sm, final PolicyBuilder policyBuilder) {
+        return policyBuilder.setSubjectFor(sm.getLabel(), sm.getSubject());
     }
+
 }

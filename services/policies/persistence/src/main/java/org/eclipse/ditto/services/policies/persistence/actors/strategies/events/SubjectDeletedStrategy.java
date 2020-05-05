@@ -12,26 +12,17 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 
 /**
  * This strategy handles {@link org.eclipse.ditto.signals.events.policies.SubjectDeleted} events.
  */
-final class SubjectDeletedStrategy implements EventStrategy<SubjectDeleted, Policy> {
+final class SubjectDeletedStrategy extends AbstractPolicyEventStrategy<SubjectDeleted> {
 
     @Override
-    public Policy handle(final SubjectDeleted sd, @Nullable final Policy policy, final long revision) {
-        return checkNotNull(policy, "policy").toBuilder()
-                .forLabel(sd.getLabel())
-                .removeSubject(sd.getSubjectId())
-                .setRevision(revision)
-                .setModified(sd.getTimestamp().orElse(null))
-                .build();
+    protected PolicyBuilder applyEvent(final SubjectDeleted sd, final PolicyBuilder policyBuilder) {
+        return policyBuilder.removeSubjectFor(sd.getLabel(), sd.getSubjectId());
     }
+
 }
