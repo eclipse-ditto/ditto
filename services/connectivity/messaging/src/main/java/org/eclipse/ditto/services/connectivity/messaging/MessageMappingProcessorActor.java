@@ -286,7 +286,8 @@ public final class MessageMappingProcessorActor
                                     e.getErrorCode(),
                                     e.getMessage());
                     final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
-                    handleErrorResponse(e, errorResponse.setDittoHeaders(signal.getDittoHeaders()), ActorRef.noSender());
+                    handleErrorResponse(e, errorResponse.setDittoHeaders(signal.getDittoHeaders()),
+                            ActorRef.noSender());
                     return;
                 }
             }
@@ -312,10 +313,7 @@ public final class MessageMappingProcessorActor
 
     @Override
     protected Flow<OutboundSignalWithId, OutboundSignalWithId, NotUsed> processMessageFlow() {
-        // Enrich outbound signals by extra fields if necessary.
-        return splitByTargetExtraFieldsFlow()
-                .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
-                .mapConcat(x -> x);
+        return Flow.create();
     }
 
     /**
@@ -362,13 +360,25 @@ public final class MessageMappingProcessorActor
 
     @Override
     protected Sink<OutboundSignalWithId, ?> processedMessageSink() {
-        return Flow.<OutboundSignalWithId>create()
-                .mapAsync(processorPoolSize, outboundSignal -> CompletableFuture.supplyAsync(() ->
-                                handleOutboundSignal(outboundSignal),
-                        getContext().getDispatcher()
-                ))
-                .flatMapConcat(mappedOutboundSignalSource -> mappedOutboundSignalSource)
-                .to(Sink.foreach(this::forwardToPublisherActor));
+        // Enrich outbound signals by extra fields if necessary.
+        final Flow<OutboundSignalWithId, OutboundSignal.MultiMapped, ?> flow = Flow.<OutboundSignalWithId>create()
+                // TODO:
+                // - no parallel mapping between 2 signals
+                // - each signal's mapping waits for enrichment of previous signal to complete before proceeding.
+                // - consider mapAsync at top level.
+                .flatMapConcat(outbound -> {
+                    final Source<OutboundSignalWithId, NotUsed> mappingResultOfSingleSignal =
+                            Source.single(outbound)
+                                    .via(splitByTargetExtraFieldsFlow())
+                                    .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
+                                    .mapConcat(x -> x)
+                                    .mapAsync(processorPoolSize, outboundSignal -> CompletableFuture.supplyAsync(
+                                            () -> handleOutboundSignal(outboundSignal), getContext().getDispatcher()
+                                    ))
+                                    .flatMapConcat(x -> x);
+                    return toMultiMappedOutboundSignal(mappingResultOfSingleSignal);
+                });
+        return flow.to(Sink.foreach(this::forwardToPublisherActor));
     }
 
     // Called inside stream; must be thread-safe
@@ -628,9 +638,8 @@ public final class MessageMappingProcessorActor
         return mapToExternalMessage(outbound);
     }
 
-    private void forwardToPublisherActor(final OutboundSignalWithId mappedEnvelop) {
-        final OutboundSignal.Mapped mappedOutboundSignal = (OutboundSignal.Mapped) mappedEnvelop.delegate;
-        clientActor.tell(new PublishMappedMessage(mappedOutboundSignal), mappedEnvelop.sender);
+    private void forwardToPublisherActor(final OutboundSignal.MultiMapped mappedEnvelop) {
+        clientActor.tell(new PublishMappedMessage(mappedEnvelop), mappedEnvelop.getSender());
     }
 
     /**
@@ -816,6 +825,29 @@ public final class MessageMappingProcessorActor
         return builder;
     }
 
+    private <T> Source<OutboundSignal.MultiMapped, T> toMultiMappedOutboundSignal(
+            final Source<OutboundSignalWithId, T> source) {
+
+        // TODO: try to compute actual group size, or switch to a different collector mechanism.
+        final int numberOfTargets = 10;
+        final int maxGroupSize = mappingConfig.getMapperLimitsConfig().getMaxMappedOutboundMessages() *
+                mappingConfig.getMapperLimitsConfig().getMaxTargetMappers() *
+                numberOfTargets;
+        return source.grouped(maxGroupSize)
+                .limit(1)
+                .flatMapConcat(outboundSignals -> {
+                    if (outboundSignals.isEmpty()) {
+                        return Source.empty();
+                    } else {
+                        final ActorRef sender = outboundSignals.get(0).sender;
+                        final List<OutboundSignal.Mapped> mappedSignals = outboundSignals.stream()
+                                .map(OutboundSignalWithId::asMapped)
+                                .collect(Collectors.toList());
+                        return Source.single(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
+                    }
+                });
+    }
+
     /**
      * Split the targets of an outbound signal into 2 parts: those without extra fields and those with.
      *
@@ -929,6 +961,10 @@ public final class MessageMappingProcessorActor
 
         private OutboundSignalWithId mapped(final OutboundSignalWithId.Mapped mapped) {
             return new OutboundSignalWithId(mapped, entityId, sender, extra);
+        }
+
+        private OutboundSignal.Mapped asMapped() {
+            return (OutboundSignal.Mapped) delegate;
         }
 
     }

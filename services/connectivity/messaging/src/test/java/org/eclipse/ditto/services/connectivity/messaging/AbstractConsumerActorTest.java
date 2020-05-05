@@ -216,7 +216,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 for (int i = 0; i < respondedToCaller; i++) {
                     final PublishMappedMessage publishMappedMessage =
                             clientActor.expectMsgClass(PublishMappedMessage.class);
-                    verifyResponse.accept(publishMappedMessage.getOutboundSignal());
+                    verifyResponse.accept(publishMappedMessage.getOutboundSignal().first());
                 }
             } else {
                 clientActor.expectNoMessage(ONE_SECOND);

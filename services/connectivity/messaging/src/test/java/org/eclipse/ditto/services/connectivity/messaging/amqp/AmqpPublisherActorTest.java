@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import javax.jms.CompletionListener;
@@ -106,8 +107,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build();
             final Adaptable adaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(thingEvent);
-            final OutboundSignal.Mapped mappedOutboundSignal =
+            final OutboundSignal.Mapped mapped =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
 
             final Props props = AmqpPublisherActor.props(TestConstants.createConnection()
                             .toBuilder()
@@ -119,8 +122,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     loadConnectionConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
-            publisherActor.tell(mappedOutboundSignal, getRef());
-            publisherActor.tell(mappedOutboundSignal, getRef());
+            publisherActor.tell(multiMapped, getRef());
+            publisherActor.tell(multiMapped, getRef());
 
             // producer is cached so created only once
             verify(session, timeout(1_000).times(1)).createProducer(any(Destination.class));
@@ -197,7 +200,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // GIVEN: a message is published with headers matching AMQP properties.
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal.Mapped mappedOutboundSignal = getMockOutboundSignal(
+            final OutboundSignal.Mapped mapped = getMockOutboundSignal(
                     ConnectivityModelFactory.newTargetBuilder(createTestTarget())
                             .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                     JsonFactory.newObjectBuilder()
@@ -213,6 +216,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             ))
                             .build()
             );
+            final OutboundSignal.MultiMapped mappedOutboundSignal =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);

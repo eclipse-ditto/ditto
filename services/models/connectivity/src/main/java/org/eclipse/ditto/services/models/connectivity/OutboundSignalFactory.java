@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.List;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
@@ -20,6 +23,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.signals.base.Signal;
+
+import akka.actor.ActorRef;
 
 /**
  * Creates instances of {@link OutboundSignal}.
@@ -54,6 +59,21 @@ public final class OutboundSignalFactory {
             final Adaptable adaptable, final ExternalMessage externalMessage) {
 
         return new MappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+    }
+
+    /**
+     * Create a MultiMappedOutboundSignal from a nonempty list of mapped outbound signals.
+     *
+     * @param mappedOutboundSignals outbound signals mapped from a single signal.
+     * @param sender sender of the original signal.
+     * @return a multi-mapped outbound signal if the list of mapped signals is not empty.
+     * @throws java.lang.IllegalArgumentException if the list of mapped signals is empty.
+     */
+    public static OutboundSignal.MultiMapped newMultiMappedOutboundSignal(
+            final List<OutboundSignal.Mapped> mappedOutboundSignals,
+            @Nullable final ActorRef sender) {
+
+        return new MultiMappedOutboundSignal(mappedOutboundSignals, sender);
     }
 
     /**

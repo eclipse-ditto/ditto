@@ -52,7 +52,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -430,13 +429,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected final List<Source> getSourcesOrEmptyList() {
         return connection().getSources();
-    }
-
-    /**
-     * @return the targets configured for this connection or an empty list if no targets were configured.
-     */
-    protected final List<Target> getTargetsOrEmptyList() {
-        return connection().getTargets();
     }
 
     /**
@@ -1414,13 +1406,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     static final class PublishMappedMessage {
 
-        private final OutboundSignal.Mapped outboundSignal;
+        private final OutboundSignal.MultiMapped outboundSignal;
 
-        PublishMappedMessage(final OutboundSignal.Mapped outboundSignal) {
+        PublishMappedMessage(final OutboundSignal.MultiMapped outboundSignal) {
             this.outboundSignal = outboundSignal;
         }
 
-        OutboundSignal.Mapped getOutboundSignal() {
+        OutboundSignal.MultiMapped getOutboundSignal() {
             return outboundSignal;
         }
 

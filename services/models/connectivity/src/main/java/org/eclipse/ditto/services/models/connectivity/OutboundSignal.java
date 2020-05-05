@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -30,6 +31,8 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
+
+import akka.actor.ActorRef;
 
 /**
  * Represents an outbound signal i.e. a signal that is sent from Ditto to an external target. It contains the
@@ -95,6 +98,28 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
          * @return the Ditto protocol message after adaptation.
          */
         Adaptable getAdaptable();
+    }
+
+    /**
+     * Collection of outbound signals mapped from the same signal.
+     */
+    interface MultiMapped extends OutboundSignal {
+
+        /**
+         * @return the first mapped signal.
+         */
+        Mapped first();
+
+        /**
+         * @return a list of outbound signals mapped from mapping 1 signal.
+         */
+        List<Mapped> getMappedOutboundSignals();
+
+        /**
+         * @return sender of the original signal.
+         */
+        @Nullable
+        ActorRef getSender();
     }
 
     /**

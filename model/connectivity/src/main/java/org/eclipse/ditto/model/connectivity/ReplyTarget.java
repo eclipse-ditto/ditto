@@ -29,11 +29,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 /**
  * A target to handle outbound Ditto command responses to commands sent by a source or reply-source.
  */
-public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>, GenericTarget {
 
     /**
      * @return the address for the outbound responses.
      */
+    @Override
     String getAddress();
 
     /**
@@ -43,6 +44,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
      *
      * @return the optional header mapping
      */
+    @Override
     Optional<HeaderMapping> getHeaderMapping();
 
     /**

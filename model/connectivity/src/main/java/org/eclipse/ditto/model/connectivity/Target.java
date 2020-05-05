@@ -34,11 +34,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * A {@link Connection} target contains one address to publish to and several topics of Ditto signals for which to
  * subscribe in the Ditto cluster.
  */
-public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>, GenericTarget {
 
     /**
      * @return the address for the configured type of signals of this target
      */
+    @Override
     String getAddress();
 
 
@@ -88,6 +89,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      *
      * @return the optional header mapping
      */
+    @Override
     Optional<HeaderMapping> getHeaderMapping();
 
     /**

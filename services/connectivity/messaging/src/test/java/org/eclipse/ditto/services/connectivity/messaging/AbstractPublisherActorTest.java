@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -75,14 +76,15 @@ public abstract class AbstractPublisherActorTest {
 
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal.Mapped mappedOutboundSignal = getMockOutboundSignal();
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
 
             publisherCreated(this, publisherActor);
 
-            publisherActor.tell(mappedOutboundSignal, getRef());
+            publisherActor.tell(multiMapped, getRef());
 
             verifyPublishedMessage();
         }};
@@ -96,7 +98,8 @@ public abstract class AbstractPublisherActorTest {
 
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal.Mapped mappedOutboundSignal = getResponseWithReplyTarget();
+            final OutboundSignal.MultiMapped mappedOutboundSignal =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getResponseWithReplyTarget()), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
