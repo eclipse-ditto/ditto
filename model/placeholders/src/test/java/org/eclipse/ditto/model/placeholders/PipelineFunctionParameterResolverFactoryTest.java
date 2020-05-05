@@ -17,7 +17,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOf
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.function.Predicate;
@@ -45,7 +46,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String params = "(\"" + KNOWN_VALUE + "\")";
         assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
-        verifyZeroInteractions(expressionResolver);
+        verifyNoInteractions(expressionResolver);
     }
 
     @Test
@@ -56,7 +57,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String params = "(\'" + KNOWN_VALUE + "\')";
         assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
-        verifyZeroInteractions(expressionResolver);
+        verifyNoInteractions(expressionResolver);
     }
 
     @Test
@@ -75,7 +76,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
                 .isThrownBy(() -> parameterResolver.apply(paramsPlaceholders, expressionResolver, DUMMY));
 
-        verifyZeroInteractions(expressionResolver);
+        verifyNoInteractions(expressionResolver);
     }
 
     @Test
@@ -147,7 +148,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
                 .isThrownBy(() -> stringResolver.apply(stringPlaceholder, expressionResolver, DUMMY));
 
-        verifyZeroInteractions(expressionResolver);
+        verifyNoInteractions(expressionResolver);
     }
 
     @Test
@@ -164,7 +165,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
                 .isThrownBy(() -> stringResolver.apply(stringPlaceholder, expressionResolver, DUMMY));
 
-        verifyZeroInteractions(expressionResolver);
+        verifyNoInteractions(expressionResolver);
     }
 
     @Test
