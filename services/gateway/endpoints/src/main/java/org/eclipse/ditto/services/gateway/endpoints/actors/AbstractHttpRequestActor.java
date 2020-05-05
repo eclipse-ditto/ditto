@@ -51,6 +51,7 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -281,13 +282,21 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         final ActorContext context = getContext();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        context.setReceiveTimeout(
-                dittoHeaders.getTimeout()
-                        .orElse(commandConfig.getDefaultTimeout()) // if no specific timeout was configured, use the default command timeout
-        );
+        if (!isDevOpsCommand(command)) {
+            // DevOpsCommands do have their own timeout mechanism, don't reply with a command timeout for the user
+            //  for DevOps commands, so only set the receiveTimeout for non-DevOps commands:
+            context.setReceiveTimeout(
+                    dittoHeaders.getTimeout()
+                            .orElse(commandConfig.getDefaultTimeout()) // if no specific timeout was configured, use the default command timeout
+            );
+        }
 
         // After a Command was received, this Actor can only receive the correlating CommandResponse:
         context.become(awaitCommandResponseBehavior);
+    }
+
+    private static boolean isDevOpsCommand(final Command<?> command) {
+        return command instanceof DevOpsCommand;
     }
 
     private void handleMessageCommand(final MessageCommand<?, ?> command) {
