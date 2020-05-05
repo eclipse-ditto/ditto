@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -73,12 +74,12 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     AuthorizationContext getAuthorizationContext();
 
     /**
-     * Defines optional labels of acknowledgements to send to the target.
+     * Defines optional label of an acknowledgement to send to the target.
      *
      * @return the optional labels of acknowledgements
      * @since 1.2.0
      */
-    Optional<Set<AcknowledgementLabel>> getAcknowledgements();
+    Optional<AcknowledgementLabel> getAcknowledgement();
 
     /**
      * Defines an optional header mapping e.g. to rename, combine etc. headers for outbound message. Mapping is
@@ -154,10 +155,10 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Source} acknowledgements.
+         * JSON field containing the {@code Target} acknowledgements.
          */
-        public static final JsonFieldDefinition<JsonArray> ACKNOWLEDGEMENTS =
-                JsonFactory.newJsonArrayFieldDefinition("delivered-acks", FieldType.REGULAR,
+        public static final JsonFieldDefinition<JsonValue> ACKNOWLEDGEMENT =
+                JsonFactory.newJsonValueFieldDefinition("delivered-ack", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**

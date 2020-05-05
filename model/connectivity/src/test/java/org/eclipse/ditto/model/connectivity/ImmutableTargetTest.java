@@ -45,15 +45,14 @@ public final class ImmutableTargetTest {
                     AuthorizationModelFactory.newAuthSubject("ditto"));
     private static final String CUSTOM_MAPPING = "custom-mapping";
     private static final String DITTO_MAPPING = "ditto-mapping";
-    private static final Set<AcknowledgementLabel> ACKNOWLEDGEMENTS = new HashSet<>(
-            Arrays.asList(AcknowledgementLabel.of("custom-ack"), AcknowledgementLabel.of("second-custom-ack")));
+    private static final AcknowledgementLabel ACKNOWLEDGEMENT = AcknowledgementLabel.of("custom-ack");
 
     private static final Target TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory
             .newTargetBuilder()
             .address(ADDRESS)
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .topics(TWIN_EVENTS)
-            .acknowledgements(ACKNOWLEDGEMENTS)
+            .acknowledgement(ACKNOWLEDGEMENT)
             .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
@@ -65,8 +64,8 @@ public final class ImmutableTargetTest {
 
     private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
-            .set(Target.JsonFields.ACKNOWLEDGEMENTS,
-                    JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
+            .set(Target.JsonFields.ACKNOWLEDGEMENT,
+                    JsonFactory.newValue("custom-ack"))
             .set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 

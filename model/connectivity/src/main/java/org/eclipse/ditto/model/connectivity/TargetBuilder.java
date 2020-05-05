@@ -87,11 +87,11 @@ public interface TargetBuilder {
      * Sets the optional {@link org.eclipse.ditto.model.base.acks.AcknowledgementLabel} of
      * {@link org.eclipse.ditto.signals.acks.base.Acknowledgement} to be delivered to the target.
      *
-     * @param acknowledgements the labels of acknowledgements
+     * @param acknowledgements the label of the acknowledgement
      * @return this builder
      * @since 1.2.0
      */
-    TargetBuilder acknowledgements(@Nullable Set<AcknowledgementLabel> acknowledgements);
+    TargetBuilder acknowledgement(@Nullable AcknowledgementLabel acknowledgement);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.
