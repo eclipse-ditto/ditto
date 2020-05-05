@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
