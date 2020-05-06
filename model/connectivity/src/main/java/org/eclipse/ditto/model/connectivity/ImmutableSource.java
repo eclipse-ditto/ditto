@@ -246,15 +246,13 @@ final class ImmutableSource implements Source {
         final Enforcement readEnforcement =
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
-        Set<AcknowledgementLabel> acknowledgements = null;
-        if (jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENTS).isPresent()) {
-            acknowledgements = jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENTS)
-                    .orElseGet(() -> JsonArray.newBuilder().build())
-                    .stream()
-                    .map(JsonValue::asString)
-                    .map(AcknowledgementLabel::of)
-                    .collect(Collectors.toSet());
-        }
+        final Set<AcknowledgementLabel> acknowledgements = jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENTS)
+                .map(acks -> acks.stream()
+                        .map(JsonValue::asString)
+                        .map(AcknowledgementLabel::of)
+                        .collect(Collectors.toSet())
+                )
+                .orElse(null);
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);

@@ -176,7 +176,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          * JSON field containing the {@code Source} acknowledgements.
          */
         public static final JsonFieldDefinition<JsonArray> ACKNOWLEDGEMENTS =
-                JsonFactory.newJsonArrayFieldDefinition("required-acks", FieldType.REGULAR,
+                JsonFactory.newJsonArrayFieldDefinition("requested-acks", FieldType.REGULAR,
                        JsonSchemaVersion.V_2);
 
         /**
