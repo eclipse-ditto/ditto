@@ -110,7 +110,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * request could not be parsed.
      */
     static Props props(final ThingModifyCommand<?> thingModifyCommand,
-            final AcknowledgementConfig acknowledgementConfig, final HeaderTranslator headerTranslator,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
             final Consumer<Signal<?>> responseSignalConsumer) {
 
         final ThingModifyCommand<?> commandWithAckLabels =
@@ -189,6 +190,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                     potentiallyCompleteAcknowledgements(thingCommandResponse, thingCommandResponse.getDittoHeaders());
                 })
                 .match(Acknowledgement.class, this::handleAcknowledgement)
+                .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
@@ -203,6 +205,11 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
         ackregator.addReceivedAcknowledgment(acknowledgement);
         potentiallyCompleteAcknowledgements(null, acknowledgement.getDittoHeaders());
+    }
+
+    private void handleAcknowledgements(final Acknowledgements acknowledgements) {
+        acknowledgements.stream().forEach(ackregator::addReceivedAcknowledgment);
+        potentiallyCompleteAcknowledgements(null, acknowledgements.getDittoHeaders());
     }
 
     private void potentiallyCompleteAcknowledgements(@Nullable final ThingCommandResponse<?> response,

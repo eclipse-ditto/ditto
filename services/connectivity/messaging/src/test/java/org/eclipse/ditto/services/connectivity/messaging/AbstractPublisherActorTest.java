@@ -15,7 +15,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -29,6 +33,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -92,6 +97,30 @@ public abstract class AbstractPublisherActorTest {
     }
 
     @Test
+    public void testAutoAck() throws Exception {
+
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
+                    List.of(getMockOutboundSignalWithAutoAck("please-verify")),
+                    getRef()
+            );
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(multiMapped, getRef());
+
+            verifyAcknowledgements(() -> expectMsgClass(Acknowledgements.class));
+        }};
+
+    }
+
+    @Test
     public void testPublishResponseToReplyTarget() throws Exception {
 
         new TestKit(actorSystem) {{
@@ -113,12 +142,13 @@ public abstract class AbstractPublisherActorTest {
 
     }
 
-    protected Target createTestTarget() {
+    protected Target createTestTarget(final CharSequence... acks) {
         return ConnectivityModelFactory.newTargetBuilder()
                 .address(getOutboundAddress())
                 .originalAddress(getOutboundAddress())
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .headerMapping(TestConstants.HEADER_MAPPING)
+                .acknowledgement(acks.length != 1 ? null : AcknowledgementLabel.of(acks[0]))
                 .topics(Topic.TWIN_EVENTS)
                 .build();
     }
@@ -139,8 +169,17 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract void verifyPublishedMessageToReplyTarget() throws Exception;
 
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
+        // TODO: make this abstract once implemented in all subclasses.
+    }
+
     protected OutboundSignal.Mapped getMockOutboundSignal(final String... extraHeaders) {
         return getMockOutboundSignal(decorateTarget(createTestTarget()), extraHeaders);
+    }
+
+    protected OutboundSignal.Mapped getMockOutboundSignalWithAutoAck(final CharSequence ack) {
+        return getMockOutboundSignal(decorateTarget(createTestTarget(ack)), "requested-acks",
+                JsonArray.of(JsonValue.of(ack.toString())).toString());
     }
 
     protected OutboundSignal.Mapped getMockOutboundSignal(final Target target,

@@ -17,13 +17,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.junit.Before;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -53,6 +57,8 @@ import scala.util.Try;
  */
 public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
+    private static final String BODY = "The quick brown fox jumps over the lazy dog.";
+
     private HttpPushFactory httpPushFactory;
     private BlockingQueue<HttpRequest> received = new LinkedBlockingQueue<>();
 
@@ -67,7 +73,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             received.offer(request);
             return HttpResponse.create()
                     .withStatus(StatusCodes.OK)
-                    .withEntity("The quick brown fox jumps over the lazy dog.");
+                    .withEntity(BODY);
         });
 
         // activate debug log to show responses
@@ -143,6 +149,16 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             // Ditto protocol content type is parsed as binary for some reason
             assertThat(entity.getContentType().binary()).isFalse();
         }
+    }
+
+    @Override
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
+        final Acknowledgements acks = ackSupplier.get();
+        assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
+        final Acknowledgement ack = acks.stream().findAny().orElseThrow();
+        assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
+        assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
+        assertThat(ack.getEntity()).contains(JsonValue.of(BODY));
     }
 
     @Override

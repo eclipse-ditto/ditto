@@ -366,7 +366,7 @@ final class ImmutableSource implements Source {
      * Builder for {@code ImmutableSource}.
      */
     @NotThreadSafe
-    static final class Builder implements SourceBuilder<SourceBuilder> {
+    static final class Builder implements SourceBuilder<Builder> {
 
         // required but changeable:
         @Nullable private Set<String> addresses = new HashSet<>();
@@ -401,13 +401,13 @@ final class ImmutableSource implements Source {
         }
 
         @Override
-        public SourceBuilder addresses(final Set<String> addresses) {
+        public Builder addresses(final Set<String> addresses) {
             this.addresses = addresses;
             return this;
         }
 
         @Override
-        public SourceBuilder address(final String address) {
+        public Builder address(final String address) {
             if (this.addresses == null) {
                 this.addresses = new HashSet<>();
             }
@@ -416,61 +416,61 @@ final class ImmutableSource implements Source {
         }
 
         @Override
-        public SourceBuilder consumerCount(final int consumerCount) {
+        public Builder consumerCount(final int consumerCount) {
             this.consumerCount = consumerCount;
             return this;
         }
 
         @Override
-        public SourceBuilder index(final int index) {
+        public Builder index(final int index) {
             this.index = index;
             return this;
         }
 
         @Override
-        public SourceBuilder qos(@Nullable final Integer qos) {
+        public Builder qos(@Nullable final Integer qos) {
             this.qos = qos;
             return this;
         }
 
         @Override
-        public SourceBuilder authorizationContext(final AuthorizationContext authorizationContext) {
+        public Builder authorizationContext(final AuthorizationContext authorizationContext) {
             this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
             return this;
         }
 
         @Override
-        public SourceBuilder enforcement(@Nullable final Enforcement enforcement) {
+        public Builder enforcement(@Nullable final Enforcement enforcement) {
             this.enforcement = enforcement;
             return this;
         }
 
         @Override
-        public SourceBuilder acknowledgements(@Nullable final Set<AcknowledgementLabel> acknowledgements) {
+        public Builder acknowledgements(@Nullable final Set<AcknowledgementLabel> acknowledgements) {
             this.acknowledgements = acknowledgements;
             return this;
         }
 
         @Override
-        public SourceBuilder headerMapping(@Nullable final HeaderMapping headerMapping) {
+        public Builder headerMapping(@Nullable final HeaderMapping headerMapping) {
             this.headerMapping = headerMapping;
             return this;
         }
 
         @Override
-        public SourceBuilder payloadMapping(final PayloadMapping payloadMapping) {
+        public Builder payloadMapping(final PayloadMapping payloadMapping) {
             this.payloadMapping = payloadMapping;
             return this;
         }
 
         @Override
-        public SourceBuilder replyTarget(@Nullable final ReplyTarget replyTarget) {
+        public Builder replyTarget(@Nullable final ReplyTarget replyTarget) {
             this.replyTarget = replyTarget;
             return this;
         }
 
         @Override
-        public SourceBuilder replyTargetEnabled(final boolean replyTargetEnabled) {
+        public Builder replyTargetEnabled(final boolean replyTargetEnabled) {
             this.replyTargetEnabled = replyTargetEnabled;
             return this;
         }

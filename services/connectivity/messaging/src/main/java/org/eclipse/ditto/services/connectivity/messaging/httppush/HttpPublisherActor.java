@@ -31,12 +31,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -80,7 +80,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      */
     static final String ACTOR_NAME = "httpPublisherActor";
 
-    private static final long READ_BODY_TIMEOUT_MS = 1000L;
+    private static final long READ_BODY_TIMEOUT_MS = 10000L;
+
+    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-http-diagnostic");
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -137,7 +139,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
         final HttpRequest request = createRequest(publishTarget, message);
-        final HttpPushContext context = newContext(signal, request, message, ackSizeQuota, resultFuture);
+        final HttpPushContext context = newContext(signal, target, request, message, ackSizeQuota, resultFuture);
         sourceQueue.offer(Pair.create(request, context))
                 .handle(handleQueueOfferResult(message, resultFuture));
         return resultFuture;
@@ -204,7 +206,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private HttpPushContext newContext(final Signal<?> signal,
-            final HttpRequest request, final ExternalMessage message,
+            @Nullable final Target target,
+            final HttpRequest request,
+            final ExternalMessage message,
             final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture) {
 
         return tryResponse -> {
@@ -219,7 +223,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
                 log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
-                toAcknowledgement(signal, response, ackSizeQuota).thenAccept(resultFuture::complete)
+                toAcknowledgement(signal, target, response, ackSizeQuota).thenAccept(resultFuture::complete)
                         .exceptionally(e -> {
                             resultFuture.completeExceptionally(e);
                             return null;
@@ -230,20 +234,17 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private CompletionStage<Acknowledgement> toAcknowledgement(final Signal<?> signal,
+            @Nullable final Target target,
             final HttpResponse response,
             final int ackSizeQuota) {
 
-        final EntityId entityId = signal.getEntityId();
-        if (ackSizeQuota <= 0 || entityId.isDummy() || !(entityId instanceof EntityIdWithType)) {
-            response.discardEntityBytes(materializer);
-            return CompletableFuture.completedFuture(null);
-        }
-        final EntityIdWithType entityIdWithType = (EntityIdWithType) entityId;
+        // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
+        final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        // TODO: extract actual label from target
-        final AcknowledgementLabel label = AcknowledgementLabel.of("dummy-acknowledgement-label");
+        final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
         final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
         if (statusOptional.isEmpty()) {
+            response.discardEntityBytes(materializer);
             final MessageSendingFailedException error = MessageSendingFailedException.newBuilder()
                     .message(String.format("Remote server delivers unknown HTTP status code <%d>",
                             response.status().intValue()))

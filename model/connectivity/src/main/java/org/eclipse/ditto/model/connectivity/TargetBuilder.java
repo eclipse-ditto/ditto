@@ -87,7 +87,7 @@ public interface TargetBuilder {
      * Sets the optional {@link org.eclipse.ditto.model.base.acks.AcknowledgementLabel} of
      * {@link org.eclipse.ditto.signals.acks.base.Acknowledgement} to be delivered to the target.
      *
-     * @param acknowledgements the label of the acknowledgement
+     * @param acknowledgement the label of the acknowledgement
      * @return this builder
      * @since 1.2.0
      */

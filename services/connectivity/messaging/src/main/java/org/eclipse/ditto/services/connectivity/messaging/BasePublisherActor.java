@@ -209,22 +209,20 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         log().debug("Publishing mapped message of type <{}> to targets <{}>: {}",
                 outboundSource.getType(), outbound.getTargets(), message);
 
-        final boolean shouldSendByReplyTarget = isResponseOrErrorOrSearchEvent(outbound);
+        // TODO: using reply-target header to circumvent target list. Check if it works.
 
-        final List<SendingContext> sendingContexts;
-        if (shouldSendByReplyTarget) {
-            sendingContexts = outbound.getSource()
-                    .getDittoHeaders()
-                    .getReplyTarget()
-                    .flatMap(this::getReplyTargetByIndex)
-                    .map(replyTarget -> List.of(sendingContextForReplyTarget(outbound, replyTarget)))
-                    .orElse(List.of());
-        } else {
-            sendingContexts = outbound.getTargets()
-                    .stream()
-                    .map(target -> sendingContextForTarget(outbound, target))
-                    .collect(Collectors.toList());
-        }
+        final Optional<SendingContext> replyTargetSendingContext = outbound.getSource()
+                .getDittoHeaders()
+                .getReplyTarget()
+                .flatMap(this::getReplyTargetByIndex)
+                .map(replyTarget -> sendingContextForReplyTarget(outbound, replyTarget));
+
+        final List<SendingContext> sendingContexts = replyTargetSendingContext.map(List::of)
+                .orElseGet(() -> outbound.getTargets()
+                        .stream()
+                        .map(target -> sendingContextForTarget(outbound, target))
+                        .collect(Collectors.toList())
+                );
 
         if (sendingContexts.isEmpty()) {
             // message dropped
@@ -636,8 +634,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     context -> {
                         // TODO: this was logged at level failure. Check if anything breaks logging at "success".
                         context.droppedMonitor.success(context.outboundSignal.getSource(),
-                                "Signal dropped, {0} address unresolved: {1}",
-                                isResponseOrErrorOrSearchEvent(context.outboundSignal) ? "reply-target" : "target",
+                                "Signal dropped, target address unresolved: {0}",
                                 context.genericTarget.getAddress()
                         );
                         return Optional.empty();
