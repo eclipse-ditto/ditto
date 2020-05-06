@@ -46,7 +46,8 @@ final class ImmutableEntityPlaceholder extends AbstractEntityPlaceholder<Namespa
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(entityId, "Entity ID");
         try {
-            return doResolve(DefaultNamespacedEntityId.of(entityId), placeholder);
+            final NamespacedEntityId namespacedEntityId = DefaultNamespacedEntityId.of(entityId);
+            return doResolve(namespacedEntityId, placeholder);
         } catch (final NamespacedEntityIdInvalidException e) {
             // not a namespaced entity ID; does not resolve.
             return Optional.empty();
