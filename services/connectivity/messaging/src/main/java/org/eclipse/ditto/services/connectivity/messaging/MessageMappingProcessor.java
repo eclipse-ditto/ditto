@@ -309,8 +309,7 @@ public final class MessageMappingProcessor {
                                 final ExternalMessage externalMessage =
                                         ExternalMessageFactory.newExternalMessageBuilder(em)
                                                 .withTopicPath(adaptable.getTopicPath())
-                                                // TODO check if same as signal.getDittoHeaders()
-                                                .withInternalHeaders(adaptable.getDittoHeaders())
+                                                .withInternalHeaders(outboundSignal.getSource().getDittoHeaders())
                                                 .build();
                                 return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
                                         externalMessage);

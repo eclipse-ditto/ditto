@@ -773,7 +773,6 @@ public final class MessageMappingProcessorActorTest {
 
     @Test
     public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
-        // TODO: AcknowledgementCorrelationIdMissingException is thrown
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
 
