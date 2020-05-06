@@ -20,9 +20,11 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -36,6 +38,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -43,6 +47,7 @@ import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -64,6 +69,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -102,7 +108,8 @@ public final class MessageMappingProcessorActorTest {
 
     private static final ThingId KNOWN_THING_ID = ThingId.of("my:thing");
 
-    private static final ConnectionId CONNECTION_ID = ConnectionId.of("testConnection");
+    private static final Connection CONNECTION = TestConstants.createConnectionWithAcknowledgements();
+    private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
@@ -783,6 +790,43 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
+    public void testAggregationOfAcknowledgements() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final AcknowledgementRequest signalAck = AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
+            Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
+            for (AcknowledgementLabel label : CONNECTION.getSources().get(0).getAcknowledgements().orElseThrow()) {
+                validationSet.add(AcknowledgementRequest.of(label));
+            }
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            final AuthorizationContext context =
+                    AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+            final ModifyAttribute modifyCommand =
+                    ModifyAttribute.of(TestConstants.Things.THING_ID, JsonPointer.of("/attribute1"),
+                            JsonValue.of("attributeValue"), DittoHeaders.newBuilder().acknowledgementRequest(
+                                    signalAck).build());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(
+                            DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand, TopicPath.Channel.TWIN));
+
+            final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .withSourceAddress(CONNECTION.getSources().get(0).getAddresses().iterator().next())
+                    .build();
+
+            messageMappingProcessorActor.tell(message, getRef());
+
+            final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+            assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
+        }};
+    }
+
+    @Test
     public void forwardsSearchCommandsToConnectionActor() {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
@@ -811,7 +855,7 @@ public final class MessageMappingProcessorActorTest {
     private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID, connectionActorProbe.ref(), 99);
+                        CONNECTION, connectionActorProbe.ref(), 99);
         return actorSystem.actorOf(props);
     }
 

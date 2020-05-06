@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -64,7 +65,8 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
 
-    private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
+    private static final Connection CONNECTION = TestConstants.createConnectionWithAcknowledgements();
+    private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
@@ -196,7 +198,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID,
+                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION,
                         connectionActorProbe.ref(), 17);
 
         return actorSystem.actorOf(messageMappingProcessorProps,

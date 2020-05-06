@@ -21,6 +21,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,6 +38,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -48,6 +51,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
@@ -132,6 +136,7 @@ public final class MessageMappingProcessorActor
 
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
+    private final Connection connection;
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final ActorRef connectionActor;
@@ -150,7 +155,7 @@ public final class MessageMappingProcessorActor
     private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
             final ActorRef clientActor,
             final MessageMappingProcessor messageMappingProcessor,
-            final ConnectionId connectionId,
+            final Connection connection,
             final ActorRef connectionActor,
             final int processorPoolSize) {
 
@@ -159,7 +164,8 @@ public final class MessageMappingProcessorActor
         this.conciergeForwarder = conciergeForwarder;
         this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
-        this.connectionId = connectionId;
+        this.connection = connection;
+        this.connectionId = connection.getId();
         this.connectionActor = connectionActor;
 
         final DefaultScopedConfig dittoScoped =
@@ -188,7 +194,7 @@ public final class MessageMappingProcessorActor
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param clientActor the client actor that created this mapping actor
      * @param processor the MessageMappingProcessor to use.
-     * @param connectionId the connection ID.
+     * @param connection the connection
      * @param connectionActor the connection actor acting as the grandparent of this actor.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
@@ -196,12 +202,12 @@ public final class MessageMappingProcessorActor
     public static Props props(final ActorRef conciergeForwarder,
             final ActorRef clientActor,
             final MessageMappingProcessor processor,
-            final ConnectionId connectionId,
+            final Connection connection,
             final ActorRef connectionActor,
             final int processorPoolSize) {
 
         return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
-                connectionId, connectionActor, processorPoolSize)
+                connection, connectionActor, processorPoolSize)
                 .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
@@ -272,6 +278,7 @@ public final class MessageMappingProcessorActor
         } else {
             if (signal instanceof ThingModifyCommand) {
                 try {
+
                     AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
                             (ThingModifyCommand<?>) signal,
                             acknowledgementConfig,
@@ -293,6 +300,25 @@ public final class MessageMappingProcessorActor
             }
             conciergeForwarder.tell(signal, self);
         }
+    }
+
+    private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
+        // For each source which contains the sourceAddress of the incoming message, the sources acknowledgements get
+        // appended to the requested-acks DittoHeader of the mapped signal
+        if (message.getSourceAddress().isPresent()) {
+            for (org.eclipse.ditto.model.connectivity.Source source : this.connection.getSources()) {
+                if (source.getAcknowledgements().isPresent() &&
+                        source.getAddresses().contains(message.getSourceAddress().orElseThrow())) {
+                    Set<AcknowledgementRequest> requestedAcks = new HashSet<>();
+                    for (AcknowledgementLabel label : source.getAcknowledgements().orElseThrow()) {
+                        requestedAcks.add(AcknowledgementRequest.of(label));
+                    }
+                    requestedAcks.addAll(signal.getDittoHeaders().getAcknowledgementRequests());
+                    return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder().acknowledgementRequests(requestedAcks).build());
+                }
+            }
+        }
+        return signal;
     }
 
     @Override
@@ -539,7 +565,8 @@ public final class MessageMappingProcessorActor
                             applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
                                     mappedInboundMessage.getTopicPath(), incomingMessage.getInternalHeaders());
 
-                    final Signal<?> adjustedSignal = signal.setDittoHeaders(mappedHeaders);
+                    final Signal<?> adjustedSignal = appendConnectionAcknowledgementsToSignal(incomingMessage,
+                            signal.setDittoHeaders(mappedHeaders));
 
                     enhanceLogUtil(adjustedSignal);
                     // enforce signal ID after header mapping was done

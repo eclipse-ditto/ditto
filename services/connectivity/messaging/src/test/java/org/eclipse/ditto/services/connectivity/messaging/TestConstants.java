@@ -54,6 +54,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -304,6 +305,24 @@ public final class TestConstants {
                                                 "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
                                         .build()))
                                 .build())
+                        .build());
+        public static final List<Source> SOURCES_WITH_ACKNOWLEDGEMENTS =
+                singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address("amqp/source1")
+                        .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                        .consumerCount(2)
+                        .index(0)
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("replyTarget/{{thing:id}}")
+                                .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
+                                        .set("mappedHeader1", "{{header:original-header}}")
+                                        .set("mappedHeader2", "{{thing:id}}")
+                                        .set("mappedHeader3",
+                                                "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
+                                        .build()))
+                                .build())
+                        .acknowledgements(new HashSet<>(Arrays.asList(AcknowledgementLabel.of("custom-ack"),
+                                AcknowledgementLabel.of("very-special-ack"))))
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()
@@ -723,6 +742,10 @@ public final class TestConstants {
 
     public static Connection createConnection() {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnectionWithAcknowledgements() {
+        return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_ACKNOWLEDGEMENTS);
     }
 
     public static Connection createConnection(final ConnectionId connectionId) {

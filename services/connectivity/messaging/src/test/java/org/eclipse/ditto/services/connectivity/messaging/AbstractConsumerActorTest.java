@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -61,7 +62,8 @@ import scala.concurrent.duration.FiniteDuration;
 public abstract class AbstractConsumerActorTest<M> {
 
     private static final Config CONFIG = ConfigFactory.load("test");
-    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final Connection CONNECTION = TestConstants.createConnection();
+    private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
     protected static final Enforcement ENFORCEMENT =
@@ -248,7 +250,7 @@ public abstract class AbstractConsumerActorTest<M> {
                         connectivityConfig, protocolAdapterProvider, logger);
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
-                        CONNECTION_ID, connectionActorProbe.ref(), 43);
+                        CONNECTION, connectionActorProbe.ref(), 43);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
