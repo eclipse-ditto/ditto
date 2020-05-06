@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
@@ -47,6 +48,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private final HeaderMapping headerMapping;
     @Nullable private final String sourceAddress;
+    @Nullable private final Source source;
 
     private final DittoHeaders internalHeaders;
 
@@ -62,7 +64,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final HeaderMapping headerMapping,
             final PayloadMapping payloadMapping,
             @Nullable final String sourceAddress,
-            final DittoHeaders internalHeaders) {
+            @Nullable final Source source, final DittoHeaders internalHeaders) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -76,6 +78,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.headerMapping = headerMapping;
         this.payloadMapping = payloadMapping;
         this.sourceAddress = sourceAddress;
+        this.source = source;
         this.internalHeaders = internalHeaders;
     }
 
@@ -175,6 +178,11 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Override
     public Optional<String> getSourceAddress() {
         return Optional.ofNullable(sourceAddress);
+    }
+
+    @Override
+    public Optional<Source> getSource() {
+        return Optional.ofNullable(source);
     }
 
     @Override

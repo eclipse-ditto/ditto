@@ -29,6 +29,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -67,8 +68,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .forInboundConsumed(connectionId, sourceAddress);
     }
 
-    protected void forwardToMappingActor(final ExternalMessage message) {
-        doForwardToMappingActor(addReplyTarget(message));
+    protected final void forwardToMappingActor(final ExternalMessage message) {
+        doForwardToMappingActor(addSourceAndReplyTarget(message));
     }
 
     protected void forwardToMappingActor(final DittoRuntimeException message) {
@@ -101,17 +102,17 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         }
     }
 
-    private ExternalMessage addReplyTarget(final ExternalMessage message) {
+    private ExternalMessage addSourceAndReplyTarget(final ExternalMessage message) {
+        final ExternalMessageBuilder externalMessageBuilder =
+                ExternalMessageFactory.newExternalMessageBuilder(message)
+                        .withSource(source);
         if (source.getReplyTarget().isPresent()) {
-            return ExternalMessageFactory.newExternalMessageBuilder(message)
-                    .withInternalHeaders(message.getInternalHeaders()
-                            .toBuilder()
-                            .replyTarget(source.getIndex())
-                            .build())
-                    .build();
-        } else {
-            return message;
+            externalMessageBuilder.withInternalHeaders(message.getInternalHeaders()
+                    .toBuilder()
+                    .replyTarget(source.getIndex())
+                    .build());
         }
+        return externalMessageBuilder.build();
     }
 
     private static String getInstanceIdentifier() {

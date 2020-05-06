@@ -136,7 +136,6 @@ public final class MessageMappingProcessorActor
 
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
-    private final Connection connection;
     private final ConnectionId connectionId;
     private final ActorRef conciergeForwarder;
     private final ActorRef connectionActor;
@@ -164,7 +163,6 @@ public final class MessageMappingProcessorActor
         this.conciergeForwarder = conciergeForwarder;
         this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
-        this.connection = connection;
         this.connectionId = connection.getId();
         this.connectionActor = connectionActor;
 
@@ -311,22 +309,23 @@ public final class MessageMappingProcessorActor
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
-        // For each source which contains the sourceAddress of the incoming message, the sources acknowledgements get
-        // appended to the requested-acks DittoHeader of the mapped signal
-        if (message.getSourceAddress().isPresent()) {
-            for (org.eclipse.ditto.model.connectivity.Source source : this.connection.getSources()) {
-                if (source.getAcknowledgements().isPresent() &&
-                        source.getAddresses().contains(message.getSourceAddress().orElseThrow())) {
-                    Set<AcknowledgementRequest> requestedAcks = new HashSet<>();
-                    for (AcknowledgementLabel label : source.getAcknowledgements().orElseThrow()) {
-                        requestedAcks.add(AcknowledgementRequest.of(label));
-                    }
-                    requestedAcks.addAll(signal.getDittoHeaders().getAcknowledgementRequests());
-                    return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder().acknowledgementRequests(requestedAcks).build());
-                }
-            }
-        }
-        return signal;
+        // The sources acknowledgements get appended to the requested-acks DittoHeader of the mapped signal
+        return message.getSource()
+                .flatMap(source -> source.getAcknowledgements()
+                        .<Signal<?>>map(sourceRequestedAcks -> {
+                            final Set<AcknowledgementRequest> requestedAcks = new HashSet<>();
+                            for (AcknowledgementLabel label : sourceRequestedAcks) {
+                                requestedAcks.add(AcknowledgementRequest.of(label));
+                            }
+                            requestedAcks.addAll(signal.getDittoHeaders().getAcknowledgementRequests());
+                            return signal.setDittoHeaders(
+                                    signal.getDittoHeaders()
+                                            .toBuilder()
+                                            .acknowledgementRequests(requestedAcks)
+                                            .build());
+                        })
+                )
+                .orElse(signal);
     }
 
     @Override

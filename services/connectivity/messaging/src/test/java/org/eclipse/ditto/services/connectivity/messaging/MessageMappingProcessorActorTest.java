@@ -816,6 +816,7 @@ public final class MessageMappingProcessorActorTest {
                     .withAuthorizationContext(context)
                     .withHeaderMapping(SOURCE_HEADER_MAPPING)
                     .withSourceAddress(CONNECTION.getSources().get(0).getAddresses().iterator().next())
+                    .withSource(CONNECTION.getSources().get(0))
                     .build();
 
             messageMappingProcessorActor.tell(message, getRef());

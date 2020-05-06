@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
@@ -54,13 +55,6 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder withHeaders(Map<String, String> headers);
-
-    /**
-     * Clears existing message headers for this builder. Existing headers are removed!
-     *
-     * @return this builder in order to enable method chaining
-     */
-    ExternalMessageBuilder clearHeaders();
 
     /**
      * Sets the passed {@code text} to the builder and also changing the
@@ -149,6 +143,14 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder withSourceAddress(@Nullable String sourceAddress);
+
+    /**
+     * Adds the source to this message, where this messages was received.
+     *
+     * @param source the source
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withSource(@Nullable Source source);
 
     /**
      * Marks the message as a response message.
