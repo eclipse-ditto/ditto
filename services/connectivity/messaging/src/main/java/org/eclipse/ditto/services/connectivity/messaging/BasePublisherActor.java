@@ -172,7 +172,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         aggregateNonNullFutures(sendMonitorAndAckFutures)
                 .thenAccept(ackList -> {
-                    final ActorRef sender = multiMapped.getSender();
+                    final ActorRef sender = getContext().getParent();
                     if (!ackList.isEmpty() && sender != null) {
                         final Acknowledgements aggregatedAcks =
                                 Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders());

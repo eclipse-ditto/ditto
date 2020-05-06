@@ -88,6 +88,7 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -459,8 +460,8 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected void matchAnyAfterInitialization(final Object message) {
-        if (message instanceof Acknowledgement) {
-            handleAcknowledgement((Acknowledgement) message);
+        if (message instanceof Acknowledgement || message instanceof Acknowledgements) {
+            handleAcknowledgement((WithDittoHeaders<?>) message);
         } else if (message instanceof ThingSearchCommand) {
             forwardThingSearchCommandToClientActors((ThingSearchCommand<?>) message);
         } else if (message instanceof Signal) {
@@ -472,7 +473,7 @@ public final class ConnectionPersistenceActor
         }
     }
 
-    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+    private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
         final ActorContext context = getContext();
         final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
         final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)

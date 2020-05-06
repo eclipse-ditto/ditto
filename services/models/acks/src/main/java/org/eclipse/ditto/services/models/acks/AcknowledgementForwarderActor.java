@@ -21,11 +21,13 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -85,12 +87,13 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(Acknowledgement.class, this::handleAcknowledgement)
+                .match(Acknowledgements.class, this::handleAcknowledgement)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
 
-    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+    private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
         log.withCorrelationId(acknowledgement)
                 .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
         acknowledgementRequester.tell(acknowledgement, getSender());

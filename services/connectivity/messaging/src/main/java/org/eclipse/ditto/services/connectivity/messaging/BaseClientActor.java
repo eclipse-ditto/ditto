@@ -77,6 +77,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -333,10 +334,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
                 .event(Acknowledgement.class, BaseClientData.class, this::handleAcknowledgement)
+                .event(Acknowledgements.class, BaseClientData.class, this::handleAcknowledgement)
                 .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
     }
 
-    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Acknowledgement acknowledgement,
+    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Object acknowledgement,
             final BaseClientData baseClientData) {
 
         log.info("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);

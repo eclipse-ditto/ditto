@@ -21,10 +21,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -55,10 +55,11 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.headers.TimeoutAccess;
 import akka.http.javadsl.model.MediaTypes;
+import akka.http.javadsl.model.headers.TimeoutAccess;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -227,14 +228,19 @@ public abstract class AbstractRoute extends AllDirectives {
         payloadSource
                 .fold(ByteString.empty(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .map(requestJsonToCommandFunction)
-                .map(command -> {
-                    final JsonSchemaVersion schemaVersion =
-                            dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
-                    return command.implementsSchemaVersion(schemaVersion) ? command
-                            : CommandNotSupportedException.newBuilder(schemaVersion.toInt())
-                            .dittoHeaders(dittoHeaders)
-                            .build();
+                .map(x -> {
+                    try {
+                        // DON'T replace this try-catch by .recover: The supervising strategy is called before recovery!
+                        final Command<?> command = requestJsonToCommandFunction.apply(x);
+                        final JsonSchemaVersion schemaVersion =
+                                dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
+                        return command.implementsSchemaVersion(schemaVersion) ? command
+                                : CommandNotSupportedException.newBuilder(schemaVersion.toInt())
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    } catch (final Exception e) {
+                        return new Status.Failure(e);
+                    }
                 })
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
                         AbstractHttpRequestActor.COMPLETE_MESSAGE))
