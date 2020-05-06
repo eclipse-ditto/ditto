@@ -14,8 +14,9 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -24,15 +25,15 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterc
  */
 public final class CompoundConnectivityCommandInterceptor implements ConnectivityCommandInterceptor {
 
-    private final Collection<Consumer<ConnectivityCommand<?>>> validators;
+    private final Collection<ConnectivityCommandInterceptor> validators;
 
     @SafeVarargs
-    public CompoundConnectivityCommandInterceptor(final Consumer<ConnectivityCommand<?>>... validators) {
+    public CompoundConnectivityCommandInterceptor(final ConnectivityCommandInterceptor... validators) {
         this.validators = Arrays.asList(validators);
     }
 
     @Override
-    public void accept(final ConnectivityCommand<?> command) {
-        validators.forEach(c -> c.accept(command));
+    public void accept(final ConnectivityCommand<?> command, final Supplier<Connection> connectionSupplier) {
+        validators.forEach(c -> c.accept(command, connectionSupplier));
     }
 }

@@ -12,12 +12,19 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
+import java.util.Optional;
+import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 import akka.actor.ActorRef;
@@ -48,21 +55,35 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
     }
 
     @Override
-    public void accept(final ConnectivityCommand<?> command) {
+    public void accept(final ConnectivityCommand<?> command, final Supplier<Connection> connectionSupplier) {
         switch (command.getType()) {
             case CreateConnection.TYPE:
             case TestConnection.TYPE:
             case ModifyConnection.TYPE:
-                final Connection connection = getConnectionFromCommand(command);
-                if (connection != null) {
-                    connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
-                    propsFactory.getActorPropsForType(connection, conciergeForwarder, connectionActor);
-                } else {
-                    // should never happen
-                    throw new IllegalStateException("connection=null in " + command);
-                }
+                resolveConnection(connectionSupplier)
+                        .ifPresentOrElse(connection -> {
+                                    connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
+                                    propsFactory.getActorPropsForType(connection, conciergeForwarder, connectionActor);
+                                },
+                                // should never happen
+                                handleNullConnection(command));
                 break;
-            default: //nothing to validate for other commands
+            case OpenConnection.TYPE:
+                resolveConnection(connectionSupplier).ifPresentOrElse(c -> connectionValidator.validate(c,
+                        command.getDittoHeaders(), actorSystem), handleNullConnection(command));
+                break;
+            default: // nothing to validate for other commands
         }
+    }
+
+    @Nonnull
+    private Runnable handleNullConnection(final ConnectivityCommand<?> command) {
+        return () -> {
+            throw new IllegalStateException("connection=null for " + command);
+        };
+    }
+
+    private Optional<Connection> resolveConnection(@Nullable Supplier<Connection> connectionSupplier) {
+        return Optional.ofNullable(connectionSupplier).map(Supplier::get);
     }
 }
