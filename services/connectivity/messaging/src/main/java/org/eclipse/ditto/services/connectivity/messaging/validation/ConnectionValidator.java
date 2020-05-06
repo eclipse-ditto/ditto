@@ -150,7 +150,8 @@ public final class ConnectionValidator {
             return false;
         } else {
             // Forbid blacklisted, private, loopback, multicast and wildcard IPs.
-            return StreamSupport.stream(host.getInetAddresses().spliterator(), false)
+            final Iterable<InetAddress> inetAddresses = getInetAddressesAndHandleUnknownHost(host);
+            return StreamSupport.stream(inetAddresses.spliterator(), false)
                     .anyMatch(requestAddress ->
                             requestAddress.isLoopbackAddress() ||
                                     requestAddress.isSiteLocalAddress() ||
@@ -158,6 +159,26 @@ public final class ConnectionValidator {
                                     requestAddress.isAnyLocalAddress() ||
                                     blacklistedAddresses.contains(requestAddress));
         }
+    }
+
+    private static Iterable<InetAddress> getInetAddressesAndHandleUnknownHost(final Host host) {
+        final Iterable<InetAddress> inetAddresses;
+        try {
+            inetAddresses = getInetAddresses(host);
+        } catch (UnknownHostException e) {
+            final String errorMessage = String.format("The configured host '%s' is invalid: %s", host, e.getMessage());
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder(errorMessage)
+                    .description("The configured host could not be resolved, make sure the Connection URI is correct.")
+                    .cause(e)
+                    .build();
+        }
+        return inetAddresses;
+    }
+
+    @SuppressWarnings("RedundantThrows") // UnknownHostException is thrown by java.net.InetAddress#getAllByName
+    private static Iterable<InetAddress> getInetAddresses(final Host host) throws UnknownHostException {
+        return host.getInetAddresses();
     }
 
     /**
@@ -235,6 +256,11 @@ public final class ConnectionValidator {
         final Collection<InetAddress> blacklisted =
                 calculateBlacklistedAddresses(configuredBlacklistedHostnames, actorSystem.log());
 
+        validateBlacklistedHostnames(connection, dittoHeaders, blacklisted);
+    }
+
+    public static void validateBlacklistedHostnames(final Connection connection, final DittoHeaders dittoHeaders,
+            final Collection<InetAddress> blacklisted) {
         final Host connectionHost = Uri.create(connection.getUri()).getHost();
         if (isHostForbidden(connectionHost, blacklisted)) {
             final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",

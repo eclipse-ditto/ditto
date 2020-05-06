@@ -125,7 +125,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
             final ConnectionId id) {
         // essentially never restart
         final TestProbe conciergeForwarderProbe = new TestProbe(system, "conciergeForwarder");
-        final ConnectivityCommandInterceptor dummyInterceptor = command -> {};
+        final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
                 ConnectionSupervisorActor.props(nopSub(), conciergeForwarderProbe.ref(), entityActorFactory,
