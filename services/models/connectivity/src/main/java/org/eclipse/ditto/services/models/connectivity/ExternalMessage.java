@@ -152,6 +152,8 @@ public interface ExternalMessage {
 
     /**
      * @return optional source, where this message was received
+     *
+     * @since 1.2.0
      */
     Optional<Source> getSource();
 

@@ -64,7 +64,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final HeaderMapping headerMapping,
             final PayloadMapping payloadMapping,
             @Nullable final String sourceAddress,
-            @Nullable final Source source, final DittoHeaders internalHeaders) {
+            @Nullable final Source source,
+            final DittoHeaders internalHeaders) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -208,6 +209,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
                 Objects.equals(sourceAddress, that.sourceAddress) &&
+                Objects.equals(source, that.source) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
                 payloadType == that.payloadType &&
@@ -232,6 +234,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", headerMapping=" + headerMapping +
                 ", payloadMapping=" + payloadMapping +
                 ", sourceAddress=" + sourceAddress +
+                ", source=" + source +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

@@ -149,6 +149,8 @@ public interface ExternalMessageBuilder {
      *
      * @param source the source
      * @return this builder in order to enable method chaining
+     *
+     * @since 1.2.0
      */
     ExternalMessageBuilder withSource(@Nullable Source source);
 
