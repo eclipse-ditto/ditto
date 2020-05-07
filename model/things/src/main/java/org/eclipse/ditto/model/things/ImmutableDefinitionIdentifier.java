@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
@@ -81,10 +80,16 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
             return (DefinitionIdentifier) definitionIdentifier;
         }
 
-        final Matcher matcher = IDENTIFIER_PATTERN.matcher(definitionIdentifier);
-        if (!matcher.matches()) {
-            throw new DefinitionIdentifierInvalidException(definitionIdentifier);
-        }
+
+        ImmutablePatternValidator.toBuilder().withPattern(IDENTIFIER_PATTERN).buildFor(definitionIdentifier).validate();
+
+//        final Matcher matcher = IDENTIFIER_PATTERN.matcher(definitionIdentifier);
+
+
+
+//        if (!matcher.matches()) {
+//            throw new DefinitionIdentifierInvalidException(definitionIdentifier);
+//        }
 
         final String parsedNamespace = matcher.group(CapturingGroup.NAMESPACE);
         final String parsedName = matcher.group(CapturingGroup.NAME);

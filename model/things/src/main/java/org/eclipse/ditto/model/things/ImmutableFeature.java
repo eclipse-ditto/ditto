@@ -15,8 +15,6 @@ package org.eclipse.ditto.model.things;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -37,7 +35,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableFeature implements Feature {
 
-    private static final Pattern FEATURE_ID_PATTERN = Pattern.compile("^[^/].*[^/]$|[^/]");
     private final String featureId;
     @Nullable private final FeatureDefinition definition;
     @Nullable private final FeatureProperties properties;
@@ -86,11 +83,7 @@ final class ImmutableFeature implements Feature {
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
 
-        final Matcher matcher =
-                FEATURE_ID_PATTERN.matcher(ConditionChecker.checkNotNull(featureId, "ID of the Feature"));
-        if (!matcher.matches()) {
-            throw JsonPointerInvalidException.newBuilderForOuterSlashes(featureId).build();
-        }
+        ImmutablePatternValidator.toBuilder().withFeaturePattern().buildFor(featureId).validate();
 
         return new ImmutableFeature(featureId, definition, properties);
     }
