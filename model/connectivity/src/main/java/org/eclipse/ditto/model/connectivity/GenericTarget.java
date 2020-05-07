@@ -16,6 +16,8 @@ import java.util.Optional;
 
 /**
  * Super type of targets and reply-targets that provides enough information to send 1 message.
+ *
+ * @since 1.2.0
  */
 public interface GenericTarget {
 
