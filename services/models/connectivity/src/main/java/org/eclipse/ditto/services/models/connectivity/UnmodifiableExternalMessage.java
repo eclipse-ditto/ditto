@@ -219,7 +219,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Override
     public int hashCode() {
         return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
-                topicPath, enforcementFilter, headerMapping, payloadMapping, sourceAddress, internalHeaders);
+                topicPath, enforcementFilter, headerMapping, payloadMapping, sourceAddress, internalHeaders, source);
     }
 
     @Override
