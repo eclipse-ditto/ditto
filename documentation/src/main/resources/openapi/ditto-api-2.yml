@@ -4227,7 +4227,7 @@ paths:
   ###
   '/whoami':
     get:
-      summary: Retrieve information about the current caller.
+      summary: Retrieve information about the current caller
       description: |-
         Get information about the current caller, e.g. the auth subjects that are generated for the caller.
       tags:
