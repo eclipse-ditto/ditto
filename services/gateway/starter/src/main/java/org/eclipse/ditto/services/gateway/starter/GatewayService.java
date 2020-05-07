@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.gateway.starter;
 
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.gateway.starter.config.DittoGatewayConfig;
-import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
+import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;

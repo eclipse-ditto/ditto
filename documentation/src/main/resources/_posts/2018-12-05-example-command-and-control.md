@@ -161,7 +161,7 @@ curl -X POST -i -u devops:devopsPw1! \
              }
            }
          }' \
-    https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=10000
+    https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=10s
 ``` 
 
 As described in the 

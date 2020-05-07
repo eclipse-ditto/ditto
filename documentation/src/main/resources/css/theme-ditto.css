@@ -116,9 +116,45 @@ li.sidebarTitle {
 
 }
 
-li.sidebarTitle select {
-    direction: rtl;
+li.sidebarTitle .select-wrapper {
+
+}
+
+li.sidebarTitle .select-wrapper select {
+    background-color: #3a8c9a;
+    color: white;
+    padding: 8px;
     width: 100%;
+    border: none;
+    font-size: 20px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+li.sidebarTitle .select-wrapper::before {
+    content: "\f13a";
+    font-family: FontAwesome;
+    position: absolute;
+    right: 0;
+    width: 20%;
+    text-align: center;
+    font-size: 28px;
+    line-height: 45px;
+    color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+}
+
+li.sidebarTitle .select-wrapper::before {
+    color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+li.sidebarTitle .select-wrapper select option {
+    padding: 30px;
 }
 
 .navbar-inverse .navbar-toggle:focus, .navbar-inverse .navbar-toggle:hover {

@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -29,7 +32,10 @@ public final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")))
+            .build();
 
     /**
      * Empty command headers.

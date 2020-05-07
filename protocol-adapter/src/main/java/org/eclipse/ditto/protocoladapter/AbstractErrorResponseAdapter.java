@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -39,23 +40,39 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
         this.errorRegistry = errorRegistry;
     }
 
+    /**
+     * Parse an error JSON using an error registry, or construct a generic {@code DittoRuntimeException} if the error
+     * code is not in the registry.
+     *
+     * @param errorJson JSON representation of the error.
+     * @param dittoHeaders Headers of the error.
+     * @param errorRegistry The error registry.
+     * @return The parsed {@code DittoRuntimeException}.
+     *
+     * @since 1.1.0
+     */
+    public static DittoRuntimeException parseWithErrorRegistry(final JsonObject errorJson,
+            final DittoHeaders dittoHeaders,
+            final ErrorRegistry<?> errorRegistry) {
+        try {
+            return errorRegistry.parse(errorJson, dittoHeaders);
+        } catch (final JsonTypeNotParsableException e) {
+            return DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
+                    .orElseThrow(() -> e);
+        }
+
+    }
+
     @Override
     public T fromAdaptable(final Adaptable adaptable) {
-        final DittoHeaders dittoHeaders =
-                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()));
+        final DittoHeaders dittoHeaders = DittoHeaders.of(
+                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty())));
         final TopicPath topicPath = adaptable.getTopicPath();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
-                .map(jsonObject -> {
-                    try {
-                        return errorRegistry.parse(jsonObject, dittoHeaders);
-                    } catch (final JsonTypeNotParsableException e) {
-                        return DittoRuntimeException.fromUnknownErrorJson(jsonObject, dittoHeaders)
-                                .orElseThrow(() -> e);
-                    }
-                })
+                .map(jsonObject -> parseWithErrorRegistry(jsonObject, dittoHeaders, errorRegistry))
                 .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
 
         return buildErrorResponse(topicPath, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
@@ -89,7 +106,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
 
         return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload)
-                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
+                .withHeaders(DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(responseHeaders)))
                 .build();
     }
 

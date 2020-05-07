@@ -12,9 +12,6 @@ openapi: 3.0.0
 info:
   title: Eclipse Ditto HTTP API - Deprecated
   description: JSON-based, REST-like API for Eclipse Ditto
-
-  Find a guide to migrate things from API 1 to API 2 [here](https://www.eclipse.org/ditto/httpapi-concepts.html/#migration-from-api-1-to-api-2)
-
   version: "1"
 servers:
   - url: https://ditto.eclipse.org/api/1

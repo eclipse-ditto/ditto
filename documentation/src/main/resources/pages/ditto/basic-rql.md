@@ -236,10 +236,6 @@ not(<query>)
 ```
 not(like(thingId,"org.eclipse.ditto:blacklisted*"))
 ```
-  
-{% include warning.html content="The `not` expression is not usable at the [search](basic-search.html) API due to
-                                 long running queries against the search index when using negation." %}
-
 
 ## RQL sorting
 

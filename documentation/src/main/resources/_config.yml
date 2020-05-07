@@ -102,6 +102,9 @@ title: "Eclipse Ditto Blog"
 description: "Announcements, tutorials and examples around Eclipse Ditto and Digital Twins"
 # the description is used in the feed.xml file
 
+# display also blogposts dated in the future:
+future: true
+
 # needed for sitemap.xml file only
 url: https://www.eclipse.org/ditto
 
@@ -113,3 +116,5 @@ docVersions:
     basePath: ""
   - label: "1.0"
     basePath: "1.0"
+  - label: "1.1"
+    basePath: "1.1"

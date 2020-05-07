@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
@@ -52,7 +53,8 @@ public class PlaceholderSubstitutionTest {
     private static final String ANOTHER_SUBJECT_ID = "custom:subjectId";
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
-            .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance(SUBJECT_ID)))
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance(SUBJECT_ID)))
             .putHeader(CUSTOM_HEADER_KEY, ANOTHER_SUBJECT_ID)
             .build();
 

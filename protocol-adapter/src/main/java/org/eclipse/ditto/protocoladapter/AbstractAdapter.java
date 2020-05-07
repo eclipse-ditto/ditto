@@ -77,7 +77,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         // filter headers by header translator, then inject any missing information from topic path
         final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
         final DittoHeaders filteredHeaders = addTopicPathInfo(
-                headerTranslator.fromExternalHeaders(externalHeaders),
+                DittoHeaders.of(headerTranslator.fromExternalHeaders(externalHeaders)),
                 externalAdaptable.getTopicPath());
 
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.find(type);
@@ -152,6 +152,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
         final Adaptable adaptable = mapSignalToAdaptable(signal, channel);
         final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
+
         return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
     }
 
@@ -159,6 +160,8 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * Subclasses must implement the method to map from the given {@link org.eclipse.ditto.signals.base.Signal} to an
      * {@link Adaptable}.
      *
+     * @param signal the signal to map.
+     * @param channel the channel to which the signal belongs.
      * @return the mapped {@link Adaptable}
      */
     protected abstract Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel);

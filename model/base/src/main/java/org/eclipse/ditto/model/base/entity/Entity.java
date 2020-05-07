@@ -66,7 +66,7 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
     Optional<Instant> getModified();
 
     /**
-     * Returns whether this entitity is deleted.
+     * Returns whether this entity is deleted.
      *
      * @return {@code true}, if deleted; false, otherwise.
      */

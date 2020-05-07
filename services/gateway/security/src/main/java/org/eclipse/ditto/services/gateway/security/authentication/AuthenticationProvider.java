@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+
 import akka.http.javadsl.server.RequestContext;
 
 /**
@@ -34,9 +36,9 @@ public interface AuthenticationProvider<R extends AuthenticationResult> {
      * Authenticates the given {@link RequestContext request context}.
      *
      * @param requestContext the request context to authenticate.
-     * @param correlationId the correlation ID of the request.
+     * @param dittoHeaders the (potentially not completely set) DittoHeaders of the request.
      * @return the authentication result.
      */
-    R authenticate(RequestContext requestContext, CharSequence correlationId);
+    R authenticate(RequestContext requestContext, DittoHeaders dittoHeaders);
 
 }

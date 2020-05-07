@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -37,7 +38,8 @@ public class TrieBasedPolicyEnforcerTest {
         final JsonObject createdJsonView = underTest.buildJsonView(
                 ResourceKey.newInstance("foo", "bar"),
                 JsonFactory.nullObject(),
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("itsMe")),
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("itsMe")),
                 Permissions.none());
 
         final JsonObject expectedJsonView = JsonFactory.nullObject();

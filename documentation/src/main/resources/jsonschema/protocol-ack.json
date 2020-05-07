@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "An Ditto Protocol ACK/NACK is sent in response to an event.",
+  "title": "Ditto Protocol acknowledgement",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Contains the topic of the acknowledgement, ending with the acknowledgement label."
+    },
+    "headers": {
+      "type": "object",
+      "description": "Additional headers.",
+      "properties": {
+        "correlation-id": {
+          "type": "string",
+          "description": "The correlation-id header is used for linking the acknowledgement to the event which requested it."
+        },
+        "version": {
+          "type": "integer",
+          "description": "Determines the schema version of the payload.",
+          "minimum": 1,
+          "maximum": 2
+        }
+      },
+      "required": [ "correlation-id" ]
+    },
+    "path": {
+      "type": "string",
+      "description": "The path is always the empty path `/` for an acknowledgement."
+    },
+    "value": {
+      "type": ["object","string","number","array","boolean"],
+      "description": "The _value_ field contains the optional payload of the acknowledgement."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The status code that indicates the result of the acknowledgement. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+    }
+  },
+  "required": [ "topic", "headers", "path", "status" ]
+}

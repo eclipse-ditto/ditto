@@ -22,10 +22,14 @@ import java.util.Arrays;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.protocoladapter.acknowledgements.DefaultAcknowledgementsAdapterProvider;
 import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocoladapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -45,8 +49,10 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
  * Adapter for the Ditto protocol.
@@ -57,21 +63,24 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final AdapterResolver adapterResolver;
     private final ThingCommandAdapterProvider thingsAdapters;
     private final PolicyCommandAdapterProvider policiesAdapters;
+    private final AcknowledgementAdapterProvider acknowledgementAdapters;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.thingsAdapters = new DefaultThingCommandAdapterProvider(errorRegistry, headerTranslator);
         this.policiesAdapters = new DefaultPolicyCommandAdapterProvider(errorRegistry, headerTranslator);
-        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters);
+        this.acknowledgementAdapters = new DefaultAcknowledgementsAdapterProvider(errorRegistry, headerTranslator);
+        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, acknowledgementAdapters);
     }
 
     private DittoProtocolAdapter(final HeaderTranslator headerTranslator,
             final ThingCommandAdapterProvider thingsAdapters, final PolicyCommandAdapterProvider policiesAdapters,
-            final AdapterResolver adapterResolver) {
+            final AcknowledgementAdapterProvider acknowledgementAdapters, final AdapterResolver adapterResolver) {
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.thingsAdapters = checkNotNull(thingsAdapters, "thingsAdapters");
         this.policiesAdapters = checkNotNull(policiesAdapters, "policiesAdapters");
+        this.acknowledgementAdapters = checkNotNull(acknowledgementAdapters, "acknowledgementAdapters");
         this.adapterResolver = checkNotNull(adapterResolver, "adapterResolver");
     }
 
@@ -107,16 +116,19 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      * Factory method used in tests.
      *
      * @param headerTranslator translator between external and Ditto headers
-     * @param thingCommandAdapterProvider command adapters fot thing commands
-     * @param policyCommandAdapterProvider command adapters fot policy commands
+     * @param thingCommandAdapterProvider command adapters for thing commands
+     * @param policyCommandAdapterProvider command adapters for policy commands
+     * @param acknowledgementAdapters adapters for acknowledgements.
      * @param adapterResolver resolves the correct adapter from a command
      * @return new instance of {@link DittoProtocolAdapter}
      */
     static DittoProtocolAdapter newInstance(final HeaderTranslator headerTranslator,
             final ThingCommandAdapterProvider thingCommandAdapterProvider,
-            final PolicyCommandAdapterProvider policyCommandAdapterProvider, final AdapterResolver adapterResolver) {
+            final PolicyCommandAdapterProvider policyCommandAdapterProvider,
+            final AcknowledgementAdapterProvider acknowledgementAdapters,
+            final AdapterResolver adapterResolver) {
         return new DittoProtocolAdapter(headerTranslator, thingCommandAdapterProvider, policyCommandAdapterProvider,
-                adapterResolver
+                acknowledgementAdapters, adapterResolver
         );
     }
 
@@ -126,7 +138,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     }
 
     @Override
-    public Adaptable toAdaptable(Command<?> command) {
+    public Adaptable toAdaptable(final Command<?> command) {
         final TopicPath.Channel channel = ProtocolAdapter.determineChannel(command);
         return toAdaptable(command, channel);
     }
@@ -147,6 +159,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((MessageCommandResponse<?, ?>) signal);
         } else if (signal instanceof Command) {
             return toAdaptable((Command<?>) signal, channel);
+        } else if (signal instanceof ThingSearchCommand) {
+            return toAdaptable((ThingSearchCommand) signal, channel);
         } else if (signal instanceof CommandResponse) {
             return toAdaptable((CommandResponse<?>) signal, channel);
         } else if (signal instanceof Event) {
@@ -167,6 +181,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (commandResponse instanceof PolicyCommandResponse) {
             validateChannel(channel, commandResponse, NONE);
             return toAdaptable((PolicyCommandResponse<?>) commandResponse);
+        } else if (commandResponse instanceof Acknowledgement) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return toAdaptable((Acknowledgement) commandResponse, channel);
+        } else if (commandResponse instanceof Acknowledgements) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return toAdaptable((Acknowledgements) commandResponse, channel);
         } else {
             throw UnknownCommandResponseException.newBuilder(commandResponse.getName()).build();
         }
@@ -206,6 +226,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (command instanceof ThingModifyCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return toAdaptable((ThingModifyCommand<?>) command, channel);
+        } else if (command instanceof ThingSearchCommand) {
+            return toAdaptable((ThingSearchCommand<?>) command, channel);
         } else if (command instanceof ThingQueryCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return toAdaptable((ThingQueryCommand<?>) command, channel);
@@ -224,6 +246,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final ThingQueryCommand<?> thingQueryCommand, final TopicPath.Channel channel) {
         validateChannel(channel, thingQueryCommand, TWIN, LIVE);
         return thingsAdapters.getQueryCommandAdapter().toAdaptable(thingQueryCommand, channel);
+    }
+
+    public Adaptable toAdaptable(final ThingSearchCommand<?> thingSearchCommand, final TopicPath.Channel channel) {
+        validateChannel(channel, thingSearchCommand, TWIN);
+        return thingsAdapters.getSearchCommandAdapter().toAdaptable(thingSearchCommand, channel);
     }
 
     @Override
@@ -257,7 +284,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         if (event instanceof ThingEvent) {
             validateChannel(channel, event, TWIN, LIVE);
             return toAdaptable((ThingEvent<?>) event, channel);
-        } else {
+        } else if (event instanceof SubscriptionEvent) {
+            validateChannel(channel, event, TWIN);
+            return  toAdaptable((SubscriptionEvent<?>) event, channel);
+        }
+
+        else {
             throw UnknownEventException.newBuilder(event.getName()).build();
         }
     }
@@ -266,6 +298,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         validateChannel(channel, thingEvent, TWIN, LIVE);
         return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
+    }
+
+    public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel){
+        validateNotLive(subscriptionEvent);
+        return thingsAdapters.getSubscriptionEventAdapter().toAdaptable(subscriptionEvent, channel);
     }
 
     private Adaptable toAdaptable(final PolicyQueryCommand<?> policyQueryCommand) {
@@ -306,6 +343,14 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public HeaderTranslator headerTranslator() {
         return headerTranslator;
+    }
+
+    private Adaptable toAdaptable(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
+        return acknowledgementAdapters.getAcknowledgementAdapter().toAdaptable(acknowledgement, channel);
+    }
+
+    private Adaptable toAdaptable(final Acknowledgements acknowledgements, final TopicPath.Channel channel) {
+        return acknowledgementAdapters.getAcknowledgementsAdapter().toAdaptable(acknowledgements, channel);
     }
 
     private void validateChannel(final TopicPath.Channel channel,

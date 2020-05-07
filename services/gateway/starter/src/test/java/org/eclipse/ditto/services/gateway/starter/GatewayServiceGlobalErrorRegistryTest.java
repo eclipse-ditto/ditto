@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
@@ -56,8 +58,9 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 NamespacedEntityIdInvalidException.class,
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class,
-                PublicKeyProviderUnavailableException.class
-        );
+                PublicKeyProviderUnavailableException.class,
+                AcknowledgementLabelInvalidException.class,
+                AcknowledgementCorrelationIdMissingException.class);
     }
 
 }

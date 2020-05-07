@@ -19,10 +19,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
@@ -63,21 +64,23 @@ final class FeaturesRoute extends AbstractRoute {
      * @param actorSystem the ActorSystem to use.
      * @param messageConfig the MessageConfig.
      * @param claimMessageConfig the MessageConfig for claim messages.
+     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
     FeaturesRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
             final MessageConfig messageConfig,
             final MessageConfig claimMessageConfig,
-            final HttpConfig httpConfig,
             final HeaderTranslator headerTranslator) {
 
-        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
 
-        messagesRoute = new MessagesRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
-                headerTranslator);
+        messagesRoute = new MessagesRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
+                claimMessageConfig, headerTranslator);
     }
 
     /**
@@ -115,7 +118,8 @@ final class FeaturesRoute extends AbstractRoute {
                                 )
                         ),
                         put(() -> // PUT /features
-                                extractDataBytes(payloadSource ->
+                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 featuresJson -> ModifyFeatures
                                                         .of(thingId, ThingsModelFactory.newFeatures(
@@ -149,7 +153,8 @@ final class FeaturesRoute extends AbstractRoute {
                                         )
                                 ),
                                 put(() -> // PUT /features/<featureId>
-                                        extractDataBytes(payloadSource ->
+                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         featureJson ->
                                                                 ModifyFeature.of(thingId,
@@ -187,7 +192,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                         RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
                                         ),
                                         put(() -> // PUT /features/{featureId}/definition
-                                                extractDataBytes(payloadSource ->
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, definitionJson ->
                                                                         ModifyFeatureDefinition.of(thingId, featureId,
@@ -232,7 +238,8 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         put(() -> // PUT /features/{featureId}/properties
-                                                extractDataBytes(payloadSource ->
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertiesJson ->
                                                                         ModifyFeatureProperties.of(
@@ -275,9 +282,9 @@ final class FeaturesRoute extends AbstractRoute {
                                                 handlePerRequest(ctx, RetrieveFeatureProperty.of(thingId, featureId,
                                                         JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                                         ),
-                                        put(() ->
-                                                extractDataBytes(payloadSource ->
-                                                        // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
+                                        put(() -> // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
+                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                                        payloadSource ->
                                                         handlePerRequest(ctx, dittoHeaders,
                                                                 payloadSource, propertyJson ->
                                                                         ModifyFeatureProperty.of(

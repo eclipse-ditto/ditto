@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

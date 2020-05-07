@@ -14,15 +14,15 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 
@@ -49,36 +49,41 @@ final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
     @Override
     public void match(final M filterInput, final DittoHeaders dittoHeaders) {
 
-        final List<DittoRuntimeException> exceptions = new LinkedList<>();
+        int resolutionFailureCounter = 0;
+        int enforcementFilterCounter = 0;
 
         for (final Placeholder<M> filterPlaceholder : filterPlaceholders) {
             for (final String filter : enforcement.getFilters()) {
+                enforcementFilterCounter++;
                 try {
-                    final String resolved = PlaceholderFilter.apply(filter, filterInput, filterPlaceholder);
-                    if (inputValue.equals(resolved)) {
-                        return;
+                    final Optional<String> resolved = PlaceholderFilter.applyOrElseDelete(
+                            filter,
+                            PlaceholderFactory.newExpressionResolver(filterPlaceholder, filterInput)
+                    );
+                    if (resolved.isPresent()) {
+                        final String resolvedFilterString = resolved.get();
+                        if (inputValue.equals(resolvedFilterString)) {
+                            // match found
+                            return;
+                        }
+                    } else {
+                        resolutionFailureCounter++;
                     }
                 } catch (final UnresolvedPlaceholderException unresolved) {
-                    exceptions.add(unresolved);
+                    resolutionFailureCounter++;
                 }
             }
         }
 
-        /*
-            exceptions.size() == filterPlaceholders.size():
-              the configured filter could not be resolved by any of the placeholders
-                -> re-throw UnresolvedPlaceholderException
-        */
-        if (exceptions.size() == filterPlaceholders.size()) {
-            throw exceptions.get(0);
+        if (resolutionFailureCounter < enforcementFilterCounter) {
+            // resolutionFailureCounter < enforcementFilterCounter:
+            // at least one of the placeholder could resolve the filter but it did not match
+            // -> throw ConnectionSignalIdEnforcementFailedException
+            throw getEnforcementFailedException(dittoHeaders);
         }
-
-        /*
-            exceptions.size() < filterPlaceholders.size()
-                  at least one of the placeholder could resolve the filter but it did not match
-                    -> throw ConnectionSignalIdEnforcementFailedException
-         */
-        throw getEnforcementFailedException(dittoHeaders);
+        // resolutionFailureCounter == enforcementFilterCounter:
+        // the configured filter could not be resolved by any of the placeholders
+        // -> consider enforcement not applicable and not signal enforcement failure
     }
 
     private ConnectionSignalIdEnforcementFailedException getEnforcementFailedException(

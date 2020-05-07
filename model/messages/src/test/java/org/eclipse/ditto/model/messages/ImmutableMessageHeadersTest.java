@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.messages;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.data.MapEntry.entry;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -24,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -31,8 +31,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -52,7 +55,17 @@ public final class ImmutableMessageHeadersTest {
 
     private static final Collection<String>
             AUTH_SUBJECTS_WITHOUT_DUPLICATES = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
+    private static final AuthorizationContext AUTH_CONTEXT_WITHOUT_DUPLICATES =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
+                            .map(AuthorizationSubject::newInstance)
+                            .collect(Collectors.toList()));
     private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
+    private static final AuthorizationContext AUTH_CONTEXT =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTH_SUBJECTS.stream()
+                            .map(AuthorizationSubject::newInstance)
+                            .collect(Collectors.toList()));
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final AuthorizationSubject KNOWN_READ_SUBJECT = AuthorizationSubject.newInstance("knownReadSubject");
@@ -82,7 +95,7 @@ public final class ImmutableMessageHeadersTest {
         final Map<String, String> expectedHeaderMap = createMapContainingAllKnownHeaders();
 
         final MessageHeaders messageHeaders = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .authorizationSubjects(AUTH_SUBJECTS)
+                .authorizationContext(AUTH_CONTEXT)
                 .correlationId(KNOWN_CORRELATION_ID)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
                 .channel(KNOWN_CHANNEL)
@@ -97,20 +110,6 @@ public final class ImmutableMessageHeadersTest {
                 .build();
 
         assertThat(messageHeaders).isEqualTo(expectedHeaderMap);
-    }
-
-    @Test
-    public void timeoutIsSerializedAsInteger() {
-        final long timeout = Long.MAX_VALUE;
-
-        final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .timeout(timeout)
-                .build();
-
-        final JsonObject jsonObject = underTest.toJson();
-
-        assertThat(jsonObject.getValue(MessageHeaderDefinition.TIMEOUT.getKey()))
-                .contains(JsonFactory.newValue(timeout));
     }
 
     @Test
@@ -143,7 +142,9 @@ public final class ImmutableMessageHeadersTest {
                 .putHeader(key, value)
                 .build();
 
-        assertThat(underTest).hasSize(4).contains(entry(key, value));
+        assertThat(underTest)
+                .hasSize(4)
+                .containsEntry(key, value);
     }
 
     @Test
@@ -153,9 +154,11 @@ public final class ImmutableMessageHeadersTest {
 
         final MessageHeadersBuilder underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("<%s> is not a HTTP status code!", value, key)
+                .withMessageContaining(key)
+                .withMessageContaining(value)
+                .withMessageEndingWith("is not a valid HTTP status code.")
                 .withNoCause();
     }
 
@@ -260,9 +263,7 @@ public final class ImmutableMessageHeadersTest {
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), String.valueOf(AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray())));
+        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
@@ -276,10 +277,10 @@ public final class ImmutableMessageHeadersTest {
         result.put(MessageHeaderDefinition.SUBJECT.getKey(), SUBJECT);
         result.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
         result.put(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
-        result.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);
         result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(STATUS_CODE.toInt()));
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
+        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
 
         return result;
     }

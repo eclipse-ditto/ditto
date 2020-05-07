@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
@@ -176,8 +176,8 @@ public final class QueryThingsPerRequestActorTest {
         // THEN: an UpdateThings command is published requesting search index update of thingId1
         pubSubMediatorProbe.expectMsg(
                 DistPubSubAccess.publishViaGroup(
-                        UpdateThings.TYPE,
-                        UpdateThings.of(List.of(thingId1), dittoHeaders)
+                        ThingsOutOfSync.TYPE,
+                        ThingsOutOfSync.of(List.of(thingId1), dittoHeaders)
                 )
         );
     }

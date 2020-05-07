@@ -18,12 +18,12 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.WithId;
@@ -42,12 +42,12 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
 
     private ShardRegionExtractor(final int numberOfShards, final MappingStrategies mappingStrategies) {
         this.numberOfShards = numberOfShards;
-        this.mappingStrategies = checkNotNull(mappingStrategies, "mapping strategies");
+        this.mappingStrategies = checkNotNull(mappingStrategies, "mappingStrategies");
     }
 
     /**
-     * Returns a new {@code ShardRegionExtractor} by loading the {@link MappingStrategies} implementation to use via the
-     * passed {@code ActorSystem}.
+     * Returns a new {@code ShardRegionExtractor} by loading the {@link MappingStrategies} implementation to use
+     * via the passed {@code ActorSystem}.
      *
      * @param numberOfShards the amount of shards to use.
      * @param actorSystem the ActorSystem to use for looking up the MappingStrategy.
@@ -126,26 +126,25 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         return remainingShardIds;
     }
 
-    private Jsonifiable createJsonifiableFrom(final ShardedMessageEnvelope messageEnvelope) {
+    private Jsonifiable<?> createJsonifiableFrom(final ShardedMessageEnvelope messageEnvelope) {
         final String type = messageEnvelope.getType();
-        final Optional<MappingStrategy> mappingStrategy = mappingStrategies.getMappingStrategyFor(type);
-        if (!mappingStrategy.isPresent()) {
-            final String pattern = "No strategy found to map type {0} to a Jsonifiable!";
-            throw new IllegalStateException(MessageFormat.format(pattern, type));
-        }
+        final MappingStrategy mappingStrategy = mappingStrategies.getMappingStrategy(type)
+                .orElseThrow(() -> {
+                    final String pattern = "No strategy found to map type {0} to a Jsonifiable!";
+                    throw new IllegalStateException(MessageFormat.format(pattern, type));
+                });
 
-        final JsonObject payload = messageEnvelope.getMessage();
-        final DittoHeaders dittoHeaders = messageEnvelope.getDittoHeaders();
-
-        return mappingStrategy.get().map(payload, dittoHeaders);
+        return mappingStrategy.map(messageEnvelope.getMessage(), messageEnvelope.getDittoHeaders());
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o)
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
             return true;
-        if (o == null || getClass() != o.getClass())
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
+        }
         final ShardRegionExtractor that = (ShardRegionExtractor) o;
         return numberOfShards == that.numberOfShards && Objects.equals(mappingStrategies, that.mappingStrategies);
     }

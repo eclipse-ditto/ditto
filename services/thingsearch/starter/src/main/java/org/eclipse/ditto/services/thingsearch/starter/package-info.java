@@ -12,7 +12,7 @@
  */
 
 /**
- * This package provides means for starting the Things service.
+ * This package provides means for starting the ThingsSearch service.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.thingsearch.starter;

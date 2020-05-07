@@ -139,7 +139,7 @@ public final class HeaderValueValidatorTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(headerDefinition, value))
-                .withMessage("JSON array for '%s' contained non-String values.", HEADER_KEY)
+                .withMessage("JSON array for <%s> contained non-string values!", HEADER_KEY)
                 .withNoCause();
     }
 

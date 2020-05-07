@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -53,10 +54,10 @@ public class ConnectionMigrationUtilTest {
     private static final String LEGACY_FIELD_FILTERS = "filters";
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     private static final AuthorizationContext ALT_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("altSolution:customSubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myAltIssuer:customSubject"));
 
     private static final JsonArray FILTERS =
             JsonFactory.newArrayBuilder().add("{{thing:id}}").add("{{thing:name}}").build();

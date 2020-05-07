@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;

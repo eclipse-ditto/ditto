@@ -23,13 +23,13 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
-import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -37,6 +37,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -156,7 +157,6 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                 .matchAny(any -> {
                     // all other messages (e.g. DittoRuntimeExceptions) are directly returned to the sender:
                     originatingSender.tell(any, getSender());
-
                     stopMyself();
                 })
                 .build();
@@ -208,12 +208,12 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                 .map(ThingId::of)
                 .collect(Collectors.toSet());
 
-        final Collection<ThingId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
+        final Collection<NamespacedEntityId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
                 .filter(thingId -> !retrievedThingIds.contains(thingId))
                 .collect(Collectors.toList());
 
-        final UpdateThings updateThings = UpdateThings.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(UpdateThings.TYPE, updateThings), ActorRef.noSender());
+        final ThingsOutOfSync thingsOutOfSync = ThingsOutOfSync.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE, thingsOutOfSync), ActorRef.noSender());
     }
 
     private void stopMyself() {

@@ -24,6 +24,9 @@ entries:
     output: web
     folderitems:
 
+    - title: 1.1.0
+      url: /release_notes_110.html
+      output: web
     - title: 1.0.0
       url: /release_notes_100.html
       output: web
@@ -165,6 +168,9 @@ entries:
     - title: Search
       url: /basic-search.html
       output: web
+    - title: Acknowledgements
+      url: /basic-acknowledgements.html
+      output: web
 
   - title: Architecture
     output: web
@@ -238,6 +244,9 @@ entries:
     - title: MQTT 3.1.1 protocol binding
       url: /connectivity-protocol-bindings-mqtt.html
       output: web
+    - title: MQTT 5 protocol binding
+      url: /connectivity-protocol-bindings-mqtt5.html
+      output: web
     - title: HTTP 1.1 protocol binding
       url: /connectivity-protocol-bindings-http.html
       output: web
@@ -299,6 +308,9 @@ entries:
           output: web
         - title: Delete
           url: /protocol-specification-things-delete.html
+          output: web
+        - title: Acknowledgements
+          url: /protocol-specification-acks.html
           output: web
 
       - title: → search/messages
@@ -519,7 +531,7 @@ entries:
           url: /protocol-examples-policies-createresource.html
           output: web
         - title: Delete a single resource
-          url: /examples/protocol-examples-policies-deleteresource.html
+          url: /protocol-examples-policies-deleteresource.html
           output: web
         - title: Modify a single resource
           url: /protocol-examples-policies-modifyresource.html
@@ -530,7 +542,9 @@ entries:
         - title: Error responses
           url: /protocol-examples-policies-errorresponses.html
           output: web
-
+    - title: → Search examples
+      url: /protocol-examples-search.html
+      output: web
   - title: Sandbox
     url: /sandbox.html
     output: web

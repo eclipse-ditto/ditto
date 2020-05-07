@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -38,7 +39,6 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThings;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -48,6 +48,7 @@ import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -135,14 +136,14 @@ public final class ThingsUpdaterTest {
         new TestKit(actorSystem) {{
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
             final ActorRef underTest = createThingsUpdater();
-            final Collection<ThingId> thingIds = IntStream.range(0, 10)
+            final Collection<NamespacedEntityId> thingIds = IntStream.range(0, 10)
                     .mapToObj(i -> ThingId.of("a:" + i))
                     .collect(Collectors.toList());
-            underTest.tell(UpdateThings.of(thingIds, dittoHeaders), getRef());
+            underTest.tell(ThingsOutOfSync.of(thingIds, dittoHeaders), getRef());
 
             // command order not guaranteed due to namespace blocking
             final Set<EntityId> expectedIds = new HashSet<>(thingIds);
-            for (final ThingId ignored : thingIds) {
+            for (final NamespacedEntityId ignored : thingIds) {
                 final ShardedMessageEnvelope envelope =
                         shardMessageReceiver.expectMsgClass(ShardedMessageEnvelope.class);
                 final EntityId envelopeId = envelope.getEntityId();

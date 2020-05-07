@@ -52,6 +52,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-acks-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
         <dependency>
@@ -94,6 +98,12 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

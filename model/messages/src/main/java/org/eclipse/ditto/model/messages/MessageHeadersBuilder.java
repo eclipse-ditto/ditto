@@ -18,7 +18,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -46,7 +45,15 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
                     MessageHeaderDefinition.SUBJECT));
 
     private MessageHeadersBuilder(final Map<String, String> headers) {
-        super(headers, Arrays.asList(MessageHeaderDefinition.values()), MessageHeadersBuilder.class);
+        super(headers, determineMessageHeaderDefinitions(), MessageHeadersBuilder.class);
+    }
+
+    private static Set<MessageHeaderDefinition> determineMessageHeaderDefinitions() {
+        final Set<MessageHeaderDefinition> result = EnumSet.allOf(MessageHeaderDefinition.class);
+
+        // remove deprecated timeout entry as this is now defined in DittoHeaderDefinitions
+        result.remove(MessageHeaderDefinition.TIMEOUT);
+        return result;
     }
 
     /**
@@ -189,9 +196,13 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param timeout the duration of the Message to time out.
      * @return this builder to allow method chaining.
+     * @deprecated as of version 1.1.0 please use
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(Duration)} instead.
      */
+    @Override
+    @Deprecated
     public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
-        final MessageHeaderDefinition definition = MessageHeaderDefinition.TIMEOUT;
+        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
         if (null != timeout) {
             putCharSequence(definition, String.valueOf(timeout.getSeconds()));
         } else {
@@ -205,7 +216,11 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param timeoutInSeconds the seconds of the Message to time out.
      * @return this builder to allow method chaining.
+     * @deprecated as of 1.1.0 please use
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(CharSequence)} instead.
+     * This method will be removed in version 2.0.
      */
+    @Deprecated
     public MessageHeadersBuilder timeout(final long timeoutInSeconds) {
         return timeout(Duration.ofSeconds(timeoutInSeconds));
     }

@@ -33,7 +33,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
-
     </dependencies>
 
 </project>
