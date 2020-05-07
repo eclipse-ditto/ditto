@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 
@@ -118,6 +119,14 @@ public interface RootRouteBuilder {
      * @return the Builder to allow method chaining.
      */
     RootRouteBuilder statsRoute(StatsRoute route);
+
+    /**
+     * Sets the stats whoami-route.
+     *
+     * @param route the route to set.
+     * @return the Builder to allow method chaining.
+     */
+    RootRouteBuilder whoamiRoute(WhoamiRoute route);
 
     /**
      * Sets the http authentication directive.
