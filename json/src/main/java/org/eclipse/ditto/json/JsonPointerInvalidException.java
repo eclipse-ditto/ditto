@@ -36,6 +36,9 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     private static final String OUTER_SLASHES_DESCRIPTION =
             "Leading or trailing slashes in JSON pointers are not supported.";
 
+    private static final String NO_SLASHES_NO_CONTROL_CHARACTERS_DESCRIPTION =
+            "Neither slashes nor any control characters are allowed at any place in your JSON Pointer. Please check!";
+
     private static final long serialVersionUID = -6773700329225961931L;
 
     private JsonPointerInvalidException(@Nullable final String message,
@@ -45,6 +48,12 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
 
         super(ERROR_CODE, message, description, cause, href);
     }
+
+    public static String getFullRestrictionMessage() {
+        return NO_SLASHES_NO_CONTROL_CHARACTERS_DESCRIPTION;
+    }
+
+    public static String getOuterSlashesDescription() { return OUTER_SLASHES_DESCRIPTION; }
 
     /**
      * Returns a builder for fluently creating instances of {@code JsonPointerInvalidException}s..
@@ -73,7 +82,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
      * Returns a new builder already containing a generic message that leading or trailing slashes are not supported for JSON
      * pointers.
      *
-     * @param jsonPointer The JSON pointer containing the consecutive slashes.
+     * @param jsonPointer The JSON pointer containing the leading and/or trailing slashes.
      * @return a builder for {@code JsonPointerInvalidException} objects.
      */
     public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForOuterSlashes(
@@ -81,6 +90,33 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
         return new Builder()
                 .jsonPointer(jsonPointer)
                 .description(OUTER_SLASHES_DESCRIPTION);
+    }
+
+    /**
+     * Returns a new builder containing the given message for the given JSON pointers.
+     *
+     * @param jsonPointer The JSON pointer the message is about.
+     * @param description The description to be in the exception.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithDescription(
+            final CharSequence jsonPointer, final String description) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(description);
+    }
+
+    /**
+     * Returns a new builder already containing a default message that the JSON pointer is no valid.
+     *
+     * @param jsonPointer The JSON pointer the message is about.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithoutDescription(
+            final CharSequence jsonPointer) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(DEFAULT_DESCRIPTION);
     }
 
     /**

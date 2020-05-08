@@ -265,7 +265,7 @@ public final class ThingsModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            ImmutablePatternValidator.toBuilder().withFeaturePattern().buildFor(jsonObject).validate();
+            ImmutablePatternValidator.toBuilder().withFeaturePattern().build().validate(jsonObject);
             return ImmutableFeatureProperties.of(jsonObject);
         } else {
             return nullFeatureProperties();

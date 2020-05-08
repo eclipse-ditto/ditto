@@ -23,6 +23,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -46,6 +47,56 @@ public final class ImmutableFeatureTest {
     private static final String KNOWN_FEATURE_ID = "myFeature";
     private static final String LEADING_SLASH_FEATURE_ID = "/wrongFeature";
     private static final String ENDING_SLASH_FEATURE_ID = "wrongFeature/";
+    private static final String SLASH_INBETWEEN_ID = "wrong/Feature";
+
+    private static final List<String> wrongFeatureIDs = List.of(
+            "//",
+            "/wrong",
+            "wrong/",
+            "//wrong",
+            "wrong//",
+            "wrong/wrong",
+            "wrong//wrong",
+            "<WRONG>",
+            "wrong<>wrong",
+            "wronger>wrong",
+            "wrong<wronger",
+            "wrong%2",
+            "%wrong",
+            "wrong%wrong",
+            "wrong?",
+            "wrong&wrong",
+            "$wrong",
+            "wrong and wrong",
+            "wrong wrong",
+            "folder\no!",
+            "folder\\no",
+            "wrong\ttab",
+            "wrong\nwrong"
+    );
+
+    private static final List<String> allowedFeatureIDs = List.of(
+            "right",
+            "right:right",
+            "this-is-right",
+            "right+allowed",
+            "right§right",
+            "why.not",
+            "guess@what",
+            "@right",
+            "right.",
+            "~folder",
+            "#1",
+            "right,allowed,legal",
+            "RIGHT!",
+            "--------right,allowed,legal!RIGHT(sure#1)!`allowed`",
+            "*notice",
+            "notice*",
+            "right.allowed:legal",
+            "123",
+            "|-.-|",
+            "{right]"
+    );
 
     private static final JsonObject KNOWN_JSON_OBJECT = JsonFactory.newObjectBuilder()
             .set(Feature.JsonFields.SCHEMA_VERSION, KNOWN_SCHEMA_VERSION.toInt())
@@ -101,6 +152,28 @@ public final class ImmutableFeatureTest {
     public void createInstanceWithEndingSlash() {
         assertThatExceptionOfType(JsonPointerInvalidException.class)
                 .isThrownBy(() -> ImmutableFeature.of(ENDING_SLASH_FEATURE_ID, null));
+    }
+
+    @Test
+    public void createInstanceWithInbetweenSlash() {
+        assertThatExceptionOfType(JsonPointerInvalidException.class)
+                .isThrownBy(() -> ImmutableFeature.of(SLASH_INBETWEEN_ID, null));
+    }
+
+    @Test
+    public void testWrongFeatureIds() {
+        wrongFeatureIDs.forEach(featureId ->
+                assertThatExceptionOfType(JsonPointerInvalidException.class).isThrownBy(
+                        () -> ImmutableFeature.of(featureId, null))
+        );
+    }
+
+    @Test
+    public void testAllowedFeatureIds() {
+        allowedFeatureIDs.forEach(featureId -> {
+                final Feature underTest = ImmutableFeature.of(featureId);
+                assertThat(underTest.getId()).isEqualTo(featureId);
+        });
     }
 
     @Test

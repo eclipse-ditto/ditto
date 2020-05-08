@@ -83,7 +83,12 @@ final class ImmutableFeature implements Feature {
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
 
-        ImmutablePatternValidator.toBuilder().withFeaturePattern().buildFor(featureId).validate();
+        ImmutablePatternValidator.toBuilder()
+                .withFeaturePattern()
+                .withExceptionDescription(JsonPointerInvalidException.getFullRestrictionMessage())
+                .withTargetDescription("ID of the Feature")
+                .build()
+                .validate(featureId);
 
         return new ImmutableFeature(featureId, definition, properties);
     }

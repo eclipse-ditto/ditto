@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 
 /**
  * Factory that creates new {@code attributes} objects.
@@ -62,7 +63,13 @@ public final class AttributesModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            ImmutablePatternValidator.toBuilder().withAttributePattern().buildFor(jsonObject).validate();
+
+            ImmutablePatternValidator.toBuilder()
+                    .withAttributePattern()
+                    .withExceptionDescription(JsonPointerInvalidException.getFullRestrictionMessage())
+                    .build()
+                    .validate(jsonObject);
+
             return ImmutableAttributes.of(jsonObject);
         } else {
             return nullAttributes();

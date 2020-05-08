@@ -2,6 +2,7 @@ package org.eclipse.ditto.model.things;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -12,53 +13,54 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 
 @Immutable
-final class ImmutablePatternValidator<T> {
+final class ImmutablePatternValidator {
 
     private final Pattern pattern;
-    private final T t;
+    @Nullable
+    private final String exceptionDescription;
+    @Nullable
+    private final String targetDescription;
 
     public static ImmutablePatternValidatorBuilder toBuilder() {
         return new ImmutablePatternValidatorBuilder();
     }
 
-    private ImmutablePatternValidator(final Pattern pattern, final T t) {
+    private ImmutablePatternValidator(final Pattern pattern, @Nullable final String exception, @Nullable  String targetDescription) {
         this.pattern = pattern;
-        this.t = t;
+        this.exceptionDescription = exception;
+        this.targetDescription = targetDescription;
     }
 
-    private void validateCharSequence(final CharSequence featureId) {
-        if (!pattern.matcher(featureId).matches()) {
-            throw JsonPointerInvalidException.newBuilder().build();
-        }
-    }
-
-    private void validateJsonKeys(final JsonObject jsonObject) {
-        for (final JsonKey key : jsonObject.getKeys()) {
-            if (!pattern.matcher(key).matches()) {
-                throw JsonPointerInvalidException.newBuilder().build();
-            }
+    public void validate(final JsonObject target) {
+        for (final JsonKey key : target.getKeys()) {
+            validate(key);
         }
     }
 
-    public void validate() {
-        if (t instanceof JsonObject) {
-            this.validateJsonKeys((JsonObject) t);
+    public Matcher validate(final CharSequence target) {
+        checkNotNull(target, this.targetDescription != null ? this.targetDescription : "Target");
+        final Matcher matcher = pattern.matcher(target);
+        if (!matcher.matches()) {
+            throw this.exceptionDescription != null ?
+                    JsonPointerInvalidException.newBuilderWithDescription(target, this.exceptionDescription).build() :
+                    JsonPointerInvalidException.newBuilderWithoutDescription(target).build();
         }
-
-        if (t instanceof CharSequence) {
-            this.validateCharSequence((CharSequence) t);
-        }
+        return matcher;
     }
 
     static final class ImmutablePatternValidatorBuilder {
 
         @Nullable
         private Pattern pattern;
+        @Nullable
+        private String exceptionDescription;
+        @Nullable
+        private String targetDescription;
 
-        private final Pattern ATTRIBUTE_FEATURE_PATTERN = Pattern.compile("^[^/<>\\\\&%$\\s]*$");
+        private final Pattern ATTRIBUTE_FEATURE_PATTERN = Pattern.compile("^[^/<>\\\\&%$?\\s]*$");
 
         public ImmutablePatternValidatorBuilder withPattern(final Pattern pattern) {
-            checkNotNull(pattern, "pattern to be set");
+            checkNotNull(pattern, "Pattern");
             this.pattern = pattern;
             return this;
         }
@@ -72,16 +74,20 @@ final class ImmutablePatternValidator<T> {
             return withAttributePattern();
         }
 
-        public ImmutablePatternValidator<?> buildFor(JsonObject target) {
-            checkNotNull(target, "target to check must be set");
-            return new ImmutablePatternValidator<JsonObject>(this.pattern, target);
+        public ImmutablePatternValidatorBuilder withExceptionDescription(final String description) {
+            this.exceptionDescription = description;
+            return this;
         }
 
-        public ImmutablePatternValidator<?> buildFor(CharSequence target) {
-            checkNotNull(target, "target to check must be set");
-            return new ImmutablePatternValidator<CharSequence>(this.pattern, target);
+        public ImmutablePatternValidatorBuilder withTargetDescription(final String description) {
+            this.targetDescription = description;
+            return this;
         }
 
+        public ImmutablePatternValidator build() {
+            checkNotNull(this.pattern, "Pattern");
+            return new ImmutablePatternValidator(this.pattern, this.exceptionDescription, this.targetDescription);
+        }
     }
 
 }
