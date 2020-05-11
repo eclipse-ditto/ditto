@@ -23,17 +23,23 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Supplier;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -59,7 +65,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         when(mockProducer.send(any(), any()))
                 .thenAnswer(invocationOnMock -> {
                     final ProducerRecord<String, String> record = invocationOnMock.getArgument(0);
-                    final RecordMetadata dummyMetadata = new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0);
+                    final RecordMetadata dummyMetadata =
+                            new RecordMetadata(new TopicPartition("topic", 5), 0L, 0L, 0L, 0L, 0, 0);
                     invocationOnMock.getArgument(1, Callback.class).onCompletion(dummyMetadata, null);
                     received.add(record);
                     return null;
@@ -100,6 +107,24 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         shouldContainHeader(headers, "correlation-id", TestConstants.CORRELATION_ID);
         shouldContainHeader(headers, "mappedHeader2", "thing:id");
     }
+
+    @Override
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
+        final Acknowledgements acks = ackSupplier.get();
+        assertThat(acks.getSize()).isEqualTo(1);
+        final Acknowledgement ack = acks.stream().findAny().orElseThrow();
+        assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+        assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+        assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
+                .set("topic", "topic")
+                .set("partition", 5)
+                .set("offset", 0)
+                .set("timestamp", 0)
+                .set("serializedKeySize", 0)
+                .set("serializedValueSize", 0)
+                .build());
+    }
+
 
     @Override
     protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {

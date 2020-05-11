@@ -28,9 +28,15 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
@@ -54,6 +60,8 @@ import akka.util.ByteString;
  * broker.
  */
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
+
+    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-kafka-diagnostic");
 
     /**
      * List of retriable producer exceptions.
@@ -243,7 +251,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     private void stopGracefully() {
-        final boolean shuttingDown = true;
         stopInternalKafkaProducer();
         logWithConnectionId().debug("Stopping myself.");
         getContext().stop(getSelf());
@@ -289,6 +296,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         final int ackSizeQuota;
         private final CompletableFuture<Acknowledgement> resultFuture;
         private final Consumer<Exception> checkException;
+        private int currentQuota;
 
         private ProducerCallBack(final Signal<?> signal, @Nullable final Target target,
                 final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture,
@@ -306,8 +314,44 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 resultFuture.completeExceptionally(exception);
                 checkException.accept(exception);
             } else {
-                // TODO: construct ACK.
-                resultFuture.complete(null);
+                resultFuture.complete(ackFromMetadata(metadata));
+            }
+        }
+
+        private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
+            final ThingId id = ThingId.of(signal.getEntityId());
+            final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
+            if (metadata == null) {
+                return Acknowledgement.of(label, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
+            } else {
+                return Acknowledgement.of(label, id, HttpStatusCode.OK, signal.getDittoHeaders(), toPayload(metadata));
+            }
+        }
+
+        private JsonObject toPayload(final RecordMetadata metadata) {
+            final JsonObjectBuilder builder = JsonObject.newBuilder();
+            currentQuota = ackSizeQuota;
+            builder.set("topic", metadata.topic(), this::isQuotaSufficient);
+            builder.set("partition", metadata.partition(), this::isQuotaSufficient);
+            if (metadata.hasOffset()) {
+                builder.set("offset", metadata.offset(), this::isQuotaSufficient);
+            }
+            if (metadata.hasTimestamp()) {
+                builder.set("timestamp", metadata.timestamp(), this::isQuotaSufficient);
+            }
+            builder.set("serializedKeySize", metadata.serializedKeySize(), this::isQuotaSufficient);
+            builder.set("serializedValueSize", metadata.serializedValueSize(), this::isQuotaSufficient);
+            return builder.build();
+        }
+
+        private boolean isQuotaSufficient(final JsonField field) {
+            final int fieldSize = field.getKey().length() +
+                    (field.getValue().isString() ? field.getValue().asString().length() : 8);
+            if (fieldSize <= currentQuota) {
+                currentQuota -= fieldSize;
+                return true;
+            } else {
+                return false;
             }
         }
     }
