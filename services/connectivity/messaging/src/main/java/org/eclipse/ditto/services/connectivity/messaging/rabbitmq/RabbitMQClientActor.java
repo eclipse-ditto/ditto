@@ -263,7 +263,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                rmqPublisherActor = startRmqPublisherActor();
+                final ActorRef currentPublisherActor = startRmqPublisherActor();
+                rmqPublisherActor = currentPublisherActor;
 
                 // create publisher channel
                 final CreateChannel createChannel = CreateChannel.apply(
@@ -271,17 +272,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
                                     channel);
                             // provide the new channel to the publisher after the channel was connected (also includes reconnects)
-                            if (rmqPublisherActor != null) {
-                                final ChannelCreated channelCreated = new ChannelCreated(channelActor);
-                                rmqPublisherActor.tell(channelCreated, channelActor);
-                            }
+                            final ChannelCreated channelCreated = new ChannelCreated(channelActor);
+                            currentPublisherActor.tell(channelCreated, channelActor);
                             return null;
                         }),
                         Option.apply(PUBLISHER_CHANNEL));
 
 
-                final Scheduler scheduler = getContext().system().scheduler();
-                final ExecutionContext dispatcher = getContext().dispatcher();
                 Patterns.ask(rmqConnectionActor, createChannel, createChannelTimeout).handle((reply, throwable) -> {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
@@ -290,9 +287,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         // complete the future with an Exception before we report Status.Success right now
                         // so delay this by 1 second --
                         // with Java 9 this could be done more elegant with "orTimeout" or "completeOnTimeout" methods:
-                        scheduler.scheduleOnce(Duration.ofSeconds(1L),
-                                () -> future.complete(new Status.Success("channel created")),
-                                dispatcher);
+                        future.completeOnTimeout(new Status.Success("channel created"), 1, TimeUnit.SECONDS);
                     }
                     return null;
                 });
