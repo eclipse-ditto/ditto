@@ -21,9 +21,12 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -44,6 +47,7 @@ import com.rabbitmq.client.ConfirmListener;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.Pair;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -52,7 +56,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
     private TestProbe probe;
 
     @Test
-    public void testAcknowledgements() throws Exception {
+    public void testMultipleAcknowledgements() throws Exception {
         new TestKit(actorSystem) {{
 
             // GIVEN: there is a multi-mapped message with 6 different acknowledgements
@@ -75,23 +79,9 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
             publisherCreated(this, publisherActor);
 
             // WHEN: publisher actor is created
-            final Channel channel = mock(Channel.class);
-            final AtomicLong nextPublishSeqNo = new AtomicLong(0L);
-            final AtomicReference<ConfirmListener> confirmListenerBox = new AtomicReference<>();
-            when(channel.getNextPublishSeqNo()).thenAnswer(args -> nextPublishSeqNo.incrementAndGet());
-            doAnswer(arg -> {
-                confirmListenerBox.set(arg.getArgument(0));
-                return null;
-            }).when(channel).addConfirmListener(any());
-
-            // THEN: publisher sends a channel message to set up confirm mode
-            final ChannelMessage channelMessage = probe.expectMsgClass(ChannelMessage.class);
-            channelMessage.onChannel().apply(channel);
-            verify(channel).confirmSelect();
-            assertThat(confirmListenerBox)
-                    .describedAs("Publisher actor should set up confirm mode")
-                    .doesNotHaveValue(null);
-            final ConfirmListener confirmListener = confirmListenerBox.get();
+            final Pair<Channel, ConfirmListener> pair = setUpPublishConfirmMode();
+            final Channel channel = pair.first();
+            final ConfirmListener confirmListener = pair.second();
 
             // WHEN: publisher actor is told to publish a multi-mapped message with 6 different acks
             publisherActor.tell(multiMapped, getRef());
@@ -100,7 +90,6 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
             for (int i = 0; i < signalCount; ++i) {
                 probe.expectMsgClass(ChannelMessage.class).onChannel().apply(channel);
             }
-            assertThat(nextPublishSeqNo.get()).isEqualTo((long) signalCount);
 
             // WHEN: broker acknowledges messages 1-3 positively and 4-6 negatively
             confirmListener.handleNack(6, false);
@@ -138,11 +127,24 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Override
-    protected void verifyPublishedMessage() throws Exception {
-        final Channel channel = mock(Channel.class);
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception {
+        final Pair<Channel, ConfirmListener> channelAndListener = setUpPublishConfirmMode();
+        final CompletableFuture<Acknowledgements> acksFuture = CompletableFuture.supplyAsync(ackSupplier);
+        probe.expectMsgClass(ChannelMessage.class).onChannel().apply(channelAndListener.first());
+        channelAndListener.second().handleAck(1L, false);
 
-        // omit first channel message
-        probe.expectMsgClass(ChannelMessage.class);
+        final Acknowledgements acks = acksFuture.join();
+        assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
+        final Acknowledgement ack = acks.stream().findAny().orElseThrow();
+        assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
+        assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
+    }
+
+    @Override
+    protected void verifyPublishedMessage() throws Exception {
+        // set up publish confirm with first channel message
+        final Channel channel = setUpPublishConfirmMode().first();
+
         final ChannelMessage channelMessage = probe.expectMsgClass(ChannelMessage.class);
 
         channelMessage.onChannel().apply(channel);
@@ -197,5 +199,29 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Target decorateTarget(final Target target) {
         return target;
+    }
+
+    private Pair<Channel, ConfirmListener> setUpPublishConfirmMode() {
+        try {
+            final Channel channel = mock(Channel.class);
+            final AtomicLong nextPublishSeqNo = new AtomicLong(0L);
+            final AtomicReference<ConfirmListener> confirmListenerBox = new AtomicReference<>();
+            when(channel.getNextPublishSeqNo()).thenAnswer(args -> nextPublishSeqNo.incrementAndGet());
+            doAnswer(arg -> {
+                confirmListenerBox.set(arg.getArgument(0));
+                return null;
+            }).when(channel).addConfirmListener(any());
+
+            final ChannelMessage channelMessage = probe.expectMsgClass(ChannelMessage.class);
+            channelMessage.onChannel().apply(channel);
+            verify(channel).confirmSelect();
+            assertThat(confirmListenerBox)
+                    .describedAs("Publisher actor should set up confirm mode")
+                    .doesNotHaveValue(null);
+
+            return Pair.create(channel, confirmListenerBox.get());
+        } catch (final IOException e) {
+            throw new AssertionError(e);
+        }
     }
 }

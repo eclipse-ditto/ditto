@@ -278,7 +278,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         }),
                         Option.apply(PUBLISHER_CHANNEL));
 
-
                 Patterns.ask(rmqConnectionActor, createChannel, createChannelTimeout).handle((reply, throwable) -> {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
@@ -286,7 +285,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         // waiting for "final RabbitMQExceptionHandler rabbitMQExceptionHandler" to get its chance to
                         // complete the future with an Exception before we report Status.Success right now
                         // so delay this by 1 second --
-                        // with Java 9 this could be done more elegant with "orTimeout" or "completeOnTimeout" methods:
                         future.completeOnTimeout(new Status.Success("channel created"), 1, TimeUnit.SECONDS);
                     }
                     return null;

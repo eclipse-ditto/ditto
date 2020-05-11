@@ -113,9 +113,10 @@ public abstract class AbstractPublisherActorTest {
 
             publisherCreated(this, publisherActor);
 
-            publisherActor.tell(multiMapped, getRef());
-
-            verifyAcknowledgements(() -> expectMsgClass(Acknowledgements.class));
+            verifyAcknowledgements(() -> {
+                publisherActor.tell(multiMapped, getRef());
+                return expectMsgClass(Acknowledgements.class);
+            });
         }};
 
     }
@@ -169,7 +170,7 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract void verifyPublishedMessageToReplyTarget() throws Exception;
 
-    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception {
         // TODO: make this abstract once implemented in all subclasses.
     }
 
