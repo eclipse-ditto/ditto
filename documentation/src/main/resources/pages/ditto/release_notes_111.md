@@ -13,3 +13,7 @@ This is a bugifx release needed for the Ditto Java SDK.
 ### [Allow to respond to live messages via ditto client](https://github.com/eclipse/ditto-clients/pull/60)
 
 Don't force response-required to be false when calling send() without response consumer.
+
+### [Header mapping](https://github.com/eclipse/ditto/pull/671)
+
+Remove filtering of unknown headers for adaptables. We need those headers for header mapping in connectivity.
