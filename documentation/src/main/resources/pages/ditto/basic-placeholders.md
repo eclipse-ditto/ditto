@@ -97,6 +97,7 @@ The following functions are provided by Ditto out of the box:
 
 | Name          | Signature                      | Description  | Examples |
 |---------------|--------------------------------|--------------|----------|
+| `fn:filter`   | `(String filterValue, String rqlFunction, String comparedValue)`| Removes the result of the previous expression in the pipeline unless the condition specified by the parameters is satisfied. | `fn:filter(header:response-required,'eq','true')` |
 | `fn:default`  | `(String defaultValue)` | Provides the passed `defaultValue` when the previous expression in a pipeline resolved to `empty` (e.g. due to a non-defined `header` placeholder key).<br/>Another placeholder may be specified which is resolved to a String and inserted as `defaultValue`. | `fn:default('fallback')`<br/>`fn:default("fallback")`<br/>`fn:default(thing:id)` |
 | `fn:substring-before` | `(String givenString)` | Parses the result of the previous expression and passes along only the characters _before_ the first occurrence of `givenString`.<br/>If `givenString` is not contained, this function will resolve to `empty`. | `fn:substring-before(':')`<br/>`fn:substring-before(":")` |
 | `fn:substring-after`  | `(String givenString)` | Parses the result of the previous expression and passes along only the characters _after_ the first occurrence of `givenString`.<br/>If `givenString` is not contained, this function will resolve to `empty`. | `fn:substring-after(':')`<br/>`fn:substring-after(":")` |
