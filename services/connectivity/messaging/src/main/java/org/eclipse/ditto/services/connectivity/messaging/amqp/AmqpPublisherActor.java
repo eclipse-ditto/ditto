@@ -36,7 +36,6 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.Placeholders;
@@ -61,7 +60,6 @@ import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.http.scaladsl.model.HttpEntity;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -207,16 +205,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         if (signal == null) {
                             sendResult.complete(null);
                         } else {
-                            try {
-                                final Acknowledgement ack = toAcknowledgement(signal, target,
-                                        jmsMessage.getBody(String.class));
-                                HttpEntity.apply(ack.toString()).withSizeLimit(ackSizeQuota);
-                                sendResult.complete(ack);
-                            } catch (Exception e) {
-                                // Catches JMS Exception and SizeLimitException when ack size is bigger than ackSizeQuota
-                                sendResult.completeExceptionally(e);
-                            }
-
+                            final Acknowledgement ack = toAcknowledgement(signal, target);
+                            sendResult.complete(ack);
                         }
                         log.withCorrelationId(message.getInternalHeaders()).debug("Sent: <{}>", jmsMessage);
                         sendResult.complete(null);
@@ -245,14 +235,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private Acknowledgement toAcknowledgement(final Signal<?> signal,
-            @Nullable final Target target, @Nullable final String textPayload) {
+            @Nullable final Target target) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
 
-        return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders, JsonValue.of(textPayload));
+        return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders);
 
 
     }
