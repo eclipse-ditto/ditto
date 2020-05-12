@@ -125,6 +125,7 @@ public interface RootRouteBuilder {
      *
      * @param route the route to set.
      * @return the Builder to allow method chaining.
+     * @since 1.2.0
      */
     RootRouteBuilder whoamiRoute(WhoamiRoute route);
 

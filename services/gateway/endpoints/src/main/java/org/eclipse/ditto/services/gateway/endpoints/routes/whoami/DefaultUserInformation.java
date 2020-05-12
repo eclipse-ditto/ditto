@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Default implementation of {@link UserInformation}.
+ * @since 1.2.0
  */
 @Immutable
 public final class DefaultUserInformation implements UserInformation {

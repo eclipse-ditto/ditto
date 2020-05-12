@@ -27,6 +27,7 @@ import org.eclipse.ditto.signals.commands.common.CommonCommand;
 
 /**
  * Command to retrieve information about the current user.
+ * @since 1.2.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = Whoami.TYPE_PREFIX, name = Whoami.NAME)

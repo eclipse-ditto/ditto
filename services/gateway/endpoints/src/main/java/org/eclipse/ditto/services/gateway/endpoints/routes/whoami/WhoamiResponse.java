@@ -38,6 +38,7 @@ import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
 
 /**
  * Response on a {@link Whoami} command.
+ * @since 1.2.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = WhoamiResponse.TYPE)

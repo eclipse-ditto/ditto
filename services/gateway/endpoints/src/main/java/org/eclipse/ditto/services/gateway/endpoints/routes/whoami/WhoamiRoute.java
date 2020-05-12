@@ -27,6 +27,7 @@ import akka.http.javadsl.server.Route;
 
 /**
  * Route providing information about the current user.
+ * @since 1.2.0
  */
 public final class WhoamiRoute extends AbstractRoute {
 

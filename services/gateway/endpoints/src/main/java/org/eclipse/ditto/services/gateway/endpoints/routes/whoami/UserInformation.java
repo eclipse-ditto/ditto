@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Contains information about a user.
+ * @since 1.2.0
  */
 public interface UserInformation extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
