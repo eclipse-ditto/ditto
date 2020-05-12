@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.jms.CompletionListener;
 import javax.jms.Destination;
@@ -37,6 +38,7 @@ import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -52,6 +54,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
@@ -253,6 +257,46 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig());
+    }
+
+    @Override
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
+
+        new TestKit(actorSystem) {{
+
+            try {
+                // GIVEN: a message is published with headers matching AMQP properties.
+                final TestProbe probe = new TestProbe(actorSystem);
+                setupMocks(probe);
+                final OutboundSignal.Mapped signal = getMockOutboundSignalWithAutoAck("test-ack");
+                final OutboundSignal.MultiMapped mappedOutboundSignal =
+                        OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(signal), getRef());
+                final Props props = getPublisherActorProps();
+                final ActorRef publisherActor = childActorOf(props);
+
+                // WHEN: the publisher sends the message to an AMQP target address
+                publisherCreated(this, publisherActor);
+                publisherActor.tell(mappedOutboundSignal, getRef());
+
+                final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
+                final ArgumentCaptor<CompletionListener> listenerCaptor =
+                        ArgumentCaptor.forClass(CompletionListener.class);
+                verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), listenerCaptor.capture());
+                final Message message = messageCaptor.getValue();
+                assertThat(message).isNotNull();
+                listenerCaptor.getValue().onCompletion(message);
+
+                final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+                for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
+                    System.out.println(ack);
+                    assertThat(ack.getLabel().toString()).isEqualTo("test-ack");
+                    assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+                }
+            } catch (JMSException e) {
+                LOGGER.debug("Caught JMSException: " + e);
+            }
+        }};
+
     }
 
     @Override

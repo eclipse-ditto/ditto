@@ -36,10 +36,16 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
@@ -55,6 +61,7 @@ import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.http.scaladsl.model.HttpEntity;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -68,6 +75,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
 
     private static final Object START_PRODUCER = new Object();
+
+    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-amqp-diagnostic");
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -173,7 +182,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final ExternalMessage message, int ackSizeQuota) {
 
         if (!isInBackOffMode) {
-            return doPublishMessage(signal, publishTarget, message, ackSizeQuota);
+            return doPublishMessage(signal, target, publishTarget, message, ackSizeQuota);
         } else {
             final CompletableFuture<Acknowledgement> backOffModeFuture = new CompletableFuture<>();
             backOffModeFuture.completeExceptionally(getBackOffModeError(message, publishTarget.getJmsDestination()));
@@ -182,19 +191,33 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private CompletionStage<Acknowledgement> doPublishMessage(@Nullable final Signal<?> signal,
-            final AmqpTarget publishTarget, final ExternalMessage message, int ackSizeQuota) {
+            @Nullable final Target target, final AmqpTarget publishTarget, final ExternalMessage message,
+            final int ackSizeQuota) {
         final CompletableFuture<Acknowledgement> sendResult = new CompletableFuture<>();
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
 
+
                 log.debug("Attempt to send message {} with producer {}.", message, producer);
                 producer.send(jmsMessage, new CompletionListener() {
                     @Override
                     public void onCompletion(final Message jmsMessage) {
-                        // TODO: create ack in case target has auto ack
-                        // TODO: test settlement behavior against broker
+                        if (signal == null) {
+                            sendResult.complete(null);
+                        } else {
+                            try {
+                                final Acknowledgement ack = toAcknowledgement(signal, target,
+                                        jmsMessage.getBody(String.class));
+                                HttpEntity.apply(ack.toString()).withSizeLimit(ackSizeQuota);
+                                sendResult.complete(ack);
+                            } catch (Exception e) {
+                                // Catches JMS Exception and SizeLimitException when ack size is bigger than ackSizeQuota
+                                sendResult.completeExceptionally(e);
+                            }
+
+                        }
                         log.withCorrelationId(message.getInternalHeaders()).debug("Sent: <{}>", jmsMessage);
                         sendResult.complete(null);
                     }
@@ -220,6 +243,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
         return sendResult;
     }
+
+    private Acknowledgement toAcknowledgement(final Signal<?> signal,
+            @Nullable final Target target, @Nullable final String textPayload) {
+
+        // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
+        final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
+
+        return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders, JsonValue.of(textPayload));
+
+
+    }
+
 
     private MessageSendingFailedException getMessageSendingException(final ExternalMessage message, final Throwable e) {
         return MessageSendingFailedException.newBuilder()
