@@ -115,7 +115,10 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
     private void handleMqttMessage(final Mqtt5Publish message) {
         log.info("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
-        externalMessageOptional.ifPresent(this::forwardToMappingActor);
+        externalMessageOptional.ifPresent(externalMessage ->
+                // TODO: confirm whether negative ack is possible
+                forwardToMappingActor(externalMessage, message::acknowledge, () -> {})
+        );
     }
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt5Publish message,

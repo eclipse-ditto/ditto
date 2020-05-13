@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -37,6 +38,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -77,26 +80,101 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected abstract DittoDiagnosticLoggingAdapter log();
 
+    // TODO: delete this after all consumer actors have ack support.
+    protected final void forwardToMappingActor(final ExternalMessage message) {
+        forwardToMappingActor(message, () -> {}, () -> {});
+    }
+
     /**
      * Send an external message to the mapping processor actor.
      * NOT thread-safe!
      *
      * @param message the external message
-     * @return future that completes with any requested acknowledgements, or with null.
+     * @param settle technically settle the incoming message. MUST be thread-safe.
+     * @param reject technically reject the incoming message. MUST be thread-safe.
      */
-    protected final CompletionStage<ResponseCollectorActor.Output> forwardToMappingActor(
-            final ExternalMessage message) {
-        return forwardAndAwaitAck(addSourceAndReplyTarget(message));
+    protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
+            final Runnable reject) {
+        forwardAndAwaitAck(addSourceAndReplyTarget(message))
+                .whenComplete((output, error) -> {
+                    if (output != null) {
+                        final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
+                        if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
+                            settle.run();
+                            logPositiveAcknowledgements(output.getCommandResponses());
+                        } else {
+                            reject.run();
+                            logNegativeAcknowledgements(failedResponses);
+                        }
+                    } else {
+                        reject.run();
+                        inboundFailure(error);
+                    }
+                })
+                .exceptionally(e -> {
+                    log().error(e, "Unexpected error during manual acknowledgement.");
+                    return null;
+                });
     }
 
     /**
      * Send an error to the mapping processor actor to be published in the reply-target.
-     * NOT thread-safe!
      *
      * @param message the error.
      */
     protected final void forwardToMappingActor(final DittoRuntimeException message) {
-        messageMappingProcessor.forward(message, getContext());
+        messageMappingProcessor.tell(message, ActorRef.noSender());
+    }
+
+    /**
+     * Log negative acknowledgements.
+     *
+     * @param negativeAcks the negative acknowlegements to log.
+     */
+    protected void logNegativeAcknowledgements(final List<CommandResponse<?>> negativeAcks) {
+        negativeAcks.forEach(response -> inboundMonitor.failure(response, "Negative acknowledgement received"));
+    }
+
+    /**
+     * Log positive acknowledgements.
+     *
+     * @param negativeAcks the negative acknowlegements to log.
+     */
+    protected void logPositiveAcknowledgements(final List<CommandResponse<?>> negativeAcks) {
+        negativeAcks.forEach(response -> inboundMonitor.success(response, "Acknowledgement received"));
+    }
+
+    protected void resetResourceStatus() {
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
+    }
+
+    protected ResourceStatus getCurrentSourceStatus() {
+        return ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                resourceStatus != null ? resourceStatus.getStatus() : ConnectivityStatus.UNKNOWN,
+                sourceAddress,
+                resourceStatus != null ? resourceStatus.getStatusDetails().orElse(null) : null);
+    }
+
+    protected void handleAddressStatus(final ResourceStatus resourceStatus) {
+        if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.UNKNOWN) {
+            this.resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                    resourceStatus.getStatus(), sourceAddress,
+                    resourceStatus.getStatusDetails().orElse(null));
+        } else {
+            this.resourceStatus = resourceStatus;
+        }
+    }
+
+    protected void inboundFailure(final Throwable error) {
+        final DittoRuntimeException dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(
+                error,
+                e -> {
+                    log().error(e, "Inbound failure");
+                    return ConnectionUnavailableException.newBuilder(connectionId).build();
+                }
+        );
+        inboundMonitor.failure(dittoRuntimeException);
     }
 
     private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final Object message) {
@@ -120,28 +198,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 return CompletableFuture.failedFuture(new ClassCastException("Unexpected acknowledgement type."));
             }
         });
-    }
-
-    protected void resetResourceStatus() {
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
-    }
-
-    protected ResourceStatus getCurrentSourceStatus() {
-        return ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                resourceStatus != null ? resourceStatus.getStatus() : ConnectivityStatus.UNKNOWN,
-                sourceAddress,
-                resourceStatus != null ? resourceStatus.getStatusDetails().orElse(null) : null);
-    }
-
-    protected void handleAddressStatus(final ResourceStatus resourceStatus) {
-        if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.UNKNOWN) {
-            this.resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                    resourceStatus.getStatus(), sourceAddress,
-                    resourceStatus.getStatusDetails().orElse(null));
-        } else {
-            this.resourceStatus = resourceStatus;
-        }
     }
 
     private ExternalMessage addSourceAndReplyTarget(final ExternalMessage message) {

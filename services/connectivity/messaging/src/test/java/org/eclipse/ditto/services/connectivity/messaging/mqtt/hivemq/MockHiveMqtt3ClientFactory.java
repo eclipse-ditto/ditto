@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import static org.mockito.Answers.RETURNS_SELF;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -134,7 +135,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
         when(client.toAsync().disconnect()).thenReturn(disconnectFuture);
 
         // mock subscribe
-        when(client.toAsync().subscribe(any(Mqtt3Subscribe.class), any(Consumer.class))).thenAnswer(i -> {
+        when(client.toAsync().subscribe(any(Mqtt3Subscribe.class), any(Consumer.class), anyBoolean())).thenAnswer(i -> {
             if (!subscribeFuture.isCompletedExceptionally()) {
                 // try to send messages for this topic
                 final Mqtt3Subscribe sub = i.getArgument(0);

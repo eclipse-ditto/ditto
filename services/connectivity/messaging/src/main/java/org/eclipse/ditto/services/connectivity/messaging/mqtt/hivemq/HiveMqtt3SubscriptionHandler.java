@@ -140,7 +140,9 @@ final class HiveMqtt3SubscriptionHandler {
     private CompletableFuture<Mqtt3SubAck> subscribe(final Source source, final Mqtt3Subscribe mqtt3Subscribe,
             final ActorRef consumerActor) {
         return client.toAsync()
-                .subscribe(mqtt3Subscribe, msg -> consumerActor.tell(msg, ActorRef.noSender()))
+                // enable manual acknowledgement:
+                // individual incoming message may carry requested-acks even if the source does not
+                .subscribe(mqtt3Subscribe, msg -> consumerActor.tell(msg, ActorRef.noSender()), true)
                 .whenComplete((mqtt3SubAck, throwable) -> {
                     if (throwable != null) {
                         // Handle failure to subscribe
@@ -149,7 +151,6 @@ final class HiveMqtt3SubscriptionHandler {
                     } else {
                         // Handle successful subscription, e.g. logging or incrementing a metric
                         log.info("Successfully subscribed to <{}>", source.getAddresses());
-
                     }
                 });
     }

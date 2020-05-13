@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
@@ -94,7 +93,7 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
         if (null != disconnectedListener) {
             mqtt3ClientBuilder.addDisconnectedListener(disconnectedListener);
         }
-        return mqtt3ClientBuilder.identifier(identifier).build();
+        return mqtt3ClientBuilder.identifier(identifier).buildAsync();
     }
 
     private static boolean isSecuredConnection(final String protocol) {

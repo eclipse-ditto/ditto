@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -29,7 +30,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Actor that collect a fixed number of command responses, which may be acknowledgements.
  */
-final class ResponseCollectorActor extends AbstractActor {
+public final class ResponseCollectorActor extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final List<CommandResponse<?>> commandResponses = new ArrayList<>();
@@ -101,7 +102,10 @@ final class ResponseCollectorActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
-    static final class Output {
+    /**
+     * Query output after all responses are received or after timeout.
+     */
+    public static final class Output {
 
         private final int expectedCount;
         private final List<CommandResponse<?>> commandResponses;
@@ -111,13 +115,29 @@ final class ResponseCollectorActor extends AbstractActor {
             this.commandResponses = commandResponses;
         }
 
-        List<CommandResponse<?>> getCommandResponses() {
+        /**
+         * @return The list of responses collected.
+         */
+        public List<CommandResponse<?>> getCommandResponses() {
             return commandResponses;
         }
 
-        boolean allExpectedResponsesArrived() {
+        /**
+         * @return Whether the expected number of responses arrived.
+         */
+        public boolean allExpectedResponsesArrived() {
             // always false if expectedCount < 0 (i. e., not set by a SetCount input signal)
             return expectedCount == commandResponses.size();
+        }
+
+        /**
+         * @return Whether the expected number of responses arrived and all are successful.
+         */
+        public List<CommandResponse<?>> getFailedResponses() {
+            return commandResponses.stream()
+                    .filter(response ->
+                            response.getStatusCode().isClientError() || response.getStatusCode().isInternalError())
+                    .collect(Collectors.toList());
         }
     }
 
