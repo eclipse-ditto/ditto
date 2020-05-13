@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.ResourcesModified;
 
@@ -21,8 +23,12 @@ import org.eclipse.ditto.signals.events.policies.ResourcesModified;
 final class ResourcesModifiedStrategy extends AbstractPolicyEventStrategy<ResourcesModified> {
 
     @Override
-    protected PolicyBuilder applyEvent(final ResourcesModified rm, final PolicyBuilder policyBuilder) {
-        return policyBuilder.setResourcesFor(rm.getLabel(), rm.getResources());
+    protected PolicyBuilder applyEvent(final ResourcesModified rm, final Policy policy,
+            final PolicyBuilder policyBuilder) {
+        return policy.getEntryFor(rm.getLabel())
+                .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rm.getLabel(), policyEntry.getSubjects(),
+                        rm.getResources()))
+                .map(modifiedPolicyEntry -> policyBuilder.set(modifiedPolicyEntry))
+                .orElse(policyBuilder.setResourcesFor(rm.getLabel(), rm.getResources()));
     }
-
 }

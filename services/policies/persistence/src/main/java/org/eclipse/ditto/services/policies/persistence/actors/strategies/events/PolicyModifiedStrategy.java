@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 
@@ -21,10 +22,10 @@ import org.eclipse.ditto.signals.events.policies.PolicyModified;
 final class PolicyModifiedStrategy extends AbstractPolicyEventStrategy<PolicyModified> {
 
     @Override
-    protected PolicyBuilder applyEvent(final PolicyModified pm, final PolicyBuilder policyBuilder) {
+    protected PolicyBuilder applyEvent(final PolicyModified pm, final Policy policy,
+            final PolicyBuilder policyBuilder) {
         return policyBuilder
-                .removeAll(policyBuilder.build())
+                .removeAll(policy.getEntriesSet())
                 .setAll(pm.getPolicy().getEntriesSet());
     }
-
 }

@@ -24,5 +24,4 @@ final class SubjectModifiedStrategy extends AbstractPolicyEventStrategy<SubjectM
     protected PolicyBuilder applyEvent(final SubjectModified sm, final PolicyBuilder policyBuilder) {
         return policyBuilder.setSubjectFor(sm.getLabel(), sm.getSubject());
     }
-
 }
