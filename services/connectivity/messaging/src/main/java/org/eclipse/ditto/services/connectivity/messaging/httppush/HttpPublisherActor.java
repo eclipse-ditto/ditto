@@ -251,7 +251,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     .build();
             return CompletableFuture.failedFuture(error);
         } else {
-            final HttpStatusCode statusCode = statusOptional.get();
+            final HttpStatusCode statusCode = statusOptional.orElseThrow();
             return getResponseBody(response, ackSizeQuota, materializer).thenApply(body ->
                     Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, JsonValue.of(body))
             );

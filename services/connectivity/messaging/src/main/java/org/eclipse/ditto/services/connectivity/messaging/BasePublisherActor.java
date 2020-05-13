@@ -533,7 +533,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         field -> !DittoRuntimeException.JsonFields.STATUS.getPointer()
                                 .equals(JsonPointer.of(field.getKey()))
                 );
-                return Acknowledgement.of(label.get(), entityId, status, dittoHeaders, payload);
+                return Acknowledgement.of(label.orElseThrow(), entityId, status, dittoHeaders, payload);
             } else {
                 // assume exception message fits within quota
                 // TODO: check that common errors have reasonable error messages and status 500 do not cause problems.
@@ -542,7 +542,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 final JsonObject payload = JsonObject.newBuilder()
                         .set(DittoRuntimeException.JsonFields.MESSAGE, message)
                         .build();
-                return Acknowledgement.of(label.get(), entityId, status, dittoHeaders, payload);
+                return Acknowledgement.of(label.orElseThrow(), entityId, status, dittoHeaders, payload);
             }
         }
     }
