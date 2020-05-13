@@ -20,14 +20,12 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 import akka.actor.ActorContext;
@@ -47,13 +45,13 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
     private final ThingModifyCommand<?> thingModifyCommand;
     private final AcknowledgementConfig acknowledgementConfig;
     private final HeaderTranslator headerTranslator;
-    private final Consumer<Signal<?>> responseSignalConsumer;
+    private final Consumer<CommandResponse<?>> responseSignalConsumer;
 
     private AcknowledgementAggregatorActorStarter(final ActorContext context,
             final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<Signal<?>> responseSignalConsumer) {
+            final Consumer<CommandResponse<?>> responseSignalConsumer) {
 
         actorContext = checkNotNull(context, "context");
         this.thingModifyCommand = checkNotNull(thingModifyCommand, "thingModifyCommand");
@@ -79,7 +77,7 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
             final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<Signal<?>> responseSignalConsumer) {
+            final Consumer<CommandResponse<?>> responseSignalConsumer) {
 
         return new AcknowledgementAggregatorActorStarter(context, thingModifyCommand, acknowledgementConfig,
                 headerTranslator, responseSignalConsumer);
@@ -106,20 +104,13 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
 
         final DittoHeaders dittoHeaders = thingModifyCommand.getDittoHeaders();
 
-        if (dittoHeaders.isResponseRequired() && !dittoHeaders.getAcknowledgementRequests().isEmpty()) {
-
-            final boolean containsOnlyTwinPersistedAckRequest = dittoHeaders.getAcknowledgementRequests().stream()
-                            .map(AcknowledgementRequest::getLabel)
-                            .allMatch(DittoAcknowledgementLabel.TWIN_PERSISTED::equals);
-
-            if (!containsOnlyTwinPersistedAckRequest) {
-                final Props props = AcknowledgementAggregatorActor.props(thingModifyCommand, acknowledgementConfig,
-                        headerTranslator, responseSignalConsumer);
-                return actorContext.actorOf(props, AcknowledgementAggregatorActor.determineActorName(dittoHeaders));
-            }
+        if (dittoHeaders.isResponseRequired()) {
+            final Props props = AcknowledgementAggregatorActor.props(thingModifyCommand, acknowledgementConfig,
+                    headerTranslator, responseSignalConsumer);
+            return actorContext.actorOf(props, AcknowledgementAggregatorActor.determineActorName(dittoHeaders));
+        } else {
+            return null;
         }
-
-        return null;
     }
 
     private DittoRuntimeException getDuplicateCorrelationIdException(final Throwable cause) {

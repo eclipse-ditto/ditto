@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -60,12 +60,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private final String correlationId;
     private final DittoHeaders requestCommandHeaders;
     private final AcknowledgementAggregator ackregator;
-    private final Consumer<Signal<?>> responseSignalConsumer;
+    private final Consumer<CommandResponse<?>> responseSignalConsumer;
 
     @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig, final HeaderTranslator headerTranslator,
-            final Consumer<Signal<?>> responseSignalConsumer) {
+            final Consumer<CommandResponse<?>> responseSignalConsumer) {
 
         this.responseSignalConsumer = responseSignalConsumer;
         requestCommandHeaders = thingModifyCommand.getDittoHeaders();
@@ -112,7 +112,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     static Props props(final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<Signal<?>> responseSignalConsumer) {
+            final Consumer<CommandResponse<?>> responseSignalConsumer) {
 
         final ThingModifyCommand<?> commandWithAckLabels =
                 (ThingModifyCommand<?>) ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
@@ -145,13 +145,11 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * {@code dittoHeaders} and in case that an Actor with this name already exists, a
      * {@code AcknowledgementRequestDuplicateCorrelationIdException} will be thrown.
      * <p>
+     * NOT thread-safe!
+     * <p>
      * Only actually starts the actor if the passed {@code thingModifyCommand}:
      * <ul>
      * <li>contains in its ditto headers that {@code response-required} is given</li>
-     * <li>contains in the acknowledgement requests in the contained ditto headers at least one custom
-     * acknowledgement request in addition to the ack label
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED}
-     * </li>
      * </ul>
      *
      * @param context the context to start the aggregator actor in.
@@ -174,7 +172,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<Signal<?>> responseSignalConsumer) {
+            final Consumer<CommandResponse<?>> responseSignalConsumer) {
 
         final AcknowledgementAggregatorActorStarter starter =
                 AcknowledgementAggregatorActorStarter.getInstance(context, thingModifyCommand, acknowledgementConfig,
@@ -224,7 +222,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final DittoHeaders dittoHeaders) {
 
         final Acknowledgements aggregatedAcknowledgements = ackregator.getAggregatedAcknowledgements(dittoHeaders);
-        if (ackregator.isSuccessful() && null != response && containsOnlyTwinPersisted(aggregatedAcknowledgements)) {
+        if (null != response && containsOnlyTwinPersisted(aggregatedAcknowledgements)) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
         } else {
@@ -236,7 +234,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
-    private void handleSignal(final Signal<?> signal) {
+    private void handleSignal(final CommandResponse<?> signal) {
         responseSignalConsumer.accept(signal);
     }
 

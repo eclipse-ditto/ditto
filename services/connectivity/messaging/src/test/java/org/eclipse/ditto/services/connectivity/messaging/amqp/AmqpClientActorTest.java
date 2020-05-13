@@ -637,14 +637,18 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
             verify(mockConsumer, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
             final MessageListener messageListener = captor.getValue();
-            messageListener.onMessage(mockMessage());
+            final Message incomingMessage = mockMessage();
+            messageListener.onMessage(incomingMessage);
 
-            final ThingCommand command = expectMsgClass(ThingCommand.class);
+            final ThingCommand<?> command = expectMsgClass(ThingCommand.class);
             assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
             assertThat(command).isInstanceOf(ModifyThing.class);
 
             getLastSender().tell(responseSupplier.apply(command.getEntityId(), command.getDittoHeaders()), getRef());
+
+            // TODO: test AMQP settlement.
+            // verify(incomingMessage, timeout(3000L)).acknowledge();
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             // verify that the message is published via the producer with the correct destination
@@ -652,9 +656,9 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                     getProducerForAddress(expectedAddressPrefix + command.getEntityId());
             verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
 
-            final Message message = messageCaptor.getValue();
-            assertThat(message).isNotNull();
-            assertThat(messageTextPredicate).accepts(message.getBody(String.class));
+            final Message outgoingMessage = messageCaptor.getValue();
+            assertThat(outgoingMessage).isNotNull();
+            assertThat(messageTextPredicate).accepts(outgoingMessage.getBody(String.class));
         }};
     }
 

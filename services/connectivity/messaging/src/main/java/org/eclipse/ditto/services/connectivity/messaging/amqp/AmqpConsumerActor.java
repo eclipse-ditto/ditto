@@ -56,13 +56,14 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
@@ -77,7 +78,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
     private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
     // the configured throttling interval
@@ -347,6 +348,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         } finally {
             try {
                 // we use the manual acknowledge mode so we always have to ack the message
+                // TODO: move it until after ack.
+                // checkNotNull(message.getAcknowledgeCallback());
+                // message.getAcknowledgeCallback().setAckType(REJECTED | ACCEPTED);
                 message.acknowledge();
             } catch (final JMSException e) {
                 log.error(e, "Failed to ack an AMQP message");
@@ -383,6 +387,11 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     private Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) {
         return JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
+    }
+
+    @Override
+    protected DittoDiagnosticLoggingAdapter log() {
+        return log;
     }
 
     private static final class RestartMessageConsumer {

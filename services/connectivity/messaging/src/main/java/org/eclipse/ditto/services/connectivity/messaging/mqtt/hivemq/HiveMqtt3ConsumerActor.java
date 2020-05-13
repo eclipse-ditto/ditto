@@ -34,13 +34,13 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Actor which receives message from an MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
@@ -50,7 +50,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     private static final String MQTT_TOPIC_HEADER = "mqtt.topic";
     static final String NAME = "HiveMqtt3ConsumerActor";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final boolean dryRun;
     @Nullable private final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
@@ -151,5 +151,10 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
     private boolean isDryRun(final Object message) {
         return dryRun;
+    }
+
+    @Override
+    protected DittoDiagnosticLoggingAdapter log() {
+        return log;
     }
 }

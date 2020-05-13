@@ -495,6 +495,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
                 try {
+                    // TODO: only acknowledge after collecting acknowledgements.
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } catch (final IOException e) {
                     connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(),

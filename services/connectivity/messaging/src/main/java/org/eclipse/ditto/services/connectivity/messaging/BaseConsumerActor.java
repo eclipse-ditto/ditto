@@ -14,7 +14,10 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -31,11 +34,13 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConne
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.pattern.Patterns;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -50,7 +55,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     private final ActorRef messageMappingProcessor;
 
     @Nullable private ResourceStatus resourceStatus;
-
 
     protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final Source source) {
@@ -68,16 +72,54 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .forInboundConsumed(connectionId, sourceAddress);
     }
 
-    protected final void forwardToMappingActor(final ExternalMessage message) {
-        doForwardToMappingActor(addSourceAndReplyTarget(message));
+    /**
+     * @return the logging adapter of this actor.
+     */
+    protected abstract DittoDiagnosticLoggingAdapter log();
+
+    /**
+     * Send an external message to the mapping processor actor.
+     * NOT thread-safe!
+     *
+     * @param message the external message
+     * @return future that completes with any requested acknowledgements, or with null.
+     */
+    protected final CompletionStage<ResponseCollectorActor.Output> forwardToMappingActor(
+            final ExternalMessage message) {
+        return forwardAndAwaitAck(addSourceAndReplyTarget(message));
     }
 
-    protected void forwardToMappingActor(final DittoRuntimeException message) {
-        doForwardToMappingActor(message);
-    }
-
-    private void doForwardToMappingActor(final Object message) {
+    /**
+     * Send an error to the mapping processor actor to be published in the reply-target.
+     * NOT thread-safe!
+     *
+     * @param message the error.
+     */
+    protected final void forwardToMappingActor(final DittoRuntimeException message) {
         messageMappingProcessor.forward(message, getContext());
+    }
+
+    private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final Object message) {
+        // 1. start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
+        // TODO: configure askTimeout?
+        final Duration collectorLifetime = Duration.ofSeconds(100);
+        final Duration askTimeout = Duration.ofSeconds(120);
+        final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
+        // 2. forward message to mapping processor actor with response collector actor as sender
+        // message mapping processor actor will set the number of expected acks (can be 0)
+        // and start the same amount of ack aggregator actors
+        messageMappingProcessor.tell(message, responseCollector);
+        // 3. ask response collector actor to get the collected responses in a future
+        return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
+            if (output instanceof ResponseCollectorActor.Output) {
+                return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);
+            } else if (output instanceof Throwable) {
+                return CompletableFuture.failedFuture((Throwable) output);
+            } else {
+                log().error("Expect ResponseCollectorActor.Output, got: <{}>", output);
+                return CompletableFuture.failedFuture(new ClassCastException("Unexpected acknowledgement type."));
+            }
+        });
     }
 
     protected void resetResourceStatus() {

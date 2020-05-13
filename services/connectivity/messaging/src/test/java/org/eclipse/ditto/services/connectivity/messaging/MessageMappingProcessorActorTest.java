@@ -473,7 +473,8 @@ public final class MessageMappingProcessorActorTest {
                                     .build())
                             .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             if (expectSuccess) {
                 final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
@@ -572,7 +573,8 @@ public final class MessageMappingProcessorActorTest {
                             .withAuthorizationContext(authorizationContext)
                             .build();
 
-            messageMappingProcessorActor.tell(inboundMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
 
             // THEN: resulting error response retains the correlation ID
             final OutboundSignal outboundSignal =
@@ -623,7 +625,8 @@ public final class MessageMappingProcessorActorTest {
                     .withHeaderMapping(SOURCE_HEADER_MAPPING)
                     .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -656,7 +659,8 @@ public final class MessageMappingProcessorActorTest {
                             .withAuthorizationContext(authorizationContext)
                             .build();
 
-            messageMappingProcessorActor.tell(inboundMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
 
             // THEN: resulting error response retains the topic including thing ID and channel
             final ExternalMessage outboundMessage =
@@ -711,7 +715,8 @@ public final class MessageMappingProcessorActorTest {
                     .withHeaderMapping(CORRELATION_ID_AND_SOURCE_HEADER_MAPPING)
                     .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -792,7 +797,8 @@ public final class MessageMappingProcessorActorTest {
     public void testAggregationOfAcknowledgements() {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
-            final AcknowledgementRequest signalAck = AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
+            final AcknowledgementRequest signalAck =
+                    AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
             Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
             for (AcknowledgementLabel label : CONNECTION.getSources().get(0).getAcknowledgements().orElseThrow()) {
                 validationSet.add(AcknowledgementRequest.of(label));
@@ -819,7 +825,8 @@ public final class MessageMappingProcessorActorTest {
                     .withSource(CONNECTION.getSources().get(0))
                     .build();
 
-            messageMappingProcessorActor.tell(message, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(message, collectorProbe.ref());
 
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
