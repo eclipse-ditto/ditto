@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -33,7 +31,6 @@ import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -41,7 +38,6 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.http.javadsl.model.Host;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
@@ -80,7 +76,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
-    private final Collection<InetAddress> blacklistedAddresses;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
@@ -92,8 +87,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
                         .getConnectionConfig();
         config = connectionConfig.getHttpPushConfig();
-        blacklistedAddresses =
-                ConnectionValidator.calculateBlacklistedAddresses(connectionConfig.getBlacklistedHostnames(), log);
 
         materializer = ActorMaterializer.create(getContext());
         sourceQueue =
@@ -125,17 +118,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @Override
     protected void publishMessage(@Nullable final Target target, final HttpPublishTarget publishTarget,
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
-
         final HttpRequest request = createRequest(publishTarget, message);
-        final Host requestHost = request.getUri().getHost();
-        if (ConnectionValidator.isHostForbidden(requestHost, blacklistedAddresses)) {
-            log.warning("Tried to publish HTTP message to forbidden host: <{}> - dropping!", requestHost);
-            responseDroppedMonitor.failure(message, "Message dropped as the target address <{0}> is blacklisted " +
-                "or otherwise forbidden and may not be used", requestHost);
-        } else {
-            sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
+        sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
                     .handle(handleQueueOfferResult(message));
-        }
     }
 
     @Override

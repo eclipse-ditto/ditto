@@ -52,20 +52,35 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
     }
 
     static Optional<DittoRuntimeException> validate(final Context<ConnectionState> context,
-            final ConnectivityCommand command) {
+            final ConnectivityCommand command, final Connection connection) {
+        try {
+            context.getState().getValidator().accept(command, () -> connection);
+            return Optional.empty();
+        } catch (final Exception error) {
+            return handleValidationException(context, command, error);
+        }
+    }
 
+    static Optional<DittoRuntimeException> validate(final Context<ConnectionState> context,
+            final ConnectivityCommand<?> command) {
         try {
             context.getState().getValidator().accept(command);
             return Optional.empty();
         } catch (final Exception error) {
-            final DittoRuntimeException dre =
-                    toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
-            context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
-            context.getState()
-                    .getConnectionLogger()
-                    .failure("Operation {0} failed due to {1}", command.getType(), dre.getMessage());
-            return Optional.of(dre);
+            return handleValidationException(context, command, error);
         }
+    }
+
+    private static Optional<DittoRuntimeException> handleValidationException(
+            final Context<ConnectionState> context, final ConnectivityCommand<?> command,
+            final Exception error) {
+        final DittoRuntimeException dre =
+                toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
+        context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
+        context.getState()
+                .getConnectionLogger()
+                .failure("Operation {0} failed due to {1}", command.getType(), dre.getMessage());
+        return Optional.of(dre);
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
