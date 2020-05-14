@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence.stages;
 
-import java.util.function.Consumer;
-
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 /**
  * Everything needed by connection strategies from the state of a connection actor.
@@ -25,10 +23,10 @@ public final class ConnectionState {
 
     private final ConnectionId connectionId;
     private final ConnectionLogger connectionLogger;
-    private final Consumer<ConnectivityCommand<?>> validator;
+    private final ConnectivityCommandInterceptor validator;
 
     private ConnectionState(final ConnectionId connectionId,
-            final ConnectionLogger connectionLogger, final Consumer<ConnectivityCommand<?>> validator) {
+            final ConnectionLogger connectionLogger, final ConnectivityCommandInterceptor validator) {
         this.connectionId = connectionId;
         this.connectionLogger = connectionLogger;
         this.validator = validator;
@@ -45,7 +43,7 @@ public final class ConnectionState {
     public static ConnectionState of(
             final ConnectionId connectionId,
             final ConnectionLogger connectionLogger,
-            final Consumer<ConnectivityCommand<?>> validator) {
+            final ConnectivityCommandInterceptor validator) {
 
         return new ConnectionState(connectionId, connectionLogger, validator);
     }
@@ -67,7 +65,7 @@ public final class ConnectionState {
     /**
      * @return the command validator.
      */
-    public Consumer<ConnectivityCommand<?>> getValidator() {
+    public ConnectivityCommandInterceptor getValidator() {
         return validator;
     }
 }

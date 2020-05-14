@@ -16,6 +16,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.Collections;
 
 import javax.net.ssl.SSLContext;
@@ -186,7 +187,7 @@ public abstract class AbstractBaseClientActorTest {
             underTest.tell(TestConnection.of(insecureConnection, DittoHeaders.empty()), getRef());
 
             // THEN: the test should succeed, or it should fail with a different reason than SSL validation
-            final Object response = expectMsgClass(Object.class);
+            final Object response = expectMsgClass(Duration.ofSeconds(5), Object.class);
             if (response instanceof Status.Failure) {
                 final DittoRuntimeException error =
                         (DittoRuntimeException) getEventualCause(((Status.Failure) response).cause());
