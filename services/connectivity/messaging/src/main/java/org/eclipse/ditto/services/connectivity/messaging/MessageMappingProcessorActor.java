@@ -292,7 +292,7 @@ public final class MessageMappingProcessorActor
             sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
         } else {
             // ackregator started
-            conciergeForwarder.tell(signal, ackregator.get());
+            conciergeForwarder.tell(signal, ackregator.orElseThrow());
         }
     }
 

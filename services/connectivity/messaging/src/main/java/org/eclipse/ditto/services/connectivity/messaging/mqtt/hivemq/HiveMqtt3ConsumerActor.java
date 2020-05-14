@@ -102,8 +102,19 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         externalMessageOptional.ifPresent(externalMessage ->
                 // negative PUBACK not possible with MQTT3
-                forwardToMappingActor(externalMessage, message::acknowledge, () -> {})
+                forwardToMappingActor(externalMessage, () -> acknowledge(message), () -> {})
         );
+    }
+
+    private void acknowledge(final Mqtt3Publish message) {
+        try {
+            message.acknowledge();
+        } catch (final IllegalStateException e) {
+            // this message was acknowledged by another consumer actor due to overlapping topic
+            inboundMonitor.exception("Acknowledgement of incoming message at topic <{0}> failed " +
+                            "because it was acknowledged already by another source.",
+                    message.getTopic());
+        }
     }
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt3Publish message,

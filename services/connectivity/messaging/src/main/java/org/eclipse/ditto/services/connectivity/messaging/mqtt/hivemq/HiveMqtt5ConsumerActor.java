@@ -113,12 +113,33 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
     }
 
     private void handleMqttMessage(final Mqtt5Publish message) {
-        log.info("Received message: {}", message);
+        log.debug("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         externalMessageOptional.ifPresent(externalMessage ->
                 // TODO: confirm whether negative ack is possible
-                forwardToMappingActor(externalMessage, message::acknowledge, () -> {})
+                // TODO: consider adding negative acks with:
+                // client.builder().advancedConfig().interceptors()
+                // .incomingQoS1Interceptor(...)
+                // .incomingQoS2Interceptor(...)
+                // .applyInterceptors()
+                // .applyAdvancedConfig()
+                // .build()
+                // TODO: signature change of HiveMqtt5ClientFactory will be required.
+                // TODO: beware: 1 mqtt message may be sent to multiple consumer actors due to overlapping topics.
+                forwardToMappingActor(externalMessage, () -> acknowledge(message), () -> {})
         );
+    }
+
+    private void acknowledge(final Mqtt5Publish message) {
+        try {
+            log.debug("Acknowledging: {}", message);
+            message.acknowledge();
+        } catch (final IllegalStateException e) {
+            // this message was acknowledged by another consumer actor due to overlapping topic
+            inboundMonitor.exception("Acknowledgement of incoming message at topic <{0}> failed " +
+                            "because it was acknowledged already by another source.",
+                    message.getTopic());
+        }
     }
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt5Publish message,
