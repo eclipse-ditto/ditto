@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.entity.validation.FeaturePatternValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -83,12 +84,12 @@ final class ImmutableFeature implements Feature {
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
 
-        ImmutablePatternValidator.toBuilder()
-                .withFeaturePattern()
-                .withExceptionDescription(JsonPointerInvalidException.getFullRestrictionMessage())
-                .withTargetDescription("ID of the Feature")
-                .build()
-                .validate(featureId);
+        ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+
+        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance();
+        if (!validator.isValid(featureId)) {
+            throw JsonPointerInvalidException.newBuilderForNoSlashesAndControlChars(featureId).build();
+        }
 
         return new ImmutableFeature(featureId, definition, properties);
     }

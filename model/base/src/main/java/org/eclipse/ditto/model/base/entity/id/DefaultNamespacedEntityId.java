@@ -12,18 +12,14 @@
  */
 package org.eclipse.ditto.model.base.entity.id;
 
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ENTITY_NAME_GROUP_NAME;
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ENTITY_NAME_PATTERN;
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ID_PATTERN;
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_DELIMITER;
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_GROUP_NAME;
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_PATTERN;
+import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.NAMESPACE_DELIMITER;
 
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.entity.validation.EntityIdPatternValidator;
 
 /**
  * Default implementation for a validated {@link org.eclipse.ditto.model.base.entity.id.NamespacedEntityId}
@@ -33,7 +29,6 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
     private static final NamespacedEntityId DUMMY_ID = DefaultNamespacedEntityId.of(":_");
     private static final String DEFAULT_NAMESPACE = "";
-    private static final int MAXIMUM_ID_LENGTH = 256;
 
     private final String namespace;
     private final String name;
@@ -41,7 +36,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
     private DefaultNamespacedEntityId(final String namespace, final String name, final boolean shouldValidate) {
         if (shouldValidate) {
-            stringRepresentation = validate(namespace, name);
+            stringRepresentation = EntityIdPatternValidator.getInstance().validate(namespace, name);
         } else {
             stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
         }
@@ -55,16 +50,12 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
 
-        if (entityId.length() > MAXIMUM_ID_LENGTH) {
-            throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
-        }
+        final EntityIdPatternValidator validator = EntityIdPatternValidator.getInstance();
 
-        final Matcher nsMatcher = ID_PATTERN.matcher(entityId);
-
-        if (nsMatcher.matches()) {
-            namespace = nsMatcher.group(NAMESPACE_GROUP_NAME);
-            name = nsMatcher.group(ENTITY_NAME_GROUP_NAME);
-            stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
+        if (validator.isValid(entityId)) {
+            namespace = validator.getNamespace();
+            name = validator.getName();
+            stringRepresentation = validator.getString();
         } else {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
@@ -138,32 +129,6 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
     @Override
     public String getNamespace() {
         return namespace;
-    }
-
-    private static String validate(@Nullable final CharSequence namespace, @Nullable final CharSequence name) {
-        final String stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
-
-        if (name == null) {
-            throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
-        }
-
-        if (namespace == null) {
-            throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
-        }
-
-        if (stringRepresentation.length() > MAXIMUM_ID_LENGTH) {
-            throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
-        }
-
-        if (!NAMESPACE_PATTERN.matcher(namespace).matches()) {
-            throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
-        }
-
-        if (!ENTITY_NAME_PATTERN.matcher(name).matches()) {
-            throw NamespacedEntityIdInvalidException.newBuilder(stringRepresentation).build();
-        }
-
-        return stringRepresentation;
     }
 
     @Override

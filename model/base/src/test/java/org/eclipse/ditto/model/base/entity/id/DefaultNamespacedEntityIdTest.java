@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.validation.RegexPatterns;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -106,11 +107,12 @@ public class DefaultNamespacedEntityIdTest {
 
     @Test
     public void cannotHaveMoreThan256Characters() {
-        final int maximumAllowedCharactersForName = 255 - VALID_NAMESPACE.length();
+        final int maximumAllowedCharactersForName = 256 - VALID_NAMESPACE.length();
         final StringBuilder nameWithMaximumLength = new StringBuilder();
         for (int i = 0; i < maximumAllowedCharactersForName; i++) {
             nameWithMaximumLength.append("a");
         }
+
         assertInValidId(VALID_NAMESPACE, nameWithMaximumLength.append("a").toString());
     }
 

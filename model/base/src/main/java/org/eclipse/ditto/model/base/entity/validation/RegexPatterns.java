@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,14 +10,24 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.base.entity.id;
+package org.eclipse.ditto.model.base.entity.validation;
 
 import java.util.regex.Pattern;
 
-/**
- * This class provides regex patterns used for entity id validation.
- */
+import javax.annotation.concurrent.Immutable;
+
+@Immutable
 public final class RegexPatterns {
+
+    public final static String SLASH = "/";
+
+    public static final String NAMESPACE_DELIMITER = ":";
+
+    public final static String CONTROL_CHARS = "\\x00-\\x1F\\x7F-\\xFF";
+
+    public final static String NO_CONTROL_CHARS = "[^" + CONTROL_CHARS + "]";
+
+    public final static String NO_CONTROL_CHARS_NO_SLASHES = "[^" + CONTROL_CHARS + SLASH + "]";
 
     /**
      * Name of the namespace group in the entity ID regex.
@@ -25,9 +35,19 @@ public final class RegexPatterns {
     public static final String NAMESPACE_GROUP_NAME = "ns";
 
     /**
+     * Name of the entity name group in the entity ID regex.
+     */
+    public static final String ENTITY_NAME_GROUP_NAME = "name";
+
+    /**
      * Defines which characters are allowed to use in a namespace.
      */
     public static final String ALLOWED_NAMESPACE_CHARACTERS_REGEX = "[a-zA-Z]\\w*+";
+
+    /**
+     * Defines which characters are allowed to use in a name of an entity.
+     */
+    public static final String ALLOWED_CHARACTERS_IN_NAME = NO_CONTROL_CHARS_NO_SLASHES;
 
     /**
      * Adds the dot to allowed characters. Its defined as separate constant because namespaces are not allowed to start
@@ -44,24 +64,9 @@ public final class RegexPatterns {
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_INCLUDING_DOT + ")*+))";
 
     /**
-     * The delimiter between namespace and name in an entity ID.
-     */
-    public static final String NAMESPACE_DELIMITER = ":";
-
-    /**
-     * Name of the entity name group in the entity ID regex.
-     */
-    public static final String ENTITY_NAME_GROUP_NAME = "name";
-
-    /**
      * Regex pattern that matches URL escapes. E.G. %3A for a colon (':').
      */
     public static final String URL_ESCAPES = "%\\p{XDigit}{2}";
-
-    /**
-     * Defines which characters are allowed to use in a name of an entity.
-     */
-    public static final String ALLOWED_CHARACTERS_IN_NAME = "-\\w:@&=+,.!~*'_;<>";
 
     /**
      * Adds the $ to allowed characters. Its defined as separate constant because names are not allowed to start
@@ -91,6 +96,9 @@ public final class RegexPatterns {
      */
     public static final String ID_REGEX = NAMESPACE_REGEX + NAMESPACE_DELIMITER + ENTITY_NAME_REGEX;
 
+    public final static Pattern FEATURE_PATTERN = Pattern.compile("^" + NO_CONTROL_CHARS_NO_SLASHES + "+$");
+
+    public final static Pattern ATTRIBUTE_PATTERN = FEATURE_PATTERN;
     /**
      * The compiled regex pattern for namespaces.
      */
@@ -106,5 +114,8 @@ public final class RegexPatterns {
      */
     public static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    private RegexPatterns() {}
+    /**
+     * The regex pattern a Subject has to conform to.
+     */
+    public  static final Pattern SUBJECT_REGEX = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
 }

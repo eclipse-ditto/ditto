@@ -49,12 +49,6 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
         super(ERROR_CODE, message, description, cause, href);
     }
 
-    public static String getFullRestrictionMessage() {
-        return NO_SLASHES_NO_CONTROL_CHARACTERS_DESCRIPTION;
-    }
-
-    public static String getOuterSlashesDescription() { return OUTER_SLASHES_DESCRIPTION; }
-
     /**
      * Returns a builder for fluently creating instances of {@code JsonPointerInvalidException}s..
      *
@@ -93,6 +87,20 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     }
 
     /**
+     * Returns a new builder already containing a generic message that slashes and control characters are not supported for JSON
+     * pointers.
+     *
+     * @param jsonPointer The JSON pointer containing the slashes or control characters.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForNoSlashesAndControlChars(
+            final CharSequence jsonPointer) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(NO_SLASHES_NO_CONTROL_CHARACTERS_DESCRIPTION);
+    }
+
+    /**
      * Returns a new builder containing the given message for the given JSON pointers.
      *
      * @param jsonPointer The JSON pointer the message is about.
@@ -105,6 +113,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
                 .jsonPointer(jsonPointer)
                 .description(description);
     }
+
 
     /**
      * Returns a new builder already containing a default message that the JSON pointer is no valid.
