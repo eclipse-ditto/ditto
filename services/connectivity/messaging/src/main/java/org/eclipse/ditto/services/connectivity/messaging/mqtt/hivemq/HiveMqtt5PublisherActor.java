@@ -22,10 +22,15 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
@@ -54,6 +59,7 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
 
     // for target the default is qos=0 because we have qos=0 all over the akka cluster
     private static final int DEFAULT_TARGET_QOS = 0;
+    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-mqtt5-diagnostic");
     static final String NAME = "HiveMqtt5PublisherActor";
 
     private static final HashSet<String> MQTT_HEADER_MAPPING = new HashSet<>();
@@ -120,10 +126,21 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
                 log().debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.getTopic(),
                         decodeAsHumanReadable(mqttMessage.getPayload().orElse(null), message));
             }
-            return client.publish(mqttMessage).thenApply(msg -> null);
+            return client.publish(mqttMessage).thenApply(msg -> toAcknowledgement(signal, target));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    private Acknowledgement toAcknowledgement(final Signal<?> signal,
+            @Nullable final Target target) {
+
+        // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
+        final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
+
+        return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders);
     }
 
     private MqttQos determineQos(@Nullable final Target target) {

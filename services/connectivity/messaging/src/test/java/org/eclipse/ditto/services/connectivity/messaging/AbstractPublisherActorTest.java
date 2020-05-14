@@ -170,9 +170,7 @@ public abstract class AbstractPublisherActorTest {
 
     protected abstract void verifyPublishedMessageToReplyTarget() throws Exception;
 
-    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception {
-        // TODO: make this abstract once implemented in all subclasses.
-    }
+    protected abstract void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception;
 
     protected OutboundSignal.Mapped getMockOutboundSignal(final String... extraHeaders) {
         return getMockOutboundSignal(decorateTarget(createTestTarget()), extraHeaders);

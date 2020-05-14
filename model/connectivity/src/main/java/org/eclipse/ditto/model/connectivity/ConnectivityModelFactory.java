@@ -31,6 +31,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -558,6 +559,32 @@ public final class ConnectivityModelFactory {
                 .topics(target.getTopics())
                 .build();
     }
+
+    /**
+     * Creates a new {@link Target} from existing target but different address and acknowledgement.
+     *
+     * @param target the target
+     * @param address the address where the signals will be published
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
+     * @param label the {@link AcknowledgementLabel} of the new Target
+     * @return the created {@link Target}
+     *
+     * @since 1.2.0
+     */
+    public static Target newTarget(final Target target, final String address, @Nullable final Integer qos, final
+            AcknowledgementLabel label) {
+        return newTargetBuilder()
+                .address(address)
+                .originalAddress(target.getOriginalAddress())
+                .authorizationContext(target.getAuthorizationContext())
+                .headerMapping(target.getHeaderMapping().orElse(null))
+                .qos(qos)
+                .acknowledgement(label)
+                .topics(target.getTopics())
+                .build();
+    }
+
+    /**
 
     /**
      * Creates a new {@link Target}.
