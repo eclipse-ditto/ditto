@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -56,6 +57,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionId connectionId;
 
     private final ActorRef messageMappingProcessor;
+    private final AcknowledgementConfig acknowledgementConfig;
 
     @Nullable private ResourceStatus resourceStatus;
 
@@ -70,6 +72,10 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getMonitoringConfig();
+
+         acknowledgementConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getAcknowledgementConfig();
 
         inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig)
                 .forInboundConsumed(connectionId, sourceAddress);
@@ -179,9 +185,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final Object message) {
         // 1. start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
-        // TODO: configure askTimeout?
-        final Duration collectorLifetime = Duration.ofSeconds(100);
-        final Duration askTimeout = Duration.ofSeconds(120);
+        final Duration collectorLifetime = acknowledgementConfig.getCollectorFallbackLifetime();
+        final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
         final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
         // 2. forward message to mapping processor actor with response collector actor as sender
         // message mapping processor actor will set the number of expected acks (can be 0)

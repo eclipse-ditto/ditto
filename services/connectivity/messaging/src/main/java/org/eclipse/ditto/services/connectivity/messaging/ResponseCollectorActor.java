@@ -28,7 +28,7 @@ import akka.actor.ReceiveTimeout;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor that collect a fixed number of command responses, which may be acknowledgements.
+ * Actor that collects a fixed number of command responses, which may be acknowledgements.
  */
 public final class ResponseCollectorActor extends AbstractActor {
 

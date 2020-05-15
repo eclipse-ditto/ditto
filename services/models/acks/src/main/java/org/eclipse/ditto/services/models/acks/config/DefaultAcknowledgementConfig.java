@@ -34,10 +34,16 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
     private static final String CONFIG_PATH = "acknowledgement";
 
     private final Duration forwarderFallbackTimeout;
+    private final Duration collectorFallbackLifetime;
+    private final Duration collectorFallbackAskTimeout;
 
     private DefaultAcknowledgementConfig(final ScopedConfig config) {
         forwarderFallbackTimeout =
                 config.getDuration(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath());
+        collectorFallbackLifetime =
+                config.getDuration(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME.getConfigPath());
+        collectorFallbackAskTimeout =
+                config.getDuration(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -58,6 +64,16 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
     }
 
     @Override
+    public Duration getCollectorFallbackLifetime() {
+        return collectorFallbackLifetime;
+    }
+
+    @Override
+    public Duration getCollectorFallbackAskTimeout() {
+        return collectorFallbackAskTimeout;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -66,18 +82,22 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
             return false;
         }
         final DefaultAcknowledgementConfig that = (DefaultAcknowledgementConfig) o;
-        return Objects.equals(forwarderFallbackTimeout, that.forwarderFallbackTimeout);
+        return Objects.equals(forwarderFallbackTimeout, that.forwarderFallbackTimeout) &&
+                Objects.equals(collectorFallbackLifetime, that.collectorFallbackLifetime) &&
+                Objects.equals(collectorFallbackAskTimeout, that.collectorFallbackAskTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(forwarderFallbackTimeout);
+        return Objects.hash(forwarderFallbackTimeout, collectorFallbackLifetime, collectorFallbackAskTimeout);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "forwarderFallbackTimeout=" + forwarderFallbackTimeout +
+                "collectorFallbackLifetime=" + collectorFallbackLifetime +
+                "collectorFallbackAskTimeout=" + collectorFallbackAskTimeout +
                 "]";
     }
 
