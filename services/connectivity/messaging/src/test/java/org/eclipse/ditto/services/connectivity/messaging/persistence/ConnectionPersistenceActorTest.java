@@ -17,11 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -236,7 +239,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
         thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
-        dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class);
+        dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class, withSettings().verboseLogging());
     }
 
     @Test
@@ -1211,14 +1214,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
-                                    TestActor.props(probe));
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+                            (connection, connectionActor, conciergeForwarder) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             expectMsgClass(Object.class);
+
+            // wait for subscription before sending signal
+            expectAnySubscribe();
 
             final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -1327,14 +1333,18 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                             conciergeForwarder,
-                            (connection, conciergeForwarder, connectionActor) -> TestActor.props(probe));
+                            (connection, conciergeForwarder, connectionActor) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
-            expectMsgClass(Object.class);
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // wait until connection actor is subscribed otherwise the signal won't be forwarded
+            expectAnySubscribe();
 
             underTest.tell(signal, getRef());
 
@@ -1396,6 +1406,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .subscribe(argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
                         eq(subjects),
                         any(ActorRef.class));
+    }
+
+    // expect any call to subscribe, just to wait for the subscription
+    private void expectAnySubscribe() {
+        verify(dittoProtocolSubMock, timeout(500)).subscribe(anyCollection(), anySet(), any(ActorRef.class));
     }
 
     private void expectRemoveSubscriber(final int howManyTimes) {
