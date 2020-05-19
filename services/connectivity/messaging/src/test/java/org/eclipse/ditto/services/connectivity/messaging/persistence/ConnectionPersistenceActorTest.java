@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
+import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
@@ -22,18 +23,21 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.apache.commons.compress.utils.Sets;
 import org.awaitility.Awaitility;
@@ -68,6 +72,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -106,6 +111,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -161,6 +169,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     // second actor system to test multiple client actors
     private ActorSystem actorSystem2;
+    private Connection closedConnection;
 
     @After
     public void tearDown() {
@@ -177,9 +186,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final Connection connection = TestConstants.createConnection(connectionId);
         final Connection closedConnectionWith2Clients =
                 connection.toBuilder().clientCount(2).connectionStatus(ConnectivityStatus.CLOSED).build();
-        final Connection closedConnection =
-                TestConstants.createConnection(connectionId, ConnectivityStatus.CLOSED,
-                        TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
+        closedConnection = TestConstants.createConnection(connectionId, ConnectivityStatus.CLOSED,
+                TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         createClosedConnectionWith2Clients = CreateConnection.of(closedConnectionWith2Clients, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
@@ -462,6 +470,142 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
+    public void createClosedConnectionWithUnknownHost() {
+        final CreateConnection createClosedConnectionWithUnknownHost =
+                CreateConnection.of(closedConnection.toBuilder().uri("amqp://invalid:1234").build(),
+                        DittoHeaders.empty());
+
+        sendCommandWithEnabledBlacklist(
+                entry(createClosedConnectionWithUnknownHost,
+                        ConnectionPersistenceActorTest::assertHostInvalid));
+    }
+
+    @Test
+    public void testConnectionWithUnknownHost() {
+        final TestConnection testConnectionWithUnknownHost =
+                TestConnection.of(closedConnection.toBuilder().uri("amqp://invalid:1234").build(),
+                        DittoHeaders.empty());
+
+        sendCommandWithEnabledBlacklist(
+                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
+    }
+
+    @Test
+    public void modifyClosedConnectionWithUnknownHost() {
+
+        // connection is created with a valid host/ip
+        final CreateConnection createClosedConnectionWithValidHost =
+                CreateConnection.of(closedConnection.toBuilder().uri("amqp://8.8.8.8:1234").build(),
+                        DittoHeaders.empty());
+
+        // later modified with an invalid host
+        final ModifyConnection modifyClosedConnectionWithInvalidHost =
+                ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
+                        .uri("amqp://invalid:1234").build(), DittoHeaders.empty());
+
+        sendCommandWithEnabledBlacklist(
+                // create is successful
+                entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
+                // modify fails because the new host is invalid
+                entry(modifyClosedConnectionWithInvalidHost, ConnectionPersistenceActorTest::assertHostInvalid
+                ));
+    }
+
+    @Test
+    public void createClosedConnectionWithBlacklistedHost() {
+
+        final CreateConnection createClosedConnectionWithBlacklistedHost =
+                CreateConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
+                        DittoHeaders.empty());
+
+        sendCommandWithEnabledBlacklist(
+                entry(createClosedConnectionWithBlacklistedHost,
+                        ConnectionPersistenceActorTest::assertHostBlacklisted));
+    }
+
+    @Test
+    public void testConnectionWithBlacklistedHost() {
+        final TestConnection testConnectionWithUnknownHost =
+                TestConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
+                        DittoHeaders.empty());
+
+        sendCommandWithEnabledBlacklist(
+                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlacklisted));
+    }
+
+    @Test
+    public void modifyClosedConnectionWithBlacklistedHost() {
+
+        // connection is created with a valid host/ip
+        final CreateConnection createClosedConnectionWithValidHost =
+                CreateConnection.of(closedConnection.toBuilder().uri("amqp://8.8.8.8:1234").build(),
+                        DittoHeaders.empty());
+
+        // later modified with a blacklisted host
+        final ModifyConnection modifyClosedConnectionWithBlacklistedHost =
+                ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
+                        .uri("amqp://localhost:1234").build(), DittoHeaders.empty());
+
+        sendCommandWithEnabledBlacklist(
+                // create is successful
+                entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
+                // modify fails because the new host is invalid
+                entry(modifyClosedConnectionWithBlacklistedHost,
+                        ConnectionPersistenceActorTest::assertHostBlacklisted));
+    }
+
+    @SafeVarargs
+    private void sendCommandWithEnabledBlacklist(
+            final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
+        final Config configWithBlacklist =
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames",
+                        ConfigValueFactory.fromAnyRef("127.0.0.1"));
+        final ActorSystem systemWithBlacklist = ActorSystem.create(getClass().getSimpleName() + "WithBlacklist",
+                configWithBlacklist);
+        final ActorRef pubSubMediator = DistributedPubSub.get(systemWithBlacklist).mediator();
+        final ActorRef conciergeForwarder =
+                systemWithBlacklist.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+
+        try {
+            new TestKit(systemWithBlacklist) {{
+                final TestProbe probe = TestProbe.apply(systemWithBlacklist);
+                final ActorRef underTest =
+                        TestConstants.createConnectionSupervisorActor(connectionId, systemWithBlacklist,
+                                pubSubMediator,
+                                conciergeForwarder,
+                                (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
+                watch(underTest);
+
+                for (final Map.Entry<ConnectivityCommand<?>, Consumer<Object>> command : commands) {
+                    underTest.tell(command.getKey(), getRef());
+                    command.getValue().accept(expectMsgClass(Duration.ofSeconds(10), Object.class));
+                }
+
+                // assert that client actor is not called for closed connection
+                probe.expectNoMessage();
+            }};
+        } finally {
+            TestKit.shutdownActorSystem(systemWithBlacklist);
+        }
+    }
+
+    private static void assertHostInvalid(Object response) {
+        assertThat(response).isInstanceOf(ConnectionConfigurationInvalidException.class);
+        final ConnectionConfigurationInvalidException exception = (ConnectionConfigurationInvalidException) response;
+        assertThat(exception).hasMessageContaining("The configured host 'invalid' is invalid");
+    }
+
+    private static void assertHostBlacklisted(Object response) {
+        assertThat(response).isInstanceOf(ConnectionConfigurationInvalidException.class);
+        final ConnectionConfigurationInvalidException e = (ConnectionConfigurationInvalidException) response;
+        assertThat(e).hasMessageContaining("The configured host 'localhost' may not be used for the connection");
+    }
+
+    private static void assertConnectionCreated(Object response) {
+        assertThat(response).isInstanceOf(CreateConnectionResponse.class);
+    }
+
+    @Test
     public void modifyConnectionInClosedState() {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
@@ -734,7 +878,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                             TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
                             mockClientActorPropsFactory,
-                            command -> {
+                            (command, connection) -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
                                         .dittoHeaders(command.getDittoHeaders())
                                         .message("not valid")

@@ -212,8 +212,12 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                 .filter(thingId -> !retrievedThingIds.contains(thingId))
                 .collect(Collectors.toList());
 
-        final ThingsOutOfSync thingsOutOfSync = ThingsOutOfSync.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE, thingsOutOfSync), ActorRef.noSender());
+        if (!outOfSyncThingIds.isEmpty()) {
+            final ThingsOutOfSync thingsOutOfSync =
+                    ThingsOutOfSync.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
+            pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE, thingsOutOfSync),
+                    ActorRef.noSender());
+        }
     }
 
     private void stopMyself() {

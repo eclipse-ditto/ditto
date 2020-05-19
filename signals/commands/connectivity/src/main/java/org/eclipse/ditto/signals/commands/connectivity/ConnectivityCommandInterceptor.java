@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -25,7 +27,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
  * Intercepts a {@link ConnectivityCommand}s and may throw a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}
  * if the command is invalid.
  */
-public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCommand<?>> {
+public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCommand<?>>,
+        BiConsumer<ConnectivityCommand<?>, Supplier<Connection>> {
 
     @Nullable
     default Connection getConnectionFromCommand(final ConnectivityCommand<?> command) {
@@ -39,5 +42,15 @@ public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCom
             default:
                 return null;
         }
+    }
+
+    /**
+     * By default resolve connection from the given {@link ConnectivityCommand}.
+     *
+     * @param command the intercepted command
+     */
+    @Override
+    default void accept(final ConnectivityCommand<?> command) {
+        accept(command, () -> getConnectionFromCommand(command));
     }
 }
