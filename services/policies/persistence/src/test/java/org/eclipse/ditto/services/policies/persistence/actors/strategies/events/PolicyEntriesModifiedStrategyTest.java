@@ -50,6 +50,6 @@ public class PolicyEntriesModifiedStrategyTest extends AbstractPolicyEventStrate
         assertThat(policyWithEventApplied.getEntryFor(MODIFIED_1.getLabel())).contains(MODIFIED_1);
         assertThat(policyWithEventApplied.getEntryFor(MODIFIED_2.getLabel())).contains(MODIFIED_2);
         assertThat(policyWithEventApplied.getEntryFor(SUPPORT_LABEL)).isEmpty();
-        assertThat(policyWithEventApplied).containsExactly(MODIFIED_1, MODIFIED_2);
+        assertThat(policyWithEventApplied).containsExactlyInAnyOrder(MODIFIED_1, MODIFIED_2);
     }
 }
