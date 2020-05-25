@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectModified;
 import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 
 /**
- * PersistentActor which "knows" the state of a single {@link org.eclipse.ditto.model.policies.Policy}.
+ * Holds all {@link org.eclipse.ditto.signals.events.policies.PolicyEvent} strategies.
  */
 public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyEvent, Policy> {
 
