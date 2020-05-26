@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -32,6 +33,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -83,8 +85,30 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     }
 
     @Override
+    protected Props getConsumerActorProps(final ActorRef mappingActor,
+            final Set<AcknowledgementLabel> acknowledgements) {
+        final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
+        final ConsumerData mockConsumerData =
+                consumerData(CONNECTION_ID.toString(), messageConsumer, ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .enforcement(ENFORCEMENT)
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
+                        .acknowledgements(acknowledgements)
+                        .build());
+        return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
+                TestProbe.apply(actorSystem).testActor());
+    }
+
+    @Override
     protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header) {
         return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, REPLY_TO_HEADER);
+    }
+
+    @Override
+    protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header,
+            final Map.Entry<String, Object> header2) {
+        return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, header2, REPLY_TO_HEADER);
     }
 
     @Test

@@ -17,11 +17,16 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -65,7 +70,11 @@ public abstract class AbstractConsumerActorTest<M> {
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
+    private static final Set<AcknowledgementLabel> acks = new HashSet<>(
+            Collections.singletonList(AcknowledgementLabel.of("twin-persisted")));
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
+    protected static final Map.Entry<String, Object> REQUESTED_ACKS_HEADER =
+            header("requested-acks", JsonValue.of("twin-persisted"));
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
     private static final int PROCESSOR_POOL_SIZE = 2;
@@ -106,6 +115,34 @@ public abstract class AbstractConsumerActorTest<M> {
     public void testInboundMessageWitMultipleMappingsSucceeds() {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0, s -> {}, o -> {},
                 ConnectivityModelFactory.newPayloadMapping("ditto", "ditto"));
+    }
+
+    @Test
+    public void testSourceAcknowledgementSettlement() {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final TestProbe concierge = TestProbe.apply(actorSystem);
+            final TestProbe clientActor = TestProbe.apply(actorSystem);
+
+            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, acks));
+
+            underTest.tell(getInboundMessage(header("device_id", TestConstants.Things.THING_ID), REQUESTED_ACKS_HEADER),
+                    sender.ref());
+
+            final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
+            assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+
+            //TODO: ConciergeForwarder doesn't forward response to Ackregator (Either Bug or wrong Mockup)
+            // --> Uncomment after fix
+            //final PublishMappedMessage publishedMessage = clientActor.expectMsgClass(PublishMappedMessage.class);
+            //assertThat(publishedMessage.getOutboundSignal()
+            //        .first()
+            //        .getExternalMessage()
+            //        .getInternalHeaders()
+            //        .getAcknowledgementRequests()
+            //        .toString()).contains(acks.iterator().toString());
+        }};
     }
 
     @Test
@@ -175,7 +212,13 @@ public abstract class AbstractConsumerActorTest<M> {
 
     protected abstract Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping);
 
+    protected abstract Props getConsumerActorProps(final ActorRef mappingActor,
+            final Set<AcknowledgementLabel> acknowledgements);
+
     protected abstract M getInboundMessage(final Map.Entry<String, Object> header);
+
+    protected abstract M getInboundMessage(final Map.Entry<String, Object> header,
+            final Map.Entry<String, Object> header2);
 
     private void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,
@@ -255,5 +298,4 @@ public abstract class AbstractConsumerActorTest<M> {
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
-
 }

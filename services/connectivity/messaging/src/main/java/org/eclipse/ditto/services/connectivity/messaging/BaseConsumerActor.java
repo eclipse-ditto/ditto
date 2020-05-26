@@ -73,7 +73,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getMonitoringConfig();
 
-         acknowledgementConfig = DittoConnectivityConfig.of(
+        acknowledgementConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getAcknowledgementConfig();
 
@@ -117,6 +117,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         inboundFailure(error);
                     }
                 })
+                //TODO: Settlement of acknowledgements fails, because CommandResponses are not correctly forwarded to
+                // ResponseCollectorActor = Timeout
                 .exceptionally(e -> {
                     log().error(e, "Unexpected error during manual acknowledgement.");
                     return null;
@@ -193,6 +195,13 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         // and start the same amount of ack aggregator actors
         messageMappingProcessor.tell(message, responseCollector);
         // 3. ask response collector actor to get the collected responses in a future
+
+        //TODO: Replace with sufficient way to assure ResponseCollector count is increased before query
+        try {
+            Thread.sleep(1500L);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
         return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
             if (output instanceof ResponseCollectorActor.Output) {
                 return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);

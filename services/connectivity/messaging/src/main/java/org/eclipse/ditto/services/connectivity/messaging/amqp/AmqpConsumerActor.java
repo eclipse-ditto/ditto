@@ -326,7 +326,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            forwardToMappingActor(externalMessage);
+            forwardToMappingActor(externalMessage, () -> acknowledge(message), () -> {});
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
@@ -345,16 +345,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             }
 
             log.error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
-        } finally {
-            try {
-                // we use the manual acknowledge mode so we always have to ack the message
-                // TODO: move it until after ack.
-                // checkNotNull(message.getAcknowledgeCallback());
-                // message.getAcknowledgeCallback().setAckType(REJECTED | ACCEPTED);
-                message.acknowledge();
-            } catch (final JMSException e) {
-                log.error(e, "Failed to ack an AMQP message");
-            }
+        }
+    }
+
+    private void acknowledge(final JmsMessage message) {
+        try {
+            message.acknowledge();
+        } catch (final JMSException e) {
+            log.error("Failed to ack an AMQP message");
         }
     }
 

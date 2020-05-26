@@ -15,7 +15,9 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -37,6 +39,20 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
+
+    @Override
+    protected Props getConsumerActorProps(final ActorRef mappingActor,
+            final Set<AcknowledgementLabel> acknowledgements) {
+        return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
+                ConnectivityModelFactory.newSourceBuilder()
+                        .address("rmq-consumer")
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .enforcement(ENFORCEMENT)
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .acknowledgements(acknowledgements)
+                        .build(),
+                CONNECTION_ID);
+    }
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
@@ -65,4 +81,21 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                 TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8));
     }
 
+    @Override
+    protected Delivery getInboundMessage(final Map.Entry<String, Object> header,
+            final Map.Entry<String, Object> header2) {
+        final Map<String, Object> headers = new HashMap<>();
+        headers.put(REPLY_TO_HEADER.getKey(), REPLY_TO_HEADER.getValue());
+        headers.put(header.getKey(), header.getValue());
+        headers.put(header2.getKey(), header2.getValue());
+
+        return new Delivery(ENVELOPE,
+                new AMQP.BasicProperties.Builder()
+                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                        .headers(headers)
+                        .replyTo(REPLY_TO_HEADER.getValue()).build(),
+                TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8));
+
+
+    }
 }
