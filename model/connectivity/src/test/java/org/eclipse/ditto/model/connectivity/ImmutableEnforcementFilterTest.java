@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 
 import java.util.Arrays;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.Placeholder;
@@ -127,7 +129,7 @@ public class ImmutableEnforcementFilterTest {
                 ThingId.of("eclipse:ditto"));
     }
 
-    @Test
+    @Test(expected = UnresolvedPlaceholderException.class)
     public void testSimplePlaceholderWithUnresolvableMatcherPlaceholder() {
         testSimplePlaceholder(
                 "{{  test:placeholder }}",
@@ -156,14 +158,21 @@ public class ImmutableEnforcementFilterTest {
         final CreateSubscription command =
                 CreateSubscription.of(DittoHeaders.empty())
                         .setNamespaces(new HashSet<>(Arrays.asList("a", "b", "c")));
-        testDeviceIdHeaderEnforcement("entity", command.getEntityId());
-        testDeviceIdHeaderEnforcement("policy", command.getEntityId());
-        testDeviceIdHeaderEnforcement("thing", command.getEntityId());
+
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> testDeviceIdHeaderEnforcement("entity", command.getEntityId()));
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> testDeviceIdHeaderEnforcement("policy", command.getEntityId()));
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> testDeviceIdHeaderEnforcement("thing", command.getEntityId()));
 
         final SubscriptionComplete event = SubscriptionComplete.of("abc", DittoHeaders.empty());
-        testDeviceIdHeaderEnforcement("entity", event.getEntityId());
-        testDeviceIdHeaderEnforcement("policy", event.getEntityId());
-        testDeviceIdHeaderEnforcement("thing", event.getEntityId());
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> testDeviceIdHeaderEnforcement("entity", event.getEntityId()));
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> testDeviceIdHeaderEnforcement("policy", event.getEntityId()));
+        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
+                .isThrownBy(() -> testDeviceIdHeaderEnforcement("thing", event.getEntityId()));
     }
 
     public void testDeviceIdHeaderEnforcement(final String prefix, final CharSequence namespacedEntityId) {
