@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,6 +42,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -334,16 +336,50 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
                 .event(Acknowledgement.class, BaseClientData.class, this::handleAcknowledgement)
-                .event(Acknowledgements.class, BaseClientData.class, this::handleAcknowledgement)
+                .event(Acknowledgements.class, BaseClientData.class, this::handleAcknowledgements)
                 .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
     }
 
-    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Object acknowledgement,
+    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Acknowledgement acknowledgement,
             final BaseClientData baseClientData) {
 
         log.info("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);
-        connectionActor.forward(acknowledgement, getContext());
+        final Acknowledgement ack = appendConnectionIdToAcknowledgement(acknowledgement);
+        connectionActor.forward(ack, getContext());
         return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgements(final Acknowledgements acknowledgements,
+            final BaseClientData baseClientData) {
+        List<Acknowledgement> acksList = new ArrayList<>();
+        for (Acknowledgement ack : acknowledgements) {
+            acksList.add(appendConnectionIdToAcknowledgement(ack));
+        }
+        // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
+        final Acknowledgements acks =
+                Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
+                        acknowledgements.getDittoHeaders());
+        log.info("Forwarding Acknowledgements to parent ConnectionPersistenceActor: {}", acks);
+        connectionActor.forward(acks, getContext());
+        return stay();
+    }
+
+    /**
+     * Appends the ConnectionId to the processed acknowledgements payload.
+     *
+     * @return the Acknowledgement with appended ConnectionId.
+     */
+    protected final Acknowledgement appendConnectionIdToAcknowledgement(final Acknowledgement ack) {
+        String payloadAsString = ack.getEntity()
+                .orElse(JsonValue.of(""))
+                .asString();
+
+        if (payloadAsString.endsWith(" ") || payloadAsString.equals("")) {
+            payloadAsString = payloadAsString.concat("ConnectionId: " + connection.getId().toString());
+        } else {
+            payloadAsString = payloadAsString.concat(" ConnectionId: " + connection.getId().toString());
+        }
+        return ack.setEntity(JsonValue.of(payloadAsString));
     }
 
     /**

@@ -16,10 +16,17 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -31,7 +38,10 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
@@ -57,6 +67,7 @@ import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -152,6 +163,38 @@ public abstract class AbstractBaseClientActorTest {
     }
 
     @Test
+    public void testConnectionIdAppending() {
+
+        final Connection connection = getConnection(true);
+        testAckAppending(null, connection, ack -> {
+            assertThat(ack).isNotNull();
+            assertThat(ack.asString()).isEqualTo("ConnectionId: " + connection.getId().toString());
+        });
+    }
+
+    @Test
+    public void testConnectionIdAppendingWithPayload() {
+
+        final Connection connection = getConnection(true);
+        final JsonValue testPayload = JsonValue.of("this is a test payload");
+        testAckAppending(testPayload, connection, ack -> {
+            assertThat(ack).isNotNull();
+            assertThat(ack.asString()).isEqualTo(
+                    testPayload.asString() + " ConnectionId: " + connection.getId().toString());
+        });
+    }
+
+    @Test
+    public void testConnectionIdAppendingWithAcknowledgements() {
+
+        final Connection connection = getConnection(true);
+        testAcksAppending(null, connection, ack -> {
+            assertThat(ack).isNotNull();
+            assertThat(ack.asString()).isEqualTo("ConnectionId: " + connection.getId().toString());
+        });
+    }
+
+    @Test
     public void testTLSConnectionWithoutCertificateCheck() {
         // GIVEN: server has a self-signed certificate (bind port number is random; connection port number is ignored)
         final Connection serverConnection = getHttpConnectionToLocalBinding(true, 443);
@@ -201,6 +244,52 @@ public abstract class AbstractBaseClientActorTest {
             }
             expectTerminated(underTest);
         }};
+    }
+
+    protected void testAckAppending(@Nullable final JsonValue ackPayload, final Connection con,
+            final Consumer<JsonValue> payloadConsumer) {
+        final ActorSystem actorSystem = getActorSystem();
+        new TestKit(actorSystem) {
+            {
+                final TestProbe connectionActor = TestProbe.apply(actorSystem);
+                final ActorRef underTest = watch(actorSystem.actorOf(
+                        DefaultClientActorPropsFactory.getInstance()
+                                .getActorPropsForType(con, getRef(), connectionActor.ref())
+                ));
+                underTest.tell(
+                        Acknowledgement.of(AcknowledgementLabel.of("test-ack"), ThingId.dummy(), HttpStatusCode.OK,
+                                DittoHeaders.empty(), ackPayload), getRef());
+
+                final Acknowledgement ack = connectionActor.expectMsgClass(Acknowledgement.class);
+                payloadConsumer.accept(ack.getEntity().orElseThrow());
+            }
+        };
+    }
+
+    protected void testAcksAppending(@Nullable final JsonValue ackPayload, final Connection con,
+            final Consumer<JsonValue> payloadConsumer) {
+        final ActorSystem actorSystem = getActorSystem();
+        new TestKit(actorSystem) {
+            {
+                final TestProbe connectionActor = TestProbe.apply(actorSystem);
+                final ActorRef underTest = watch(actorSystem.actorOf(
+                        DefaultClientActorPropsFactory.getInstance()
+                                .getActorPropsForType(con, getRef(), connectionActor.ref())
+                ));
+                List<Acknowledgement> ackList = Arrays.asList(
+                        Acknowledgement.of(AcknowledgementLabel.of("test-ack"), ThingId.dummy(), HttpStatusCode.OK,
+                                DittoHeaders.empty(), ackPayload),
+                        Acknowledgement.of(AcknowledgementLabel.of("test-ack-2"), ThingId.dummy(), HttpStatusCode.OK,
+                                DittoHeaders.empty(), ackPayload));
+
+                underTest.tell(Acknowledgements.of(ackList, DittoHeaders.empty()), getRef());
+
+                final Acknowledgements acks = connectionActor.expectMsgClass(Acknowledgements.class);
+                for (Acknowledgement ack : acks) {
+                    payloadConsumer.accept(ack.getEntity().orElseThrow());
+                }
+            }
+        };
     }
 
     protected ConnectionId getConnectionId() {

@@ -41,6 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  * Can contain built-in {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel Ditto ACK labels} as well as
  * custom ones emitted by external applications.
  * </p>
+ *
  * @since 1.1.0
  */
 public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType {
@@ -131,6 +132,14 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
+
+    /**
+     * Sets the optional payload of the Acknowledgement.
+     *
+     * @return the Acknowledgement with set payload.
+     * @since 1.2.0
+     */
+    Acknowledgement setEntity(@Nullable JsonValue payload);
 
     /**
      * Returns all non hidden marked fields of this Acknowledgement.
