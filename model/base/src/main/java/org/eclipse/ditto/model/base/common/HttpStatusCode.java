@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.model.base.common;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * An enumeration of HTTP status codes.
@@ -392,6 +393,18 @@ public enum HttpStatusCode {
         statusCodeValue = theStatusCodeValue;
     }
 
+
+    //Creation of map for inverted HttpStatusCode Enum to optimize iterating over enum with theStatusCodeValue
+    private static final Map<Integer, HttpStatusCode> statusCodesMap = createStatusCodesMap();
+
+    private static Map<Integer, HttpStatusCode> createStatusCodesMap() {
+        final HashMap<Integer, HttpStatusCode> map = new HashMap<>();
+        for (HttpStatusCode userType : values()) {
+            map.put(userType.toInt(), userType);
+        }
+        return map;
+    }
+
     /**
      * Returns a {@code HttpStatusCode} which is associated with the specified integer representation. If no appropriate
      * status code can be found, an empty optional is returned.
@@ -400,10 +413,8 @@ public enum HttpStatusCode {
      * @return the HTTP status code which is associated with {@code statusCodeAsInt} or an empty optional.
      */
     public static Optional<HttpStatusCode> forInt(final int statusCodeAsInt) {
-        // TODO: improve performance
-        return Stream.of(values()) //
-                .filter(c -> c.toInt() == statusCodeAsInt) //
-                .findFirst();
+        return Optional.ofNullable(statusCodesMap.get(statusCodeAsInt));
+
     }
 
     /**
