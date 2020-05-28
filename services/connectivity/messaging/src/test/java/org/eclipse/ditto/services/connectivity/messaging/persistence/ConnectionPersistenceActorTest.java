@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -239,7 +238,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
         thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
-        dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class, withSettings().verboseLogging());
+        dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class);
     }
 
     @Test
@@ -738,9 +737,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // connection is opened after recovery -> client actor receives OpenConnection command
             mockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
 
-            // retrieve connection status
-            underTest.tell(retrieveConnectionStatus, getRef());
-            expectMsg(retrieveConnectionStatusOpenResponse);
+            // poll connection status until status is OPEN
+            final ActorRef recoveredActor = underTest;
+            Awaitility.await().untilAsserted(() -> {
+                recoveredActor.tell(retrieveConnectionStatus, getRef());
+                expectMsg(retrieveConnectionStatusOpenResponse);
+            });
         }};
     }
 
