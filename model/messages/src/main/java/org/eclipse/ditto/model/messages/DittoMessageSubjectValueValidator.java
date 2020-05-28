@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
 /**
- * This validator checks if a CharSequence is a valid ID that matches {@link org.eclipse.ditto.model.base.entity.validation.RegexPatterns#SUBJECT_REGEX}.
+ * This validator checks if a CharSequence is a valid ID that matches {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#SUBJECT_REGEX}.
  * If validation fails, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable

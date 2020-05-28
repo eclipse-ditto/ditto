@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.base.entity.validation;
+package org.eclipse.ditto.model.base.entity.id;
 
 import java.util.regex.Pattern;
 

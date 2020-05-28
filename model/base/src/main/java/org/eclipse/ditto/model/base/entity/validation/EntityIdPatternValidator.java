@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.model.base.entity.validation;
 
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.ENTITY_NAME_GROUP_NAME;
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.ENTITY_NAME_PATTERN;
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.ID_PATTERN;
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.NAMESPACE_DELIMITER;
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.NAMESPACE_GROUP_NAME;
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.NAMESPACE_PATTERN;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ENTITY_NAME_GROUP_NAME;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ENTITY_NAME_PATTERN;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ID_PATTERN;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_DELIMITER;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_GROUP_NAME;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_PATTERN;
 
 import java.util.regex.Matcher;
 

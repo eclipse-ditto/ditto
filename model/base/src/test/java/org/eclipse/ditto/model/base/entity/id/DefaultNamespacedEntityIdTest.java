@@ -22,7 +22,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.validation.RegexPatterns;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

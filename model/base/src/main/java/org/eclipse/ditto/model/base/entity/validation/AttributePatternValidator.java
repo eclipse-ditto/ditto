@@ -16,6 +16,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
+
 @Immutable
 public final class AttributePatternValidator extends AbstractPatternValidator {
 

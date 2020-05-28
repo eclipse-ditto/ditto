@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.base.entity.validation;
 
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.SUBJECT_REGEX;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.SUBJECT_REGEX;
 
 import java.util.regex.Pattern;
 

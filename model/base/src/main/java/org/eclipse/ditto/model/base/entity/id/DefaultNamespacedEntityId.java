@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.base.entity.id;
 
-import static org.eclipse.ditto.model.base.entity.validation.RegexPatterns.NAMESPACE_DELIMITER;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.NAMESPACE_DELIMITER;
 
 import java.util.Objects;
 

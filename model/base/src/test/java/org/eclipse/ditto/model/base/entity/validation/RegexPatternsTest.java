@@ -19,17 +19,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 import org.junit.Test;
 
 /**
- * Unit test for {@link RegexPatterns}.
+ * Unit test for {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns}.
  */
 public final class RegexPatternsTest {
 
     /**
      * Also applies to entity name (thing and policy name), attributes, features & policy label
      */
-    private static final List<String> BAD_FEATURE_IDS = List.of(
+    private static final List<String> BAD_FEATURE_IDS = Arrays.asList(
             // slashes
             "/", "//", "/abc", "abc/", "//abc", "abc//", "abc/abc", "abc//abc",
             // forbidden special characters
@@ -40,7 +41,7 @@ public final class RegexPatternsTest {
             "3°C", "´a", "§1", "foo/bar"
     );
 
-    private static final List<String> GOOD_FEATURE_IDS = List.of(
+    private static final List<String> GOOD_FEATURE_IDS = Arrays.asList(
             // allowed special characters
             "!\"$%&()=?`*+~'#_-:.;,|<>\\{}[]^",
             // whitespaces
@@ -52,7 +53,7 @@ public final class RegexPatternsTest {
     /**
      * Also applies to policy resource & policy subject
      */
-    private static final List<String> BAD_MESSAGE_SUBJECTS = List.of(
+    private static final List<String> BAD_MESSAGE_SUBJECTS = Arrays.asList(
             // forbidden special characters
             "§", "°", "´",
             // whitespaces
@@ -61,7 +62,7 @@ public final class RegexPatternsTest {
             "3°C", "´a", "§1"
     );
 
-    private static final List<String> GOOD_MESSAGE_SUBJECTS = List.of(
+    private static final List<String> GOOD_MESSAGE_SUBJECTS = Arrays.asList(
             // slashes
             "/", "//", "/abc", "abc/", "//abc", "abc//", "abc/abc", "abc//abc",
             // allowed special characters
