@@ -31,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,11 +38,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -343,7 +343,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Acknowledgement acknowledgement,
             final BaseClientData baseClientData) {
 
-        log.info("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);
+        log.debug("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);
         final Acknowledgement ack = appendConnectionIdToAcknowledgement(acknowledgement);
         connectionActor.forward(ack, getContext());
         return stay();
@@ -351,10 +351,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSM.State<BaseClientState, BaseClientData> handleAcknowledgements(final Acknowledgements acknowledgements,
             final BaseClientData baseClientData) {
-        List<Acknowledgement> acksList = new ArrayList<>();
-        for (Acknowledgement ack : acknowledgements) {
-            acksList.add(appendConnectionIdToAcknowledgement(ack));
-        }
+        final List<Acknowledgement> acksList = acknowledgements.stream()
+                .map(this::appendConnectionIdToAcknowledgement)
+                .collect(Collectors.toList());
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
         final Acknowledgements acks =
                 Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
@@ -370,16 +369,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the Acknowledgement with appended ConnectionId.
      */
     protected final Acknowledgement appendConnectionIdToAcknowledgement(final Acknowledgement ack) {
-        String payloadAsString = ack.getEntity()
-                .orElse(JsonValue.of(""))
-                .asString();
-
-        if (payloadAsString.endsWith(" ") || payloadAsString.equals("")) {
-            payloadAsString = payloadAsString.concat("ConnectionId: " + connection.getId().toString());
-        } else {
-            payloadAsString = payloadAsString.concat(" ConnectionId: " + connection.getId().toString());
-        }
-        return ack.setEntity(JsonValue.of(payloadAsString));
+        final DittoHeaders newHeaders = ack.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId().toString())
+                .build();
+        return ack.setDittoHeaders(newHeaders);
     }
 
     /**

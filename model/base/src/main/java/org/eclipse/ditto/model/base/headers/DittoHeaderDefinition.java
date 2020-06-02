@@ -234,7 +234,13 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      */
     LOCATION("location", String.class, false, true,
             HeaderValueValidators.getNoOpValidator()),
-    ;
+
+    /**
+     * Header definition for the Ditto connection ID in automatic acknowledgements.
+     *
+     * @since 1.2.0
+     */
+    CONNECTION_ID("ditto-connection-id", String.class, false, true, HeaderValueValidators.getNoOpValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

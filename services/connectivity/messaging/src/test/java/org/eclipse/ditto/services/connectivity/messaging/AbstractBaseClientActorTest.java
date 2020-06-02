@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -28,6 +27,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -166,10 +166,7 @@ public abstract class AbstractBaseClientActorTest {
     public void testConnectionIdAppending() {
 
         final Connection connection = getConnection(true);
-        testAckAppending(null, connection, ack -> {
-            assertThat(ack).isNotNull();
-            assertThat(ack.asString()).isEqualTo("ConnectionId: " + connection.getId().toString());
-        });
+        testAckAppending(null, connection);
     }
 
     @Test
@@ -177,21 +174,14 @@ public abstract class AbstractBaseClientActorTest {
 
         final Connection connection = getConnection(true);
         final JsonValue testPayload = JsonValue.of("this is a test payload");
-        testAckAppending(testPayload, connection, ack -> {
-            assertThat(ack).isNotNull();
-            assertThat(ack.asString()).isEqualTo(
-                    testPayload.asString() + " ConnectionId: " + connection.getId().toString());
-        });
+        testAckAppending(testPayload, connection);
     }
 
     @Test
     public void testConnectionIdAppendingWithAcknowledgements() {
 
         final Connection connection = getConnection(true);
-        testAcksAppending(null, connection, ack -> {
-            assertThat(ack).isNotNull();
-            assertThat(ack.asString()).isEqualTo("ConnectionId: " + connection.getId().toString());
-        });
+        testAcksAppending(null, connection);
     }
 
     @Test
@@ -246,8 +236,7 @@ public abstract class AbstractBaseClientActorTest {
         }};
     }
 
-    protected void testAckAppending(@Nullable final JsonValue ackPayload, final Connection con,
-            final Consumer<JsonValue> payloadConsumer) {
+    protected void testAckAppending(@Nullable final JsonValue ackPayload, final Connection con) {
         final ActorSystem actorSystem = getActorSystem();
         new TestKit(actorSystem) {
             {
@@ -261,13 +250,13 @@ public abstract class AbstractBaseClientActorTest {
                                 DittoHeaders.empty(), ackPayload), getRef());
 
                 final Acknowledgement ack = connectionActor.expectMsgClass(Acknowledgement.class);
-                payloadConsumer.accept(ack.getEntity().orElseThrow());
+                assertThat(ack.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
+                        .isEqualTo(con.getId().toString());
             }
         };
     }
 
-    protected void testAcksAppending(@Nullable final JsonValue ackPayload, final Connection con,
-            final Consumer<JsonValue> payloadConsumer) {
+    protected void testAcksAppending(@Nullable final JsonValue ackPayload, final Connection con) {
         final ActorSystem actorSystem = getActorSystem();
         new TestKit(actorSystem) {
             {
@@ -286,7 +275,8 @@ public abstract class AbstractBaseClientActorTest {
 
                 final Acknowledgements acks = connectionActor.expectMsgClass(Acknowledgements.class);
                 for (Acknowledgement ack : acks) {
-                    payloadConsumer.accept(ack.getEntity().orElseThrow());
+                    assertThat(ack.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
+                            .isEqualTo(con.getId().toString());
                 }
             }
         };
