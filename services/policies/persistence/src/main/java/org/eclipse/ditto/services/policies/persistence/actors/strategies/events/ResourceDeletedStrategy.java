@@ -12,26 +12,17 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 
 /**
  * This strategy handles {@link org.eclipse.ditto.signals.events.policies.ResourceDeleted} events.
  */
-final class ResourceDeletedStrategy implements EventStrategy<ResourceDeleted, Policy> {
+final class ResourceDeletedStrategy extends AbstractPolicyEventStrategy<ResourceDeleted> {
 
     @Override
-    public Policy handle(final ResourceDeleted rd, @Nullable final Policy policy, final long revision) {
-        return checkNotNull(policy, "policy").toBuilder()
-                .forLabel(rd.getLabel())
-                .removeResource(rd.getResourceKey())
-                .setRevision(revision)
-                .setModified(rd.getTimestamp().orElse(null))
-                .build();
+    protected PolicyBuilder applyEvent(final ResourceDeleted rd, final PolicyBuilder policyBuilder) {
+        return policyBuilder.removeResourceFor(rd.getLabel(), rd.getResourceKey());
     }
+
 }

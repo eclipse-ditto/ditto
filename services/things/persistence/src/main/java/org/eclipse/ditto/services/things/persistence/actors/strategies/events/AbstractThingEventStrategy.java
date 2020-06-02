@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements EventStrategy<T, Thing> {
 
     /**
-     * Constructs a new {@code AbstractEventStrategy} object.
+     * Constructs a new {@code AbstractThingEventStrategy} object.
      */
     protected AbstractThingEventStrategy() {
         super();

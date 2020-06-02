@@ -23,6 +23,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +58,7 @@ import org.junit.rules.ExpectedException;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.Host;
 import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
@@ -256,6 +258,13 @@ public class ConnectionValidatorTest {
         expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("192.168.0.1"));
         // multicast
         expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("224.0.1.1"));
+    }
+
+    @Test
+    public void expectExceptionForInvalidHost() {
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(
+                () -> ConnectionValidator.isHostForbidden(Host.create("ditto"),
+                        singletonList(InetAddress.getLoopbackAddress())));
     }
 
     private static void expectConnectionConfigurationInvalid(final ConnectionValidator underTest,

@@ -12,19 +12,23 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
+import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
@@ -32,6 +36,11 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -59,14 +68,17 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     private ConnectionId connectionId;
 
     private ConnectionCreated connectionCreated;
-    private ConnectionClosed connectionClosed;
     private ConnectionDeleted connectionDeleted;
 
     private static final ConnectionMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ConnectionMongoSnapshotAdapter();
+    private static ConfigValue blacklistedHosts;
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        blacklistedHosts = Mockito.spy(ConfigValueFactory.fromAnyRef(""));
+        final Config config =
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames", blacklistedHosts);
+        actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
     }
@@ -78,10 +90,10 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @Before
     public void init() {
+        when(blacklistedHosts.unwrapped()).thenCallRealMethod();
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId);
         connectionCreated = ConnectionCreated.of(connection, INSTANT, DittoHeaders.empty());
-        connectionClosed = ConnectionClosed.of(connectionId, INSTANT, DittoHeaders.empty());
         connectionDeleted = ConnectionDeleted.of(connectionId, INSTANT, DittoHeaders.empty());
     }
 
@@ -116,6 +128,32 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
         }};
     }
 
+    @Test
+    public void testRecoveryOfConnectionWithBlacklistedHost() {
+
+        // enable blacklist for this test
+        when(blacklistedHosts.unwrapped()).thenReturn("127.0.0.1");
+
+        new TestKit(actorSystem) {{
+
+            final Queue<ConnectivityEvent> existingEvents = new LinkedList<>(List.of(connectionCreated));
+            final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
+
+            actorSystem.actorOf(fakeProps);
+            expectMsgEquals("persisted");
+
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
+                    pubSubMediator, conciergeForwarder);
+
+            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+
+            final ConnectionConfigurationInvalidException exception =
+                    expectMsgClass(ConnectionConfigurationInvalidException.class);
+            assertThat(exception)
+                    .hasMessageContaining("The configured host '127.0.0.1' may not be used for the connection");
+        }};
+    }
+
     private Connection setLifecycleDeleted(final Connection connection) {
         return connection
                 .toBuilder()
@@ -147,7 +185,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
         static Props props(final ConnectionId connectionId, final ActorRef probe,
                 final Queue<Object> expected) {
-            return Props.create(RecoverActor.class, new Creator<RecoverActor>() {
+            return Props.create(RecoverActor.class, new Creator<>() {
                 private static final long serialVersionUID = 1L;
 
                 @Override
@@ -181,7 +219,8 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             if (next instanceof SnapshotOffer) {
                 final SnapshotOffer expected = (SnapshotOffer) next;
                 if (expected.metadata().sequenceNr() != snapshotOffer.metadata().sequenceNr()) {
-                    fail("expected sequence nr: " + expected.metadata().sequenceNr() + " but got: " + snapshotOffer.metadata().sequenceNr());
+                    fail("expected sequence nr: " + expected.metadata().sequenceNr() + " but got: " +
+                            snapshotOffer.metadata().sequenceNr());
                 }
                 if (!expected.snapshot().equals(SNAPSHOT_ADAPTER.fromSnapshotStore(snapshotOffer))) {
                     fail("expected: " + expected.snapshot() + " but got: " + snapshotOffer.snapshot());
