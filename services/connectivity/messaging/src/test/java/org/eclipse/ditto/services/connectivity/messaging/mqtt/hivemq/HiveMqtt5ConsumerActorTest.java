@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
@@ -24,6 +28,8 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
+import com.hivemq.client.internal.checkpoint.Confirmable;
+import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
 import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserProperties;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
@@ -34,6 +40,8 @@ import akka.actor.Props;
  * Unit test for {@link HiveMqtt5ConsumerActor}.
  */
 public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<Mqtt5Publish> {
+
+    private final CountDownLatch confirmLatch = new CountDownLatch(1);
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
@@ -60,7 +68,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
 
     @Override
     protected Mqtt5Publish getInboundMessage(final Map.Entry<String, Object> header) {
-        return Mqtt5Publish.builder()
+        final Mqtt5Publish mqtt5Publish = Mqtt5Publish.builder()
                 .topic("org.eclipse.ditto.test/testThing/things/twin/commands/modify")
                 .payload(TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8))
                 .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
@@ -69,11 +77,14 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                         .build())
                 .responseTopic(REPLY_TO_HEADER.getValue())
                 .build();
+        final MqttPublish mqttPublish = (MqttPublish) mqtt5Publish;
+        return mqttPublish.withConfirmable(new MockConfirmable());
     }
 
     @Override
-    protected Mqtt5Publish getInboundMessage(final Map.Entry<String, Object> header, final Map.Entry<String, Object> header2) {
-        return Mqtt5Publish.builder()
+    protected Mqtt5Publish getInboundMessage(final Map.Entry<String, Object> header,
+            final Map.Entry<String, Object> header2) {
+        final Mqtt5Publish mqtt5Publish = Mqtt5Publish.builder()
                 .topic("org.eclipse.ditto.test/testThing/things/twin/commands/modify")
                 .payload(TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8))
                 .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
@@ -83,6 +94,31 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                         .build())
                 .responseTopic(REPLY_TO_HEADER.getValue())
                 .build();
+        final MqttPublish mqttPublish = (MqttPublish) mqtt5Publish;
+        return mqttPublish.withConfirmable(new MockConfirmable());
     }
 
+    @Override
+    protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
+        if (isSuccessExpected) {
+            assertThat(confirmLatch.await(3L, TimeUnit.SECONDS))
+                    .describedAs("Expect MQTT5 confirmation")
+                    .isTrue();
+        }
+        // TODO: verify negative ack if supported.
+    }
+
+    private final class MockConfirmable implements Confirmable {
+
+        @Override
+        public long getId() {
+            return 1234L;
+        }
+
+        @Override
+        public boolean confirm() {
+            confirmLatch.countDown();
+            return true;
+        }
+    }
 }

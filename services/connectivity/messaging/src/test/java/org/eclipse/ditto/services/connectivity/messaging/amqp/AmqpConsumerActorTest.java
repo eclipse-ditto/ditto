@@ -20,6 +20,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -27,7 +32,9 @@ import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;
 import javax.jms.MessageConsumer;
 
+import org.apache.qpid.jms.JmsAcknowledgeCallback;
 import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
@@ -70,6 +77,9 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     private static final Connection CONNECTION = TestConstants.createConnectionWithAcknowledgements();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
 
+    private final ConcurrentMap<JmsAcknowledgeCallback, Integer> ackStates = new ConcurrentHashMap<>();
+    private final BlockingQueue<Integer> jmsAcks = new LinkedBlockingQueue<>();
+
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
@@ -109,6 +119,18 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header,
             final Map.Entry<String, Object> header2) {
         return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, header2, REPLY_TO_HEADER);
+    }
+
+    @Override
+    protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
+        final Integer ackType = jmsAcks.poll(3, TimeUnit.SECONDS);
+        if (isSuccessExpected) {
+            assertThat(ackType).describedAs("Expect successful settlement")
+                    .isEqualTo(JmsMessageSupport.ACCEPTED);
+        } else {
+            assertThat(ackType).describedAs("Expect successful settlement")
+                    .isEqualTo(JmsMessageSupport.MODIFIED_FAILED);
+        }
     }
 
     @Test
@@ -187,7 +209,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     }
 
     @SafeVarargs // varargs array is not modified or passed around
-    private static JmsMessage getJmsMessage(final String plainPayload, final String correlationId,
+    private JmsMessage getJmsMessage(final String plainPayload, final String correlationId,
             final Map.Entry<String, ?>... headers) {
         try {
             final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
@@ -202,6 +224,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                     Arrays.stream(headers)
                             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())),
                     Mockito.mock(LoggingAdapter.class));
+            message.setAcknowledgeCallback(mockJmsAcknowledgeCallback());
             return message;
         } catch (final JMSException e) {
             throw new JMSRuntimeException(e.getMessage(), e.getErrorCode(), e.getCause());
@@ -292,6 +315,25 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
                 actorSystem, TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, logger);
+    }
+
+    // JMS acknowledgement methods are package-private and impossible to mock.
+    private JmsAcknowledgeCallback mockJmsAcknowledgeCallback() {
+        // reset ack state
+        final JmsAcknowledgeCallback mock = Mockito.mock(JmsAcknowledgeCallback.class);
+        Mockito.doAnswer(params -> {
+            ackStates.put(mock, params.getArgument(0));
+            return mock;
+        }).when(mock).setAckType(Mockito.anyInt());
+        try {
+            Mockito.doAnswer(params -> {
+                jmsAcks.add(ackStates.getOrDefault(mock, JmsMessageSupport.ACCEPTED));
+                return null;
+            }).when(mock).acknowledge();
+        } catch (final JMSException e) {
+            // can't happen during stubbing.
+        }
+        return mock;
     }
 
 }

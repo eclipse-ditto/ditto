@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -20,7 +21,10 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -32,9 +36,11 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
@@ -189,9 +195,33 @@ public final class AcknowledgementAggregator {
                     .orElse(null);
         }
 
-        addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(DittoAcknowledgementLabel.TWIN_PERSISTED,
+        addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(TWIN_PERSISTED,
                 thingCommandResponse.getEntityId(), thingCommandResponse.getStatusCode(), acknowledgementHeaders,
                 payload));
+    }
+
+    /**
+     * Add a DittoRuntimeException.
+     *
+     * @param dittoRuntimeException the DittoRuntimeException received for an requested acknowledgement.
+     */
+    public void addDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
+        final Set<AcknowledgementLabel> requestedAcks = dittoHeaders.getAcknowledgementRequests()
+                .stream()
+                .map(AcknowledgementRequest::getLabel)
+                .collect(Collectors.toSet());
+        final Optional<AcknowledgementLabel> labelOptional = requestedAcks.contains(TWIN_PERSISTED)
+                ? Optional.of(TWIN_PERSISTED)
+                : requestedAcks.stream().findAny();
+        labelOptional.ifPresent(label -> {
+            final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+            final ThingId thingId = nullableEntityId != null ? ThingId.of(nullableEntityId) : ThingId.dummy();
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(label, thingId, dittoRuntimeException.getStatusCode(), dittoHeaders,
+                            dittoRuntimeException.toJson());
+            addReceivedAcknowledgment(acknowledgement);
+        });
     }
 
     /**

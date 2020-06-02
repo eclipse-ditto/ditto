@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
@@ -24,9 +25,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -45,7 +49,9 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -77,7 +83,6 @@ public abstract class AbstractConsumerActorTest<M> {
             header("requested-acks", JsonValue.of("twin-persisted"));
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
-    private static final int PROCESSOR_POOL_SIZE = 2;
 
     protected static ActorSystem actorSystem;
     protected static ProtocolAdapterProvider protocolAdapterProvider;
@@ -118,7 +123,24 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     @Test
-    public void testSourceAcknowledgementSettlement() {
+    public void testPositiveSourceAcknowledgementSettlement() throws Exception {
+        testSourceAcknowledgementSettlement(true, modifyThing ->
+                ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders())
+        );
+    }
+
+    @Test
+    public void testNegativeSourceAcknowledgementSettlement() throws Exception {
+        testSourceAcknowledgementSettlement(false, modifyThing ->
+                ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
+                        .dittoHeaders(modifyThing.getDittoHeaders())
+                        .build()
+        );
+    }
+
+    private void testSourceAcknowledgementSettlement(final boolean isSuccessExpected,
+            final Function<ModifyThing, Object> responseCreator) throws Exception {
+
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe concierge = TestProbe.apply(actorSystem);
@@ -132,16 +154,20 @@ public abstract class AbstractConsumerActorTest<M> {
 
             final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
             assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            concierge.reply(responseCreator.apply(modifyThing));
 
-            //TODO: ConciergeForwarder doesn't forward response to Ackregator (Either Bug or wrong Mockup)
-            // --> Uncomment after fix
-            //final PublishMappedMessage publishedMessage = clientActor.expectMsgClass(PublishMappedMessage.class);
-            //assertThat(publishedMessage.getOutboundSignal()
-            //        .first()
-            //        .getExternalMessage()
-            //        .getInternalHeaders()
-            //        .getAcknowledgementRequests()
-            //        .toString()).contains(acks.iterator().toString());
+            final PublishMappedMessage publishedMessage = clientActor.expectMsgClass(PublishMappedMessage.class);
+            assertThat(publishedMessage.getOutboundSignal()
+                    .first()
+                    .getExternalMessage()
+                    .getInternalHeaders()
+                    .getAcknowledgementRequests()
+                    .stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .collect(Collectors.toList())
+            ).containsExactly(TWIN_PERSISTED);
+
+            verifyMessageSettlement(isSuccessExpected);
         }};
     }
 
@@ -219,6 +245,8 @@ public abstract class AbstractConsumerActorTest<M> {
 
     protected abstract M getInboundMessage(final Map.Entry<String, Object> header,
             final Map.Entry<String, Object> header2);
+
+    protected abstract void verifyMessageSettlement(boolean isSuccessExpected) throws Exception;
 
     private void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,

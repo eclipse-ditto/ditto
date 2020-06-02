@@ -112,4 +112,9 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
 
 
     }
+
+    @Override
+    protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
+        // TODO
+    }
 }

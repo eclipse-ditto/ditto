@@ -102,6 +102,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             logPositiveAcknowledgements(output.getCommandResponses());
                         } else {
                             reject.run();
+                            logPositiveAcknowledgements(output.getCommandResponses());
                             logNegativeAcknowledgements(failedResponses);
                         }
                     } else {
@@ -129,7 +130,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     /**
      * Log negative acknowledgements.
      *
-     * @param negativeAcks the negative acknowlegements to log.
+     * @param negativeAcks the negative acknowledgements to log.
      */
     protected void logNegativeAcknowledgements(final List<CommandResponse<?>> negativeAcks) {
         negativeAcks.forEach(response -> inboundMonitor.failure(response, "Negative acknowledgement received"));

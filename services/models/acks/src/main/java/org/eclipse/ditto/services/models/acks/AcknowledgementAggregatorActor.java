@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
@@ -189,6 +190,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                 })
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
+                .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
@@ -208,6 +210,14 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private void handleAcknowledgements(final Acknowledgements acknowledgements) {
         acknowledgements.stream().forEach(ackregator::addReceivedAcknowledgment);
         potentiallyCompleteAcknowledgements(null, acknowledgements.getDittoHeaders());
+    }
+
+    private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        ackregator.addDittoRuntimeException(dittoRuntimeException);
+        final Acknowledgements acknowledgements =
+                ackregator.getAggregatedAcknowledgements(dittoRuntimeException.getDittoHeaders());
+        handleSignal(acknowledgements);
+        getContext().stop(getSelf());
     }
 
     private void potentiallyCompleteAcknowledgements(@Nullable final ThingCommandResponse<?> response,

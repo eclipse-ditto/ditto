@@ -33,6 +33,7 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -326,7 +327,12 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            forwardToMappingActor(externalMessage, () -> acknowledge(message), () -> {});
+            forwardToMappingActor(externalMessage,
+                    // JMS client will make these constants package-private.
+                    // TODO: replace JMS client.
+                    () -> acknowledge(message, JmsMessageSupport.ACCEPTED),
+                    () -> acknowledge(message, JmsMessageSupport.MODIFIED_FAILED)
+            );
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
@@ -348,11 +354,18 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         }
     }
 
-    private void acknowledge(final JmsMessage message) {
+    /**
+     * Acknowledge an incoming message with a given acknowledgement type.
+     *
+     * @param message The incoming message.
+     * @param ackType The acknowledgement type corresponding to a delivery state in the disposition.
+     */
+    private void acknowledge(final JmsMessage message, final int ackType) {
         try {
+            message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
         } catch (final JMSException e) {
-            log.error("Failed to ack an AMQP message");
+            log.error(e, "Failed to ack an AMQP message");
         }
     }
 
