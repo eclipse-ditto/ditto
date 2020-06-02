@@ -12,31 +12,17 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.ResourceCreated;
 
 /**
  * This strategy handles {@link org.eclipse.ditto.signals.events.policies.ResourceCreated} events.
  */
-final class ResourceCreatedStrategy implements EventStrategy<ResourceCreated, Policy> {
+final class ResourceCreatedStrategy extends AbstractPolicyEventStrategy<ResourceCreated> {
 
     @Override
-    public Policy handle(final ResourceCreated rc, @Nullable final Policy policy, final long revision) {
-        return checkNotNull(policy, "policy").getEntryFor(rc.getLabel())
-                .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rc.getLabel(),
-                        policyEntry.getSubjects(),
-                        policyEntry.getResources().setResource(rc.getResource())))
-                .map(modifiedPolicyEntry -> policy.toBuilder()
-                        .set(modifiedPolicyEntry)
-                        .setRevision(revision)
-                        .setModified(rc.getTimestamp().orElse(null))
-                        .build())
-                .orElse(policy);
+    protected PolicyBuilder applyEvent(final ResourceCreated rc, final PolicyBuilder policyBuilder) {
+        return policyBuilder.setResourceFor(rc.getLabel(), rc.getResource());
     }
+
 }
