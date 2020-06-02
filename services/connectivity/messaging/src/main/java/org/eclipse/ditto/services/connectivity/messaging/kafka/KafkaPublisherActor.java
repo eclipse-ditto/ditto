@@ -113,16 +113,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         return Props.create(KafkaPublisherActor.class, connection, factory, dryRun);
     }
 
-    private static Sink<ProducerMessage.Results<String, String, PassThrough>, CompletionStage<Done>> publishSuccessSink() {
-
-        // basically, we don't know if the 'publish' will succeed or fail. We would need to write our own
-        // GraphStage actor for Kafka and MQTT, since alpakka doesn't provide this useful information for us.
-        return Sink.foreach(results -> {
-            final ConnectionMonitor connectionMonitor = results.passThrough().connectionMonitor;
-            connectionMonitor.success(results.passThrough().externalMessage);
-        });
-    }
-
     @Override
     public void postStop() throws Exception {
         closeProducer();

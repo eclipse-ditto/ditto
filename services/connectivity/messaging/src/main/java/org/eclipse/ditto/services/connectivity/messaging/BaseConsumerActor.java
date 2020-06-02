@@ -28,8 +28,8 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
@@ -69,15 +69,12 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.source = checkNotNull(source, "source");
         resetResourceStatus();
 
-        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getMonitoringConfig();
+        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
 
-        acknowledgementConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getAcknowledgementConfig();
+        acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
-        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig)
+        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
                 .forInboundConsumed(connectionId, sourceAddress);
     }
 
@@ -85,11 +82,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      * @return the logging adapter of this actor.
      */
     protected abstract DittoDiagnosticLoggingAdapter log();
-
-    // TODO: delete this after all consumer actors have ack support.
-    protected final void forwardToMappingActor(final ExternalMessage message) {
-        forwardToMappingActor(message, () -> {}, () -> {});
-    }
 
     /**
      * Send an external message to the mapping processor actor.
