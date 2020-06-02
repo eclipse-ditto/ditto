@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -73,7 +74,7 @@ public final class HttpRequestActorTest {
     }
 
     @Test
-    public void handlesWhoamiCommand() {
+    public void handlesWhoamiCommand() throws ExecutionException, InterruptedException {
         final DittoHeaders dittoHeaders = createAuthorizedHeaders();
         final Whoami whoami = Whoami.of(dittoHeaders);
         final HttpResponse expectedResponse = createExpectedWhoamiResponse(whoami);
@@ -83,7 +84,7 @@ public final class HttpRequestActorTest {
         final ActorRef underTest = createHttpRequestActor(request, responseFuture);
         underTest.tell(Whoami.of(dittoHeaders), ActorRef.noSender());
 
-        assertThat(responseFuture).isCompletedWithValue(expectedResponse);
+        assertThat(responseFuture.get()).isEqualTo(expectedResponse);
     }
 
     private ActorRef createHttpRequestActor(final HttpRequest request, final CompletableFuture<HttpResponse> response) {
