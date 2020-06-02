@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
@@ -25,7 +26,10 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
+import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
@@ -40,6 +44,16 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
+
+    private static Optional<Channel> getChannel() {
+        final ConnectionFactory con = new MockConnectionFactory();
+        try {
+            return Optional.ofNullable(con.newConnection().createChannel());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
             final Set<AcknowledgementLabel> acknowledgements) {
@@ -50,7 +64,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .acknowledgements(acknowledgements)
-                        .build(),
+                        .build(), getChannel().orElseThrow(),
                 CONNECTION_ID);
     }
 
@@ -63,7 +77,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .payloadMapping(payloadMapping)
-                        .build(),
+                        .build(), getChannel().orElseThrow(),
                 CONNECTION_ID);
     }
 

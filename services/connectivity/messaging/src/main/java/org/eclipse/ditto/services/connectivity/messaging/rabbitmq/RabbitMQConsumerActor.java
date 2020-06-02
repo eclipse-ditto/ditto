@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
@@ -62,10 +64,11 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     @Nullable
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
+    private final Channel channel;
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final Source source) {
+            final ActorRef messageMappingProcessor, final Source source, final Channel channel) {
         super(connectionId, sourceAddress, messageMappingProcessor, source);
         headerEnforcementFilterFactory =
                 source.getEnforcement()
@@ -74,6 +77,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                                         PlaceholderFactory.newHeadersPlaceholder()))
                         .orElse(null);
         this.payloadMapping = source.getPayloadMapping();
+        this.channel = channel;
     }
 
     @Override
@@ -91,9 +95,11 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final String sourceAddress, final ActorRef messageMappingProcessor, final Source source,
+            Channel channel,
             final ConnectionId connectionId) {
 
-        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, messageMappingProcessor, source);
+        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, messageMappingProcessor, source,
+                channel);
     }
 
     @Override
@@ -140,7 +146,26 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundMonitor.success(externalMessage);
-            forwardToMappingActor(externalMessage);
+
+            forwardToMappingActor(externalMessage,
+                    () -> {
+                        try {
+                            channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+                        } catch (IOException e) {
+                            log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
+                                    e.getMessage());
+                            inboundMonitor.exception(e);
+                        }
+                    },
+                    () -> {
+                        try {
+                            channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);
+                        } catch (IOException e) {
+                            log.error("Negative Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
+                                    e.getMessage());
+                            inboundMonitor.exception(e);
+                        }
+                    });
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
