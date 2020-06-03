@@ -1102,24 +1102,19 @@ public final class ImmutableThingTest {
 
     }
 
-    // TODO: Fix test
-//    @Test
-//    public void createThingWithInvalidCharactersInId() {
-//        final List<String> invalidCharacters = Arrays.asList(" ", "/", "?", "#", "%");
-//
-//        invalidCharacters.forEach(invalidCharacter ->
-//                assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
-//                        ImmutableThing.of(
-//                                "ns:thingIdWithAnd" + invalidCharacter,
-//                                ACL,
-//                                ATTRIBUTES,
-//                                FEATURES,
-//                                LIFECYCLE,
-//                                REVISION,
-//                                MODIFIED)
-//                )
-//        );
-//
-//    }
+    @Test
+    public void createThingWithInvalidCharactersInId() {
+        final String invalidCharacter = "/";
+        assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
+                ImmutableThing.of(
+                        "ns:thingIdWithAnd" + invalidCharacter,
+                        ACL,
+                        ATTRIBUTES,
+                        FEATURES,
+                        LIFECYCLE,
+                        REVISION,
+                        MODIFIED)
+        );
+    }
 
 }

@@ -64,7 +64,7 @@ public final class CreatePolicyTest {
 
     @Test(expected = PolicyIdInvalidException.class)
     public void tryToCreateInstanceWithInvalidPolicyId() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder("test.ns:foo bar")
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder("test.ns:foo/bar")
                 .set(TestConstants.Policy.POLICY_ENTRY)
                 .build();
 
