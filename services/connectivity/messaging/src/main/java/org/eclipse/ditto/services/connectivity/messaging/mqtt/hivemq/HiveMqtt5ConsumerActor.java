@@ -42,6 +42,9 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
+import com.hivemq.client.internal.mqtt.message.publish.puback.MqttPubAck;
+import com.hivemq.client.internal.mqtt.message.publish.pubcomp.MqttPubComp;
+import com.hivemq.client.internal.mqtt.message.publish.pubrec.MqttPubRec;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
@@ -105,11 +108,32 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
                         message -> log.info("Dropping message in dryRun mode: {}", message))
                 .match(Mqtt5Publish.class, this::handleMqttMessage)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
+                .match(MqttPubAck.class, this::logPubAck)
+                .match(MqttPubRec.class, this::logPubRec)
+                .match(MqttPubComp.class, this::logPubComp)
                 .matchAny(unhandled -> {
                     log.info("Unhandled message: {}", unhandled);
                     unhandled(unhandled);
                 })
                 .build();
+    }
+
+    // TODO: stop logging acks at error level
+    private void logPubAck(final MqttPubAck pubAck) {
+        inboundMonitor.exception("Sending PUBACK[package={0}, reason={1}]", pubAck.getPacketIdentifier(),
+                pubAck.getReasonCode());
+    }
+
+    // TODO: stop logging acks at error level
+    private void logPubRec(final MqttPubRec pubRec) {
+        inboundMonitor.exception("Sending PUBREC[package={0}, reason={1}]", pubRec.getPacketIdentifier(),
+                pubRec.getReasonCode());
+    }
+
+    // TODO: stop logging acks at error level
+    private void logPubComp(final MqttPubComp pubComp) {
+        inboundMonitor.exception("Sending PUBCOMP[package={0}, reason={1}]", pubComp.getPacketIdentifier(),
+                pubComp.getReasonCode());
     }
 
     private void handleMqttMessage(final Mqtt5Publish message) {

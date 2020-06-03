@@ -32,9 +32,20 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt5SubscriptionHandler.Mqtt5Consumer;
 
+import com.hivemq.client.internal.mqtt.message.publish.puback.MqttPubAckBuilder;
+import com.hivemq.client.internal.mqtt.message.publish.pubcomp.MqttPubCompBuilder;
+import com.hivemq.client.internal.mqtt.message.publish.pubrec.MqttPubRecBuilder;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientConfig;
+import com.hivemq.client.mqtt.mqtt5.advanced.interceptor.qos2.Mqtt5IncomingQos2Interceptor;
 import com.hivemq.client.mqtt.mqtt5.lifecycle.Mqtt5ClientConnectedContext;
 import com.hivemq.client.mqtt.mqtt5.lifecycle.Mqtt5ClientDisconnectedContext;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.hivemq.client.mqtt.mqtt5.message.publish.puback.Mqtt5PubAckBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.publish.pubcomp.Mqtt5PubCompBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.publish.pubrec.Mqtt5PubRecBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.publish.pubrel.Mqtt5PubRel;
 
 import akka.actor.ActorRef;
 import akka.actor.FSM;
@@ -126,15 +137,64 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
         final ActorRef self = getContext().getSelf();
 
         try {
-            client = clientFactory.newClient(connection, mqttClientId, true,
+            client = addIntercepters(clientFactory.newClientBuilder(connection, mqttClientId, true,
                     connected -> self.tell(connected, ActorRef.noSender()),
-                    disconnected -> self.tell(disconnected, ActorRef.noSender()));
+                    disconnected -> self.tell(disconnected, ActorRef.noSender())));
 
             this.subscriptionHandler = new HiveMqtt5SubscriptionHandler(connection, client, log);
         } catch (final Exception e) {
             log.debug("Connecting failed ({}): {}", e.getClass().getName(), e.getMessage());
             self.tell(new ImmutableConnectionFailure(self, e, null), self);
         }
+    }
+
+    private Mqtt5Client addIntercepters(final Mqtt5ClientBuilder builder) {
+        return builder.advancedConfig()
+                .interceptors()
+                .incomingQos1Interceptor(this::logPubAck)
+                .incomingQos2Interceptor(logPubRec())
+                .applyInterceptors()
+                .applyAdvancedConfig()
+                .build();
+    }
+
+    private void logPubAck(final Mqtt5ClientConfig clientConfig, final Mqtt5Publish publish,
+            final Mqtt5PubAckBuilder pubAckBuilder) {
+
+        if (pubAckBuilder instanceof MqttPubAckBuilder) {
+            forwardToAnyConsumerActor(((MqttPubAckBuilder) pubAckBuilder).build());
+        }
+    }
+
+    // TODO: this is not correct: acks are logged at random consumer actors regardless of where they stem from.
+    // TODO: interceptors and consumers need some way to talk to each other.
+    private void forwardToAnyConsumerActor(final Object message) {
+        if (subscriptionHandler != null) {
+            subscriptionHandler.findAnyConsumerActor()
+                    .ifPresent(consumer -> consumer.tell(message, ActorRef.noSender()));
+        }
+    }
+
+    private Mqtt5IncomingQos2Interceptor logPubRec() {
+        return new Mqtt5IncomingQos2Interceptor() {
+            @Override
+            public void onPublish(final Mqtt5ClientConfig clientConfig, final Mqtt5Publish publish,
+                    final Mqtt5PubRecBuilder pubRecBuilder) {
+
+                if (pubRecBuilder instanceof MqttPubRecBuilder) {
+                    forwardToAnyConsumerActor(((MqttPubRecBuilder) pubRecBuilder).build());
+                }
+            }
+
+            @Override
+            public void onPubRel(final Mqtt5ClientConfig clientConfig, final Mqtt5PubRel pubRel,
+                    final Mqtt5PubCompBuilder pubCompBuilder) {
+
+                if (pubCompBuilder instanceof MqttPubCompBuilder) {
+                    forwardToAnyConsumerActor(((MqttPubCompBuilder) pubCompBuilder).build());
+                }
+            }
+        };
     }
 
     private String resolveMqttClientId(final ConnectionId connectionId, final MqttSpecificConfig mqttSpecificConfig) {

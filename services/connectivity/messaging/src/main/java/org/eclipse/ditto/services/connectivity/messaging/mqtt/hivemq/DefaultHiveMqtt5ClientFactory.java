@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
@@ -53,6 +52,16 @@ public final class DefaultHiveMqtt5ClientFactory implements HiveMqtt5ClientFacto
 
     @Override
     public Mqtt5Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
+            @Nullable final MqttClientConnectedListener connectedListener,
+            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+
+        return newClientBuilder(connection, identifier, allowReconnect, connectedListener, disconnectedListener)
+                .build();
+    }
+
+    @Override
+    public Mqtt5ClientBuilder newClientBuilder(final Connection connection, final String identifier,
+            final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
         final Mqtt5ClientBuilder mqtt5ClientBuilder = MqttClient.builder().useMqttVersion5();
@@ -94,7 +103,7 @@ public final class DefaultHiveMqtt5ClientFactory implements HiveMqtt5ClientFacto
         if (null != disconnectedListener) {
             mqtt5ClientBuilder.addDisconnectedListener(disconnectedListener);
         }
-        return mqtt5ClientBuilder.identifier(identifier).build();
+        return mqtt5ClientBuilder.identifier(identifier);
     }
 
     private static boolean isSecuredConnection(final String protocol) {

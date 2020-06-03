@@ -38,6 +38,9 @@ import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
+import com.hivemq.client.mqtt.mqtt5.advanced.Mqtt5ClientAdvancedConfigBuilder;
+import com.hivemq.client.mqtt.mqtt5.advanced.interceptor.Mqtt5ClientInterceptorsBuilder;
 import com.hivemq.client.mqtt.mqtt5.lifecycle.Mqtt5ClientConnectedContext;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
@@ -163,6 +166,28 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
         });
 
         return client;
+    }
+
+    @Override
+    public Mqtt5ClientBuilder newClientBuilder(final Connection connection, final String identifier,
+            final boolean allowReconnect,
+            @Nullable final MqttClientConnectedListener connectedListener,
+            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+        final Mqtt5Client client =
+                newClient(connection, identifier, allowReconnect, connectedListener, disconnectedListener);
+        final Mqtt5ClientBuilder builder = Mockito.mock(Mqtt5ClientBuilder.class);
+        final Mqtt5ClientAdvancedConfigBuilder.Nested<Mqtt5ClientBuilder> advancedConfig =
+                Mockito.mock(Mqtt5ClientAdvancedConfigBuilder.Nested.class);
+        final Mqtt5ClientInterceptorsBuilder.Nested<Mqtt5ClientAdvancedConfigBuilder.Nested<Mqtt5ClientBuilder>>
+                interceptors = Mockito.mock(Mqtt5ClientInterceptorsBuilder.Nested.class);
+        Mockito.doReturn(client).when(builder).build();
+        Mockito.doReturn(advancedConfig).when(builder).advancedConfig();
+        Mockito.doReturn(interceptors).when(advancedConfig).interceptors();
+        Mockito.doReturn(interceptors).when(interceptors).incomingQos1Interceptor(any());
+        Mockito.doReturn(interceptors).when(interceptors).incomingQos2Interceptor(any());
+        Mockito.doReturn(advancedConfig).when(interceptors).applyInterceptors();
+        Mockito.doReturn(builder).when(advancedConfig).applyAdvancedConfig();
+        return builder;
     }
 
 }

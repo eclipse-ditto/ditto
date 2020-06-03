@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 
 /**
  * Factory used to create {@link Mqtt5Client}s.
@@ -39,6 +40,22 @@ public interface HiveMqtt5ClientFactory {
      * @return the new {@link Mqtt5Client}
      */
     Mqtt5Client newClient(Connection connection, String identifier, boolean allowReconnect,
+            @Nullable MqttClientConnectedListener connectedListener,
+            @Nullable MqttClientDisconnectedListener disconnectedListener);
+
+    /**
+     * Creates a new {@link Mqtt5Client}.
+     *
+     * @param connection the connection containing the configuration
+     * @param identifier the identifier of the client
+     * @param allowReconnect whether client can be configured with automatic reconnect enabled, e.g. reconnect must
+     * be disabled for testing a connection
+     * @param connectedListener the connected listener passed to the created client
+     * @param disconnectedListener the disconnected listener passed to the created client
+     * @return the new {@link Mqtt5Client}
+     * @since 1.2.0
+     */
+    Mqtt5ClientBuilder newClientBuilder(Connection connection, String identifier, boolean allowReconnect,
             @Nullable MqttClientConnectedListener connectedListener,
             @Nullable MqttClientDisconnectedListener disconnectedListener);
 

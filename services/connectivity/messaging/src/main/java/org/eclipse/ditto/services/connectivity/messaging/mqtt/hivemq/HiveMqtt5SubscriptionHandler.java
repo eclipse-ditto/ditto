@@ -81,6 +81,10 @@ final class HiveMqtt5SubscriptionHandler {
         subscribeIfReady();
     }
 
+    Optional<ActorRef> findAnyConsumerActor() {
+        return consumerActors.values().stream().findAny();
+    }
+
     CompletionStage<Status.Status> getCompletionStage() {
         return subscriptionsDone;
     }
