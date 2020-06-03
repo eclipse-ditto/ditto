@@ -102,7 +102,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         externalMessageOptional.ifPresent(externalMessage ->
                 // negative PUBACK not possible with MQTT3
-                forwardToMappingActor(externalMessage, () -> acknowledge(message), () -> {})
+                forwardToMappingActor(externalMessage, () -> acknowledge(message), redeliver -> {})
         );
     }
 

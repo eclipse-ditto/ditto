@@ -157,9 +157,9 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                             inboundMonitor.exception(e);
                         }
                     },
-                    () -> {
+                    requeue -> {
                         try {
-                            channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);
+                            channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
                         } catch (IOException e) {
                             log.error("Negative Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());

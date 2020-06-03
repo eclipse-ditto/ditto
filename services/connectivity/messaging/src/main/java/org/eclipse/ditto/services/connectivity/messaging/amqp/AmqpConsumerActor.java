@@ -331,7 +331,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     // JMS client will make these constants package-private.
                     // TODO: replace JMS client.
                     () -> acknowledge(message, JmsMessageSupport.ACCEPTED),
-                    () -> acknowledge(message, JmsMessageSupport.MODIFIED_FAILED)
+                    redeliver -> acknowledge(message, redeliver
+                            ? JmsMessageSupport.MODIFIED_FAILED
+                            : JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE)
             );
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());

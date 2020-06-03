@@ -92,7 +92,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      * @param reject technically reject the incoming message. MUST be thread-safe.
      */
     protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
-            final Runnable reject) {
+            final Reject reject) {
         forwardAndAwaitAck(addSourceAndReplyTarget(message))
                 .whenComplete((output, error) -> {
                     if (output != null) {
@@ -101,17 +101,15 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             settle.run();
                             logPositiveAcknowledgements(output.getCommandResponses());
                         } else {
-                            reject.run();
-                            logPositiveAcknowledgements(output.getCommandResponses());
+                            reject.reject(true);
                             logNegativeAcknowledgements(failedResponses);
+                            logPositiveAcknowledgements(output.getSuccessfulResponses());
                         }
                     } else {
-                        reject.run();
+                        reject.reject(false);
                         inboundFailure(error);
                     }
                 })
-                //TODO: Settlement of acknowledgements fails, because CommandResponses are not correctly forwarded to
-                // ResponseCollectorActor = Timeout
                 .exceptionally(e -> {
                     log().error(e, "Unexpected error during manual acknowledgement.");
                     return null;
@@ -189,12 +187,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         messageMappingProcessor.tell(message, responseCollector);
         // 3. ask response collector actor to get the collected responses in a future
 
-        //TODO: Replace with sufficient way to assure ResponseCollector count is increased before query
-        try {
-            Thread.sleep(1500L);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
         return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
             if (output instanceof ResponseCollectorActor.Output) {
                 return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);
@@ -224,4 +216,17 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         return InstanceIdentifierSupplier.getInstance().get();
     }
 
+    /**
+     * Reject an incoming message.
+     */
+    @FunctionalInterface
+    public interface Reject {
+
+        /**
+         * Reject a message.
+         *
+         * @param shouldRedeliver whether the broker should redeliver.
+         */
+        void reject(boolean shouldRedeliver);
+    }
 }

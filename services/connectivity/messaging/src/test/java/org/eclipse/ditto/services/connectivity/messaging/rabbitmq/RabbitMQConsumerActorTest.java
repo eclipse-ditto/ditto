@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
@@ -25,11 +27,10 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.mockito.Mockito;
 
-import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
@@ -44,15 +45,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
-
-    private static Optional<Channel> getChannel() {
-        final ConnectionFactory con = new MockConnectionFactory();
-        try {
-            return Optional.ofNullable(con.newConnection().createChannel());
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
+    private final Channel channel = Mockito.mock(Channel.class);
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
@@ -64,7 +57,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .acknowledgements(acknowledgements)
-                        .build(), getChannel().orElseThrow(),
+                        .build(),
+                channel,
                 CONNECTION_ID);
     }
 
@@ -77,7 +71,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .payloadMapping(payloadMapping)
-                        .build(), getChannel().orElseThrow(),
+                        .build(),
+                channel,
                 CONNECTION_ID);
     }
 
@@ -115,6 +110,10 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
 
     @Override
     protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
-        // TODO
+        if (isSuccessExpected) {
+            Mockito.verify(channel, Mockito.timeout(3000L)).basicAck(anyLong(), eq(false));
+        } else {
+            Mockito.verify(channel, Mockito.timeout(3000L)).basicNack(anyLong(), eq(false), eq(true));
+        }
     }
 }

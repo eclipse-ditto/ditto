@@ -236,11 +236,6 @@
             <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.github.fridujo</groupId>
-            <artifactId>rabbitmq-mock</artifactId>
-            <version>1.1.0</version>
-        </dependency>
     </dependencies>
 
 </project>

@@ -105,8 +105,8 @@ public abstract class AbstractConsumerActorTest<M> {
     @AfterClass
     public static void tearDown() {
         if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
+            disableLogging(actorSystem);
+            TestKit.shutdownActorSystem(actorSystem);
         }
     }
 

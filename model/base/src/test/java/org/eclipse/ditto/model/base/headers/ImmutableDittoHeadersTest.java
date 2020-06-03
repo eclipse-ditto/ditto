@@ -101,6 +101,7 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_ENTITY_ID = "known:entityId";
     private static final String KNOWN_WWW_AUTHENTICATION = "known:www-authentication";
     private static final String KNOWN_LOCATION = "known:location";
+    private static final String KNOWN_CONNECTION_ID = "known-connection-id";
 
     @Test
     public void assertImmutability() {
@@ -141,6 +142,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .timeout(KNOWN_TIMEOUT)
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -347,6 +349,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
                 .set(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
                 .set(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
+                .set(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -523,7 +526,8 @@ public final class ImmutableDittoHeadersTest {
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
+        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),
+                AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID);
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
@@ -548,6 +552,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO);
         result.put(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION);
         result.put(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION);
+        result.put(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID);
 
         return result;
     }

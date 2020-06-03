@@ -550,8 +550,6 @@ public final class MessageMappingProcessorActor
     private void handleInboundException(final Exception e, final ExternalMessageWithSender withSender,
             @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
 
-        // tell sender the mapping exception to negatively acknowledge the inbound signal right away
-        withSender.sender.tell(e, ActorRef.noSender());
         final ExternalMessage message = withSender.externalMessage;
         if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;

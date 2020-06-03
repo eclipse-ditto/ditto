@@ -56,13 +56,11 @@ import com.rabbitmq.client.impl.DefaultExceptionHandler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.Scheduler;
 import akka.actor.Status;
 import akka.japi.pf.FI;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import scala.Option;
-import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -345,8 +343,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final String addressWithIndex = sourceAddress + "-" + i;
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source, channel,
-                                        connectionId()));
+                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source,
+                                        channel, connectionId()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,
@@ -486,23 +484,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
 
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-            try {
-                consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
-            } catch (final Exception e) {
-                connectionLogger.failure("Failed to process delivery {0}: {1}", envelope.getDeliveryTag(),
-                        e.getMessage());
-                log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
-            } finally {
-                try {
-                    // TODO: only acknowledge after collecting acknowledgements.
-                    getChannel().basicAck(envelope.getDeliveryTag(), false);
-                } catch (final IOException e) {
-                    connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(),
-                            e.getMessage());
-                    log.info("Failed to ack delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
-                }
-            }
+            consumerActor.tell(new Delivery(envelope, properties, body), getSelf());
         }
 
         @Override

@@ -131,13 +131,25 @@ public final class ResponseCollectorActor extends AbstractActor {
         }
 
         /**
-         * @return Whether the expected number of responses arrived and all are successful.
+         * @return list of failed responses.
          */
         public List<CommandResponse<?>> getFailedResponses() {
             return commandResponses.stream()
-                    .filter(response ->
-                            response.getStatusCode().isClientError() || response.getStatusCode().isInternalError())
+                    .filter(Output::isFailedResponse)
                     .collect(Collectors.toList());
+        }
+
+        /**
+         * @return list of successful responses.
+         */
+        public List<CommandResponse<?>> getSuccessfulResponses() {
+            return commandResponses.stream()
+                    .filter(response -> !isFailedResponse(response))
+                    .collect(Collectors.toList());
+        }
+
+        private static boolean isFailedResponse(final CommandResponse<?> response) {
+            return response.getStatusCode().isClientError() || response.getStatusCode().isInternalError();
         }
     }
 
