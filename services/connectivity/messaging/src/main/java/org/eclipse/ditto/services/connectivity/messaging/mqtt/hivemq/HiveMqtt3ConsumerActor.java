@@ -101,8 +101,10 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
         log.debug("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         externalMessageOptional.ifPresent(externalMessage ->
-                // negative PUBACK not possible with MQTT3
-                forwardToMappingActor(externalMessage, () -> acknowledge(message), redeliver -> {})
+                // negative PUBREC not possible with MQTT3
+                forwardToMappingActor(externalMessage, () -> acknowledge(message),
+                        redeliver -> inboundMonitor.exception(
+                                "Withholding PUBREC or PUBACK due to unfulfilled acknowledgements."))
         );
     }
 

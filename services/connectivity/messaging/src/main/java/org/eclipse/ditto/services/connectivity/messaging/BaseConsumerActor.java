@@ -99,11 +99,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
                             settle.run();
-                            logPositiveAcknowledgements(output.getCommandResponses());
                         } else {
                             reject.reject(true);
-                            logNegativeAcknowledgements(failedResponses);
-                            logPositiveAcknowledgements(output.getSuccessfulResponses());
                         }
                     } else {
                         reject.reject(false);
@@ -123,24 +120,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected final void forwardToMappingActor(final DittoRuntimeException message) {
         messageMappingProcessor.tell(message, ActorRef.noSender());
-    }
-
-    /**
-     * Log negative acknowledgements.
-     *
-     * @param negativeAcks the negative acknowledgements to log.
-     */
-    protected void logNegativeAcknowledgements(final List<CommandResponse<?>> negativeAcks) {
-        negativeAcks.forEach(response -> inboundMonitor.failure(response, "Negative acknowledgement received"));
-    }
-
-    /**
-     * Log positive acknowledgements.
-     *
-     * @param negativeAcks the negative acknowlegements to log.
-     */
-    protected void logPositiveAcknowledgements(final List<CommandResponse<?>> negativeAcks) {
-        negativeAcks.forEach(response -> inboundMonitor.success(response, "Acknowledgement received"));
     }
 
     protected void resetResourceStatus() {

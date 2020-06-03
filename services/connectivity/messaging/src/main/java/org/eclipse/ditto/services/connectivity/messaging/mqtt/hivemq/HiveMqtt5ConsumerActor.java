@@ -126,7 +126,9 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
                 // .build()
                 // TODO: signature change of HiveMqtt5ClientFactory will be required.
                 // TODO: beware: 1 mqtt message may be sent to multiple consumer actors due to overlapping topics.
-                forwardToMappingActor(externalMessage, () -> acknowledge(message), redeliver -> {})
+                forwardToMappingActor(externalMessage, () -> acknowledge(message),
+                        redeliver -> inboundMonitor.exception(
+                                "Withholding PUBREC or PUBACK due to unfulfilled acknowledgements."))
         );
     }
 

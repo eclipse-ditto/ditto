@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
+import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
@@ -330,10 +332,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             forwardToMappingActor(externalMessage,
                     // JMS client will make these constants package-private.
                     // TODO: replace JMS client.
-                    () -> acknowledge(message, JmsMessageSupport.ACCEPTED),
-                    redeliver -> acknowledge(message, redeliver
-                            ? JmsMessageSupport.MODIFIED_FAILED
-                            : JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE)
+                    () -> acknowledge(message, JmsMessageSupport.ACCEPTED, true, "accepted"),
+                    redeliver -> acknowledge(
+                            message,
+                            redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE,
+                            false,
+                            redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]"
+                    )
             );
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
@@ -361,11 +366,17 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      *
      * @param message The incoming message.
      * @param ackType The acknowledgement type corresponding to a delivery state in the disposition.
+     * @param isSuccess Whether this ackType is considered a success.
+     * @param ackTypeName The AMQP delivery state corresponding to ackType.
      */
-    private void acknowledge(final JmsMessage message, final int ackType) {
+    private void acknowledge(final JmsMessage message, final int ackType, final boolean isSuccess,
+            final String ackTypeName) {
         try {
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
+            if (!isSuccess) {
+                inboundMonitor.exception("Sending negative acknowledgement {0}.", ackTypeName);
+            }
         } catch (final JMSException e) {
             log.error(e, "Failed to ack an AMQP message");
         }
