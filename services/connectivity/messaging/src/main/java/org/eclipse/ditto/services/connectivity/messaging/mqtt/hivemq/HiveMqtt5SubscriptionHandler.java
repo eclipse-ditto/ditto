@@ -146,7 +146,7 @@ final class HiveMqtt5SubscriptionHandler {
     private CompletableFuture<Mqtt5SubAck> subscribe(final Source source, final Mqtt5Subscribe mqtt5Subscribe,
             final ActorRef consumerActor) {
         return client.toAsync()
-                .subscribe(mqtt5Subscribe, msg -> consumerActor.tell(msg, ActorRef.noSender()))
+                .subscribe(mqtt5Subscribe, msg -> consumerActor.tell(msg, ActorRef.noSender()), true)
                 .whenComplete((mqtt5SubAck, throwable) -> {
                     if (throwable != null) {
                         // Handle failure to subscribe
