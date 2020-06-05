@@ -244,9 +244,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     potentiallyCompleteAcknowledgements(requestDittoHeaders, ackregator);
                 })
                 .match(Acknowledgements.class, acks -> {
-                    // TODO: rationalize this.
-                    final DittoHeaders dittoHeaders = getExternalHeaders(acks.getDittoHeaders());
-                    acks.forEach(ack -> ackregator.addReceivedAcknowledgment(ack.setDittoHeaders(dittoHeaders)));
+                    acks.forEach(ack -> ackregator.addReceivedAcknowledgment(
+                            ack.setDittoHeaders(getExternalHeaders(ack.getDittoHeaders()))));
                     potentiallyCompleteAcknowledgements(requestDittoHeaders, ackregator);
                 })
                 .match(ReceiveTimeout.class, receiveTimeout -> {

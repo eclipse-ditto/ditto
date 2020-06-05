@@ -51,9 +51,10 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
     private static final int DEFAULT_REQUEST_TIMEOUT = 5000;
-    // using 0 means fire&forget -> we will ignore if the receiver is not available
-    private static final int DEFAULT_SEND_TIMEOUT = 0;
-    private static final boolean DEFAULT_PRESETTLE_PRODUCERS_VALUE = true;
+
+    // max milliseconds waiting for disposition from broker - see AmqpProvider.java:1444 for the time unit milliseconds
+    // using 0 means sent messages are always considered to have failed
+    private static final int DEFAULT_SEND_TIMEOUT = 120_000;
 
     /**
      * Input buffer size for consumers. Set to a small value to prevent flooding.
@@ -169,9 +170,6 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         }
         if (!specificConfig.containsKey("jms.requestTimeout")) {
             jmsParams.add("jms.requestTimeout=" + DEFAULT_REQUEST_TIMEOUT);
-        }
-        if (!specificConfig.containsKey("jms.presettlePolicy.presettleProducers")) {
-            jmsParams.add("jms.presettlePolicy.presettleProducers=" + DEFAULT_PRESETTLE_PRODUCERS_VALUE);
         }
 
         if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {

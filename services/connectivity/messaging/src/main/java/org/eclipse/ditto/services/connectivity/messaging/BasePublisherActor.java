@@ -209,8 +209,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         log().debug("Publishing mapped message of type <{}> to targets <{}>: {}",
                 outboundSource.getType(), outbound.getTargets(), message);
 
-        // TODO: using reply-target header to circumvent target list. Check if it works.
-
         final Optional<SendingContext> replyTargetSendingContext = outbound.getSource()
                 .getDittoHeaders()
                 .getReplyTarget()
