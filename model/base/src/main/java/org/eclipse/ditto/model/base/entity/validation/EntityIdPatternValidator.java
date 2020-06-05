@@ -56,7 +56,7 @@ public final class EntityIdPatternValidator extends AbstractPatternValidator {
             throw NamespacedEntityIdInvalidException.newBuilder(sp).build();
         }
 
-        if (sp.length() > MAX_LENGTH) {
+        if (name.length() > MAX_LENGTH) {
             throw NamespacedEntityIdInvalidException.newBuilder(sp).build();
         }
 
