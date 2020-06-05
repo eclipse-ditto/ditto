@@ -44,7 +44,7 @@ public interface HiveMqtt5ClientFactory {
             @Nullable MqttClientDisconnectedListener disconnectedListener);
 
     /**
-     * Creates a new {@link Mqtt5Client}.
+     * Creates a new {@link Mqtt5ClientBuilder}.
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
@@ -52,7 +52,7 @@ public interface HiveMqtt5ClientFactory {
      * be disabled for testing a connection
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
-     * @return the new {@link Mqtt5Client}
+     * @return the new {@link Mqtt5ClientBuilder}
      * @since 1.2.0
      */
     Mqtt5ClientBuilder newClientBuilder(Connection connection, String identifier, boolean allowReconnect,

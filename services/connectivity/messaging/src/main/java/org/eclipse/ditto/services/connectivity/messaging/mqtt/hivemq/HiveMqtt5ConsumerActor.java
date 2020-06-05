@@ -42,9 +42,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
-import com.hivemq.client.internal.mqtt.message.publish.puback.MqttPubAck;
-import com.hivemq.client.internal.mqtt.message.publish.pubcomp.MqttPubComp;
-import com.hivemq.client.internal.mqtt.message.publish.pubrec.MqttPubRec;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
@@ -108,9 +105,6 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
                         message -> log.info("Dropping message in dryRun mode: {}", message))
                 .match(Mqtt5Publish.class, this::handleMqttMessage)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
-                .match(MqttPubAck.class, this::logPubAck)
-                .match(MqttPubRec.class, this::logPubRec)
-                .match(MqttPubComp.class, this::logPubComp)
                 .matchAny(unhandled -> {
                     log.info("Unhandled message: {}", unhandled);
                     unhandled(unhandled);
@@ -118,38 +112,10 @@ public final class HiveMqtt5ConsumerActor extends BaseConsumerActor {
                 .build();
     }
 
-    // TODO: stop logging acks at error level
-    private void logPubAck(final MqttPubAck pubAck) {
-        inboundMonitor.exception("Sending PUBACK[package={0}, reason={1}]", pubAck.getPacketIdentifier(),
-                pubAck.getReasonCode());
-    }
-
-    // TODO: stop logging acks at error level
-    private void logPubRec(final MqttPubRec pubRec) {
-        inboundMonitor.exception("Sending PUBREC[package={0}, reason={1}]", pubRec.getPacketIdentifier(),
-                pubRec.getReasonCode());
-    }
-
-    // TODO: stop logging acks at error level
-    private void logPubComp(final MqttPubComp pubComp) {
-        inboundMonitor.exception("Sending PUBCOMP[package={0}, reason={1}]", pubComp.getPacketIdentifier(),
-                pubComp.getReasonCode());
-    }
-
     private void handleMqttMessage(final Mqtt5Publish message) {
         log.debug("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         externalMessageOptional.ifPresent(externalMessage ->
-                // TODO: confirm whether negative ack is possible
-                // TODO: consider adding negative acks with:
-                // client.builder().advancedConfig().interceptors()
-                // .incomingQoS1Interceptor(...)
-                // .incomingQoS2Interceptor(...)
-                // .applyInterceptors()
-                // .applyAdvancedConfig()
-                // .build()
-                // TODO: signature change of HiveMqtt5ClientFactory will be required.
-                // TODO: beware: 1 mqtt message may be sent to multiple consumer actors due to overlapping topics.
                 forwardToMappingActor(externalMessage, () -> acknowledge(message),
                         redeliver -> inboundMonitor.exception(
                                 "Withholding PUBREC or PUBACK due to unfulfilled acknowledgements."))

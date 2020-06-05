@@ -32,8 +32,11 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt5SubscriptionHandler.Mqtt5Consumer;
 
+import com.hivemq.client.internal.mqtt.message.publish.puback.MqttPubAck;
 import com.hivemq.client.internal.mqtt.message.publish.puback.MqttPubAckBuilder;
+import com.hivemq.client.internal.mqtt.message.publish.pubcomp.MqttPubComp;
 import com.hivemq.client.internal.mqtt.message.publish.pubcomp.MqttPubCompBuilder;
+import com.hivemq.client.internal.mqtt.message.publish.pubrec.MqttPubRec;
 import com.hivemq.client.internal.mqtt.message.publish.pubrec.MqttPubRecBuilder;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
@@ -137,7 +140,7 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
         final ActorRef self = getContext().getSelf();
 
         try {
-            client = addIntercepters(clientFactory.newClientBuilder(connection, mqttClientId, true,
+            client = addInterceptors(clientFactory.newClientBuilder(connection, mqttClientId, true,
                     connected -> self.tell(connected, ActorRef.noSender()),
                     disconnected -> self.tell(disconnected, ActorRef.noSender())));
 
@@ -148,7 +151,7 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
         }
     }
 
-    private Mqtt5Client addIntercepters(final Mqtt5ClientBuilder builder) {
+    private Mqtt5Client addInterceptors(final Mqtt5ClientBuilder builder) {
         return builder.advancedConfig()
                 .interceptors()
                 .incomingQos1Interceptor(this::logPubAck)
@@ -162,16 +165,9 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
             final Mqtt5PubAckBuilder pubAckBuilder) {
 
         if (pubAckBuilder instanceof MqttPubAckBuilder) {
-            forwardToAnyConsumerActor(((MqttPubAckBuilder) pubAckBuilder).build());
-        }
-    }
-
-    // TODO: this is not correct: acks are logged at random consumer actors regardless of where they stem from.
-    // TODO: interceptors and consumers need some way to talk to each other.
-    private void forwardToAnyConsumerActor(final Object message) {
-        if (subscriptionHandler != null) {
-            subscriptionHandler.findAnyConsumerActor()
-                    .ifPresent(consumer -> consumer.tell(message, ActorRef.noSender()));
+            final MqttPubAck pubAck = ((MqttPubAckBuilder) pubAckBuilder).build();
+            connectionLogger.success("Sending PUBACK[package={0}, reason={1}]", pubAck.getPacketIdentifier(),
+                    pubAck.getReasonCode());
         }
     }
 
@@ -182,7 +178,9 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
                     final Mqtt5PubRecBuilder pubRecBuilder) {
 
                 if (pubRecBuilder instanceof MqttPubRecBuilder) {
-                    forwardToAnyConsumerActor(((MqttPubRecBuilder) pubRecBuilder).build());
+                    final MqttPubRec pubRec = ((MqttPubRecBuilder) pubRecBuilder).build();
+                    connectionLogger.success("Sending PUBREC[package={0}, reason={1}]", pubRec.getPacketIdentifier(),
+                            pubRec.getReasonCode());
                 }
             }
 
@@ -191,7 +189,9 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
                     final Mqtt5PubCompBuilder pubCompBuilder) {
 
                 if (pubCompBuilder instanceof MqttPubCompBuilder) {
-                    forwardToAnyConsumerActor(((MqttPubCompBuilder) pubCompBuilder).build());
+                    final MqttPubComp pubComp = ((MqttPubCompBuilder) pubCompBuilder).build();
+                    connectionLogger.success("Sending PUBCOMP[package={0}, reason={1}]", pubComp.getPacketIdentifier(),
+                            pubComp.getReasonCode());
                 }
             }
         };

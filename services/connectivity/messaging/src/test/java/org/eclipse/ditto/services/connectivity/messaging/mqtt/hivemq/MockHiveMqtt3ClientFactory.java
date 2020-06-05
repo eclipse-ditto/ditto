@@ -39,6 +39,7 @@ import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientConnectedContext;
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3ConnectBuilder;
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck;
@@ -163,6 +164,18 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
         });
 
         return client;
+    }
+
+    @Override
+    public Mqtt3ClientBuilder newClientBuilder(final Connection connection, final String identifier,
+            final boolean allowReconnect,
+            @Nullable final MqttClientConnectedListener connectedListener,
+            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+        final Mqtt3Client client =
+                newClient(connection, identifier, allowReconnect, connectedListener, disconnectedListener);
+        final Mqtt3ClientBuilder builder = Mockito.mock(Mqtt3ClientBuilder.class);
+        Mockito.doReturn(client).when(builder).build();
+        return builder;
     }
 
 }
