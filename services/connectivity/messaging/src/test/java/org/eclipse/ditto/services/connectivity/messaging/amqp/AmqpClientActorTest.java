@@ -182,7 +182,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Before
     public void init() throws JMSException {
         Mockito.reset(mockConnection, mockSession, mockConsumer);
-        when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
+        when(mockConnection.createSession(anyInt())).thenReturn(mockSession);
         listenerArgumentCaptor = ArgumentCaptor.forClass(JmsConnectionListener.class);
         doNothing().when(mockConnection).addConnectionListener(listenerArgumentCaptor.capture());
         prepareSession(mockSession, mockConsumer);
@@ -411,7 +411,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testCreateSessionFails() throws JMSException {
         new TestKit(actorSystem) {{
-            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenThrow(JMS_EXCEPTION);
+            when(mockConnection.createSession(anyInt())).thenThrow(JMS_EXCEPTION);
             final Props props =
                     AmqpClientActor.propsForTests(connection, getRef(),
                             getRef(), (ac, el) -> mockConnection);
@@ -425,7 +425,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testCreateConsumerFails() throws JMSException {
         new TestKit(actorSystem) {{
-            doReturn(mockSession).when(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
+            doReturn(mockSession).when(mockConnection).createSession(anyInt());
             when(mockSession.createConsumer(any())).thenThrow(JMS_EXCEPTION);
             final Props props =
                     AmqpClientActor.propsForTests(connection, getRef(),
@@ -465,7 +465,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         doReturn(mockSession) // initial session
                 .doReturn(newSession) // recovered session
                 .when(mockConnection)
-                .createSession(Session.CLIENT_ACKNOWLEDGE);
+                .createSession(anyInt());
         prepareSession(newSession, recoveredConsumer);
 
         new TestKit(actorSystem) {{
@@ -490,7 +490,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             // now close session
             jmsConnectionListener.onConnectionRestored(URI.create("amqp://broker:5671"));
-            verify(mockConnection, timeout(2000).times(2)).createSession(Session.CLIENT_ACKNOWLEDGE);
+            verify(mockConnection, timeout(2000).times(2)).createSession(anyInt());
 
             // close is called on old session
             verify(mockSession, timeout(2000).times(2)).close();
@@ -852,7 +852,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         final CountDownLatch latch = new CountDownLatch(1);
         try {
             new TestKit(actorSystem) {{
-                when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE))
+                when(mockConnection.createSession(anyInt()))
                         .thenAnswer(invocationOnMock -> waitForLatchAndReturn(latch, mockSession));
                 final Props props =
                         AmqpClientActor.propsForTests(connection, getRef(), getRef(),
