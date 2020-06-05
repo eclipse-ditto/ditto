@@ -57,6 +57,18 @@ import akka.event.DiagnosticLoggingAdapter;
 public final class JMSConnectionHandlingActor extends AbstractActor {
 
     /**
+     * Magic number to activate individual message acknowledgement. Qpid JMS client provides no public constant for
+     * this value but permits its use for session creation.
+     * <p>
+     * Reference:
+     * JmsAcknowledgeCallback.java:51 individual acknowledgement is performed when envelope is set
+     * JmsMessageConsumer.java:500    envelope is set when session has ack mode 101
+     * JmsConnection.java:315         ack mode is passed verbatim to JmsSession constructor after validation
+     * JmsConnection.java:554         call to JmsSession.validateSessionMode, which accepts 101 as valid
+     */
+    private final int JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER = 101;
+
+    /**
      * The Actor name prefix.
      */
     static final String ACTOR_NAME_PREFIX = "jmsConnectionHandling-";
@@ -266,7 +278,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private Session createSession(final JmsConnection jmsConnection) {
         final Session session = safelyExecuteJmsOperation(jmsConnection, "create session",
-                () -> (jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE)));
+                () -> (jmsConnection.createSession(JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER)));
         currentSession = session;
         return session;
     }
