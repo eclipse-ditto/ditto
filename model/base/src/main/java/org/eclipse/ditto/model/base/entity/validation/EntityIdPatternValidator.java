@@ -37,15 +37,14 @@ public final class EntityIdPatternValidator extends AbstractPatternValidator {
 
     @Override
     public boolean isValid(final CharSequence toBeValidated) {
-        if (toBeValidated.length() > MAX_LENGTH) {
-            return false;
-        }
         final Matcher matcher = ID_PATTERN.matcher(toBeValidated);
+
         if (matcher.matches()) {
             this.tuple =
                     new RepresentationTuple(matcher.group(NAMESPACE_GROUP_NAME), matcher.group(ENTITY_NAME_GROUP_NAME));
-            return true;
+            return this.tuple.name.length() <= MAX_LENGTH;
         }
+
         return false;
     }
 

@@ -95,24 +95,24 @@ public class DefaultNamespacedEntityIdTest {
     }
 
     @Test
-    public void canHaveMaximumLengthOf256Characters() {
-        final int maximumAllowedCharactersForName = 255 - VALID_NAMESPACE.length();
-        final StringBuilder nameWithMaximumLength = new StringBuilder();
-        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
-            nameWithMaximumLength.append("a");
-        }
+    public void nameCanHaveMaximumLengthOf256Characters() {
+        final StringBuilder nameWithMaximumLength = generateNameWithMaximumLength();
         assertValidId(VALID_NAMESPACE, nameWithMaximumLength.toString());
     }
 
     @Test
-    public void cannotHaveMoreThan256Characters() {
-        final int maximumAllowedCharactersForName = 256 - VALID_NAMESPACE.length();
-        final StringBuilder nameWithMaximumLength = new StringBuilder();
-        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
-            nameWithMaximumLength.append("a");
-        }
-
+    public void nameCannotHaveMoreThan256Characters() {
+        final StringBuilder nameWithMaximumLength = generateNameWithMaximumLength();
         assertInValidId(VALID_NAMESPACE, nameWithMaximumLength.append("a").toString());
+    }
+
+    private StringBuilder generateNameWithMaximumLength() {
+        final int charactersForName = 256;
+        final StringBuilder name = new StringBuilder();
+        for (int i = 0; i < charactersForName; i++) {
+            name.append("a");
+        }
+        return name;
     }
 
     @Test

@@ -74,11 +74,11 @@
             <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.bosch.iot.things.services.connectivity</groupId>
-            <artifactId>things-services-connectivity-starter</artifactId>
-            <version>1.1.1</version>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>com.bosch.iot.things.services.connectivity</groupId>-->
+        <!--            <artifactId>things-services-connectivity-starter</artifactId>-->
+        <!--            <version>1.1.1</version>-->
+        <!--        </dependency>-->
     </dependencies>
 
 </project>
