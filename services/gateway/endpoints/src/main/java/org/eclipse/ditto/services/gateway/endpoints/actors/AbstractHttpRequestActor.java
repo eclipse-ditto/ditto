@@ -37,6 +37,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.DefaultUserInformation;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.UserInformation;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
@@ -51,6 +55,7 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -144,6 +149,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                     }
                 })
+                .match(Whoami.class, this::handleWhoami)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
                         receiveTimeout -> handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
@@ -275,19 +281,47 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders));
     }
 
+    private void handleWhoami(final Whoami command) {
+        logger.withCorrelationId(command).debug("Got Whoami.", command);
+        final ActorContext context = getContext();
+        final WhoamiResponse response = createWhoamiResponse(command);
+        context.become(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command)));
+        getSelf().tell(response, getSender());
+    }
+
+    /**
+     * Provide an adequate {@link WhoamiResponse} as answer for an {@link Whoami}.
+     * @param request the request which should be answered.
+     * @return the correct {@link WhoamiResponse} for the {@code request}.
+     */
+    // intentionally protected to allow overwriting this in extensions
+    protected WhoamiResponse createWhoamiResponse(final Whoami request) {
+        final DittoHeaders dittoHeaders = request.getDittoHeaders();
+        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(dittoHeaders.getAuthorizationContext());
+        return WhoamiResponse.of(userInformation, dittoHeaders);
+    }
+
     private void handleCommandWithResponse(final Command<?> command, final Receive awaitCommandResponseBehavior) {
         logger.withCorrelationId(command).debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, getSelf());
 
         final ActorContext context = getContext();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        context.setReceiveTimeout(
-                dittoHeaders.getTimeout()
-                        .orElse(commandConfig.getDefaultTimeout()) // if no specific timeout was configured, use the default command timeout
-        );
+        if (!isDevOpsCommand(command)) {
+            // DevOpsCommands do have their own timeout mechanism, don't reply with a command timeout for the user
+            //  for DevOps commands, so only set the receiveTimeout for non-DevOps commands:
+            context.setReceiveTimeout(
+                    dittoHeaders.getTimeout()
+                            .orElse(commandConfig.getDefaultTimeout()) // if no specific timeout was configured, use the default command timeout
+            );
+        }
 
         // After a Command was received, this Actor can only receive the correlating CommandResponse:
         context.become(awaitCommandResponseBehavior);
+    }
+
+    private static boolean isDevOpsCommand(final Command<?> command) {
+        return command instanceof DevOpsCommand;
     }
 
     private void handleMessageCommand(final MessageCommand<?, ?> command) {

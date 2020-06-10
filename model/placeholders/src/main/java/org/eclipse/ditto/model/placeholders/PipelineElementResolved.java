@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.placeholders;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -63,6 +64,20 @@ final class PipelineElementResolved implements PipelineElement {
     @Override
     public Iterator<String> iterator() {
         return Collections.singletonList(value).iterator();
+    }
+
+    @Override
+    public boolean equals(final Object that) {
+        if (that instanceof PipelineElementResolved) {
+            return Objects.equals(value, ((PipelineElementResolved) that).value);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 
     @Override

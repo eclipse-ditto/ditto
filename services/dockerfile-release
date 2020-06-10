@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11-openj9:x86_64-alpine-jdk-11.0.5_10_openj9-0.17.0-slim
+FROM adoptopenjdk/openjdk11-openj9:x86_64-alpine-jdk-11.0.7_10_openj9-0.20.0-slim
 
 ARG MAVEN_REPO=https://repo.eclipse.org/content/repositories/ditto/org/eclipse/ditto/
 ARG SERVICE_STARTER

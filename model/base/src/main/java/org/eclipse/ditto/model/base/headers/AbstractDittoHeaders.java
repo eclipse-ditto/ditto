@@ -135,6 +135,9 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public AuthorizationContext getAuthorizationContext() {
+        /**
+         * TODO: remove this duplication when removing {@link JsonSchemaVersion#V_1}.
+         */
         return duplicateSubjectsByStrippingIssuerPrefix(AuthorizationModelFactory.newAuthContext(
                 getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)));
     }

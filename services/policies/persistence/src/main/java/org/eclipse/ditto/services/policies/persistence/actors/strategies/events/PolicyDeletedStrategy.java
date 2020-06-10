@@ -12,29 +12,18 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 
 /**
  * This strategy handles {@link org.eclipse.ditto.signals.events.policies.PolicyDeleted} events.
  */
-final class PolicyDeletedStrategy implements EventStrategy<PolicyDeleted, Policy> {
+final class PolicyDeletedStrategy extends AbstractPolicyEventStrategy<PolicyDeleted> {
 
-    @Nullable
     @Override
-    public Policy handle(final PolicyDeleted event, @Nullable final Policy policy, final long revision) {
-        if (policy != null) {
-            return policy.toBuilder()
-                    .setLifecycle(PolicyLifecycle.DELETED)
-                    .setRevision(revision)
-                    .setModified(event.getTimestamp().orElse(null))
-                    .build();
-        } else {
-            return null;
-        }
+    protected PolicyBuilder applyEvent(final PolicyDeleted pd, final PolicyBuilder policyBuilder) {
+        return policyBuilder.setLifecycle(PolicyLifecycle.DELETED);
     }
+
 }
