@@ -81,12 +81,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     /**
-     * performance optimization: only validate values types if they were not yet validated
-     * when passing in DittoHeaders, we can be sure that they already are valid
-     * TODO TJ
-     * @param initialHeaders
-     * @param definitions
-     * @param selfType
+     * Constructs a new {@code AbstractDittoHeadersBuilder} object based on an existing {@code DittoHeaders} instance
+     * applying a performance optimization: skipping the validation of values types as we can be sure that they already
+     * are valid when being passed in as DittoHeaders.
+     *
+     * @param initialHeaders initial DittoHeaders.
+     * @param definitions a collection of all well known {@link HeaderDefinition}s of this builder. The definitions
+     * are used for header value validation.
+     * @param selfType this type is used to simulate the "self type" of the returned object for Method Chaining of
+     * the builder methods.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final R initialHeaders,
