@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -39,9 +38,8 @@ public final class AcceptAnyTrustManager implements X509TrustManager {
     }
 
     @Override
-    @Nullable
     public X509Certificate[] getAcceptedIssuers() {
-        return null;
+        return new X509Certificate[0];
     }
 
     @Override
