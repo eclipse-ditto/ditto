@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -53,30 +54,44 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     private final ConnectionId connectionId;
     private final Uri baseUri;
     private final int parallelism;
-    private final SSLContextCreator sslContextCreator;
 
     @Nullable
     private final ClientTransport clientTransport;
 
+    @Nullable
+    private final HttpsConnectionContext httpsConnectionContext;
+
     private DefaultHttpPushFactory(final ConnectionId connectionId, final Uri baseUri, final int parallelism,
-            final SSLContextCreator sslContextCreator, final HttpPushConfig httpPushConfig) {
+            final HttpPushConfig httpPushConfig, @Nullable final HttpsConnectionContext httpsConnectionContext) {
         this.connectionId = connectionId;
         this.baseUri = baseUri;
         this.parallelism = parallelism;
-        this.sslContextCreator = sslContextCreator;
         if (!httpPushConfig.getHttpProxyConfig().isEnabled()) {
             clientTransport = null;
         } else {
             clientTransport = httpPushConfig.getHttpProxyConfig().toClientTransport();
         }
+        this.httpsConnectionContext = httpsConnectionContext;
     }
 
     static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig) {
         final ConnectionId connectionId = connection.getId();
         final Uri baseUri = Uri.create(connection.getUri());
         final int parallelism = parseParallelism(connection.getSpecificConfig());
-        final SSLContextCreator sslContextCreator = SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
-        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, sslContextCreator, httpPushConfig);
+
+        final HttpsConnectionContext httpsConnectionContext;
+        if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
+            final SSLContextCreator sslContextCreator =
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
+            final SSLContext sslContext = connection.getCredentials()
+                    .map(credentials -> credentials.accept(sslContextCreator))
+                    .orElse(sslContextCreator.withoutClientCertificate());
+            httpsConnectionContext = ConnectionContext.https(sslContext);
+        } else {
+            httpsConnectionContext = null;
+        }
+
+        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, httpPushConfig, httpsConnectionContext);
     }
 
     @Override
@@ -128,9 +143,9 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         final Http http = Http.get(system);
         final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
         final Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> flow;
-        if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
+        if (null != httpsConnectionContext) {
             final ConnectHttp connectHttpsWithCustomSSLContext =
-                    ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(getHttpsConnectionContext());
+                    ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(httpsConnectionContext);
             // explicitly added <T> as in (some?) IntelliJ idea the line would show an error:
             flow = http.<T>cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
@@ -147,10 +162,6 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         return clientTransport == null
                 ? settings
                 : settings.withTransport(clientTransport);
-    }
-
-    private HttpsConnectionContext getHttpsConnectionContext() {
-        return ConnectionContext.https(sslContextCreator.withoutClientCertificate());
     }
 
     /**
