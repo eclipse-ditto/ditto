@@ -150,7 +150,9 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             forwardToMappingActor(externalMessage,
                     () -> {
                         try {
-                            channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+                            final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+                            channel.basicAck(deliveryTag, false);
+                            inboundMonitor.getLogger().success("Sending basic.ack: deliveryTag={0}", deliveryTag);
                         } catch (IOException e) {
                             log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
@@ -160,10 +162,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                     requeue -> {
                         try {
                             channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
-                            inboundMonitor.exception("Sending negative acknowledgement: deliveryTag={0}, requeue={0}",
+                            inboundMonitor.exception("Sending basic.nack: deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (IOException e) {
-                            log.error("Negative Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
+                            log.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
                             inboundMonitor.exception(e);
                         }
