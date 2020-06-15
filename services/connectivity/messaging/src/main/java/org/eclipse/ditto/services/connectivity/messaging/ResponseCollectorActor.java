@@ -29,6 +29,8 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Actor that collects a fixed number of command responses, which may be acknowledgements.
+ *
+ * @since 1.2.0
  */
 public final class ResponseCollectorActor extends AbstractActor {
 
