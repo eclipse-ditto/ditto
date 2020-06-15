@@ -83,6 +83,12 @@
             <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-things</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -133,7 +139,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <excludePackageNames>org.eclipse.ditto.services.utils.akka.logging</excludePackageNames>
+                    <excludePackageNames>
+                        org.eclipse.ditto.services.utils.akka.logging;
+                        org.eclipse.ditto.services.utils.akka.controlflow
+                    </excludePackageNames>
                 </configuration>
             </plugin>
 

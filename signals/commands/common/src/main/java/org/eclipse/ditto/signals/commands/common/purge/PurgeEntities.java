@@ -12,10 +12,11 @@
  */
 package org.eclipse.ditto.signals.commands.common.purge;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +35,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
@@ -47,7 +50,7 @@ import org.eclipse.ditto.signals.commands.common.CommonCommand;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = PurgeEntities.TYPE_PREFIX, name = PurgeEntities.NAME)
-public final class PurgeEntities extends CommonCommand<PurgeEntities> {
+public final class PurgeEntities extends CommonCommand<PurgeEntities> implements WithEntityType {
 
     /**
      * The name of the command.
@@ -61,37 +64,36 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String entityType;
+    private final EntityType entityType;
     private final List<EntityId> entityIds;
 
-    private PurgeEntities(final CharSequence entityType,
-            final Iterable<EntityId> entityIds, final DittoHeaders dittoHeaders) {
+    private PurgeEntities(final EntityType entityType, final Collection<? extends EntityId> entityIds,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, Category.DELETE, dittoHeaders);
-
-        checkNotNull(entityType);
-        checkNotNull(entityIds);
-        if (!entityIds.iterator().hasNext()) {
-            throw new IllegalArgumentException("entityIds must not be empty");
-        }
-
-        this.entityType = entityType.toString();
-
-        final List<EntityId> entityIdsList = new ArrayList<>();
-        entityIds.forEach(entityIdsList::add);
-        this.entityIds = Collections.unmodifiableList(entityIdsList);
+        this.entityType = entityType;
+        this.entityIds = Collections.unmodifiableList(new ArrayList<>(entityIds));
     }
 
     /**
-     * Returns a new instance.
+     * Returns a new instance of this class.
      *
      * @param entityType the type of the entities to be purged.
-     * @param entityIds the IDs of the entities to be purged
+     * @param entityIds the IDs of the entities to be purged.
      * @param dittoHeaders the headers of the command.
      * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code entityIds} is empty.
      */
-    public static PurgeEntities of(final CharSequence entityType,
-            final Iterable<EntityId> entityIds, final DittoHeaders dittoHeaders) {
-        return new PurgeEntities(entityType, entityIds, dittoHeaders);
+    public static PurgeEntities of(final EntityType entityType, final Collection<? extends EntityId> entityIds,
+            final DittoHeaders dittoHeaders) {
+
+        return new PurgeEntities(validateEntityType(entityType), argumentNotEmpty(entityIds, "entityIds"),
+                dittoHeaders);
+    }
+
+    private static EntityType validateEntityType(final EntityType entityType) {
+        return checkNotNull(entityType, "entityType");
     }
 
     /**
@@ -103,28 +105,22 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
      */
     public static PurgeEntities fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<PurgeEntities>(TYPE, jsonObject).deserialize(() -> {
-            final String entityType = jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE);
+            final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
             final List<EntityId> entityIds = jsonObject.getValueOrThrow(JsonFields.ENTITY_IDS).stream()
                     .map(JsonValue::asString)
                     .map(DefaultEntityId::of)
                     .collect(Collectors.toList());
 
-            return new PurgeEntities(entityType, entityIds, dittoHeaders);
+            return of(entityType, entityIds, dittoHeaders);
         });
     }
 
-    public static String getTopic(final String entityType) {
-        requireNonNull(entityType);
-
-        return TYPE + ':' + entityType;
+    public static String getTopic(final EntityType entityType) {
+        return TYPE + ':' + validateEntityType(entityType);
     }
 
-    /**
-     * Returns the type of the entities to be purged.
-     *
-     * @return the type of the entities
-     */
-    public String getEntityType() {
+    @Override
+    public EntityType getEntityType() {
         return entityType;
     }
 
@@ -139,7 +135,7 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
 
     @Override
     public PurgeEntities setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new PurgeEntities(entityType, entityIds, dittoHeaders);
+        return of(entityType, entityIds, dittoHeaders);
     }
 
     @Override
@@ -159,16 +155,16 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
             return false;
         }
         final PurgeEntities that = (PurgeEntities) o;
-        return Objects.equals(entityType, that.entityType) &&
-                Objects.equals(entityIds, that.entityIds);
+        return Objects.equals(entityType, that.entityType) && Objects.equals(entityIds, that.entityIds);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> aPredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(aPredicate);
 
-        jsonObjectBuilder.set(JsonFields.ENTITY_TYPE, entityType, predicate);
+        jsonObjectBuilder.set(JsonFields.ENTITY_TYPE, entityType.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.ENTITY_IDS, JsonArray.of(entityIds), predicate);
     }
 

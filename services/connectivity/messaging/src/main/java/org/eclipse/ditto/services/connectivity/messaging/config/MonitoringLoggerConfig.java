@@ -24,7 +24,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
  */
 @Immutable
 public interface MonitoringLoggerConfig {
-    // TODO: rename to getXy
 
     /**
      * Returns the number of success logs stored for each {@link org.eclipse.ditto.model.connectivity.LogCategory} and
@@ -41,6 +40,13 @@ public interface MonitoringLoggerConfig {
      * @return the failure capacity.
      */
     int failureCapacity();
+
+    /**
+     * Returns the maximum length of all log entries JSON representation.
+     *
+     * @return maximum length of all log entries JSON representation.
+     */
+    long maxLogSizeInBytes();
 
     /**
      * Returns how long logs will stay enabled after enabling them.
@@ -73,6 +79,11 @@ public interface MonitoringLoggerConfig {
          * {@link org.eclipse.ditto.model.connectivity.LogType}.
          */
         FAILURE_CAPACITY("failureCapacity", 10),
+
+        /**
+         * The maximum length of aggregated log entries in JSON representation. This is related to maximum-frame-size.
+         */
+        MAX_LOG_SIZE_BYTES("maxLogSizeBytes", 250_000),
 
         /**
          * How long logs will stay enabled after enabling them.

@@ -114,9 +114,7 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
       ((size: String) => SearchModelFactory.newSizeOption(java.lang.Integer.valueOf(size)))
   }
 
-  private def CursorString: Rule1[String] = rule {
-    capture(oneOrMore(CharPredicate.from(_ != ')')))
-  }
+  private def CursorString: Rule1[String] = PropertyLiteral
 }
 
 /**

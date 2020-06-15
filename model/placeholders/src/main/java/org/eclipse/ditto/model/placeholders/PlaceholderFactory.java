@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
  * Factory that creates instances of {@link Placeholder}, {@link PlaceholderResolver}s and {@link ExpressionResolver}s.
@@ -39,6 +38,20 @@ public final class PlaceholderFactory {
      */
     public static ThingPlaceholder newThingPlaceholder() {
         return ImmutableThingPlaceholder.INSTANCE;
+    }
+
+    /**
+     * @return new instance of the {@link PolicyPlaceholder}
+     */
+    public static PolicyPlaceholder newPolicyPlaceholder() {
+        return ImmutablePolicyPlaceholder.INSTANCE;
+    }
+
+    /**
+     * @return new instance of the {@link EntityPlaceholder}
+     */
+    public static EntityPlaceholder newEntityPlaceholder() {
+        return ImmutableEntityPlaceholder.INSTANCE;
     }
 
     /**

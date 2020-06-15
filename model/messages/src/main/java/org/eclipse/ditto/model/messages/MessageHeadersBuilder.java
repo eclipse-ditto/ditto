@@ -18,7 +18,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -46,7 +45,15 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
                     MessageHeaderDefinition.SUBJECT));
 
     private MessageHeadersBuilder(final Map<String, String> headers) {
-        super(headers, Arrays.asList(MessageHeaderDefinition.values()), MessageHeadersBuilder.class);
+        super(headers, determineMessageHeaderDefinitions(), MessageHeadersBuilder.class);
+    }
+
+    private static Set<MessageHeaderDefinition> determineMessageHeaderDefinitions() {
+        final Set<MessageHeaderDefinition> result = EnumSet.allOf(MessageHeaderDefinition.class);
+
+        // remove deprecated timeout entry as this is now defined in DittoHeaderDefinitions
+        result.remove(MessageHeaderDefinition.TIMEOUT);
+        return result;
     }
 
     /**
@@ -113,11 +120,33 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     }
 
     private static void validateMandatoryHeaders(final Map<String, String> headers) {
+        // check all mandatory headers are non-null
         for (final MessageHeaderDefinition mandatoryHeader : MANDATORY_HEADERS) {
-            if (!headers.containsKey(mandatoryHeader.getKey())) {
+            final String mandatoryHeaderValue = headers.get(mandatoryHeader.getKey());
+            if (mandatoryHeaderValue == null) {
                 final String msgTemplate = "The headers did not contain a value for mandatory header with key <{0}>!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, mandatoryHeader.getKey()));
             }
+        }
+        // check non-emptiness of subject
+        final String subjectHeaderKey = MessageHeaderDefinition.SUBJECT.getKey();
+        if (headers.get(subjectHeaderKey).isEmpty()) {
+            final String msgTemplate = "Message subject may not be empty!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate, subjectHeaderKey));
+        }
+        // validate thing ID header against its model
+        ThingId.of(headers.get(MessageHeaderDefinition.THING_ID.getKey()));
+
+        // validate direction header against its enum
+        final String directionHeaderValue = headers.get(MessageHeaderDefinition.DIRECTION.getKey());
+        if (!MessageDirection.FROM.name().equals(directionHeaderValue) &&
+                !MessageDirection.TO.name().equals(directionHeaderValue)) {
+            final String msgTemplate = "Message direction must be one of: <{1}>, <{2}>!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate,
+                    MessageHeaderDefinition.DIRECTION.getKey(),
+                    MessageDirection.FROM,
+                    MessageDirection.TO
+            ));
         }
     }
 
@@ -167,9 +196,13 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param timeout the duration of the Message to time out.
      * @return this builder to allow method chaining.
+     * @deprecated as of version 1.1.0 please use
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(Duration)} instead.
      */
+    @Override
+    @Deprecated
     public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
-        final MessageHeaderDefinition definition = MessageHeaderDefinition.TIMEOUT;
+        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
         if (null != timeout) {
             putCharSequence(definition, String.valueOf(timeout.getSeconds()));
         } else {
@@ -183,7 +216,11 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param timeoutInSeconds the seconds of the Message to time out.
      * @return this builder to allow method chaining.
+     * @deprecated as of 1.1.0 please use
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(CharSequence)} instead.
+     * This method will be removed in version 2.0.
      */
+    @Deprecated
     public MessageHeadersBuilder timeout(final long timeoutInSeconds) {
         return timeout(Duration.ofSeconds(timeoutInSeconds));
     }

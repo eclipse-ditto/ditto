@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors;
 
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
@@ -21,7 +22,6 @@ import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersisten
 import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -45,7 +45,7 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
-                PolicyCommand.RESOURCE_TYPE,
+                PolicyConstants.ENTITY_TYPE,
                 namespaceOps,
                 entitiesOps,
                 persistenceOperationsConfig,

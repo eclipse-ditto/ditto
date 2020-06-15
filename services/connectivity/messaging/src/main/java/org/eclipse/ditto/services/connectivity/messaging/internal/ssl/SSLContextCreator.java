@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -44,7 +43,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private SSLContextCreator(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable String hostname) {
+            @Nullable final String hostname) {
         this.exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
@@ -55,7 +54,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private SSLContextCreator(final TrustManager trustManager,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable String hostname) {
+            @Nullable final String hostname) {
         this.exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
@@ -85,8 +84,13 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      */
     public static SSLContextCreator fromConnection(final Connection connection,
             @Nullable final DittoHeaders dittoHeaders) {
-        final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-        return of(trustedCertificates, dittoHeaders, connection.getHostname());
+        final boolean isValidateCertificates = connection.isValidateCertificates();
+        if (isValidateCertificates) {
+            final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
+            return of(trustedCertificates, dittoHeaders, connection.getHostname());
+        } else {
+            return withTrustManager(new AcceptAnyTrustManager(), dittoHeaders);
+        }
     }
 
     /**
@@ -104,8 +108,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     }
 
     @Override
-    public SSLContext clientCertificate(@Nonnull final ClientCertificateCredentials credentials) {
-
+    public SSLContext clientCertificate(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
 
@@ -121,10 +124,10 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         final TrustManager[] trustManagers;
         if (trustManagerFactory != null) {
             trustManagers = DittoTrustManager.wrapTrustManagers(trustManagerFactory.getTrustManagers(), hostname);
-        }  else if (trustManager != null) {
-            trustManagers = new TrustManager[] {trustManager};
+        } else if (trustManager != null) {
+            trustManagers = new TrustManager[]{trustManager};
         } else {
-            throw new IllegalArgumentException("cannot happen");
+            trustManagers = null;
         }
 
         return newTLSContext(keyManagers, trustManagers);

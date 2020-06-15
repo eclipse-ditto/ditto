@@ -17,18 +17,25 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DefaultDittoHeadersBuilder.of;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -194,12 +201,12 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void tryToSetAuthSubjectsAsGenericKeyValuePairWithInvalidValue() {
-        final String key = DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey();
+        final String key = DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey();
         final String value = AUTHORIZATION_SUBJECTS.get(0);
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("The value '%s' of the header '%s' is not a valid JSON array.", value, key)
+                .withMessage("The value '%s' of the header '%s' is not a valid JSON object.", value, key)
                 .withNoCause();
     }
 
@@ -207,8 +214,8 @@ public final class DefaultDittoHeadersBuilderTest {
     public void putValidHeaderWorksAsExpected() {
         final String key = "foo";
         final String value = "bar";
-
         underTest.putHeader(key, value);
+
         final DittoHeaders dittoHeaders = underTest.build();
 
         assertThat(dittoHeaders).containsOnly(entry(key, value));
@@ -258,19 +265,98 @@ public final class DefaultDittoHeadersBuilderTest {
                 .removeHeader(rsKey)
                 .build();
 
-        assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(rsKey);
+        assertThat(dittoHeaders)
+                .hasSize(2)
+                .doesNotContainKeys(rsKey);
     }
 
     @Test
     public void removePreconditionHeaders() {
-
         final DittoHeaders dittoHeaders = underTest
                 .ifMatch(EntityTagMatchers.fromStrings("\"test\""))
                 .ifNoneMatch(EntityTagMatchers.fromStrings("\"test2\""))
                 .removePreconditionHeaders()
                 .build();
 
-        assertThat(dittoHeaders).hasSize(0);
+        assertThat(dittoHeaders).isEmpty();
     }
 
+    @Test
+    public void tryToPutMapWithInvalidMessageHeader() {
+        final String key = DittoHeaderDefinition.TIMEOUT.getKey();
+        final String invalidValue = "bar";
+
+        final Map<String, String> invalidHeaders = new HashMap<>();
+        invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/json");
+        invalidHeaders.put(key, invalidValue);
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
+                .withMessage("The value '%s' of the header '%s' is not a valid duration.", invalidValue, key)
+                .withNoCause();
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(false)
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(false);
+    }
+
+    @Test
+    public void ensureResponseRequiredStaysFalseEvenWhenAcksAreRequested() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(false)
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
+                .build();
+
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseForHeadersWithZeroTimeout() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(true)
+                .timeout(Duration.ZERO)
+                .build();
+
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseEvenIfAcksAreRequestedWithTimeoutZero() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
+                .timeout("0ms")
+                .build();
+
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
+    }
+
+
+    @Test
+    public void removesDuplicatedAuthSubjects() {
+        final Collection<String> authSubjectsWithDuplicates = Arrays.asList("test:sub", "sub");
+        final AuthorizationContext authorizationContextWithDuplicates =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        authSubjectsWithDuplicates.stream()
+                                .map(AuthorizationSubject::newInstance)
+                                .collect(Collectors.toList()));
+        final AuthorizationContext authorizationContextWithoutDuplicates =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("test:sub"));
+        final DittoHeaders dittoHeaders = underTest
+                .authorizationContext(authorizationContextWithDuplicates)
+                .build();
+
+        assertThat(dittoHeaders.getAuthorizationContext()).isEqualTo(authorizationContextWithDuplicates);
+        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey()))
+                .isEqualTo(authorizationContextWithoutDuplicates.toJsonString());
+    }
 }

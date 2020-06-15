@@ -13,26 +13,28 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -46,8 +48,16 @@ import akka.pattern.AskTimeoutException;
  */
 public abstract class AbstractEnforcement<T extends Signal> {
 
+    /**
+     * Context of the enforcement step: sender, self, signal and so forth.
+     */
     private final Contextual<T> context;
 
+    /**
+     * Create an enforcement step from its context.
+     *
+     * @param context the context of the enforcement step.
+     */
     protected AbstractEnforcement(final Contextual<T> context) {
         this.context = context;
     }
@@ -74,19 +84,28 @@ public abstract class AbstractEnforcement<T extends Signal> {
         return enforce().handle(handleEnforcementCompletion());
     }
 
+    /**
+     * Handle error for a future message such that failed futures become a completed future with DittoRuntimeException.
+     *
+     * @param throwable error of the future on failure.
+     * @return the DittoRuntimeException.
+     */
+    private DittoRuntimeException convertError(@Nullable final Throwable throwable) {
+        final Throwable error = throwable instanceof CompletionException
+                ? throwable.getCause()
+                : throwable != null
+                ? throwable
+                : new NullPointerException("Result and error are both null");
+        return reportError("Error thrown during enforcement", error);
+    }
+
     private BiFunction<Contextual<WithDittoHeaders>, Throwable, Contextual<WithDittoHeaders>> handleEnforcementCompletion() {
         return (result, throwable) -> {
             context.getStartedTimer()
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
-            if (throwable != null) {
-                final Throwable error = throwable instanceof CompletionException
-                        ? throwable.getCause()
-                        : throwable;
-                return withMessageToReceiver(reportError("Error thrown during enforcement", error), sender());
-            } else {
-                return result;
-            }
+            return Objects.requireNonNullElseGet(result,
+                    () -> withMessageToReceiver(convertError(throwable), sender()));
         };
     }
 
@@ -107,7 +126,10 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * Reports an error differently based on type of the error. If the error is of type
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is send to the {@code sender}
      * without modification, otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
-     * @return
+     *
+     * @param hint hint about the nature of the error.
+     * @param error the error.
+     * @return DittoRuntimerException suitable for transmission of the error.
      */
     protected DittoRuntimeException reportError(final String hint, final Throwable error) {
         if (error instanceof DittoRuntimeException) {
@@ -151,48 +173,24 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * Extend a signal by read-subjects header given by an enforcer for the resource type {@code things}.
+     * Extend a signal by subject headers given with granted and revoked READ access.
+     * The subjects are provided by the given enforcer for the resource type {@link ThingConstants#ENTITY_TYPE}.
      *
      * @param signal the signal to extend.
      * @param enforcer the enforcer.
      * @return the extended signal.
      */
-    protected static <T extends Signal> T addReadSubjectsToThingSignal(final Signal<T> signal,
+    protected static <T extends Signal> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        return addReadSubjectsToSignal(signal, getThingsReadSubjects(signal, enforcer));
-    }
-
-    /**
-     * Extend a signal by read-subjects header given explicitly.
-     *
-     * @param <T> type of the signal.
-     * @param signal the signal to extend.
-     * @param readSubjects explicitly-given read subjects.
-     * @return the extended signal.
-     */
-    protected static <T extends Signal> T addReadSubjectsToSignal(final Signal<T> signal,
-            final Set<String> readSubjects) {
-
-        final DittoHeaders newHeaders = signal.getDittoHeaders()
-                .toBuilder()
-                .readSubjects(readSubjects)
+        final ResourceKey resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
+        final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final DittoHeaders newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+                .readGrantedSubjects(effectedSubjects.getGranted())
+                .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
-    }
-
-    /**
-     * Get read subjects from an enforcer for the resource type {@code things}.
-     *
-     * @param signal the signal to get read subjects for.
-     * @param enforcer the enforcer.
-     * @return read subjects of the signal.
-     */
-    protected static Set<String> getThingsReadSubjects(final Signal<?> signal, final Enforcer enforcer) {
-        final ResourceKey resourceKey =
-                ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
-        return enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ).getGranted();
     }
 
     /**
@@ -281,8 +279,32 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
             final ActorRef receiver) {
+
         return context.withMessage(message).withReceiver(receiver);
     }
+
+    /**
+     * Insert the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context},
+     * then insert {@code askFutureWithoutErrorHandling} after appending error handling logic to it.
+     *
+     * @param message the message to log when executing the contextual; usually the message to ask.
+     * @param receiver the final receiver of the ask result.
+     * @param askFutureWithoutErrorHandling supplier of a future that performs an ask-operation with command-order
+     * guarantee, whose result is to be piped to {@code receiver}.
+     * @param <T> type of messages produced by the ask future.
+     * @return a copy of the context with message, receiver and ask-future including error handling.
+     */
+    protected <T> Contextual<WithDittoHeaders> withMessageToReceiverViaAskFuture(final WithDittoHeaders message,
+            final ActorRef receiver,
+            final Supplier<CompletionStage<T>> askFutureWithoutErrorHandling) {
+
+        return withMessageToReceiver(message, receiver)
+                .withAskFuture(() -> askFutureWithoutErrorHandling.get()
+                        .<Object>thenApply(x -> x)
+                        .exceptionally(this::convertError)
+                );
+    }
+
 
     /**
      * Inserts the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context}
@@ -294,8 +316,9 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @param <S> the message's type
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
-            final ActorRef receiver, final Function<Object, Object> wrapperFunction) {
+    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message, final ActorRef receiver,
+            final Function<Object, Object> wrapperFunction) {
+
         return context.withMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
     }
 
@@ -334,10 +357,16 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
         final DittoRuntimeException dittoRuntimeException =
                 DittoRuntimeException.asDittoRuntimeException(throwable,
-                        cause -> GatewayInternalErrorException.newBuilder()
-                                .cause(cause)
-                                .build());
+                        cause -> {
+                            LogUtil.enhanceLogWithCorrelationId(log(), context.getDittoHeaders());
+                            log().error(cause, "Unexpected non-DittoRuntimeException");
+                            return GatewayInternalErrorException.newBuilder()
+                                    .cause(cause)
+                                    .dittoHeaders(context.getDittoHeaders())
+                                    .build();
+                        });
 
         return newContext.withMessage(dittoRuntimeException);
     }
+
 }

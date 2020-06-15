@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -27,6 +26,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.AbstractQueue;
 import java.util.ArrayList;
@@ -55,7 +55,9 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -199,11 +201,11 @@ public final class TestConstants {
 
     public static final Instant INSTANT = Instant.now();
 
-    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
+    public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
         return dummyDittoProtocolSub(pubSubMediator, null);
     }
 
-    static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator,
+    public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator,
             @Nullable final DittoProtocolSub delegate) {
         return new DittoProtocolSub() {
             @Override
@@ -256,15 +258,32 @@ public final class TestConstants {
 
     public static final class Authorization {
 
-        static final String SUBJECT_ID = "some:subject";
-        static final String SOURCE_SUBJECT_ID = "source:subject";
-        static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
+        public static final String SUBJECT_ID = "some:subject";
+        public static final String SOURCE_SUBJECT_ID = "source:subject";
+        public static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
+        public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance(SUBJECT_ID);
+        public static final AuthorizationSubject SOURCE_SUBJECT = AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID);
+        public static final AuthorizationSubject UNAUTHORIZED_SUBJECT =
+                AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID);
+
         public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-                AuthorizationSubject.newInstance(SUBJECT_ID));
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SUBJECT);
         public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
-                AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SOURCE_SUBJECT);
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-                AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
+                DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, UNAUTHORIZED_SUBJECT);
+
+
+        public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
+            final List<AuthorizationSubject> mergedSubjects =
+                    new ArrayList<>(authorizationContext.getAuthorizationSubjects());
+            authorizationContext.getAuthorizationSubjectIds().stream()
+                    .map(subject -> subject.split(":", 2)[1])
+                    .map(AuthorizationSubject::newInstance)
+                    .forEach(mergedSubjects::add);
+
+            return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), mergedSubjects);
+        }
 
     }
 
@@ -321,21 +340,36 @@ public final class TestConstants {
 
         private static final HeaderMapping HEADER_MAPPING = null;
 
-        public static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
-                        Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
-                        null, Topic.TWIN_EVENTS);
-        public static final Target TWIN_TARGET =
-                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
-                        null, Topic.TWIN_EVENTS);
-        private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                        Topic.TWIN_EVENTS);
-        private static final Target LIVE_TARGET =
-                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
-        public static final Target MESSAGE_TARGET =
-                newTarget("live/message", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                        Topic.LIVE_MESSAGES);
+        public static final Target TARGET_WITH_PLACEHOLDER = ConnectivityModelFactory.newTargetBuilder()
+                .address("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
+        public static final Target TWIN_TARGET = ConnectivityModelFactory.newTargetBuilder()
+                .address("twinEventExchange/twinEventRoutingKey")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
+        private static final Target TWIN_TARGET_UNAUTHORIZED = ConnectivityModelFactory.newTargetBuilder()
+                .address("twin/key")
+                .authorizationContext(Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
+        private static final Target LIVE_TARGET = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/key")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.LIVE_EVENTS)
+                .build();
+        public static final Target MESSAGE_TARGET = ConnectivityModelFactory.newTargetBuilder()
+                .address("live/message")
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(HEADER_MAPPING)
+                .topics(Topic.LIVE_MESSAGES)
+                .build();
         public static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
 
         public static final List<Target> TARGET_WITH_VALID_MAPPING_NUMBER =
@@ -360,7 +394,7 @@ public final class TestConstants {
     }
 
     private static PayloadMapping getPayloadMapping(final int numberOfPayloadMappings) {
-        final ArrayList<String> newPayloadMappingInputString = new ArrayList<>();
+        final List<String> newPayloadMappingInputString = new ArrayList<>();
         for (int i = 0; i < numberOfPayloadMappings; i++) {
             newPayloadMappingInputString.add("Ditto");
         }
@@ -410,28 +444,26 @@ public final class TestConstants {
 
     }
 
-    public static class Monitoring {
+    public static final class Monitoring {
 
-        public static ConnectionMonitorRegistry
-                MONITOR_REGISTRY_MOCK =
+        public static final ConnectionMonitorRegistry MONITOR_REGISTRY_MOCK =
                 Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
-        private static ConnectionMonitor
-                CONNECTION_MONITOR_MOCK = Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
-        public static LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
-                Instant.now(),
+        private static final ConnectionMonitor CONNECTION_MONITOR_MOCK =
+                Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
+        public static final LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
+                Instant.now().minus(Duration.ofSeconds(1)),
                 LogCategory.TARGET,
                 LogType.MAPPED,
                 LogLevel.SUCCESS,
                 "mapping worked.").build();
-        public static LogEntry LOG_ENTRY_2 = ConnectivityModelFactory.newLogEntryBuilder("bar",
+        public static final LogEntry LOG_ENTRY_2 = ConnectivityModelFactory.newLogEntryBuilder("bar",
                 Instant.now(),
                 LogCategory.TARGET,
                 LogType.PUBLISHED,
                 LogLevel.SUCCESS,
                 "publishing worked.").build();
-        public static Collection<LogEntry> LOG_ENTRIES =
+        public static final Collection<LogEntry> LOG_ENTRIES =
                 Collections.unmodifiableList(Arrays.asList(LOG_ENTRY, LOG_ENTRY_2));
-
 
         static {
             when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
@@ -460,13 +492,12 @@ public final class TestConstants {
 
     public static final class Metrics {
 
-        private static final Instant LAST_MESSAGE_AT = Instant.now();
+        private static final Instant LAST_MESSAGE_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
                 ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
 
         public static final ConnectionId ID = ConnectionId.of("myConnectionId");
-
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
         public static final Duration ONE_HOUR = Duration.ofHours(1);
@@ -531,13 +562,13 @@ public final class TestConstants {
 
         public static Measurement mergeMeasurements(final MetricType type,
                 final boolean success,
-                final Measurement measurements,
+                final Measurement measurement,
                 final int times) {
 
             final Map<Duration, Long> result = new HashMap<>();
             for (final Duration interval : DEFAULT_INTERVALS) {
                 result.put(interval,
-                        Optional.of(measurements)
+                        Optional.of(measurement)
                                 .filter(m -> Objects.equals(type, m.getMetricType()))
                                 .filter(m -> Objects.equals(success, m.isSuccess()))
                                 .map(Measurement::getCounts)
@@ -726,7 +757,7 @@ public final class TestConstants {
         return new HashSet<>(asList(array));
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef conciergeForwarder,
             final DittoProtocolSub dittoProtocolSub) {
@@ -734,7 +765,7 @@ public final class TestConstants {
                 mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -743,7 +774,7 @@ public final class TestConstants {
                 clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder) {
@@ -752,7 +783,7 @@ public final class TestConstants {
                 mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
-    static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
+    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory,
@@ -800,18 +831,20 @@ public final class TestConstants {
 
     }
 
-    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
+    public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects) {
         return thingModified(readSubjects, Attributes.newBuilder().build());
     }
 
-    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects, final Attributes attributes) {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
+    public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects,
+            final Attributes attributes) {
+
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
         return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1, dittoHeaders);
     }
 
-    public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {
+    public static MessageCommand sendThingMessage(final Collection<AuthorizationSubject> readSubjects) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .readSubjects(readSubjects)
+                .readGrantedSubjects(readSubjects)
                 .channel(TopicPath.Channel.LIVE.getName())
                 .build();
         final Message<Object> message =

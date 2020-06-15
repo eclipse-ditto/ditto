@@ -12,13 +12,19 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 
 /**
  * Immutable implementation of an {@link EnforcementFilter}.
@@ -29,26 +35,55 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
 
     private final Enforcement enforcement;
-    private final Placeholder<M> filterPlaceholder;
+    private final List<Placeholder<M>> filterPlaceholders;
     private final String inputValue;
 
     ImmutableEnforcementFilter(final Enforcement enforcement,
-            final Placeholder<M> filterPlaceholder, final String inputValue) {
+            final List<Placeholder<M>> filterPlaceholders,
+            final String inputValue) {
         this.enforcement = enforcement;
-        this.filterPlaceholder = filterPlaceholder;
+        this.filterPlaceholders = Collections.unmodifiableList(new ArrayList<>(filterPlaceholders));
         this.inputValue = inputValue;
     }
 
     @Override
     public void match(final M filterInput, final DittoHeaders dittoHeaders) {
 
-        final boolean match = enforcement.getFilters()
-                .stream()
-                .map(filter -> PlaceholderFilter.apply(filter, filterInput, filterPlaceholder))
-                .anyMatch(resolved -> resolved.equals(inputValue));
-        if (!match) {
+        int resolutionFailureCounter = 0;
+        int enforcementFilterCounter = 0;
+
+        for (final Placeholder<M> filterPlaceholder : filterPlaceholders) {
+            for (final String filter : enforcement.getFilters()) {
+                enforcementFilterCounter++;
+                try {
+                    final Optional<String> resolved = PlaceholderFilter.applyOrElseDelete(
+                            filter,
+                            PlaceholderFactory.newExpressionResolver(filterPlaceholder, filterInput)
+                    );
+                    if (resolved.isPresent()) {
+                        final String resolvedFilterString = resolved.get();
+                        if (inputValue.equals(resolvedFilterString)) {
+                            // match found
+                            return;
+                        }
+                    } else {
+                        resolutionFailureCounter++;
+                    }
+                } catch (final UnresolvedPlaceholderException unresolved) {
+                    resolutionFailureCounter++;
+                }
+            }
+        }
+
+        if (resolutionFailureCounter < enforcementFilterCounter) {
+            // resolutionFailureCounter < enforcementFilterCounter:
+            // at least one of the placeholder could resolve the filter but it did not match
+            // -> throw ConnectionSignalIdEnforcementFailedException
             throw getEnforcementFailedException(dittoHeaders);
         }
+        // resolutionFailureCounter == enforcementFilterCounter:
+        // the configured filter could not be resolved by any of the placeholders
+        // -> consider enforcement not applicable and not signal enforcement failure
     }
 
     private ConnectionSignalIdEnforcementFailedException getEnforcementFailedException(
@@ -68,20 +103,20 @@ final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
         }
         final ImmutableEnforcementFilter<?> that = (ImmutableEnforcementFilter<?>) o;
         return Objects.equals(enforcement, that.enforcement) &&
-                Objects.equals(filterPlaceholder, that.filterPlaceholder) &&
+                Objects.equals(filterPlaceholders, that.filterPlaceholders) &&
                 Objects.equals(inputValue, that.inputValue);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforcement, filterPlaceholder, inputValue);
+        return Objects.hash(enforcement, filterPlaceholders, inputValue);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enforcement=" + enforcement +
-                ", filterPlaceholder=" + filterPlaceholder +
+                ", filterPlaceholders=" + filterPlaceholders +
                 ", inputValue=" + inputValue +
                 "]";
     }

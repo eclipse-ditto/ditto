@@ -17,6 +17,9 @@ import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 
@@ -35,7 +38,10 @@ public final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")))
+            .build();
 
     /**
      * Empty command headers.
@@ -47,24 +53,29 @@ public final class TestConstants {
      */
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+
     /**
      * A known filter string.
      */
     public static final String KNOWN_FILTER_STR = "eq(thingId,4711)";
+
     /**
      * A known option.
      */
     public static final String KNOWN_OPT_1 = "opt1";
+
     /**
      * A known message for {@code InvalidOptionException}.
      */
     public static final String KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE = "Invalid option: " + KNOWN_OPT_1;
+
     /**
      * A known {@code InvalidOptionException}.
      */
-    public static final InvalidOptionException INVALID_OPTION_EXCEPTION =
-            InvalidOptionException
-                    .newBuilder().message(KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE).build();
+    public static final InvalidOptionException INVALID_OPTION_EXCEPTION = InvalidOptionException.newBuilder()
+            .message(KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE)
+            .build();
+
     /**
      * Another known option.
      */
@@ -81,7 +92,7 @@ public final class TestConstants {
     public static final String CURSOR = "next-page-cursor";
 
     /**
-     * Kknown namespaces set.
+     * Known namespaces set.
      */
     public static final Set<String> KNOWN_NAMESPACES_SET = Collections.singleton(KNOWN_NAMESPACE);
 

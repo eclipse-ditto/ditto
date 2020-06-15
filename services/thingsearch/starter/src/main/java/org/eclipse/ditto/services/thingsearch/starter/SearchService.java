@@ -41,7 +41,7 @@ public class SearchService extends DittoService<SearchConfig> {
     }
 
     /**
-     * Starts the Things service.
+     * Starts the ThingsSearch service.
      *
      * @param args command line arguments.
      */

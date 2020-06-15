@@ -74,10 +74,10 @@
         <developer>
             <id>geglocker</id>
             <name>Gerald Glocker</name>
-            <email>gerald.glocker@bosch-si.com</email>
+            <email>gerald.glocker@bosch.io</email>
             <url>https://github.com/geglock</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Lead</role>
                 <role>Committer</role>
@@ -86,10 +86,10 @@
         <developer>
             <id>tjaeckle</id>
             <name>Thomas Jaeckle</name>
-            <email>thomas.jaeckle@bosch-si.com</email>
+            <email>thomas.jaeckle@bosch.io</email>
             <url>https://github.com/thjaeckle</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Lead</role>
                 <role>Committer</role>
@@ -99,10 +99,10 @@
         <developer>
             <id>yucai</id>
             <name>Yufei Cai</name>
-            <email>yufei.cai@bosch-si.com</email>
+            <email>yufei.cai@bosch.io</email>
             <url>https://github.com/yufei-cai</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -110,10 +110,10 @@
         <developer>
             <id>dfesenmeyer</id>
             <name>Daniel Fesenmeyer</name>
-            <email>daniel.fesenmeyer@bosch-si.com</email>
+            <email>daniel.fesenmeyer@bosch.io</email>
             <url>https://github.com/danielFesenmeyer</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -121,10 +121,10 @@
         <developer>
             <id>dguggemos</id>
             <name>Dominik Guggemos</name>
-            <email>dominik.guggemos@bosch-si.com</email>
+            <email>dominik.guggemos@bosch.io</email>
             <url>https://github.com/dguggemos</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -132,10 +132,10 @@
         <developer>
             <id>jfickel</id>
             <name>Juergen Fickel</name>
-            <email>juergen.fickel@bosch-si.com</email>
+            <email>juergen.fickel@bosch.io</email>
             <url>https://github.com/jufickel-b</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -143,10 +143,10 @@
         <developer>
             <id>jkraeher</id>
             <name>Johannes Schneider</name>
-            <email>johannes.schneider@bosch-si.com</email>
+            <email>johannes.schneider@bosch.io</email>
             <url>https://github.com/jokraehe</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -154,10 +154,10 @@
         <developer>
             <id>ffendt</id>
             <name>Florian Fendt</name>
-            <email>florian.fendt@bosch-si.com</email>
+            <email>florian.fendt@bosch.io</email>
             <url>https://github.com/ffendt</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -165,10 +165,10 @@
         <developer>
             <id>smaute</id>
             <name>Stefan Maute</name>
-            <email>stefan.maute@bosch-si.com</email>
+            <email>stefan.maute@bosch.io</email>
             <url>https://github.com/stmaute</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -176,10 +176,10 @@
         <developer>
             <id>yklem</id>
             <name>Yannic Klem</name>
-            <email>yannic.klem@bosch-si.com</email>
+            <email>yannic.klem@bosch.io</email>
             <url>https://github.com/Yannic92</url>
-            <organization>Bosch Software Innovations GmbH</organization>
-            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -201,8 +201,8 @@
     <properties>
         <revision>0-SNAPSHOT</revision>
 
-        <javac.source>1.8</javac.source>
-        <javac.target>1.8</javac.target>
+        <javac.source>11</javac.source>
+        <javac.target>11</javac.target>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -220,7 +220,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>0.9.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>1.1.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -228,15 +228,20 @@
         <ditto.thirdPartyLicences.excludedGroups>
             (org\.eclipse\.ditto.*)|(com\.lihaoyi.*)
         </ditto.thirdPartyLicences.excludedGroups>
+
+        <japicmp-maven-plugin.version>0.14.3</japicmp-maven-plugin.version>
+
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <build>
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <!-- Changes in plugin should also be made in inspect-deprecations profile -->
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.7.0</version>
+                    <version>3.8.1</version>
                     <configuration>
                         <source>${javac.source}</source>
                         <target>${javac.target}</target>
@@ -262,17 +267,21 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.1</version>
+                    <configuration>
+                        <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+                        <source>11</source>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.0.2</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -328,7 +337,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M1</version>
+                    <version>3.0.0-M4</version>
                     <configuration>
                         <systemProperties>
                             <kamon.auto-start>true</kamon.auto-start>
@@ -343,7 +352,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>3.0.0-M1</version>
+                    <version>3.0.0-M4</version>
                     <executions>
                         <execution>
                             <id>integration-test</id>
@@ -382,17 +391,12 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.3</version>
-                </plugin>
-                <plugin>
-                    <groupId>io.fabric8</groupId>
-                    <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.26.0</version>
+                    <version>0.8.5</version>
                 </plugin>
                 <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
-                    <version>0.11.0</version>
+                    <version>${japicmp-maven-plugin.version}</version>
                     <configuration>
                         <oldVersion>
                             <dependency>
@@ -412,12 +416,35 @@
                             <accessModifier>public</accessModifier>
                             <breakBuildOnModifications>false</breakBuildOnModifications>
                             <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                            <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
+                            <breakBuildOnSourceIncompatibleModifications>false</breakBuildOnSourceIncompatibleModifications>
+                            <onlyBinaryIncompatible>true</onlyBinaryIncompatible>
                             <includeSynthetic>false</includeSynthetic>
                             <ignoreMissingClasses>false</ignoreMissingClasses>
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
+                            <overrideCompatibilityChangeParameters>
+                                <!-- Consider new method added to interface as binary-compatible and not
+                                     source-compatible. Require only binary compatibility for semantic versioning,
+                                     due to ubiquitous usage of interfaces for information hiding in model packages.
+                                 -->
+                                <overrideCompatibilityChangeParameter>
+                                    <compatibilityChange>METHOD_NEW_DEFAULT</compatibilityChange>
+                                    <binaryCompatible>true</binaryCompatible>
+                                    <sourceCompatible>true</sourceCompatible>
+                                </overrideCompatibilityChangeParameter>
+                                <overrideCompatibilityChangeParameter>
+                                    <compatibilityChange>METHOD_ABSTRACT_NOW_DEFAULT</compatibilityChange>
+                                    <binaryCompatible>true</binaryCompatible>
+                                    <sourceCompatible>true</sourceCompatible>
+                                </overrideCompatibilityChangeParameter>
+                                <overrideCompatibilityChangeParameter>
+                                    <compatibilityChange>METHOD_ADDED_TO_INTERFACE</compatibilityChange>
+                                    <binaryCompatible>true</binaryCompatible>
+                                    <sourceCompatible>false</sourceCompatible>
+                                </overrideCompatibilityChangeParameter>
+                            </overrideCompatibilityChangeParameters>
                             <excludes>
+                                <!-- Don't add excludes here before checking with the whole Ditto team -->
                                 <!--<exclude></exclude>-->
                             </excludes>
                         </parameter>
@@ -434,12 +461,13 @@
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>4.2.1</version>
                     <configuration>
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
                             <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
+                            <!-- stays at 1.8 as all exported bundles (json, model, protocol-adapter, signals, ...) are 1.8 -->
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                             <Include-Resource>META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>
                             <!--<Include-Resource>{maven-resources},META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>-->
@@ -462,7 +490,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>4.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -558,6 +586,7 @@
                     <validHeaders>
                         <header>${project.basedir}/src/license-header-2017.txt</header>
                         <header>${project.basedir}/src/license-header-2018.txt</header>
+                        <header>${project.basedir}/src/license-header-2019.txt</header>
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>
@@ -595,7 +624,7 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
                       <execution>
-                            <id>prepare</id>
+                            <id>prepare-agent</id>
                             <goals>
                                 <goal>prepare-agent</goal>
                             </goals>
@@ -603,7 +632,7 @@
                         <execution>
                             <id>report</id>
                             <goals>
-                                <goal>report-aggregate</goal>
+                                <goal>report</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -835,6 +864,12 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                  <gpgArguments>
+                                    <arg>--pinentry-mode</arg>
+                                    <arg>loopback</arg>
+                                  </gpgArguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -896,6 +931,26 @@
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                             <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                             <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <!-- This profile inspects and reports usage of deprecated methods -->
+            <id>inspect-deprecations</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.7.0</version>
+                        <configuration>
+                            <source>${javac.source}</source>
+                            <target>${javac.target}</target>
+                            <encoding>${project.build.sourceEncoding}</encoding>
+                            <showDeprecation>true</showDeprecation>
                         </configuration>
                     </plugin>
                 </plugins>

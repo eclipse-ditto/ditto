@@ -68,14 +68,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.CommandResponseRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.CommonErrorRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.ErrorRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.JsonParsable</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.JsonParsableCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException</exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

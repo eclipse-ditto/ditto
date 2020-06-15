@@ -21,6 +21,8 @@ import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 /**
  * This class is the default implementation of {@link StreamCacheConfig}.
@@ -78,6 +80,20 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
     @Override
     public Duration getExpireAfterAccess() {
         return genericCacheConfig.getExpireAfterAccess();
+    }
+
+    @Override
+    public Duration getExpireAfterCreate() {
+        return genericCacheConfig.getExpireAfterCreate();
+    }
+
+    @Override
+    public Config render() {
+            return ConfigFactory.empty()
+                    .withFallback(genericCacheConfig.render())
+                    .withValue(StreamCacheConfigValue.DISPATCHER_NAME.getConfigPath(), ConfigValueFactory.fromAnyRef(dispatcherName))
+                    .withValue(StreamCacheConfigValue.RETRY_DELAY.getConfigPath(), ConfigValueFactory.fromAnyRef(retryDelay))
+                    .atKey(CONFIG_PATH);
     }
 
     @Override

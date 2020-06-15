@@ -18,6 +18,7 @@ import java.util.Collection;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.supervision.WithSupervisorConfig;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityCheckConfig;
@@ -52,6 +53,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     SnapshotConfig getSnapshotConfig();
 
     /**
+     * Returns the config specific to Acknowledgements for connections.
+     *
+     * @return the config.
+     */
+    AcknowledgementConfig getAcknowledgementConfig();
+
+    /**
      * Returns the config specific to the AMQP 1.0 protocol.
      *
      * @return the config.
@@ -84,11 +92,6 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
      * {@code ConnectionConfig}.
      */
     enum ConnectionConfigValue implements KnownConfigValue {
-
-        /**
-         * The delay between subscribing to Akka pub/sub and responding to the command that triggered the subscription.
-         */
-        FLUSH_PENDING_RESPONSES_TIMEOUT("flush-pending-responses-timeout", Duration.ofSeconds(5L)),
 
         /**
          * The amount of time for how long the connection actor waits for response from client actors.

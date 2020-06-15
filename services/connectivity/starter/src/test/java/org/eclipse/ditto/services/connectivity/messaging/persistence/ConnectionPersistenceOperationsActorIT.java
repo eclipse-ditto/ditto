@@ -19,6 +19,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -29,11 +30,8 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -46,7 +44,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -82,7 +79,8 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     @Override
     protected Object getCreateEntityCommand(final ConnectionId id) {
         final AuthorizationContext authorizationContext =
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("subject"));
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("subject"));
         final Source source =
                 ConnectivityModelFactory.newSource(authorizationContext, "address");
         final Connection connection =
@@ -128,9 +126,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         // essentially never restart
         final TestProbe conciergeForwarderProbe = new TestProbe(system, "conciergeForwarder");
         final ConnectivityCommandInterceptor dummyInterceptor = command -> {};
-        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(ConfigFactory.load("test"))).getConnectionConfig();
-        final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance(connectionConfig);
+        final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
                 ConnectionSupervisorActor.props(nopSub(), conciergeForwarderProbe.ref(), entityActorFactory,
                         dummyInterceptor, pubSubMediator);

@@ -13,9 +13,16 @@
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
@@ -41,12 +48,14 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
     private int expectedResponses;
     private final ActorRef sender;
     private final Duration timeout;
+    private final long maximumLogSizeInByte;
 
     private RetrieveConnectionLogsResponse theResponse;
 
     @SuppressWarnings("unused")
     private RetrieveConnectionLogsAggregatorActor(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders, final Duration timeout) {
+            final DittoHeaders originalHeaders, final Duration timeout, final long maxLogSizeBytes) {
+
         this.connection = connection;
         this.originalHeaders = originalHeaders;
 
@@ -54,6 +63,7 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
         this.expectedResponses = connection.getClientCount();
         this.sender = sender;
         this.timeout = timeout;
+        this.maximumLogSizeInByte = maxLogSizeBytes;
     }
 
     /**
@@ -63,12 +73,14 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
+     * @param maxLogSizeBytes the maximum length of all log entries JSON representation.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders, final Duration timeout) {
+            final DittoHeaders originalHeaders, final Duration timeout, final long maxLogSizeBytes) {
+
         return Props.create(RetrieveConnectionLogsAggregatorActor.class, connection, sender, originalHeaders,
-                timeout);
+                timeout, maxLogSizeBytes);
     }
 
     @Override
@@ -119,7 +131,34 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
     }
 
     private void sendResponse() {
-        sender.tell(theResponse.setDittoHeaders(originalHeaders), getSelf());
+        final RetrieveConnectionLogsResponse restrictedResponse = restrictMaxLogEntriesLength();
+        sender.tell(restrictedResponse.setDittoHeaders(originalHeaders), getSelf());
+    }
+
+    // needed so that the logs fit into the max cluster message size
+    private RetrieveConnectionLogsResponse restrictMaxLogEntriesLength() {
+        final ConnectionId connectionId = theResponse.getConnectionEntityId();
+        final List<LogEntry> originalLogEntries = theResponse.getConnectionLogs().stream()
+                .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
+                .collect(Collectors.toList());
+
+        final List<LogEntry> restrictedLogs = new ArrayList<>();
+        long currentSize = 0;
+        for (final LogEntry logEntry : originalLogEntries) {
+            final long sizeOfLogEntry = logEntry.toJsonString().length();
+            final long sizeWithNextEntry = currentSize + sizeOfLogEntry;
+            if (sizeWithNextEntry > maximumLogSizeInByte) {
+                log.info("Dropping <{}> of <{}> log entries for connection with ID <{}>, because of size limit.",
+                        originalLogEntries.size() - restrictedLogs.size(), originalLogEntries.size(), connectionId);
+                break;
+            }
+            restrictedLogs.add(logEntry);
+            currentSize = sizeWithNextEntry;
+        }
+        Collections.reverse(restrictedLogs);
+        return RetrieveConnectionLogsResponse.of(connectionId, restrictedLogs,
+                theResponse.getEnabledSince().orElse(null), theResponse.getEnabledUntil().orElse(null),
+                theResponse.getDittoHeaders());
     }
 
     private void stopSelf() {

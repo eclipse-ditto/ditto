@@ -31,12 +31,4 @@ public interface StartStreamRequest extends StreamingMessage {
      */
     long getTimeoutMillis();
 
-    /**
-     * Evaluate this message by a visitor.
-     *
-     * @param visitor the visitor.
-     * @param <T> the result type.
-     * @return result of evaluating the visitor on this object.
-     */
-    <T> T accept(StartStreamRequestVisitor<T> visitor);
 }

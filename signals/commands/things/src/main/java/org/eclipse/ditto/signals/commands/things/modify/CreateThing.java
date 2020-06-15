@@ -101,8 +101,12 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = null;
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     private CreateThing(final Thing thing, final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
@@ -114,8 +118,12 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             PolicyId.of(policyIdOrPlaceholder); //validates
         }
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**
@@ -260,7 +268,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         final JsonObject withInlinePolicyThingJson =
                 getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
         final JsonObject fullThingJson = getPolicyIdOrPlaceholder().map(
-                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_POLICY_ID_OR_PLACEHOLDER,
+                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_COPY_POLICY_FROM,
                         containedPolicyIdOrPlaceholder)).orElse(withInlinePolicyThingJson);
         return Optional.of(fullThingJson);
     }

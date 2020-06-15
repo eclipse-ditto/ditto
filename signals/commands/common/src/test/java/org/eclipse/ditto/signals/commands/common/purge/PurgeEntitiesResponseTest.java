@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.common.purge;
 
 import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,6 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
 import org.junit.Test;
@@ -33,12 +35,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class PurgeEntitiesResponseTest {
 
-    private static final String ENTITY_TYPE = "policy";
+    private static final EntityType ENTITY_TYPE = EntityType.of("policy");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(CommonCommandResponse.JsonFields.TYPE, PurgeEntitiesResponse.TYPE)
             .set(CommonCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(PurgeEntitiesResponse.JsonFields.ENTITY_TYPE, ENTITY_TYPE)
+            .set(PurgeEntitiesResponse.JsonFields.ENTITY_TYPE, ENTITY_TYPE.toString())
             .set(PurgeEntitiesResponse.JsonFields.SUCCESSFUL, true)
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder()
@@ -47,7 +49,9 @@ public final class PurgeEntitiesResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(PurgeEntitiesResponse.class, areImmutable());
+        assertInstancesOf(PurgeEntitiesResponse.class,
+                areImmutable(),
+                provided(EntityType.class).isAlsoImmutable());
     }
 
     @Test

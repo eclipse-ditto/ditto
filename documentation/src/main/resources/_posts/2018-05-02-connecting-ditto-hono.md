@@ -10,6 +10,8 @@ sidebar: false
 toc: true
 ---
 
+{% include warning.html content="This guide does no longer work with the latest (1.x) versions of Ditto + Hono. Please take a look and make use of the [Eclipse IoT Packages \"cloud2edge\" package](https://www.eclipse.org/packages/packages/cloud2edge/) in order to setup and automatically connect Ditto + Hono." %}
+
 With the recently released Ditto milestone [0.3.0-M1](2018-04-26-milestone-announcement-030-M1.html) the `connectivity`
 to AMQP 1.0 endpoints can now be established in a durable and stable way (including failovers, etc.).
 
@@ -212,7 +214,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }]
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result should be:
@@ -361,7 +363,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
 ```
 
 When establishing the connection + parsing the JavaScript worked, we get a success result as HTTP response again, 
@@ -384,7 +386,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
         "type": "connectivity.commands:retrieveConnectionMetrics",
         "connectionId": "hono-sandbox-connection-1"
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result looks like this:

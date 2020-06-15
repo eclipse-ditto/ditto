@@ -15,27 +15,23 @@ package org.eclipse.ditto.services.concierge.common;
 import java.time.Duration;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.health.config.BackgroundStreamingConfig;
 
 import com.typesafe.config.Config;
 
 /**
  * Provides configuration settings for persistence cleanup actions.
  */
-public interface PersistenceCleanupConfig {
+public interface PersistenceCleanupConfig extends BackgroundStreamingConfig {
 
-    /**
-     * Returns whether background cleanup is turned on.
-     *
-     * @return true or false.
-     */
+    @Override
     boolean isEnabled();
 
-    /**
-     * Returns how long to wait before scheduling persistence cleanup actions.
-     *
-     * @return duration of the quiet period.
-     */
+    @Override
     Duration getQuietPeriod();
+
+    @Override
+    int getKeptEvents();
 
     /**
      * Returns how long to wait for a cleanup-response before considering it failed.
@@ -78,13 +74,6 @@ public interface PersistenceCleanupConfig {
      * @return number of kept actions.
      */
     int getKeptActions();
-
-    /**
-     * Returns how many events to keep in the actor state.
-     *
-     * @return number of kept events.
-     */
-    int getKeptEvents();
 
     /**
      * Return the config in HOCON format.

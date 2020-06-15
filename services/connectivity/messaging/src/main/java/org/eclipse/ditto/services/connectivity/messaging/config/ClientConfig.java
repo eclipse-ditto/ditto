@@ -40,6 +40,14 @@ public interface ClientConfig {
     Duration getConnectingMaxTimeout();
 
     /**
+     * Max timeout {@link org.eclipse.ditto.services.utils.search.SubscriptionManager} waits for search commands from
+     * {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor}
+     *
+     * @return the maximum timeout.
+     */
+    Duration getSubscriptionManagerTimeout();
+
+    /**
      * Minimum backoff duration after failure.
      *
      * @return the minimum backoff.
@@ -89,6 +97,11 @@ public interface ClientConfig {
          * See documentation on {@link ClientConfig#getConnectingMaxTimeout()}.
          */
         CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getSubscriptionManagerTimeout()}.
+         */
+        SUBSCRIPTION_MANAGER_TIMEOUT("subscription-manager-timeout", Duration.ofSeconds(60L)),
 
         /**
          * See documentation on {@link ClientConfig#getConnectingMaxTries()}.

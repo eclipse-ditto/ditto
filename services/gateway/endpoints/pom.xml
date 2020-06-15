@@ -78,6 +78,10 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-signalenrichment</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-thingsearch</artifactId>
         </dependency>
 
@@ -104,6 +108,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-tracing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-search</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -159,6 +167,11 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

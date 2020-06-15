@@ -43,6 +43,31 @@ to supply additional configuration one has to add the variable in the correspond
 The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
 the `-jar` option.
 
+### Pre-authentication
+
+HTTP API calls to Ditto may be authenticated with a reverse proxy (e.g. a nginx) which:
+* authenticates a user/subject
+* passes the authenticated username as HTTP header
+* ensures that this HTTP header can never be written by the end-user
+
+By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.<br/>
+It can however be enabled by configuring the environment variable `ENABLE_PRE_AUTHENTICATION` to the value `true`.
+
+When it is enabled, the reverse proxy has to set the HTTP header `x-ditto-pre-authenticated`.<br/>
+The format of the "pre-authenticated" string is: `<issuer>:<subject>`. The issuer defines which system authenticated the
+user and the subject contains e.g. the user-id or -name.
+
+This string must then be used in [policies](basic-policy.html#who-can-be-addressed) as "Subject ID".
+
+Example for a nginx "proxy" configuration: 
+```
+auth_basic                    "Authentication required";
+auth_basic_user_file          nginx.htpasswd;
+...
+proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
+```
+
+
 ### OpenID Connect
 
 The authentication provider must be added to the ditto-gateway configuration.
@@ -184,6 +209,8 @@ The following DevOps commands are supported:
 * Dynamically retrieve and change log levels
 * Dynamically retrieve service configuration
 * Piggyback commands
+
+{% include note.html content="The default credentials for the `/devops` HTTP endpoint are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
 
 
 ### Dynamically adjust log levels
@@ -419,18 +446,19 @@ and restart the background cleanup process.
 Each command is sent to the actor selection `/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy` on _one_
 Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 
 ##### Query background cleanup coordinator state
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "status.commands:retrieveHealth"
@@ -478,13 +506,14 @@ The response has the following details:
 
 ##### Query background cleanup coordinator configuration
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:retrieveConfig"
@@ -532,13 +561,14 @@ Send a piggyback command of type `common.commands:modifyConfig` to change the co
 coordinator. All subsequent cleanup processes will use the new configuration. Any ongoing cleanup is not affected.
 Configurations absent in the payload of the piggyback command remain unchanged.
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:modifyConfig",
@@ -590,13 +620,14 @@ piggyback command contains any error, then an error is logged and the actor's co
 Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process.
 The next process is scheduled after the `quiet-period` duration in the coordinator's configuration.
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
   "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-grouped-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:shutdown"
@@ -625,7 +656,7 @@ snapshots manually. Here is an example for things. Change the service name and s
 policies and connections. Typically in a docker based environment, use `INSTANCE_INDEX=1`.
 
 
-`POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10000`
+`POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -654,6 +685,60 @@ Response example:
 }
 ```
 
+#### Managing background synchronization
+
+A background sync actor goes over thing snapshots and search index entries slowly to ensure eventual consistency
+of the search index. The actor operates in the same manner as the background cleanup coordinator and responds to
+the same commands.
+
+`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=10s`
+
+```json
+{
+  "targetActorSelection": "/user/thingsSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": true
+  },
+  "piggybackCommand": {
+    "type": "<COMMAND-TYPE>"
+  }
+}
+```
+
+`COMMAND-TYPE` can be:
+- `common.commands:shutdown` to shutdown or restart a background sync stream,
+- `common.commands:retrieveConfig` to retrieve the current configuration,
+- `common.commands:modifyConfig` to modify the current configuration, or
+- `status.commands:retrieveHealth` to query the current progress and event log.
+
+For each command type, please refer to the corresponding segment of "Managing background cleanup" for the exact format.
+
+#### Force search index update for one thing
+
+The search index should rarely become out-of-sync for a long time, and it can repair itself
+of any inconsistencies detected at query time. Nevertheless, you can trigger search index update
+for a particular thing by a DevOp-command and bring the entry up-to-date immediately.
+
+`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=0`
+
+```json
+{
+  "targetActorSelection": "/user/thingsSearchRoot/searchUpdaterRoot/thingsUpdater",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": true
+  },
+  "piggybackCommand": {
+    "type": "thing-search.commands:updateThing",
+    "thingId": "<THING-ID>"
+  }
+}
+```
+
+There is no response. Things-search service will log a warning upon receiving this message
+and continue to log warnings should the search index update fail on the persistence.
+
 #### Erasing data within a namespace
 
 Ditto supports erasure of _all_ data within a namespace during live operations.
@@ -672,7 +757,7 @@ To do so safely, perform the following steps in sequence.
 Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
 to block all messages sent to actors belonging to a namespace.
 
-`PUT /devops/piggygack?timeout=10000`
+`PUT /devops/piggygack?timeout=10s`
 
 ```json
 {
@@ -741,7 +826,7 @@ all its actors so that no data is written in the namespace while erasing is ongo
 The erasure may take a long time if the namespace has a lot of data associated with it or if the persistent storage is
 slow. Set the timeout to a safe margin above the estimated erasure time in milliseconds.
 
-`PUT /devops/piggygack?timeout=10000`
+`PUT /devops/piggygack?timeout=10s`
 
 ```json
 {
@@ -792,7 +877,7 @@ Note that to see responses from multiple resource types, the header `aggregate` 
 Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
 to stop blocking messages to a namespace.
 
-`PUT /devops/piggygack?timeout=10000`
+`PUT /devops/piggygack?timeout=10s`
 
 ```json
 {

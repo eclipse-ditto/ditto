@@ -78,7 +78,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     }
 
     /**
-     * Creates a new {@code SudoStreamSnapshotRevisions} command.
+     * Creates a new {@code SudoStreamPids} command.
      *
      * @param burst the amount of elements to be collected per message
      * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
@@ -151,11 +151,6 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     }
 
     @Override
-    public <T> T accept(final StartStreamRequestVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
@@ -176,7 +171,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
     @Override
     public SudoStreamPids setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(burst, timeoutMillis, dittoHeaders);
+        return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
     }
 
     @Override

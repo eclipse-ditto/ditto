@@ -68,27 +68,24 @@ final class MappedOutboundSignal implements OutboundSignal.Mapped {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof MappedOutboundSignal)) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final MappedOutboundSignal that = (MappedOutboundSignal) o;
         return Objects.equals(delegate, that.delegate) &&
+                Objects.equals(adaptable, that.adaptable) &&
                 Objects.equals(externalMessage, that.externalMessage);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(delegate, externalMessage);
+        return Objects.hash(delegate, adaptable, externalMessage);
     }
-
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "delegate=" + delegate +
+                ", adaptable=" + adaptable +
                 ", externalMessage=" + externalMessage +
                 "]";
     }

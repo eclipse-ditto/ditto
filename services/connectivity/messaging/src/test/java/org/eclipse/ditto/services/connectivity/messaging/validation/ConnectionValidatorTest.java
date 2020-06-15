@@ -146,15 +146,14 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectConnectionWithEmptyTargetAddress() {
-        final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
-                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .targets(Collections.singletonList(
-                                ConnectivityModelFactory.newTarget("",
-                                        Authorization.AUTHORIZATION_CONTEXT,
-                                        null, null,
-                                        Topic.LIVE_MESSAGES)))
-                        .build();
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
+                ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
+                .targets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+                        .address("")
+                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                        .topics(Topic.LIVE_MESSAGES)
+                        .build()))
+                .build();
 
         final ConnectionValidator underTest = ConnectionValidator.of(MAPPER_LIMITS_CONFIG, AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

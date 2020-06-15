@@ -137,7 +137,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values asynchronously.
-     * @param cacheName The name of the cache {@code null}. Will be used for metrics.
+     * @param cacheName The name of the cache or {@code null} if metrics should be disabled. Will be used for metrics.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
@@ -229,7 +229,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         return synchronousCacheView.asMap();
     }
 
-    // TODO: replace uses of this method by AsyncCache without loader once Caffeine releases it.
+    // TODO: replace uses of this method by caffeine.buildAsync()
+    // TODO: split this into 2 classes for the loading cache case and non-loading-cache case
     private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
         @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
                 (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;

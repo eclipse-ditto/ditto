@@ -15,16 +15,18 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
-import java.time.Duration;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
@@ -44,7 +46,6 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
-import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -227,7 +228,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
                 if (authorized) {
                     final Command<?> withReadSubjects =
-                            addReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
+                            addEffectedReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
                     log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                     if (liveSignal.getDittoHeaders().isResponseRequired()) {
                         responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
@@ -258,7 +259,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
         if (authorized) {
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
-            final Event withReadSubjects = addReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
+            final Event withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
             return CompletableFuture.completedFuture(publishLiveSignal(withReadSubjects, liveSignalPub.event()));
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
@@ -287,33 +288,16 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     }
 
     private Contextual<WithDittoHeaders> publishMessageCommand(final MessageCommand command, final Enforcer enforcer) {
-
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
-        final Set<String> messageReaders = enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ)
-                .getGranted();
-
-        final DittoHeaders headersWithReadSubjects = command.getDittoHeaders()
-                .toBuilder()
-                .readSubjects(messageReaders)
+        final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final DittoHeaders headersWithReadSubjects = DittoHeaders.newBuilder(command.getDittoHeaders())
+                .readGrantedSubjects(effectedSubjects.getGranted())
+                .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
 
-        final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
-
-        // answer the sender immediately for fire-and-forget message commands.
-        getResponseForFireAndForgetMessage(commandWithReadSubjects)
-                .ifPresent(this::replyToSender);
-
+        final MessageCommand<?, ?> commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
         return publishLiveSignal(commandWithReadSubjects, liveSignalPub.message());
-    }
-
-    /**
-     * Reply a message to sender.
-     *
-     * @param message message to forward.
-     */
-    private void replyToSender(final Object message) {
-        sender().tell(message, self());
     }
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand command) {
@@ -323,9 +307,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         .build();
 
         log(command).info(
-                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
+                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationContext: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
-                command.getDittoHeaders().getAuthorizationSubjects());
+                command.getDittoHeaders().getAuthorizationContext());
         return error;
     }
 
@@ -338,42 +322,25 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         return withMessageToReceiver(signal, pub.getPublisher(), obj -> pub.wrapForPublication((T) obj));
     }
 
-    private static boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {
+    private boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {
         return enforcer.hasUnrestrictedPermissions(
-                PoliciesResourceType.messageResource(command.getResourcePath()),
+                extractMessageResourceKey(command),
                 command.getDittoHeaders().getAuthorizationContext(),
                 WRITE);
     }
 
-    /**
-     * Creates an @{SendMessageAcceptedResponse} for a message command if it is fire-and-forget.
-     *
-     * @param command The message command.
-     * @return The HTTP response if the message command is fire-and-forget, {@code Optional.empty()} otherwise.
-     */
-    private static Optional<SendMessageAcceptedResponse> getResponseForFireAndForgetMessage(
-            final MessageCommand<?, ?> command) {
-        if (isFireAndForgetMessage(command)) {
-            return Optional.of(
-                    SendMessageAcceptedResponse.newInstance(command.getThingEntityId(),
-                            command.getMessage().getHeaders(), command.getDittoHeaders()));
-        } else {
-            return Optional.empty();
+    private ResourceKey extractMessageResourceKey(final MessageCommand command) {
+        try {
+            final JsonPointer resourcePath = command.getResourcePath();
+            return PoliciesResourceType.messageResource(resourcePath);
+        } catch (final IllegalArgumentException e) {
+            throw MessageFormatInvalidException.newBuilder(JsonFactory.nullArray())
+                    .message("Unable to determine message resource path.")
+                    .description("Please verify that the thing ID, message subject and direction are set correctly.")
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
         }
     }
 
-    /**
-     * Tests whether a message command is fire-and-forget.
-     *
-     * @param command The message command.
-     * @return {@code true} if the message's timeout header is 0 or if the message is flagged not to require a response,
-     * {@code false} otherwise.
-     */
-    private static boolean isFireAndForgetMessage(final MessageCommand<?, ?> command) {
-        return command.getMessage()
-                .getTimeout()
-                .map(Duration::isZero)
-                .orElseGet(() -> !command.getDittoHeaders().isResponseRequired());
-    }
 
 }

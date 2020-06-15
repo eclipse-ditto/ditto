@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -86,4 +87,19 @@ final class ImmutableJsonDouble extends AbstractJsonNumber<Double> {
         return getValue().hashCode();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        double doubleValue = getValue();
+        float floatValue = getValue().floatValue();
+        if (floatValue == doubleValue){ // value can be represented as float to save space
+            serializationContext.getJacksonGenerator().writeNumber(floatValue);
+        } else {
+            serializationContext.getJacksonGenerator().writeNumber(doubleValue);
+        }
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 24; // source: https://stackoverflow.com/questions/21146544/what-is-the-maximum-length-of-double-tostringd
+    }
 }

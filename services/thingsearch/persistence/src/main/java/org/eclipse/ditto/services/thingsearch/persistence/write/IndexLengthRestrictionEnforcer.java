@@ -12,8 +12,12 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CoderResult;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -65,33 +69,40 @@ public final class IndexLengthRestrictionEnforcer {
      * @return the result.
      */
     public Optional<JsonValue> enforce(final JsonPointer pointer, final JsonValue value) {
-        if (violatesThreshold(pointer, value, thingIdNamespaceOverhead)) {
-            return fixViolation(pointer, value, thingIdNamespaceOverhead);
+        final int keyOverhead = jsonPointerBytes(pointer) + thingIdNamespaceOverhead;
+        if (keyOverhead > MAX_INDEX_CONTENT_LENGTH - DEFAULT_VALUE_LENGTH) {
+            // not possible to trim key-value pair; do not index this entry.
+            return Optional.empty();
+        } else if (value.isString()) {
+            return Optional.of(fixViolation(value, keyOverhead));
+        } else if (isNonEmptyComposite(value)) {
+            // unexpected composite value - complain
+            throw new IllegalArgumentException("value should not be an array or object but it is");
         } else {
             return Optional.of(value);
         }
     }
 
-    private static Optional<JsonValue> fixViolation(final JsonPointer key, final JsonValue value, final int overhead) {
-        if (value.isString()) {
-            final int cutAt = Math.max(0, MAX_INDEX_CONTENT_LENGTH - totalOverhead(key, overhead));
-            final JsonValue fixedValue = JsonValue.of(value.asString().substring(0, cutAt));
-            if (!violatesThreshold(key, fixedValue, overhead)) {
-                return Optional.of(fixedValue);
-            }
+    private static boolean isNonEmptyComposite(final JsonValue value) {
+        return value.isObject() && !value.asObject().isEmpty() ||
+                value.isArray() && !value.asArray().isEmpty();
+    }
+
+    // precondition: value.isString()
+    private static JsonValue fixViolation(final JsonValue value, final int keyOverhead) {
+        final String valueString = value.asString();
+        final int bytesForValueString = MAX_INDEX_CONTENT_LENGTH - keyOverhead;
+        // encode valueString into a byte buffer of size == bytesForValueString
+        final CharBuffer charBuffer = CharBuffer.wrap(valueString.toCharArray());
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(bytesForValueString);
+        final CoderResult coderResult = UTF_8.newEncoder().encode(charBuffer, byteBuffer, true);
+        if (coderResult == CoderResult.OVERFLOW) {
+            // the buffer overflew; truncate the value string by re-encoding the buffer content
+            return JsonValue.of(UTF_8.decode(byteBuffer.flip()));
+        } else {
+            // the buffer did not overflow; the original value satisfies the length restriction
+            return value;
         }
-        return Optional.empty();
-    }
-
-    private static boolean violatesThreshold(final JsonPointer key, final JsonValue value, final int overhead) {
-        final int valueLength = null != value && value.isString() && !value.isNull()
-                ? value.asString().length()
-                : DEFAULT_VALUE_LENGTH;
-        return MAX_INDEX_CONTENT_LENGTH < valueLength + totalOverhead(key, overhead);
-    }
-
-    private static int totalOverhead(final JsonPointer key, final int additionalOverhead) {
-        return jsonPointerLength(key) + additionalOverhead;
     }
 
     private static int calculateThingIdNamespaceAuthSubjectOverhead(final String thingId) {
@@ -100,8 +111,8 @@ public final class IndexLengthRestrictionEnforcer {
         return thingId.length() + namespaceLength + authSubjectOverhead;
     }
 
-    private static int jsonPointerLength(final JsonPointer jsonPointer) {
-        return jsonPointer.toString().length();
+    private static int jsonPointerBytes(final JsonPointer jsonPointer) {
+        return jsonPointer.toString().getBytes(UTF_8).length;
     }
 
     private static void checkThingId(final String thingId) {

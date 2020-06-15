@@ -46,7 +46,6 @@ public final class PoliciesPersistenceStreamingActorCreator {
      */
     public static Props props(final int streamingCacheSize) {
         return DefaultPersistenceStreamingActor.props(PolicyTag.class,
-                streamingCacheSize,
                 PoliciesPersistenceStreamingActorCreator::createElement,
                 PoliciesPersistenceStreamingActorCreator::createPidWithSeqNr);
     }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -20,7 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -150,7 +153,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * representation. Changes on the returned List are not reflected back to this headers object.
      *
      * @return the authorization subjects for the command.
+     * @deprecated as of 1.1.0, please use {@link #getAuthorizationContext()} instead for retrieving the
+     * {@code authorizationSubjects}
      */
+    @Deprecated
     List<String> getAuthorizationSubjects();
 
     /**
@@ -165,8 +171,30 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Thing. Changes on the returned Set are not reflected back to this headers object.
      *
      * @return the read subjects for pointers in the Thing.
+     * @deprecated as of 1.1.0, please use {@link #getReadGrantedSubjects()} instead.
      */
+    @Deprecated
     Set<String> getReadSubjects();
+
+    /**
+     * Returns the authorization subjects with granted "READ" permissions for the key in the map defining a pointer in
+     * the Thing.
+     * Changes on the returned Set are not reflected back to this headers object.
+     *
+     * @return the read granted subjects for pointers in the Thing.
+     * @since 1.1.0
+     */
+    Set<AuthorizationSubject> getReadGrantedSubjects();
+
+    /**
+     * Returns the authorization subjects with explicitly revoked "READ" permissions for the key in the map defining a
+     * pointer in the Thing.
+     * Changes on the returned Set are not reflected back to this headers object.
+     *
+     * @return the read revoked subjects for pointers in the Thing.
+     * @since 1.1.0
+     */
+    Set<AuthorizationSubject> getReadRevokedSubjects();
 
     /**
      * Returns the channel (twin/live) on which a Signal/Exception was sent/occurred.
@@ -176,9 +204,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getChannel();
 
     /**
-     * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics)
+     * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics).
+     * By default this method returns {@code true}.
      *
-     * @return the "response required" value.
+     * @return {@code true} if a response is required, {@code false} else.
      */
     boolean isResponseRequired();
 
@@ -246,5 +275,31 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @throws IllegalArgumentException if {@code maxSizeBytes} is negative.
      */
     DittoHeaders truncate(long maxSizeBytes);
+
+    /**
+     * Returns the acknowledgements ("ACK") which were requested together with an issued Ditto {@code Command}.
+     * Such ACKs are sent back to the issuer of the command so that it can be verified which steps were successful.
+     * <p>
+     * In addition to built-in ACK labels like
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED} also custom labels may be used
+     * which can be sent back even by external systems.
+     * </p>
+     *
+     * @return an unsorted Set of the requested acknowledgements.
+     * Changes on the set are not reflected back to this DittoHeaders instance.
+     * @since 1.1.0
+     */
+    Set<AcknowledgementRequest> getAcknowledgementRequests();
+
+    /**
+     * Returns the timeout of a command or message.
+     * <p>
+     * E.g. used for when {@code AcknowledgementLabel}s were requested as timeout defining how long to wait for those
+     * Acknowledgements.
+     * </p>
+     *
+     * @return the command timeout.
+     */
+    Optional<Duration> getTimeout();
 
 }

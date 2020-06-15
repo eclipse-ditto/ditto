@@ -52,6 +52,15 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     /**
      * Returns a new empty builder for a {@code Policy}.
      *
+     * @return the new builder.
+     */
+    public static ImmutablePolicyBuilder newInstance() {
+        return new ImmutablePolicyBuilder();
+    }
+
+    /**
+     * Returns a new empty builder for a {@code Policy}.
+     *
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to

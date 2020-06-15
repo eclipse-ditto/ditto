@@ -59,7 +59,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse</exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>
@@ -98,11 +99,6 @@
                         <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                     </instructions>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
             </plugin>
 
             <plugin>

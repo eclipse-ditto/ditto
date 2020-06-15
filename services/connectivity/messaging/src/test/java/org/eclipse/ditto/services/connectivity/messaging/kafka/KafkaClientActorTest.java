@@ -12,15 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +36,6 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -49,7 +47,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
@@ -77,16 +74,18 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final String HOST = "localhost";
     private static final String TOPIC = "target";
-    private static final Target TARGET = newTarget(TOPIC, AUTHORIZATION_CONTEXT, null, 0, Topic.TWIN_EVENTS);
+    private static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
+            .address(TOPIC)
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .qos(0)
+            .topics(Topic.TWIN_EVENTS)
+            .build();
 
     private static ActorSystem actorSystem;
     private static ServerSocket mockServer;
 
     private ConnectionId connectionId;
     private Connection connection;
-
-    @Mock
-    private KafkaPublisherActorFactory publisherActorFactory;
 
     @BeforeClass
     public static void setUp() {
@@ -137,7 +136,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     public void testConnect() {
         new TestKit(actorSystem) {{
             final TestProbe probe = new TestProbe(getSystem());
-            final Props props = getKafkaClientActorProps(probe.ref());
+            final Props props = getKafkaClientActorProps(probe.ref(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -155,13 +154,13 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(getSystem());
-            final Props props = getKafkaClientActorProps(probe.ref());
+            final Props props = getKafkaClientActorProps(probe.ref(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singleton(""));
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
@@ -184,7 +183,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTestConnection() {
         new TestKit(actorSystem) {{
-            final Props props = getKafkaClientActorProps(getRef());
+            final Props props = getKafkaClientActorProps(getRef(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -196,7 +195,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     public void testTestConnectionFails() {
         new TestKit(actorSystem) {{
             final Props props = getKafkaClientActorProps(getRef(),
-                    new Status.Failure(new IllegalStateException("just for testing")));
+                    new Status.Failure(new IllegalStateException("just for testing")), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -207,7 +206,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {{
-            final Props props = getKafkaClientActorProps(getRef());
+            final Props props = getKafkaClientActorProps(getRef(), connection);
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
@@ -219,22 +218,24 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         }};
     }
 
-    private Props getKafkaClientActorProps(final ActorRef ref) {
-        return getKafkaClientActorProps(ref, new Status.Success(Done.done()));
+    private Props getKafkaClientActorProps(final ActorRef ref, final Connection connection) {
+        return getKafkaClientActorProps(ref, new Status.Success(Done.done()), connection);
     }
 
-    private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status) {
-        return KafkaClientActor.props(connection, ref, new KafkaPublisherActorFactory() {
-            @Override
-            public String getActorName() {
-                return "testPublisherActor";
-            }
+    private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status,
+            final Connection connection) {
+        return KafkaClientActor.props(connection, ref, ref,
+                new KafkaPublisherActorFactory() {
+                    @Override
+                    public String getActorName() {
+                        return "testPublisherActor";
+                    }
 
-            @Override
-            public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
-                return MockKafkaPublisherActor.props(ref, status);
-            }
-        });
+                    @Override
+                    public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
+                        return MockKafkaPublisherActor.props(ref, status);
+                    }
+                });
     }
 
     private static Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {
@@ -244,13 +245,13 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "ssl") : connection;
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder) {
-        return getKafkaClientActorProps(conciergeForwarder);
+    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
+        return getKafkaClientActorProps(testProbe, connection);
     }
 
     @Override
@@ -258,7 +259,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
         return actorSystem;
     }
 
-    private void expectPublisherReceivedShutdownSignal(final TestProbe probe) {
+    private static void expectPublisherReceivedShutdownSignal(final TestProbe probe) {
         probe.expectMsg(KafkaPublisherActor.GracefulStop.INSTANCE);
     }
 

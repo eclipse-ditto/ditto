@@ -45,7 +45,7 @@ import akka.stream.javadsl.Sink;
 /**
  * Extensible actor to execute enforcement behavior.
  */
-public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>> {
+public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>, WithDittoHeaders> {
 
     private static final String TIMER_NAME = "concierge_enforcements";
 
@@ -79,7 +79,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
-        super();
+        super(WithDittoHeaders.class);
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -89,9 +89,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.aclEnforcerCache = aclEnforcerCache;
         this.policyEnforcerCache = policyEnforcerCache;
 
-        contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), log, null, null,
-                null, null, createResponseReceiversCache());
+        contextual = Contextual.forActor(getSelf(), getContext().getSystem().deadLetters(),
+                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger,
+                createResponseReceiversCache());
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
@@ -101,7 +101,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
-            log.debug("received <{}>", invalidateCacheEntry);
+            logger.debug("Received <{}>.", invalidateCacheEntry);
             final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
             invalidateCaches(entityId);
         });
@@ -110,15 +110,15 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private void invalidateCaches(final EntityIdWithResourceType entityId) {
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
-            log.debug("thingId cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+            logger.debug("Thing ID cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
         if (aclEnforcerCache != null) {
             final boolean invalidated = aclEnforcerCache.invalidate(entityId);
-            log.debug("acl enforcer cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+            logger.debug("ACL enforcer cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
         if (policyEnforcerCache != null) {
             final boolean invalidated = policyEnforcerCache.invalidate(entityId);
-            log.debug("policy enforcer cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+            logger.debug("Policy enforcer cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
     }
 
@@ -154,11 +154,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected int getParallelism() {
-        return enforcementConfig.getParallelism();
-    }
-
-    @Override
     protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {
         return contextual.withReceivedMessage(message, getSender());
     }
@@ -166,4 +161,5 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private static Cache<String, ResponseReceiver> createResponseReceiversCache() {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS));
     }
+
 }

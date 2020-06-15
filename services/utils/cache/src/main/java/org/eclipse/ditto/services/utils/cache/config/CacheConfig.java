@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import com.typesafe.config.Config;
+
 /**
  * Provides configuration settings of a particular cache of Concierge.
  */
@@ -46,6 +48,21 @@ public interface CacheConfig {
     Duration getExpireAfterAccess();
 
     /**
+     * Returns the duration after which an created cache entry expires.
+     * Deactivated when {@link Duration#ZERO} is configured.
+     *
+     * @return the duration between creation and expiration.
+     */
+    Duration getExpireAfterCreate();
+
+    /**
+     * Render this object into a Config object from which a copy of this object can be constructed.
+     *
+     * @return the config representation.
+     */
+    Config render();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code CacheConfig}.
      */
     enum CacheConfigValue implements KnownConfigValue {
@@ -63,7 +80,12 @@ public interface CacheConfig {
         /**
          * Duration after which an accessed cache entry expires.
          */
-        EXPIRE_AFTER_ACCESS("expire-after-access", Duration.ofMinutes(15L));
+        EXPIRE_AFTER_ACCESS("expire-after-access", Duration.ofMinutes(15L)),
+
+        /**
+         * Duration after which an accessed cache entry expires.
+         */
+        EXPIRE_AFTER_CREATE("expire-after-create", Duration.ZERO);
 
         private final String path;
         private final Object defaultValue;

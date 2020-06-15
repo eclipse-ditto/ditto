@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -119,7 +120,7 @@ public final class MongoTimestampPersistenceIT {
         runBlocking(syncPersistence.setTimestamp(ts));
 
         final Optional<Instant> persistedTs = getResult(syncPersistence.getTimestampAsync());
-        assertThat(persistedTs).hasValue(ts);
+        assertThat(persistedTs).hasValue(ts.truncatedTo(ChronoUnit.MILLIS));
     }
 
     @Test

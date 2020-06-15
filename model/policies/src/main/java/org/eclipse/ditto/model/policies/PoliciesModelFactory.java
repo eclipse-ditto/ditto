@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
@@ -251,6 +252,22 @@ public final class PoliciesModelFactory {
     public static ResourceKey newResourceKey(final CharSequence resourceType, final CharSequence resourcePath) {
         checkNotNull(resourcePath, "resource path");
         return ImmutableResourceKey.newInstance(resourceType, JsonPointer.of(resourcePath));
+    }
+
+    /**
+     * Returns a {@link ResourceKey} for the given {@link JsonPointer}.
+     *
+     * @param pointer the json pointer representing a resource key e.g. /thing:/path1/path2/...
+     * @return a new ResourceKey.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static ResourceKey newResourceKey(final JsonPointer pointer) {
+        checkNotNull(pointer, "pointer");
+        checkNotEmpty(pointer, "pointer");
+        // omit leading slash
+        final String typeWithPath = pointer.toString().substring(1);
+        return newResourceKey(typeWithPath);
     }
 
     /**
@@ -495,6 +512,15 @@ public final class PoliciesModelFactory {
     public static Iterable<PolicyEntry> newPolicyEntries(final String jsonString) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return newPolicyEntries(jsonObject);
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
+     *
+     * @return the new builder.
+     */
+    public static PolicyBuilder newPolicyBuilder() {
+        return ImmutablePolicyBuilder.newInstance();
     }
 
     /**

@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "A Policy enables developers to configure fine-grained access control for Things.",
+  "title": "Policy",
+  "properties": {
+    "policyId": {
+      "type": "string",
+      "description": "Unique identifier representing the Policy, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid Policy ID:\n * `org.eclipse.ditto:xdk_policy_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_policy`"
+    },
+    "entries": {
+      "title": "PolicyEntries",
+      "type": "object",
+      "description": "PolicyEntries containing one PolicyEntry for each arbitrary `label` key.",
+      "properties": {
+        "additionalProperties": {
+          "title": "Label",
+          "type": "object",
+          "description": "Single Policy entry containing Subjects and Resources.",
+          "properties": {
+            "subjects": {
+              "title": "Subjects",
+              "type": "object",
+              "description": "Subjects defining who is addressed.",
+              "additionalProperties": {
+                "title": "SubjectEntry",
+                "type": "object",
+                "description": "Single (Authorization) Subject entry holding its type. The key is the actual subject identifier.",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "title": "SubjectType",
+                    "description": "The type of the (Authorization) Subject. See [Policy documentation](../basic-policy.html#who-can-be-addressed) for allowed values."
+                  }
+                }
+              }
+            },
+            "resources": {
+              "title": "Resources",
+              "type": "object",
+              "description": "Resources containing one or many ResourceEntries.",
+              "additionalProperties": {
+                "title": "ResourceEntry",
+                "type": "object",
+                "description": "Single Resource entry defining permissions per effect. The keys must be in the format `type:path` with `type` being one of the following `thing`, `policy` or `message` resources. See [Policy documentation](../basic-policy.html#which-resources-can-be-controlled) for detailed information.",
+                "properties": {
+                  "grant": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "All subjects specified in this Policy entry are granted read/write permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label.",
+                      "enum": [
+                        "READ",
+                        "WRITE"
+                      ]
+                    }
+                  },
+                  "revoke": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "All subjects specified in this Policy entry are prohibited to read/write on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label.",
+                      "enum": [
+                        "READ",
+                        "WRITE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

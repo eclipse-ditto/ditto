@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
@@ -56,19 +57,33 @@ public final class OutboundSignalFactory {
     }
 
     /**
+     * Creates a OutboundSignal wrapping an existing {@code outboundSignal} that has the same {@link PayloadMapping}
+     * for all targets.
+     *
+     * @param signal the original signal
+     * @param payloadMapping the payload mapping common to all targets
+     * @return the created OutboundSignal with the {@link PayloadMapping} that will be used to map the signal
+     */
+    public static OutboundSignal.Mappable newMappableOutboundSignal(final Signal<?> signal, final List<Target> targets,
+            final PayloadMapping payloadMapping) {
+
+        return new MappableOutboundSignal(signal, targets, payloadMapping);
+    }
+
+    /**
      * Returns an immutable {@link OutboundSignal} based on the given JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the OutboundSignal to be created.
-     * @param mappingStrategy the {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} to use in order to
-     * parse the in the JSON included {@code source} Signal.
+     * @param mappingStrategies the mapping strategies to use in order to parse the in the JSON included {@code source}
+     * Signal.
      * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static OutboundSignal outboundSignalFromJson(final JsonObject jsonObject,
-            final MappingStrategies mappingStrategy) {
+            final MappingStrategies mappingStrategies) {
 
-        return UnmappedOutboundSignal.fromJson(jsonObject, mappingStrategy);
+        return UnmappedOutboundSignal.fromJson(jsonObject, mappingStrategies);
     }
 
 }

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -23,7 +24,6 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -32,10 +32,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestName;
 
 import com.typesafe.config.Config;
@@ -143,7 +140,9 @@ public abstract class AbstractPublisherActorTest {
     protected OutboundSignal.Mapped getMockOutboundSignal(final Target target,
             final String... extraHeaders) {
 
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing");
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder()
+                .correlationId(TestConstants.CORRELATION_ID)
+                .putHeader("device_id", "ditto:thing");
         for (int i = 0; 2 * i + 1 < extraHeaders.length; ++i) {
             headersBuilder.putHeader(extraHeaders[2 * i], extraHeaders[2 * i + 1]);
         }
@@ -155,12 +154,13 @@ public abstract class AbstractPublisherActorTest {
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("payload").build();
         final Adaptable adaptable =
-                DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+                DittoProtocolAdapter.newInstance().toAdaptable(source);
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 
     private OutboundSignal.Mapped getResponseWithReplyTarget() {
         final DittoHeaders externalHeaders = DittoHeaders.newBuilder()
+                .correlationId(TestConstants.CORRELATION_ID)
                 .putHeader("original-header", "original-header-value")
                 .build();
         final DittoHeaders internalHeaders = externalHeaders.toBuilder()
@@ -169,12 +169,16 @@ public abstract class AbstractPublisherActorTest {
         final ThingCommandResponse source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(externalHeaders)
+                        .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),
+                                TestConstants.CORRELATION_ID)
+                        .withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, "replies")
+                        .withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, "text/plain")
                         .withText("payload")
                         .withInternalHeaders(internalHeaders)
                         .asResponse(true)
                         .build();
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, Collections.emptyList());
-        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
         return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
     }
 

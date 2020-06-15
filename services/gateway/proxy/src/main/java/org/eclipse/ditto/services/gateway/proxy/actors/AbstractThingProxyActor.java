@@ -57,17 +57,16 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                             command.getType());
                     devOpsCommandsActor.forward(command, getContext());
                 })
-
                 /* handle RetrieveThings in a special way */
                 .match(RetrieveThings.class, rt -> aggregatorProxyActor.forward(rt, getContext()))
                 .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))
 
                 .match(QueryThings.class, qt -> {
                     final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender()));
+                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender(),
+                                    pubSubMediator));
                     conciergeForwarder.tell(qt, responseActor);
-                        }
-                )
+                })
 
                 /* send all other Commands to Concierge Service */
                 .match(Command.class, this::forwardToConciergeService)

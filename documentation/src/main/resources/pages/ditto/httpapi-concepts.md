@@ -14,7 +14,7 @@ http://localhost:8080/api/<apiVersion>
 
 ## API versioning
 
-Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently Ditto distinguishes between API version `1` and
+Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently Ditto distinguishes between deprecated API version `1` and
 API version `2`.
 
 The API version is a promise that no HTTP resources (the static ones defined by Ditto itself) are modified in an 
@@ -34,9 +34,32 @@ In the HTTP API, some endpoints are static and can be seen as the "schema" of Di
 representation of the model classes, e.g. [Thing](basic-thing.html#model-specification) for the layout of the `/things`
 endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint.
 
-### API version 1
+### API version 1 - Deprecated
 
 In API version 1, each `Thing` contains the information about the authorization in an inlined [ACL](basic-acl.html).
+
+#### Migration from API 1 to API 2
+
+In case you need to migrate a thing which was created via API 1 to API 2, 
+please note that you need to migrate the access control list entries (ACL) into a **policy**, and to assign your thing to such a policy.
+
+1.  Request the thing to be migrated, via API 2 and use the field-selector to specify that the inline policy (i.e. `_policy`) should also be retrieved.
+    
+    `GET {{host}}/api/2/things/{$thingId}?fields=_policy`
+    
+    [Retrieve a specific Thing](https://www.eclipse.org/ditto/http-api-doc.html#/Things/get_things__thingId_)
+2.  Create a new policy from the content of the requested inline policy, with a `policyId` of your choice (e.g. same as the `thingId`).
+
+    `PUT {{host}}/api/2/policies/{$policyId}`
+    
+    [Create or update a Policy with a specified ID](https://www.eclipse.org/ditto/http-api-doc.html#/Policies/put_policies__policyId_)
+3. Assign the new `policyId` to the thing to be migrated.
+
+    `PUT {{host}}/api/2/things/{$thingId}/policyId`
+    
+    [Create or update the Policy ID of a Thing](https://www.eclipse.org/ditto/http-api-doc.html#/Things/put_things__thingId__policyId)
+
+**Note**: Henceforth the thing cannot be read nor written via API 1.
 
 #### `/things` in API 1
 
@@ -430,12 +453,30 @@ The following request headers can be used to issue a conditional request:
       the current entity-tag of the resource as `ETag` header
       * for read requests, status `304 (Not Modified)` without response body, with the current entity-tag of the 
       resource as `ETag` header
-
+      
 Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a 
 `weak` entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this 
 strong entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto will handle it according to RFC-7232. 
 However, we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary 
 complexity.
+
+### Exempted fields
+
+Assuming you have a thing with an associated policy. When querying the thing with
+
+```
+GET .../things/{thingId}?fields=_policy
+```
+
+you will get the thing containing its revision and associated policy.
+
+If you now modify the associated policy, the revision of the thing will not change! This could lead to an
+inconsistent state if the thing is getting refetched by using the `If-None-Match` header, 
+because this would return a `304 Not Modified`, even if the policy has changed.
+
+To tackle this, Ditto has the following list of exempted fields which automatically bypass the precondition header check:
+
+* `_policy`
     
 ### Examples
 

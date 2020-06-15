@@ -32,6 +32,8 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -44,6 +46,7 @@ import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
@@ -52,19 +55,14 @@ import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.event.LoggingAdapter;
-import akka.routing.ConsistentHashingPool;
-import akka.routing.ConsistentHashingRouter;
-import akka.routing.DefaultResizer;
-import akka.routing.Resizer;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.
  */
-public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
+public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
 
@@ -188,27 +186,20 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     public void createWithDefaultMapperOnly() {
         new TestKit(actorSystem) {{
             final ActorRef underTest = setupActor(getTestActor(), null);
-            final ExternalMessage in =
+            final ExternalMessage msg =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
-            final ConsistentHashingRouter.ConsistentHashableEnvelope msg =
-                    new ConsistentHashingRouter.ConsistentHashableEnvelope(in, "foo");
             underTest.tell(msg, null);
         }};
     }
 
-    private ActorRef setupActor(final ActorRef testRef,
-            final MappingContext mappingContext) {
+    private ActorRef setupActor(final ActorRef testRef, @Nullable final MappingContext mappingContext) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID);
+                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION_ID,
+                        connectionActorProbe.ref(), 17);
 
-        final Resizer resizer = new DefaultResizer(2, 2);
-
-        return actorSystem.actorOf(new ConsistentHashingPool(2)
-                        .withDispatcher("message-mapping-processor-dispatcher")
-                        .withResizer(resizer)
-                        .props(messageMappingProcessorProps),
+        return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 
@@ -261,13 +252,20 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        final HashMap<String, MappingContext> mappings = new HashMap<>();
+        final Map<String, MappingContext> mappings = new HashMap<>();
         if (mappingContext != null) {
             mappings.put("test", mappingContext);
         }
+        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
         return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
                 actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, logger);
     }
 
 }

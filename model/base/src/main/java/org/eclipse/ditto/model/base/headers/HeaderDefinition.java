@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 /**
  * This interface represents the definition of a pre-defined Ditto header. The definition provides the header key as
  * well as the Java type of the header value.
+ * Note: All header keys must be lower-case;
  */
 public interface HeaderDefinition {
 
@@ -65,13 +66,11 @@ public interface HeaderDefinition {
      * </p>
      *
      * @param value the value to be validated.
-     * @throws IllegalArgumentException if {@code value} is not a valid representation of this definition's Java type.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if {@code value} is not a valid
+     * representation of this definition's Java type.
      * @see #getJavaType()
      */
-    default void validateValue(@Nullable final CharSequence value) {
-        final HeaderValueValidator validator = HeaderValueValidator.getInstance();
-        validator.accept(this, value);
-    }
+    void validateValue(@Nullable CharSequence value);
 
     /**
      * Same as {@link #getKey()}.

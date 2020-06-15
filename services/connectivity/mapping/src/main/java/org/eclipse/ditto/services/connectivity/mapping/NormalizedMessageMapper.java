@@ -13,9 +13,7 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -94,9 +92,13 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         final Payload payload = adaptable.getPayload();
         final JsonPointer path = JsonPointer.of(payload.getPath());
         final Optional<JsonValue> payloadValue = payload.getValue();
+        final Optional<JsonObject> extraData = payload.getExtra();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-
         builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getId()).toString());
+
+        // enrich with data selected by "extraFields", do this first - the actual changed data applied on top of that:
+        extraData.ifPresent(builder::setAll);
+
         if (path.isEmpty() && payloadValue.isPresent()) {
             final JsonValue value = payloadValue.get();
             if (value.isObject()) {
@@ -108,6 +110,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         } else {
             payloadValue.ifPresent(jsonValue -> builder.set(path, jsonValue));
         }
+
         payload.getTimestamp().ifPresent(timestamp -> builder.set(MODIFIED, timestamp.toString()));
         payload.getRevision().ifPresent(revision -> builder.set(REVISION, revision));
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));
@@ -116,16 +119,10 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 ? builder.build()
                 : builder.build().get(jsonFieldSelector);
 
-        final Map<String, String> headers = getHeaders(adaptable);
-
-        return ExternalMessageFactory.newExternalMessageBuilder(headers)
+        return ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(result.toString())
                 .build();
-    }
-
-    private Map<String, String> getHeaders(final Adaptable adaptable) {
-        return new LinkedHashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
     }
 
     private static JsonObject abridgeMessage(final Adaptable adaptable) {

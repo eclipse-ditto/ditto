@@ -21,6 +21,7 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
@@ -31,6 +32,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -165,7 +169,8 @@ public final class LiveSignalEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat((CharSequence) ((ThingCommand) publish.msg()).getEntityId()).isEqualTo(read.getEntityId());
@@ -188,7 +193,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -208,7 +213,8 @@ public final class LiveSignalEnforcementTest {
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat((CharSequence) ((ThingCommand) publish.msg()).getEntityId()).isEqualTo(write.getEntityId());
@@ -284,7 +290,8 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat((CharSequence) ((MessageCommand) publish.msg()).getEntityId()).isEqualTo(
@@ -299,7 +306,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -319,7 +326,8 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat((CharSequence) ((MessageCommand) publish.msg()).getEntityId())
@@ -345,10 +353,12 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, responseProbe.ref());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
 
-            final MessageCommandResponse messageCommandResponse = thingMessageCommandResponse((MessageCommand) publish.msg());
+            final MessageCommandResponse messageCommandResponse =
+                    thingMessageCommandResponse((MessageCommand) publish.msg());
 
             underTest.tell(messageCommandResponse, responseProbe.ref());
             responseProbe.expectMsg(messageCommandResponse);
@@ -363,7 +373,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.messageResource("/features/foo/inbox/messages/my-subject"),
                         WRITE.name())
                 .build()
@@ -382,7 +392,8 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = featureMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat((CharSequence) ((MessageCommand) publish.msg()).getEntityId())
@@ -448,7 +459,8 @@ public final class LiveSignalEnforcementTest {
             final ThingEvent liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
             assertThat((CharSequence) ((Event) publish.msg()).getEntityId()).isEqualTo(liveEvent.getEntityId());
@@ -462,7 +474,7 @@ public final class LiveSignalEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, SUBJECT.getId())
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         READ.name(),
                         WRITE.name())
@@ -483,7 +495,8 @@ public final class LiveSignalEnforcementTest {
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
 
-            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish =
+                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
             assertThat((CharSequence) ((Event) publish.msg()).getEntityId()).isEqualTo(liveEvent.getEntityId());
@@ -501,11 +514,13 @@ public final class LiveSignalEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
+    private static DittoHeaders headers() {
         return DittoHeaders.newBuilder()
-                .authorizationSubjects(SUBJECT.getId(), String.format("%s:%s", GOOGLE, SUBJECT))
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
+                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
                 .channel("live")
-                .schemaVersion(schemaVersion)
+                .schemaVersion(JsonSchemaVersion.V_2)
                 .correlationId(UUID.randomUUID().toString())
                 .build();
     }
@@ -517,11 +532,11 @@ public final class LiveSignalEnforcementTest {
     }
 
     private static ThingCommand readCommand() {
-        return RetrieveThing.of(THING_ID, headers(V_2));
+        return RetrieveThing.of(THING_ID, headers());
     }
 
     private static ThingCommand writeCommand() {
-        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
+        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers());
     }
 
     private static MessageCommand thingMessageCommand() {
@@ -531,7 +546,7 @@ public final class LiveSignalEnforcementTest {
                         .build())
                 .payload("Hello you!")
                 .build();
-        return SendThingMessage.of(THING_ID, message, headers(V_2));
+        return SendThingMessage.of(THING_ID, message, headers());
     }
 
     private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
@@ -547,11 +562,11 @@ public final class LiveSignalEnforcementTest {
                         .build())
                 .payload("Hello you!")
                 .build();
-        return SendFeatureMessage.of(THING_ID, "foo", message, headers(V_2));
+        return SendFeatureMessage.of(THING_ID, "foo", message, headers());
     }
 
     private static ThingEvent liveEvent() {
-        return AttributeModified.of(THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L, headers(V_2));
+        return AttributeModified.of(THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L, headers());
     }
 
 }

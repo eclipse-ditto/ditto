@@ -15,17 +15,20 @@ package org.eclipse.ditto.services.things.persistence.actors;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
@@ -111,12 +114,17 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
-            final String... authSubjects) {
+            final String... authSubjectIds) {
 
-        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
-        builder.authorizationSubjects(Arrays.asList(authSubjects));
-        builder.schemaVersion(schemaVersion);
-        return builder.build();
+        final List<AuthorizationSubject> authSubjects = Arrays.stream(authSubjectIds)
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+
+        return DittoHeaders.newBuilder()
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, authSubjects))
+                .schemaVersion(schemaVersion)
+                .build();
     }
 
     protected static Thing createThingV2WithRandomId() {
@@ -156,8 +164,8 @@ public abstract class PersistenceActorTestBase {
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
 
-        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
-        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, "test:" + AUTH_SUBJECT);
+        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, "test:" + AUTH_SUBJECT);
     }
 
     @After

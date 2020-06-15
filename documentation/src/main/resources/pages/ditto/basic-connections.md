@@ -41,6 +41,7 @@ for custom payload formats. Currently the following connection types are support
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
 * [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)
+* [MQTT 5](connectivity-protocol-bindings-mqtt5.html)
 * [HTTP 1.1](connectivity-protocol-bindings-http.html)
 * [Kafka 2.x](connectivity-protocol-bindings-kafka2.html)
 
@@ -116,6 +117,10 @@ only send data to the Thing `sensor:temperature1` the following enforcement conf
 }
 ```
 
+Note: This example assumes that there is a valid user named `ditto:inbound-auth-subject` in Ditto.
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefix `nginx:`, e.g. `nginx:ditto`.
+See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
+
 #### Source header mapping
 
 For incoming messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
@@ -174,6 +179,7 @@ Targets contain:
 * an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages to the target, and
 * [header mapping](connectivity-header-mapping.html) to compute external headers from Ditto protocol headers.
 
+
 #### Target topics and filtering
 
 For targets it can be configured which types of messages should be published to the target address.
@@ -181,7 +187,7 @@ For targets it can be configured which types of messages should be published to 
 In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
 following parameters can additionally be provided when specifying the `topics` of a target:
 
-| Description | Topic | Filter by namespaces | Filter by RQL expression |
+| Description | Topic | [Filter by namespaces](basic-changenotifications.html#by-namespaces) | [Filter by RQL expression](basic-changenotifications.html#by-rql-expression) |
 |-------------|-----------------|------------------|-----------|
 | Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
 | Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
@@ -199,7 +205,34 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
   "address": "<target-address>",
   "topics": [
     "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
+    "_/_/things/twin/events?extraFields=attributes/placement&filter=gt(attributes/placement,'Kitchen')",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+}
+```
+
+#### Target topics and enrichment
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+When extra fields should be added to outgoing messages on a connection, an `extraFields` parameter can be added
+to the topic. This is supported for all topics:
+
+| Description | Topic | [Enrich by extra fields](basic-enrichment.html) |
+|-------------|-----------------|------------------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; |
+| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; |
+| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; |
+| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; |
+
+Example:
+```json
+{
+  "address": "<target-address>",
+  "topics": [
+    "_/_/things/twin/events?extraFields=attributes/placement",
+    "_/_/things/live/messages?extraFields=features/ConnectionStatus"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }

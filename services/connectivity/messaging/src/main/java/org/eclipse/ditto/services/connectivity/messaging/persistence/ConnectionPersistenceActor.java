@@ -20,9 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -65,7 +63,8 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Validator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt5Validator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands.ConnectionCreatedStrategies;
@@ -76,11 +75,11 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -88,6 +87,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -105,18 +105,19 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
@@ -148,12 +149,13 @@ public final class ConnectionPersistenceActor
 
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    // number of client actors to start per node
+    private static final int CLIENT_ACTORS_PER_NODE = 1;
 
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef conciergeForwarder;
     private final ClientActorPropsFactory propsFactory;
+    private final int clientActorsPerNode;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final ConnectionLogger connectionLogger;
     private Instant connectionClosedAt = Instant.now();
@@ -169,13 +171,16 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant loggingEnabledUntil;
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
+    private final MonitoringConfig monitoringConfig;
 
-    @SuppressWarnings("unused")
-    private ConnectionPersistenceActor(final ConnectionId connectionId,
+    private int subscriptionCounter = 0;
+
+    ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
+            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator,
+            final int clientActorsPerNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
@@ -190,15 +195,17 @@ public final class ConnectionPersistenceActor
         config = connectivityConfig.getConnectionConfig();
 
         final ConnectionValidator connectionValidator =
-                ConnectionValidator.of(connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
+                ConnectionValidator.of(
+                        connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
-                        MqttValidator.newInstance(),
+                        Mqtt3Validator.newInstance(),
+                        Mqtt5Validator.newInstance(),
                         KafkaValidator.getInstance(),
                         HttpPushValidator.newInstance());
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, connectionValidator,
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, getSelf(), connectionValidator,
                         actorSystem);
 
         if (customCommandValidator != null) {
@@ -210,7 +217,7 @@ public final class ConnectionPersistenceActor
 
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionMonitorRegistry =
                 DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         final ConnectionLoggerRegistry loggerRegistry =
@@ -221,6 +228,7 @@ public final class ConnectionPersistenceActor
 
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
+        this.clientActorsPerNode = clientActorsPerNode;
     }
 
     /**
@@ -240,8 +248,7 @@ public final class ConnectionPersistenceActor
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, conciergeForwarder,
-                propsFactory,
-                commandValidator);
+                propsFactory, commandValidator, CLIENT_ACTORS_PER_NODE);
     }
 
     @Override
@@ -334,9 +341,9 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected void recoveryCompleted(RecoveryCompleted event) {
+    protected void recoveryCompleted(final RecoveryCompleted event) {
         log.info("Connection <{}> was recovered: {}", entityId, entity);
-        if (entity != null && !entity.getLifecycle().isPresent()) {
+        if (entity != null && entity.getLifecycle().isEmpty()) {
             entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
         }
         if (isDesiredStateOpen()) {
@@ -452,8 +459,12 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected void matchAnyAfterInitialization(final Object message) {
-        if (message instanceof Signal) {
-            forwardSignalToClientActors((Signal) message);
+        if (message instanceof Acknowledgement) {
+            handleAcknowledgement((Acknowledgement) message);
+        } else if (message instanceof ThingSearchCommand) {
+            forwardThingSearchCommandToClientActors((ThingSearchCommand<?>) message);
+        } else if (message instanceof Signal) {
+            handleSignal((Signal<?>) message);
         } else if (message == CheckLoggingActive.INSTANCE) {
             checkLoggingEnabled();
         } else {
@@ -461,12 +472,27 @@ public final class ConnectionPersistenceActor
         }
     }
 
-    private void checkLoggingEnabled() {
-        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
-        broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
+    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+        final ActorContext context = getContext();
+        final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
+        final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)
+                .info("Received Acknowledgement but no AcknowledgementForwarderActor was present: <{}>",
+                        acknowledgement);
+
+        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+                .ifPresentOrElse(action, emptyAction);
     }
 
-    private void forwardSignalToClientActors(final Signal signal) {
+    private void handleSignal(final Signal<?> signal) {
+        if (signal instanceof ThingEvent) {
+            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingEvent.getThingEntityId(),
+                    signal.getDittoHeaders(), config.getAcknowledgementConfig());
+        }
+        forwardSignalToClientActors(signal);
+    }
+
+    private void forwardSignalToClientActors(final Signal<?> signal) {
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             logDroppedSignal(signal.getType(), "Client actor not ready.");
@@ -491,9 +517,89 @@ public final class ConnectionPersistenceActor
                 subscribedAndAuthorizedTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(outbound,
-                outbound.getSource().getEntityId().toString());
+        final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
+    }
+
+    /**
+     * Route search commands according to subscription ID prefix. This is necessary so that for connections with
+     * client count > 1, all commands related to 1 search session are routed to the same client actor. This is achieved
+     * by using a prefix of fixed length of subscription IDs as the hash key of search commands. The length of the
+     * prefix depends on the client count configured in the connection; it is 1 for connections with client count <= 15.
+     * <p>
+     * For the search protocol, all incoming messages are commands (ThingSearchCommand) and all outgoing messages are
+     * events (SubscriptionEvent).
+     * <p>
+     * Message path for incoming search commands:
+     * <pre>
+     * ConsumerActor -> MessageMappingProcessorActor -> ConnectionPersistenceActor -> ClientActor -> SubscriptionManager
+     * </pre>
+     * Message path for outgoing search events:
+     * <pre>
+     * SubscriptionActor -> MessageMappingProcessorActor -> PublisherActor
+     * </pre>
+     *
+     * @param command the command to route.
+     */
+    private void forwardThingSearchCommandToClientActors(final ThingSearchCommand<?> command) {
+        enhanceLogUtil(command);
+        if (clientActorRouter == null) {
+            logDroppedSignal(command.getType(), "Client actor not ready.");
+            return;
+        }
+        if (entity == null) {
+            logDroppedSignal(command.getType(), "No Connection configuration available.");
+            return;
+        }
+        log.debug("Forwarding <{}> to client actors.", command);
+        if (command instanceof CreateSubscription) {
+            // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+            // ignore any "prefix" field from the command
+            augmentWithPrefixAndForward(clientActorRouter, (CreateSubscription) command);
+        } else if (command instanceof RequestFromSubscription) {
+            // forward the command to a client actor according to the prefix of the subscription ID
+            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(),
+                    command);
+        } else if (command instanceof CancelSubscription) {
+            // same as RequestSubscription
+            computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);
+        } else {
+            // should not happen
+            log.error("Unknown search command, dropping: <{}>", command);
+        }
+    }
+
+    private void augmentWithPrefixAndForward(final ActorRef receiver, final CreateSubscription createSubscription) {
+        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, getClientCount());
+        final int prefixLength = getSubscriptionPrefixLength();
+        final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
+        final CreateSubscription commandToForward = createSubscription.setPrefix(prefix);
+        receiver.tell(consistentHashableEnvelope(commandToForward, prefix), ActorRef.noSender());
+    }
+
+    private void computeEnvelopeAndForward(final ActorRef receiver, final String subscriptionId,
+            final ThingSearchCommand<?> command) {
+        final int prefixLength = getSubscriptionPrefixLength();
+        if (subscriptionId.length() <= prefixLength) {
+            // command is invalid or outdated, dropping.
+            logDroppedSignal(command.getType(), "Invalid subscription ID");
+            return;
+        }
+        final String prefix = subscriptionId.substring(0, prefixLength);
+        receiver.tell(consistentHashableEnvelope(command, prefix), ActorRef.noSender());
+    }
+
+    private Object consistentHashableEnvelope(final Object message, final String hashKey) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
+    }
+
+    private int getSubscriptionPrefixLength() {
+        return Integer.toHexString(getClientCount()).length();
+    }
+
+    private void checkLoggingEnabled() {
+        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
+        broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
 
     private void prepareForSignalForwarding(final StagedCommand command) {
@@ -590,7 +696,8 @@ public final class ConnectionPersistenceActor
         this.updateLoggingIfEnabled();
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, sender, command.getDittoHeaders(), timeout),
+                        existingConnection, sender, command.getDittoHeaders(), timeout,
+                        monitoringConfig.logger().maxLogSizeInBytes()),
                 () -> respondWithEmptyLogs(command, sender));
     }
 
@@ -640,8 +747,7 @@ public final class ConnectionPersistenceActor
 
     private CompletionStage<Object> startAndAskClientActors(final Command<?> cmd, final int clientCount) {
         startClientActorsIfRequired(clientCount);
-        final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(cmd,
-                cmd.getEntityId().toString());
+        final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
@@ -791,9 +897,9 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder);
+            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
-                    new ClusterRouterPoolSettings(clientCount, 1, true,
+                    new ClusterRouterPoolSettings(clientCount, clientActorsPerNode, true,
                             Collections.singleton(CLUSTER_ROLE));
             final Pool pool = new ConsistentHashingPool(clientCount);
             final Props clusterRouterPoolProps =
@@ -893,111 +999,4 @@ public final class ConnectionPersistenceActor
         INSTANCE
     }
 
-    /**
-     * Local helper-actor which is started for aggregating several Status sent back by potentially several {@code
-     * clientActors} (behind a cluster Router running on different cluster nodes).
-     */
-    private static final class AggregateActor extends AbstractActor {
-
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-        private final Map<String, Status.Status> aggregatedStatus;
-
-        private final ActorRef clientActor;
-        private final int expectedResponses;
-        private final long timeout;
-
-        private int responseCount = 0;
-        @Nullable private ActorRef origin;
-
-        /**
-         * Creates Akka configuration object for this actor.
-         *
-         * @param clientActor the client actor router
-         * @param expectedResponses the number of expected responses
-         * @param timeout the timeout in milliseconds
-         * @param connectionId the connection id
-         * @return the Akka configuration Props object
-         */
-        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout,
-                final ConnectionId connectionId) {
-            return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout, connectionId);
-        }
-
-        @SuppressWarnings("unused")
-        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout,
-                final ConnectionId connectionId) {
-            this.clientActor = clientActor;
-            this.expectedResponses = expectedResponses;
-            this.timeout = timeout;
-            aggregatedStatus = new HashMap<>();
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-        }
-
-        @Override
-        public Receive createReceive() {
-            return ReceiveBuilder.create()
-                    .match(Command.class, command -> {
-                        clientActor.tell(new Broadcast(command), getSelf());
-                        origin = getSender();
-
-                        getContext().setReceiveTimeout(Duration.ofMillis(timeout / 2));
-                    })
-                    .match(ReceiveTimeout.class, receiveTimeout ->
-                            // send back (partially) gathered responses
-                            sendBackAggregatedResults()
-                    )
-                    .match(Status.Status.class, status -> {
-                        addStatus(status);
-                        respondIfExpectedResponsesReceived();
-                    })
-                    .match(DittoRuntimeException.class, dre -> {
-                        addStatus(new Status.Failure(dre));
-                        respondIfExpectedResponsesReceived();
-                    })
-                    .matchAny(any -> {
-                        log.info("Could not handle non-Status response: {}", any);
-                        respondIfExpectedResponsesReceived();
-                    })
-                    .build();
-        }
-
-        private void addStatus(final Status.Status status) {
-            aggregatedStatus.put(getSender().path().address().hostPort(), status);
-        }
-
-        private void sendBackAggregatedResults() {
-            if (origin != null) {
-                if (!aggregatedStatus.isEmpty()) {
-                    log.debug("Aggregated statuses: {}", aggregatedStatus);
-                    final Optional<Status.Status> failure = aggregatedStatus.values().stream()
-                            .filter(status -> status instanceof Status.Failure)
-                            .findFirst();
-                    if (failure.isPresent()) {
-                        origin.tell(failure.get(), getSelf());
-                    } else {
-                        final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
-                                .map(Object::toString)
-                                .collect(Collectors.joining(","));
-                        origin.tell(new Status.Success(aggregatedStatusStr), getSelf());
-                    }
-                } else {
-                    // no status response received, most likely a timeout
-                    log.info("Waiting for status responses timed out.");
-                    origin.tell(new RuntimeException("Waiting for status responses timed out."), getSelf());
-                }
-            } else {
-                log.info("No origin was present to send back aggregated results.");
-            }
-            getContext().stop(getSelf());
-        }
-
-        private void respondIfExpectedResponsesReceived() {
-            responseCount++;
-            if (expectedResponses == responseCount) {
-                // send back all gathered responses
-                sendBackAggregatedResults();
-            }
-        }
-    }
 }

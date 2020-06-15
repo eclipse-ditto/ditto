@@ -57,6 +57,10 @@ For an MQTT connection:
 }
 ```
 
+Note: This example assumes that there is a valid user named `ditto:inbound-auth-subject` in Ditto.
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefix `nginx:`, e.g. `nginx:ditto`.
+See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
+
 #### Enforcement
 
 As MQTT 3.1.1 does not support headers in its protocol, headers may not be used during [source enforcement](basic-connections.html#source-enforcement).
@@ -101,6 +105,30 @@ The default value is `0` (at-most-once).
 
 As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
 
+### Specific Config
+
+The MQTT binding offers an additional [specific configuration](basic-connections.html#specific-config) for the mqtt client id. If the 
+`clientId` is not configured as a [specific config](basic-connections.html#specific-config) Ditto will use the `connection-id` as `clientId` 
+for the outgoing mqtt connection.
+
+Example
+
+Defining the client id `my-awesome-mqtt-client-id`:
+
+```json
+{
+  "id": "mqtt-example-connection-123",
+  "connectionType": "mqtt",
+  "connectionStatus": "open",
+  "failoverEnabled": true,
+  "uri": "tcp://test.mosquitto.org:1883",
+  "specificConfig": {
+    "clientId": "my-awesome-mqtt-client-id"
+  },
+  "sources": ["..."],
+  "targets": ["..."]
+}
+```
 
 ## Establishing a connection to an MQTT 3.1.1 endpoint
 

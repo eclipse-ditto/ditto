@@ -12,8 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import java.util.Arrays;
-
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -21,6 +20,7 @@ import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
@@ -44,8 +44,9 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 JsonTypeNotParsableException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
-                NamespacedEntityIdInvalidException.class
-        );
+                NamespacedEntityIdInvalidException.class,
+                AcknowledgementLabelInvalidException.class,
+                AcknowledgementCorrelationIdMissingException.class);
     }
 
 }

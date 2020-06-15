@@ -78,60 +78,13 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <oldVersion>
-                        <dependency>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${binary-compatibility-check.version}</version>
-                            <type>bundle</type>
-                        </dependency>
-                    </oldVersion>
-                    <newVersion>
-                        <file>
-                            <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
-                        </file>
-                    </newVersion>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandResponseRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry</exclude>
-
-                            <!-- getId is still available, but implemented in an interface (WithIdButActuallyNot) -->
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand#getId()</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponse#getId()</exclude>
-
-                            <!-- These methods has been added to the interface -->
-                            <exclude>org.eclipse.ditto.model.messages.Message#getThingEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.model.messages.MessageBuilder#newHeadersBuilder(org.eclipse.ditto.model.messages.MessageDirection,org.eclipse.ditto.model.things.ThingId,java.lang.CharSequence)</exclude>
-                            <exclude>org.eclipse.ditto.model.messages.MessageHeaders#getThingEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.model.messages.MessageHeaders#newBuilder(org.eclipse.ditto.model.messages.MessageDirection,org.eclipse.ditto.model.things.ThingId,java.lang.CharSequence)</exclude>
-                            <exclude>org.eclipse.ditto.model.messages.MessageHeaders#newBuilderForClaiming(org.eclipse.ditto.model.things.ThingId)</exclude>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
-                        <ignoreMissingClasses>false</ignoreMissingClasses>
-                        <onlyModified>true</onlyModified>
-                        <accessModifier>public</accessModifier>
-                        <breakBuildOnModifications>false</breakBuildOnModifications>
-                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                        <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
-                        <includeSynthetic>false</includeSynthetic>
-                        <skipPomModules>true</skipPomModules>
-                        <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                     </parameter>
-                    <skip>false</skip>
                 </configuration>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>cmp</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

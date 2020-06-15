@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -54,8 +55,9 @@ public final class ImmutableConnectionTest {
     private static final String URI = "amqps://foo:bar@example.com:443";
     private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                    AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     private static final String STATUS_MAPPING = "ConnectionStatus";
     private static final String JAVA_SCRIPT_MAPPING = "JavaScript";
@@ -68,19 +70,24 @@ public final class ImmutableConnectionTest {
             .map(s -> ConnectivityModelFactory.newSourceBuilder(s).replyTargetEnabled(false).build())
             .collect(Collectors.toList());
     private static final HeaderMapping HEADER_MAPPING = null;
-    private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                    Topic.TWIN_EVENTS,
-                    Topic.LIVE_EVENTS);
-    private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                    Topic.LIVE_MESSAGES,
-                    Topic.LIVE_MESSAGES,
-                    Topic.LIVE_EVENTS);
-    private static final Target TARGET3 =
-            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
-                    Topic.LIVE_MESSAGES,
-                    Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS);
+    private static final Target TARGET1 = ConnectivityModelFactory.newTargetBuilder()
+            .address("amqp/target1")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.TWIN_EVENTS, Topic.LIVE_EVENTS)
+            .build();
+    private static final Target TARGET2 = ConnectivityModelFactory.newTargetBuilder()
+            .address("amqp/target2")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_EVENTS)
+            .build();
+    private static final Target TARGET3 = ConnectivityModelFactory.newTargetBuilder()
+            .address("amqp/target3")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS)
+            .build();
     private static final List<Target> TARGETS = Arrays.asList(TARGET1, TARGET2, TARGET3);
 
     private static final JsonArray KNOWN_SOURCES_JSON =

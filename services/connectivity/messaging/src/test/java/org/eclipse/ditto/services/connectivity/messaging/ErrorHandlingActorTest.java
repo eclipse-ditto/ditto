@@ -67,7 +67,8 @@ public class ErrorHandlingActorTest extends WithMockServers {
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, conciergeForwarder,
-                    (connection1, conciergeForwarder) -> FaultyClientActor.props(false));
+                    (connection1, connectionActor, conciergeForwarder) ->
+                            FaultyClientActor.props(false));
             watch(underTest);
 
             // create connection

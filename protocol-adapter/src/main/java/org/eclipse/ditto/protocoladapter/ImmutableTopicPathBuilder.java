@@ -13,12 +13,13 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 
 /**
@@ -26,7 +27,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
  */
 @NotThreadSafe
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
-        CommandsTopicPathBuilder {
+        CommandsTopicPathBuilder, AcknowledgementTopicPathBuilder, SearchTopicPathBuilder {
 
     private final String namespace;
     private final String name;
@@ -35,6 +36,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     private TopicPath.Channel channel;
     private TopicPath.Criterion criterion;
     private TopicPath.Action action;
+    private TopicPath.SearchAction searchAction;
     private String subject;
 
     private ImmutableTopicPathBuilder(final String namespace, final String name) {
@@ -52,17 +54,17 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     /**
-     * Returns a new TopicPathBuilder for the specified {@code thingId}. The {@code namespace} and {@code id} part of
-     * the {@code TopicPath} will pe parsed from the {@code thingId} and set in the builder.
+     * Returns a new TopicPathBuilder for the specified {@code entityId}. The {@code namespace} and {@code id} part of
+     * the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
      *
-     * @param thingId the Thing ID.
+     * @param entityId the entity ID.
      * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @throws ThingIdInvalidException if {@code thingId} is not in the expected format.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws ThingIdInvalidException if {@code entityId} is not in the expected format.
      */
-    public static TopicPathBuilder of(final ThingId thingId) {
-        requireNonNull(thingId, "thing id");
-        return new ImmutableTopicPathBuilder(thingId.getNamespace(), thingId.getName());
+    public static TopicPathBuilder of(final NamespacedEntityId entityId) {
+        requireNonNull(entityId, "entityId");
+        return new ImmutableTopicPathBuilder(entityId.getNamespace(), entityId.getName());
     }
 
     /**
@@ -93,6 +95,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public SearchTopicPathBuilder search() {
+        this.criterion = TopicPath.Criterion.SEARCH;
+        return this;
+    }
+
+    @Override
     public CommandsTopicPathBuilder commands() {
         this.criterion = TopicPath.Criterion.COMMANDS;
         return this;
@@ -110,16 +118,15 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
         return this;
     }
 
-
     @Override
-    public EventsTopicPathBuilder events() {
-        this.criterion = TopicPath.Criterion.EVENTS;
+    public TopicPathBuilder none() {
+        this.channel = TopicPath.Channel.NONE;
         return this;
     }
 
     @Override
-    public TopicPathBuildable search() {
-        this.criterion = TopicPath.Criterion.SEARCH;
+    public EventsTopicPathBuilder events() {
+        this.criterion = TopicPath.Criterion.EVENTS;
         return this;
     }
 
@@ -132,6 +139,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     @Override
     public MessagesTopicPathBuilder messages() {
         this.criterion = TopicPath.Criterion.MESSAGES;
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder acks() {
+        this.criterion = TopicPath.Criterion.ACKS;
         return this;
     }
 
@@ -160,6 +173,48 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public TopicPathBuildable subscribe() {
+        this.searchAction = TopicPath.SearchAction.SUBSCRIBE;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable cancel() {
+        this.searchAction = TopicPath.SearchAction.CANCEL;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable request() {
+        this.searchAction = TopicPath.SearchAction.REQUEST;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable complete() {
+        this.searchAction = TopicPath.SearchAction.COMPLETE;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable failed() {
+        this.searchAction = TopicPath.SearchAction.FAILED;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable hasNext() {
+        this.searchAction = TopicPath.SearchAction.NEXT;
+        return this;
+    }
+
+    @Override
+    public EventsTopicPathBuilder generated() {
+        this.searchAction = TopicPath.SearchAction.GENERATED;
+        return this;
+    }
+
+    @Override
     public EventsTopicPathBuilder created() {
         this.action = TopicPath.Action.CREATED;
         return this;
@@ -179,7 +234,19 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public MessagesTopicPathBuilder subject(final String subject) {
-        this.subject = subject;
+        this.subject = checkNotNull(subject, "subject");
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder label(final CharSequence label) {
+        subject = checkNotNull(label, "label").toString();
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder aggregatedAcks() {
+        subject = null;
         return this;
     }
 
@@ -189,6 +256,8 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, action);
         } else if (subject != null) {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, subject);
+        } else if (searchAction != null) {
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, searchAction);
         } else {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion);
         }
@@ -229,6 +298,11 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
         @Override
         public Optional<Action> getAction() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<SearchAction> getSearchAction() {
             return Optional.empty();
         }
 

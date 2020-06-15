@@ -37,19 +37,19 @@ public final class ShardedMessageEnvelopeTest {
     private static final ShardedMessageEnvelope SHARDED_MESSAGE_ENVELOPE =
             ShardedMessageEnvelope.of(MESSAGE_ID, TYPE, MESSAGE, DITTO_HEADERS);
 
-    private static final JsonObject SHARDED_MESSAGE_ENVELOPE_JSON = JsonObject.newBuilder() //
-            .set(ShardedMessageEnvelope.JSON_ID, String.valueOf(MESSAGE_ID)) //
-            .set(ShardedMessageEnvelope.JSON_TYPE, TYPE) //
-            .set(ShardedMessageEnvelope.JSON_MESSAGE, MESSAGE) //
-            .set(ShardedMessageEnvelope.JSON_DITTO_HEADERS, DITTO_HEADERS.toJson()) //
+    private static final JsonObject SHARDED_MESSAGE_ENVELOPE_JSON = JsonObject.newBuilder()
+            .set(ShardedMessageEnvelope.JSON_ID, String.valueOf(MESSAGE_ID))
+            .set(ShardedMessageEnvelope.JSON_TYPE, TYPE)
+            .set(ShardedMessageEnvelope.JSON_MESSAGE, MESSAGE)
+            .set(ShardedMessageEnvelope.JSON_DITTO_HEADERS, DITTO_HEADERS.toJson())
             .build();
 
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ShardedMessageEnvelope.class) //
-                .usingGetClass() //
-                .withRedefinedSuperclass() //
+        EqualsVerifier.forClass(ShardedMessageEnvelope.class)
+                .usingGetClass()
+                .withRedefinedSuperclass()
                 .verify();
     }
 

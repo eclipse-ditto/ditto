@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -26,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableAdaptableTest {
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableAdaptable.class)
@@ -34,7 +35,6 @@ public final class ImmutableAdaptableTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableAdaptable.class,
@@ -42,10 +42,17 @@ public final class ImmutableAdaptableTest {
                 provided(TopicPath.class, Payload.class, DittoHeaders.class).areAlsoImmutable());
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullTopicPath() {
         ImmutableAdaptable.of(null, null, null);
+    }
+
+    @Test
+    public void getDittoHeadersReturnsEmptyHeadersIfNoneWereSet() {
+        final ImmutableAdaptable underTest =
+                ImmutableAdaptable.of(Mockito.mock(TopicPath.class), Mockito.mock(Payload.class), null);
+
+        assertThat(underTest.getDittoHeaders()).isEmpty();
     }
 
 }

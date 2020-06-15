@@ -30,7 +30,7 @@ public class ImmutableThingPlaceholderTest {
     private static final String NAME = "ditto";
     private static final String NAMESPACE = "eclipse";
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
-    private static final ImmutableThingPlaceholder UNDER_TEST = ImmutableThingPlaceholder.INSTANCE;
+    private static final ThingPlaceholder UNDER_TEST = ImmutableThingPlaceholder.INSTANCE;
 
     /**
      * Assert immutability.

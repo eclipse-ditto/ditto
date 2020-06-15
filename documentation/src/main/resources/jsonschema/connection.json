@@ -24,7 +24,7 @@
     "connectionType": {
       "$id": "/properties/connectionType",
       "type": "string",
-      "enum": [ "amqp-091", "amqp-10", "mqtt", "kafka", "http-push" ],
+      "enum": [ "amqp-091", "amqp-10", "mqtt", "mqtt-5", "kafka", "http-push" ],
       "title": "Connection type",
       "description": "The type determining the connection's underlying transport protocol",
       "examples": [
@@ -266,12 +266,15 @@
                 "_/_/things/twin/events",
                 "_/_/things/twin/events?namespaces=org.eclipse.ditto.one,org.eclipse.foo",
                 "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=eq(attributes/counter,42)",
+                "_/_/things/twin/events?extraFields=attributes",
+                "_/_/things/twin/events?extraFields=attributes&filter=eq(attributes/counter,42)",
                 "_/_/things/live/commands",
                 "_/_/things/live/commands?namespaces=org.eclipse.ditto.one",
                 "_/_/things/live/events",
                 "_/_/things/live/events?filter=eq(attributes/counter,42)",
                 "_/_/things/live/messages",
-                "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+                "_/_/things/live/messages?namespaces=org.eclipse.ditto",
+                "_/_/things/live/messages?extraFields=attributes/tags,attributes/location"
               ]
             }
           },

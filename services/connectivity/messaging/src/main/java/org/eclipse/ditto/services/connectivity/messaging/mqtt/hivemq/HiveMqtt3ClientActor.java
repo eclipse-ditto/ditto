@@ -50,63 +50,93 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     // we always want to use clean session -> we need to subscribe after reconnects
     private static final boolean CLEAN_SESSION = true;
+
+    private final Connection connection;
     private final HiveMqtt3ClientFactory clientFactory;
 
-    private final Mqtt3Client client;
-    private final HiveMqtt3SubscriptionHandler subscriptionHandler;
-    private ActorRef publisherActor;
+    @Nullable private Mqtt3Client client;
+    @Nullable private HiveMqtt3SubscriptionHandler subscriptionHandler;
+    @Nullable private ActorRef publisherActor;
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt3ClientActor(final Connection connection,
-            final ActorRef conciergeForwarder,
+            @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor,
             final HiveMqtt3ClientFactory clientFactory) {
-        super(connection, conciergeForwarder);
-        this.clientFactory = clientFactory;
 
+        super(connection, conciergeForwarder, connectionActor);
+        this.connection = connection;
+        this.clientFactory = clientFactory;
+    }
+
+    @SuppressWarnings("unused") // used by `props` via reflection
+    private HiveMqtt3ClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
+        this(connection, conciergeForwarder, connectionActor, DefaultHiveMqtt3ClientFactory.getInstance());
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param connectionActor the connectionPersistenceActor which created this client.
+     * @param clientFactory factory used to create required mqtt clients
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor, final HiveMqtt3ClientFactory clientFactory) {
+        return Props.create(HiveMqtt3ClientActor.class, validateConnection(connection), conciergeForwarder,
+                connectionActor, clientFactory);
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param connectionActor the connectionPersistenceActor which created this client.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+            final ActorRef connectionActor) {
+        return Props.create(HiveMqtt3ClientActor.class, validateConnection(connection), conciergeForwarder,
+                connectionActor);
+    }
+
+    private Mqtt3Client getClient() {
+        if (null == client) {
+            throw new IllegalStateException("Mqtt3Client not initialized!");
+        }
+        return client;
+    }
+
+    private HiveMqtt3SubscriptionHandler getSubscriptionHandler() {
+        if (null == subscriptionHandler) {
+            throw new IllegalStateException("HiveMqtt3SubscriptionHandler not initialized!");
+        }
+        return subscriptionHandler;
+    }
+
+    @Override
+    protected void doInit() {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
         final String mqttClientId = resolveMqttClientId(connection.getId(), mqttSpecificConfig);
-
         final ActorRef self = getContext().getSelf();
-        client = clientFactory.newClient(connection, mqttClientId, true,
-                connected -> self.tell(connected, ActorRef.noSender()),
-                disconnected -> self.tell(disconnected, ActorRef.noSender()));
 
-        this.subscriptionHandler = new HiveMqtt3SubscriptionHandler(connection, client, log);
+        try {
+            client = clientFactory.newClient(connection, mqttClientId, true,
+                    connected -> self.tell(connected, ActorRef.noSender()),
+                    disconnected -> self.tell(disconnected, ActorRef.noSender()));
+            this.subscriptionHandler = new HiveMqtt3SubscriptionHandler(connection, client, log);
+        } catch (final Exception e) {
+            log.debug("Connecting failed ({}): {}", e.getClass().getName(), e.getMessage());
+            self.tell(new ImmutableConnectionFailure(self, e, null), self);
+        }
     }
 
     private String resolveMqttClientId(final ConnectionId connectionId, final MqttSpecificConfig mqttSpecificConfig) {
         return mqttSpecificConfig.getMqttClientId().orElse(connectionId.toString());
-    }
-
-    @SuppressWarnings("unused") // used by `props` via reflection
-    private HiveMqtt3ClientActor(final Connection connection, final ActorRef conciergeForwarder) {
-        this(connection, conciergeForwarder, DefaultHiveMqtt3ClientFactory.getInstance());
-    }
-
-    /**
-     * Creates Akka configuration object for this actor.
-     *
-     * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param clientFactory factory used to create required mqtt clients
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
-            final HiveMqtt3ClientFactory clientFactory) {
-        return Props.create(HiveMqtt3ClientActor.class, validateConnection(connection),
-                conciergeForwarder, clientFactory);
-    }
-
-    /**
-     * Creates Akka configuration object for this actor.
-     *
-     * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
-        return Props.create(HiveMqtt3ClientActor.class, validateConnection(connection),
-                conciergeForwarder);
     }
 
     @Override
@@ -127,7 +157,12 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
         final String mqttClientId = resolveMqttClientId(connection.getId(), mqttSpecificConfig);
         // attention: do not use reconnect, otherwise the future never returns
-        final Mqtt3Client testClient = clientFactory.newClient(connection, mqttClientId, false);
+        final Mqtt3Client testClient;
+        try {
+            testClient = clientFactory.newClient(connection, mqttClientId, false);
+        } catch (final Exception e) {
+            return CompletableFuture.completedFuture(new Status.Failure(e.getCause()));
+        }
         final HiveMqtt3SubscriptionHandler testSubscriptions =
                 new HiveMqtt3SubscriptionHandler(connection, testClient, log);
         return testClient
@@ -169,7 +204,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         final ActorRef self = getSelf();
-        client.toAsync()
+        getClient().toAsync()
                 .connectWith()
                 .cleanSession(CLEAN_SESSION)
                 .send()
@@ -194,13 +229,13 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
-        startHiveMqConsumers(subscriptionHandler::handleMqttConsumer);
-        return subscriptionHandler.getCompletionStage();
+        startHiveMqConsumers(getSubscriptionHandler()::handleMqttConsumer);
+        return getSubscriptionHandler().getCompletionStage();
     }
 
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
-        publisherActor = startPublisherActor(connection(), client);
+        publisherActor = startPublisherActor(connection(), getClient());
         return CompletableFuture.completedFuture(DONE);
     }
 
@@ -211,7 +246,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        final CompletionStage<ClientDisconnected> disconnectFuture = disconnectClient(client)
+        final CompletionStage<ClientDisconnected> disconnectFuture = disconnectClient(getClient())
                 .handle((aVoid, throwable) -> {
                     if (null != throwable) {
                         log.info("Error while disconnecting: {}", throwable);
@@ -235,6 +270,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     }
 
     @Override
+    @Nullable
     protected ActorRef getPublisherActor() {
         return publisherActor;
     }
@@ -245,12 +281,14 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
      *
      * @param mqtt3Client the client to disconnect
      */
-    private void safelyDisconnectClient(final Mqtt3Client mqtt3Client) {
-        try {
-            log.debug("Disconnecting mqtt client, ignoring any errors.");
-            disconnectClient(mqtt3Client);
-        } catch (final Throwable throwable) {
-            log.debug("Disconnecting client failed, it was probably already closed.");
+    private void safelyDisconnectClient(@Nullable final Mqtt3Client mqtt3Client) {
+        if (mqtt3Client != null) {
+            try {
+                log.debug("Disconnecting mqtt client, ignoring any errors.");
+                disconnectClient(mqtt3Client);
+            } catch (final Exception e) {
+                log.debug("Disconnecting client failed, it was probably already closed.");
+            }
         }
     }
 
@@ -263,7 +301,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
             final BaseClientData currentData) {
         log.debug("Successfully connected client for connection <{}>.", connectionId());
         connectionLogger.success("Client connected.");
-        subscriptionHandler.handleConnected();
+        getSubscriptionHandler().handleConnected();
         return stay().using(currentData);
     }
 
@@ -272,7 +310,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
             final BaseClientData currentData) {
         log.debug("Client disconnected <{}>: {}", connectionId(), disconnected.getCause().getMessage());
         connectionLogger.failure("Client disconnected: {0}", disconnected.getCause().getMessage());
-        subscriptionHandler.handleDisconnected();
+        getSubscriptionHandler().handleDisconnected();
         return stay().using(currentData);
     }
 
@@ -288,8 +326,10 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun));
     }
 
-    private void stopCommandConsumers(final HiveMqtt3SubscriptionHandler subscriptionHandler) {
-        subscriptionHandler.clearConsumerActors(this::stopChildActor);
+    private void stopCommandConsumers(@Nullable final HiveMqtt3SubscriptionHandler subscriptionHandler) {
+        if (subscriptionHandler != null) {
+            subscriptionHandler.clearConsumerActors(this::stopChildActor);
+        }
     }
 
     static class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {

@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
+import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultActivityCheckConfig;
@@ -42,6 +43,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Collection<String> blacklistedHostnames;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
+    private final DefaultAcknowledgementConfig acknowledgementConfig;
     private final Amqp10Config amqp10Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
@@ -55,6 +57,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         blacklistedHostnames = Collections.unmodifiableCollection(Arrays.asList(blacklistedHostnamesStr.split(",")));
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
+        acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
@@ -95,6 +98,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public DefaultAcknowledgementConfig getAcknowledgementConfig() {
+        return acknowledgementConfig;
+    }
+
+    @Override
     public Amqp10Config getAmqp10Config() {
         return amqp10Config;
     }
@@ -132,6 +140,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(blacklistedHostnames, that.blacklistedHostnames) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
+                Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
@@ -141,8 +150,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig, amqp10Config,
-                mqttConfig, kafkaConfig, activityCheckConfig, httpPushConfig);
+        return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig,
+                activityCheckConfig, acknowledgementConfig, amqp10Config, mqttConfig, kafkaConfig, httpPushConfig);
     }
 
     @Override
@@ -152,6 +161,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", blacklistedHostnames=" + blacklistedHostnames +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
+                ", acknowledgementConfig=" + acknowledgementConfig +
                 ", amqp10Config=" + amqp10Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +

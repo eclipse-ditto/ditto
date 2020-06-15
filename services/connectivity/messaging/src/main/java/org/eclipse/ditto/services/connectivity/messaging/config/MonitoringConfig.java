@@ -21,8 +21,6 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public interface MonitoringConfig {
 
-    // TODO: rename to getXy
-
     /**
      * Returns the logger config.
      *

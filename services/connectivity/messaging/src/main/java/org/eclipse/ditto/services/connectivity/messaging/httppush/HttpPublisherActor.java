@@ -131,7 +131,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         if (ConnectionValidator.isHostForbidden(requestHost, blacklistedAddresses)) {
             log.warning("Tried to publish HTTP message to forbidden host: <{}> - dropping!", requestHost);
             responseDroppedMonitor.failure(message, "Message dropped as the target address <{0}> is blacklisted " +
-                    "and may not be used", requestHost);
+                "or otherwise forbidden and may not be used", requestHost);
         } else {
             sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
                     .handle(handleQueueOfferResult(message));
@@ -210,6 +210,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 responsePublishedMonitor.success(message,
                         "HTTP call to <{0}> successfully responded with status <{1}>.",
                         stripUserInfo(requestUri), response.status());
+                response.discardEntityBytes(materializer);
             } else {
                 getResponseBody(response, materializer)
                         .thenAccept(body -> responsePublishedMonitor.failure(message,

@@ -24,6 +24,9 @@ entries:
     output: web
     folderitems:
 
+    - title: 1.1.0
+      url: /release_notes_110.html
+      output: web
     - title: 1.0.0
       url: /release_notes_100.html
       output: web
@@ -159,8 +162,14 @@ entries:
     - title: RQL expressions
       url: /basic-rql.html
       output: web
+    - title: Signal enrichment
+      url: /basic-enrichment.html
+      output: web
     - title: Search
       url: /basic-search.html
+      output: web
+    - title: Acknowledgements
+      url: /basic-acknowledgements.html
       output: web
 
   - title: Architecture
@@ -216,9 +225,6 @@ entries:
     - title: Server sent events
       url: /httpapi-sse.html
       output: web
-    - title: Run in Postman
-      url: /httpapi-postman.html
-      output: web
 
   - title: Connectivity API
     output: web
@@ -237,6 +243,9 @@ entries:
       output: web
     - title: MQTT 3.1.1 protocol binding
       url: /connectivity-protocol-bindings-mqtt.html
+      output: web
+    - title: MQTT 5 protocol binding
+      url: /connectivity-protocol-bindings-mqtt5.html
       output: web
     - title: HTTP 1.1 protocol binding
       url: /connectivity-protocol-bindings-http.html
@@ -300,16 +309,37 @@ entries:
         - title: Delete
           url: /protocol-specification-things-delete.html
           output: web
+        - title: Acknowledgements
+          url: /protocol-specification-acks.html
+          output: web
 
       - title: → search/messages
         output: web
         subfolderitems:
-        - title: Search
-          url: /protocol-specification-things-search.html
+          - title: Search
+            url: /protocol-specification-things-search.html
+            output: web
+          - title: Messages
+            url: /protocol-specification-things-messages.html
+            output: web
+
+    - title: Policies group
+      url: /protocol-specification-policies.html
+      output: web
+
+      subfolders:
+        - title: → commands/events
           output: web
-        - title: Messages
-          url: /protocol-specification-things-messages.html
-          output: web
+          subfolderitems:
+            - title: Create/Modify
+              url: /protocol-specification-policies-create-or-modify.html
+              output: web
+            - title: Retrieve
+              url: /protocol-specification-policies-retrieve.html
+              output: web
+            - title: Delete
+              url: /protocol-specification-policies-delete.html
+              output: web
 
     - title: Bindings
       url: /protocol-bindings.html
@@ -337,6 +367,9 @@ entries:
           output: web
         - title: Retrieve multiple Things
           url: /protocol-examples-retrievethings.html
+          output: web
+        - title: Modify the Policy ID of a Thing
+          url: /protocol-examples-modifypolicyid.html
           output: web
         - title: Create Attributes
           url: /protocol-examples-createattributes.html
@@ -434,10 +467,84 @@ entries:
         - title: Retrieve a single Property
           url: /protocol-examples-retrieveproperty.html
           output: web
-        - title: Error Responses
+        - title: Error responses
           url: /protocol-examples-errorresponses.html
           output: web
-
+      - title: → Policies examples
+        output: web
+        subfolderitems:
+        - title: Create a Policy
+          url: /protocol-examples-policies-createpolicy.html
+          output: web
+        - title: Delete a Policy
+          url: /protocol-examples-policies-deletepolicy.html
+          output: web
+        - title: Modify a Policy
+          url: /protocol-examples-policies-modifypolicy.html
+          output: web
+        - title: Retrieve a Policy
+          url: /protocol-examples-policies-retrievepolicy.html
+          output: web
+        - title: Modify entries
+          url: /protocol-examples-policies-modifypolicyentries.html
+          output: web
+        - title: Retrieve entries
+          url: /protocol-examples-policies-retrievepolicyentries.html
+          output: web
+        - title: Create a single entry
+          url: /protocol-examples-policies-createpolicyentry.html
+          output: web
+        - title: Delete a single entry
+          url: /protocol-examples-policies-deletepolicyentry.html
+          output: web
+        - title: Modify a single entry
+          url: /protocol-examples-policies-modifypolicyentry.html
+          output: web
+        - title: Retrieve a single entry
+          url: /protocol-examples-policies-retrievepolicyentry.html
+          output: web
+        - title: Modify subjects
+          url: /protocol-examples-policies-modifysubjects.html
+          output: web
+        - title: Retrieve subjects
+          url: /protocol-examples-policies-retrievesubjects.html
+          output: web
+        - title: Create a single subject
+          url: /protocol-examples-policies-createsubject.html
+          output: web
+        - title: Delete a single subject
+          url: /protocol-examples-policies-deletesubject.html
+          output: web
+        - title: Modify a single subject
+          url: /protocol-examples-policies-modifysubject.html
+          output: web
+        - title: Retrieve a single subject
+          url: /protocol-examples-policies-retrievesubject.html
+          output: web
+        - title: Modify resources
+          url: /protocol-examples-policies-modifyresources.html
+          output: web
+        - title: Retrieve resources
+          url: /protocol-examples-policies-retrieveresources.html
+          output: web
+        - title: Create a single resource
+          url: /protocol-examples-policies-createresource.html
+          output: web
+        - title: Delete a single resource
+          url: /protocol-examples-policies-deleteresource.html
+          output: web
+        - title: Modify a single resource
+          url: /protocol-examples-policies-modifyresource.html
+          output: web
+        - title: Retrieve a single resource
+          url: /protocol-examples-policies-retrieveresource.html
+          output: web
+        - title: Error responses
+          url: /protocol-examples-policies-errorresponses.html
+          output: web
+    - title: → Search examples
+      url: /protocol-examples-search.html
+      output: web
   - title: Sandbox
     url: /sandbox.html
     output: web

@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
-
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
@@ -144,6 +140,7 @@ public abstract class AbstractProtocolValidator {
      * Validate configurations of {@link org.eclipse.ditto.model.connectivity.PayloadMappingDefinition}.
      *
      * @param connection the connection to check the MappingContext in.
+     * @param actorSystem the ActorSystem to use for retrieving config.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,

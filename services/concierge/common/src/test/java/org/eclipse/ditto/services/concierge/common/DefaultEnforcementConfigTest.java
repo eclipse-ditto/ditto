@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.common;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -65,9 +64,6 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getBufferSize())
                 .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
                 .isEqualTo(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getDefaultValue());
-        softly.assertThat(underTest.getParallelism())
-                .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
-                .isEqualTo(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getDefaultValue());
     }
 
     @Test
@@ -80,9 +76,6 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getBufferSize())
                 .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
                 .isEqualTo(1337);
-        softly.assertThat(underTest.getParallelism())
-                .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
-                .isEqualTo(73);
     }
 
 }

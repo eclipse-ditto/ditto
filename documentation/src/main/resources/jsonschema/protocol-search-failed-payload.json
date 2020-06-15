@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "",
+  "title": "",
+  "properties": {
+    "subscriptionId": {
+      "type": "string",
+      "description": "Identifier of the search subscription delivered by a previous \"created\" event."
+    },
+    "error": {
+      "type": "object",
+      "description": "The _error_ field contains information about the error that occurred.",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "description": "The status code that indicates the cause of the error. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+        },
+        "error": {
+          "type": "string",
+          "description": "The error code that uniquely identifies the error, e.g., <br/>`thing-search:subscription.protocol.error`."
+        },
+        "message": {
+          "type": "string",
+          "description": "A human readable message that explains in detail what went wrong."
+        },
+        "description": {
+          "type": "string",
+          "description": "Contains further information about the error e.g. a hint what caused the problem and how to solve it."
+        }
+      }
+    }
+  },
+  "required": ["subscriptionId", "error"]
+}

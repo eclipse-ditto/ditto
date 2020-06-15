@@ -12,68 +12,53 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import java.util.function.Consumer;
+import java.util.Collections;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
+import org.eclipse.ditto.signals.base.Signal;
+
+import akka.stream.javadsl.Source;
 
 /**
  * {@link MappingResultHandler} for inbound messages. This handler forwards to the given handlers. Additionally it
  * calls the {@link MappingResultHandler#onException(Exception)} method for exceptions thrown in handlers and
  * increases the according counters for mapped, dropped failed messages.
  */
-public class InboundMappingResultHandler implements MappingResultHandler<MappedInboundExternalMessage> {
+final class InboundMappingResultHandler
+        extends AbstractMappingResultHandler<MappedInboundExternalMessage, Source<Signal<?>, ?>> {
 
-    private final Consumer<MappedInboundExternalMessage> onMessageMapped;
-    private final Runnable onMessageDropped;
-    private final Consumer<Exception> onException;
-    private final ConnectionMonitor inboundMapped;
-    private final ConnectionMonitor inboundDropped;
-    private final ConnectionMonitor.InfoProvider infoProvider;
-
-    InboundMappingResultHandler(
-            final Consumer<MappedInboundExternalMessage> onMessageMapped, final Runnable onMessageDropped,
-            final Consumer<Exception> onException,
-            final ConnectionMonitor inboundMapped,
-            final ConnectionMonitor inboundDropped,
-            ConnectionMonitor.InfoProvider infoProvider) {
-        this.onMessageMapped = onMessageMapped;
-        this.onMessageDropped = onMessageDropped;
-        this.onException = onException;
-        this.inboundMapped = inboundMapped;
-        this.inboundDropped = inboundDropped;
-        this.infoProvider = infoProvider;
+    private InboundMappingResultHandler(final Builder builder) {
+        super(builder);
     }
 
-    @Override
-    public void onMessageMapped(final MappedInboundExternalMessage inboundExternalMessage) {
-        try {
-            inboundMapped.success(infoProvider);
-            onMessageMapped.accept(inboundExternalMessage);
-        } catch (final Exception e) {
-            onException(e);
-        }
+    static Builder newBuilder() {
+        return new Builder().emptyResult(Source.empty()).combineResults(Source::concat);
     }
 
-    @Override
-    public void onMessageDropped() {
-        try {
-            inboundDropped.success(infoProvider);
-            onMessageDropped.run();
-        } catch (Exception e) {
-            onException(e);
-        }
-    }
+    @NotThreadSafe
+    static final class Builder extends AbstractBuilder<MappedInboundExternalMessage, Source<Signal<?>, ?>, Builder> {
 
-    @Override
-    public void onException(final Exception exception) {
-        if (exception instanceof DittoRuntimeException) {
-            inboundMapped.failure(((DittoRuntimeException) exception));
-        } else {
-            inboundMapped.exception(exception);
+        private Builder() {
+            super(Builder.class);
         }
-        onException.accept(exception);
+
+        Builder inboundMapped(final ConnectionMonitor inboundMapped) {
+            mappedMonitors = Collections.singletonList(inboundMapped);
+            return this;
+        }
+
+        Builder inboundDropped(final ConnectionMonitor inboundDropped) {
+            droppedMonitors = Collections.singletonList(inboundDropped);
+            return this;
+        }
+
+        InboundMappingResultHandler build() {
+            return new InboundMappingResultHandler(this);
+        }
+
     }
 
 }

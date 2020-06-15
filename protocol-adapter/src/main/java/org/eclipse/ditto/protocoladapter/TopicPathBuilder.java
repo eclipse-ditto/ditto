@@ -31,6 +31,13 @@ public interface TopicPathBuilder {
      */
     TopicPathBuilder policies();
 
+    /**
+     * Sets the {@code Group} of this builder to {@link TopicPath.Criterion#SEARCH}. A previously set group is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    SearchTopicPathBuilder search();
+
 
     /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#COMMANDS}. A previously set criterion is
@@ -57,20 +64,20 @@ public interface TopicPathBuilder {
     TopicPathBuilder live();
 
     /**
+     * Sets the {@code Channel} of this builder to {@link TopicPath.Channel#NONE}. A previously set channel is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    TopicPathBuilder none();
+
+    /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#EVENTS}. A previously set criterion is
      * replaced.
      *
      * @return this builder to allow method chaining.
      */
     EventsTopicPathBuilder events();
-
-    /**
-     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#SEARCH}. A previously set action is
-     * replaced.
-     *
-     * @return this builder to allow method chaining.
-     */
-    TopicPathBuildable search();
 
     /**
      * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ERRORS}. A previously set action is
@@ -87,5 +94,14 @@ public interface TopicPathBuilder {
      * @return this builder to allow method chaining.
      */
     MessagesTopicPathBuilder messages();
+
+    /**
+     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ACKS}. A previously set criterion is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 1.1.0
+     */
+    AcknowledgementTopicPathBuilder acks();
 
 }

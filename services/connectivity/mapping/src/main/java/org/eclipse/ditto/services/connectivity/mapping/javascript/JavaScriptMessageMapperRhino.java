@@ -48,9 +48,9 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     private static final String WEBJARS_BYTEBUFFER = WEBJARS_PATH + "/bytebuffer/5.0.1/dist/bytebuffer.js";
     private static final String WEBJARS_LONG = WEBJARS_PATH + "/long/3.2.0/dist/long.min.js";
 
-    private static final String DITTO_SCOPE_SCRIPT = "/javascript/ditto-scope.js";
-    private static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
-    private static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
+    static final String DITTO_SCOPE_SCRIPT = "/javascript/ditto-scope.js";
+    static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
+    static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
 
     @Nullable private ContextFactory contextFactory;
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
@@ -163,7 +163,7 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
         return Optional.ofNullable(configuration);
     }
 
-    private static void loadJavascriptLibrary(final Context cx,
+    static void loadJavascriptLibrary(final Context cx,
             final Scriptable scope,
             final Reader reader,
             final String libraryName) {

@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -54,7 +55,7 @@ public class JsonExamplesProducer {
     private static final String URI = "amqps://foo:bar@example.com:443";
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     private static final List<Source> SOURCES = Arrays.asList(
             ConnectivityModelFactory.newSourceBuilder()
@@ -71,11 +72,14 @@ public class JsonExamplesProducer {
                     .build());
 
     private static final HeaderMapping HEADER_MAPPING = null;
-    private static final List<Target> TARGETS = Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS));
+    private static final List<Target> TARGETS = Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+            .address("eventQueue")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .headerMapping(HEADER_MAPPING)
+            .topics(Topic.TWIN_EVENTS)
+            .build());
 
-    private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
-            "JavaScript",
+    private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext("JavaScript",
             Collections.singletonMap("incomingScript",
                     "function mapToDittoProtocolMsg(\n" +
                             "    headers,\n" +
@@ -120,10 +124,10 @@ public class JsonExamplesProducer {
             System.err.println("Exactly 1 argument required: the target folder in which to generate the JSON files");
             System.exit(-1);
         }
-        producer.produce(Paths.get(args[0]));
+        JsonExamplesProducer.produce(Paths.get(args[0]));
     }
 
-    private void produce(final Path rootPath) throws IOException {
+    private static void produce(final Path rootPath) throws IOException {
         produceConnectivityEvents(rootPath.resolve("connectivity"));
     }
 
@@ -167,6 +171,7 @@ public class JsonExamplesProducer {
 
     private static void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
             final JsonSchemaVersion schemaVersion) throws IOException {
+
         final String jsonString = jsonifiable.toJsonString(schemaVersion);
         System.out.println("Writing file: " + path.toAbsolutePath());
         Files.write(path, jsonString.getBytes());

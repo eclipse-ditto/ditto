@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "",
+  "title": "",
+  "properties": {
+    "filter": {
+      "type": "string",
+      "description": "[RQL filter expression](https://www.eclipse.org/ditto/basic-rql.html#rql-filter) to select for things."
+    },
+    "options": {
+      "type": "string",
+      "description": "Specify the page size with `size(PAGE_SIZE)`, or the order of the search results by `sort(<+|-><property>)` (see [RQL sorting](https://www.eclipse.org/ditto/basic-rql.html#rql-sorting)).",
+      "examples": ["size(25)", "sort(+_modified,-thingId)"]
+    },
+    "namespaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Specify the namespaces to search in, or leave out to search in all namespaces.",
+      "examples": [["org.eclipse.ditto", "com.acme"]]
+    }
+  }
+}

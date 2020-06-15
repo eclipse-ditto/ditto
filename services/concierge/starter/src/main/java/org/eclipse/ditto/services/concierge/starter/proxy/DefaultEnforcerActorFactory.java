@@ -17,11 +17,14 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
@@ -33,6 +36,7 @@ import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
+import org.eclipse.ditto.services.concierge.enforcement.PreEnforcer;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
@@ -112,8 +116,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
+        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context);
 
@@ -128,7 +131,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
                         conciergeConfig.getClusterConfig().getNumberOfShards());
 
-        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
+        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter),
+                DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
@@ -155,23 +159,43 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }
 
-    private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
+    /**
+     * Set the "ditto-originator" header to the primary authorization subject of a signal.
+     *
+     * @param originalSignal A signal with authorization context.
+     * @return A copy of the signal with the header "ditto-originator" set.
+     */
+    public static <T extends WithDittoHeaders<T>> WithDittoHeaders<T> setOriginatorHeader(final T originalSignal) {
+        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
+        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
+        return authorizationContext.getFirstAuthorizationSubject()
+                .map(AuthorizationSubject::getId)
+                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
+                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
+                        .build())
+                .map(originalSignal::setDittoHeaders)
+                .orElse(originalSignal);
+    }
+
+    private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
+            final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(withDittoHeaders)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
                         .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
+                        .thenApply(DefaultEnforcerActorFactory::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static WithDittoHeaders prependDefaultNamespaceToCreateThing(final WithDittoHeaders signal) {
+    private static WithDittoHeaders prependDefaultNamespaceToCreateThing(final WithDittoHeaders<?> signal) {
         if (signal instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) signal;
-            if (!createThing.getThing().getNamespace().isPresent()) {
-                final Thing thingInDefaultNamespace = createThing.getThing()
-                        .toBuilder()
+            final Thing thing = createThing.getThing();
+            final Optional<String> namespace = thing.getNamespace();
+            if (namespace.isEmpty()) {
+                final Thing thingInDefaultNamespace = thing.toBuilder()
                         .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getThingEntityId().toString()))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);

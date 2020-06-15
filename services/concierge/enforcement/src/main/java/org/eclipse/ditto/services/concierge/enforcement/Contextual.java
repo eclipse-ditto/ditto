@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -24,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -33,7 +36,6 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * A message together with contextual information about the actor processing it.
@@ -53,7 +55,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     private final Duration askTimeout;
 
-    private final DiagnosticLoggingAdapter log;
+    private final DittoDiagnosticLoggingAdapter log;
 
     @Nullable
     private final EntityIdWithResourceType entityId;
@@ -70,14 +72,21 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     // for live signal enforcement
     private final Cache<String, ResponseReceiver> responseReceivers;
 
-    Contextual(@Nullable final T message, final ActorRef self, final ActorRef sender,
+    @Nullable
+    private final Supplier<CompletionStage<Object>> askFuture;
+
+    private final boolean changesAuthorization;
+
+    private Contextual(@Nullable final T message, final ActorRef self, final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final Duration askTimeout, final DiagnosticLoggingAdapter log,
+            final Duration askTimeout, final DittoDiagnosticLoggingAdapter log,
             @Nullable final EntityIdWithResourceType entityId,
             @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
-            final Cache<String, ResponseReceiver> responseReceivers) {
+            final Cache<String, ResponseReceiver> responseReceivers,
+            @Nullable final Supplier<CompletionStage<Object>> askFuture,
+            final boolean changesAuthorization) {
         this.message = message;
         this.self = self;
         this.sender = sender;
@@ -90,6 +99,43 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.receiver = receiver;
         this.receiverWrapperFunction = receiverWrapperFunction;
         this.responseReceivers = responseReceivers;
+        this.askFuture = askFuture;
+        this.changesAuthorization = changesAuthorization;
+    }
+
+    static <T extends WithDittoHeaders<T>> Contextual<T> forActor(final ActorRef self,
+            final ActorRef deadLetters,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder,
+            final Duration askTimeout,
+            final DittoDiagnosticLoggingAdapter log,
+            final Cache<String, ResponseReceiver> responseReceivers) {
+
+        return new Contextual<T>(null, self, deadLetters, pubSubMediator, conciergeForwarder, askTimeout, log, null,
+                null,
+                null, null, responseReceivers, null, false);
+    }
+
+    /**
+     * Perform Ask-steps before forwarding a message.
+     * {@code Patterns.ask()} has the same command order guarantee as {@code ActorRef.tell()} when executed inside
+     * an actor's {@code Receive}, because it eventually calls {@code ActorRef.tell()} in the calling thread.
+     *
+     * @param askFuture future of a message to forward to the receiver.
+     * @return a copy of this with an ask-future.
+     */
+    Contextual<T> withAskFuture(final Supplier<CompletionStage<Object>> askFuture) {
+        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout, log, entityId,
+                startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture, changesAuthorization);
+    }
+
+    /**
+     * Retrieve the message but tolerate that it may be null.
+     *
+     * @return the optional message.
+     */
+    public Optional<T> getMessageOptional() {
+        return Optional.ofNullable(message);
     }
 
     @Override
@@ -139,6 +185,10 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return withReceivedMessage(message, sender);
     }
 
+    Optional<Supplier<CompletionStage<Object>>> getAskFuture() {
+        return Optional.ofNullable(askFuture);
+    }
+
     ActorRef getSelf() {
         return self;
     }
@@ -155,7 +205,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return askTimeout;
     }
 
-    DiagnosticLoggingAdapter getLog() {
+    DittoDiagnosticLoggingAdapter getLog() {
         return log;
     }
 
@@ -182,28 +232,42 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return responseReceivers;
     }
 
+    boolean changesAuthorization() {
+        return changesAuthorization;
+    }
+
     <S extends WithDittoHeaders> Optional<Contextual<S>> tryToMapMessage(final Function<T, Optional<S>> f) {
         return f.apply(getMessage()).map(this::withMessage);
     }
 
-    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,final ActorRef sender) {
+    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message, final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers);
+                log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture, changesAuthorization);
     }
 
     Contextual<T> withTimer(final StartedTimer startedTimer) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers);
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture, changesAuthorization);
     }
 
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers);
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture, changesAuthorization);
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers);
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture, changesAuthorization);
+    }
+
+    Contextual<T> changesAuthorization(final boolean changesAuthorization) {
+        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture, changesAuthorization);
     }
 
     @Nullable
@@ -211,16 +275,15 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
         if (signal == null) {
             return null;
-        }
-        else if (signal instanceof DittoRuntimeException) {
+        } else if (signal instanceof DittoRuntimeException) {
             return null;
-        }
-        else if (signal instanceof WithResource && signal instanceof WithId) {
+        } else if (signal instanceof WithResource && signal instanceof WithId) {
             final EntityIdWithResourceType entityId;
             if (MessageCommand.RESOURCE_TYPE.equals(((WithResource) signal).getResourceType())) {
                 entityId = EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, ((WithId) signal).getEntityId());
             } else {
-                entityId = EntityIdWithResourceType.of(((WithResource) signal).getResourceType(), ((WithId) signal).getEntityId());
+                entityId = EntityIdWithResourceType.of(((WithResource) signal).getResourceType(),
+                        ((WithId) signal).getEntityId());
             }
             return entityId;
         } else {
@@ -228,7 +291,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                     "WithResource or WithId: " + signal.getClass().getSimpleName());
         }
     }
-
 
     @Override
     public String toString() {
@@ -240,6 +302,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 ", receiver=" + receiver +
                 ", receiverWrapperFunction=" + receiverWrapperFunction +
                 ", responseReceivers=" + responseReceivers +
+                ", changesAuthorization=" + changesAuthorization +
                 "]";
     }
 

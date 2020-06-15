@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
@@ -34,7 +35,7 @@ public final class NoopCustomApiRoutesProvider implements CustomApiRoutesProvide
     }
 
     @Override
-    public Route unauthorized(final int apiVersion, final CharSequence correlationId) {
+    public Route unauthorized(final JsonSchemaVersion apiVersion, final CharSequence correlationId) {
         return EMPTY_ROUTE;
     }
 

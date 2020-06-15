@@ -12,23 +12,18 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
@@ -40,49 +35,28 @@ import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
-import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.health.RetrieveHealth;
-import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
-import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
-import org.eclipse.ditto.signals.commands.common.Shutdown;
-import org.eclipse.ditto.signals.commands.common.ShutdownResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigRenderOptions;
 
-import akka.Done;
 import akka.NotUsed;
-import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
 import akka.stream.FanInShape2;
 import akka.stream.Graph;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
 import akka.stream.SourceShape;
-import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
 
@@ -117,16 +91,15 @@ import scala.PartialFunction;
  *
  * }</pre>
  */
-public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTimers
-        implements RetrieveConfigBehavior, ModifyConfigBehavior {
+public final class EventSnapshotCleanupCoordinator
+        extends AbstractBackgroundStreamingActorWithConfigWithStatusReport<PersistenceCleanupConfig> {
 
     /**
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "eventSnapshotCleanupCoordinator";
 
-    private static final JsonFieldDefinition<Boolean> JSON_ENABLED =
-            JsonFactory.newBooleanFieldDefinition("enabled");
+    private static final String ERROR_MESSAGE_HEADER = "error";
 
     private static final JsonFieldDefinition<JsonArray> JSON_CREDIT_DECISIONS =
             JsonFactory.newJsonArrayFieldDefinition("credit-decisions");
@@ -134,45 +107,24 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private static final JsonFieldDefinition<JsonArray> JSON_ACTIONS =
             JsonFactory.newJsonArrayFieldDefinition("actions");
 
-    private static final JsonFieldDefinition<JsonArray> JSON_EVENTS =
-            JsonFactory.newJsonArrayFieldDefinition("events");
-
     private static final String START = "start";
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    // config may change.
-    private PersistenceCleanupConfig config;
 
     private final ActorRef pubSubMediator;
     private final ShardRegions shardRegions;
-    private final ActorMaterializer materializer;
 
     // logs for status reporting
     private final Deque<Pair<Instant, CreditDecision>> creditDecisions;
     private final Deque<Pair<Instant, CleanupPersistenceResponse>> actions;
-    private final Deque<Pair<Instant, Event>> events;
-
-    @Nullable
-    private KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
     private EventSnapshotCleanupCoordinator(final PersistenceCleanupConfig config, final ActorRef pubSubMediator,
             final ShardRegions shardRegions) {
 
-        this.config = config;
+        super(config);
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
-
-        materializer = ActorMaterializer.create(getContext());
-
-        if (config.isEnabled()) {
-            scheduleWakeUp();
-        }
-
         creditDecisions = new ArrayDeque<>(config.getKeptCreditDecisions() + 1);
         actions = new ArrayDeque<>(config.getKeptActions() + 1);
-        events = new ArrayDeque<>(config.getKeptEvents() + 1);
     }
 
     /**
@@ -190,95 +142,12 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     }
 
     @Override
-    public Receive createReceive() {
-        return sleeping();
-    }
-
-    @Override
-    public Config getConfig() {
-        return config.getConfig();
-    }
-
-    @Override
-    public Config setConfig(final Config config) {
-        final PersistenceCleanupConfig previousConfig = this.config;
-        // TODO Ditto issue #439: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
-        // Workaround: re-parse my config
-        final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
-        try {
-            this.config = PersistenceCleanupConfig.fromConfig(config.withFallback(fallback));
-        } catch (final DittoConfigError | ConfigException e) {
-            log.error(e, "Failed to set config");
-        }
-        if (!previousConfig.isEnabled() && this.config.isEnabled()) {
-            scheduleWakeUp();
-        }
-        return this.config.getConfig();
-    }
-
-    private Receive sleeping() {
-        return ReceiveBuilder.create()
-                .match(WokeUp.class, this::wokeUp)
-                .match(RetrieveHealth.class, this::retrieveHealth)
-                .match(Shutdown.class, this::shutdownStream)
-                .build()
-                .orElse(retrieveConfigBehavior())
-                .orElse(modifyConfigBehavior());
-    }
-
-    private Receive streaming() {
-        return ReceiveBuilder.create()
-                .match(CreditDecision.class, creditDecision ->
+    protected void preEnhanceStreamingBehavior(final ReceiveBuilder streamingReceiveBuilder) {
+        streamingReceiveBuilder.match(CreditDecision.class,
+                creditDecision ->
                         enqueue(creditDecisions, creditDecision, config.getKeptCreditDecisions()))
                 .match(CleanupPersistenceResponse.class, cleanupResponse ->
-                        enqueue(actions, cleanupResponse, config.getKeptActions()))
-                .match(StreamTerminated.class, this::streamTerminated)
-                .match(RetrieveHealth.class, this::retrieveHealth)
-                .match(Shutdown.class, this::shutdownStream)
-                .build()
-                .orElse(retrieveConfigBehavior())
-                .orElse(modifyConfigBehavior());
-    }
-
-    private void shutdownStream(final Shutdown shutdown) {
-        log.info("Terminating stream on demand: <{}>", shutdown);
-        shutdownKillSwitch();
-
-        final Event streamTerminated = new StreamTerminated("Got " + shutdown);
-        enqueue(events, streamTerminated, config.getKeptEvents());
-        getContext().become(sleeping());
-
-        if (config.isEnabled()) {
-            final Duration wakeUpDelay = config.getQuietPeriod();
-            final String message = String.format("Restarting in <%s>.", wakeUpDelay);
-            scheduleWakeUp(wakeUpDelay);
-            getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
-        } else {
-            final String message = "Not restarting stream because background cleanup is disabled.";
-            getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
-        }
-    }
-
-    private void wokeUp(final WokeUp wokeUp) {
-        log.info("Woke up.");
-        enqueue(events, wokeUp.enable(config.isEnabled()), config.getKeptEvents());
-        if (config.isEnabled()) {
-            restartStream();
-            getContext().become(streaming());
-        } else {
-            log.warning("Not waking up because disabled.");
-        }
-    }
-
-    private void streamTerminated(final Event streamTerminated) {
-        enqueue(events, streamTerminated, config.getKeptEvents());
-        if (config.isEnabled()) {
-            log.info("Stream terminated. Will restart after quiet period.");
-            scheduleWakeUp();
-        } else {
-            log.warning("Stream terminated while disabled.");
-        }
-        getContext().become(sleeping());
+                        enqueue(actions, cleanupResponse, config.getKeptActions()));
     }
 
     private <T> Flow<T, T, NotUsed> reportToSelf() {
@@ -288,42 +157,12 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         });
     }
 
-    private void shutdownKillSwitch() {
-        if (killSwitch != null) {
-            killSwitch.shutdown();
-            killSwitch = null;
-        }
+    @Override
+    protected PersistenceCleanupConfig parseConfig(final Config config) {
+        return PersistenceCleanupConfig.fromConfig(config);
     }
 
-    private void restartStream() {
-        shutdownKillSwitch();
-
-        final Pair<UniqueKillSwitch, CompletionStage<Done>> materializedValues =
-                assembleSource().viaMat(KillSwitches.single(), Keep.right())
-                        .toMat(cleanupForwarderSink(), Keep.both())
-                        .run(materializer);
-
-        killSwitch = materializedValues.first();
-
-        materializedValues.second()
-                .<Void>handle((result, error) -> {
-                    final String description = String.format("Stream terminated. Result=<%s> Error=<%s>",
-                            Objects.toString(result), Objects.toString(error));
-                    log.info(description);
-                    getSelf().tell(new StreamTerminated(description), getSelf());
-                    return null;
-                });
-    }
-
-    private void scheduleWakeUp() {
-        scheduleWakeUp(config.getQuietPeriod());
-    }
-
-    private void scheduleWakeUp(final Duration when) {
-        getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED, when);
-    }
-
-    private Source<EntityIdWithRevision, NotUsed> assembleSource() {
+    private Source<EntityIdWithRevision, NotUsed> getEntityIdWithRevisionSource() {
         final Graph<SourceShape<EntityIdWithRevision>, NotUsed> graph = GraphDSL.create(builder -> {
             final SourceShape<EntityIdWithRevision> persistenceIds = builder.add(persistenceIdSource());
             final SourceShape<Integer> credit = builder.add(creditSource());
@@ -350,31 +189,35 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         return PersistenceIdSource.create(config.getPersistenceIdsConfig(), pubSubMediator);
     }
 
+    @Override
+    protected Source<CleanupPersistenceResponse, NotUsed> getSource() {
 
-    private Sink<EntityIdWithRevision, CompletionStage<Done>> cleanupForwarderSink() {
-
-        final PartialFunction<EntityIdWithRevision, CompletionStage<CleanupPersistenceResponse>> askShardRegionForCleanupByTagType =
+        final PartialFunction<EntityIdWithRevision, CompletionStage<CleanupPersistenceResponse>>
+                askShardRegionForCleanupByTagType =
                 new PFBuilder<EntityIdWithRevision, CompletionStage<CleanupPersistenceResponse>>()
                         .match(ThingTag.class, thingTag ->
                                 askShardRegionForCleanup(shardRegions.things(), ThingCommand.RESOURCE_TYPE, thingTag))
                         .match(PolicyTag.class, policyTag ->
-                                askShardRegionForCleanup(shardRegions.policies(), PolicyCommand.RESOURCE_TYPE, policyTag))
+                                askShardRegionForCleanup(shardRegions.policies(), PolicyCommand.RESOURCE_TYPE,
+                                        policyTag))
                         .match(ConnectionTag.class, connTag ->
-                                askShardRegionForCleanup(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE, connTag))
+                                askShardRegionForCleanup(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE,
+                                        connTag))
                         .matchAny(e -> {
-                            final String msg = "Unexpected entity ID type: " + e.getClass().getSimpleName();
-                            final CleanupPersistenceResponse error =
-                                    //TODO: Dont build entity id of message.
-                                    CleanupPersistenceResponse.failure(DefaultEntityId.of(msg), DittoHeaders.empty());
-                            return CompletableFuture.completedFuture(error);
+                            final String errorMessage = "Unexpected entity ID type: " + e;
+                            log.error(errorMessage);
+                            final CleanupPersistenceResponse failureResponse =
+                                    CleanupPersistenceResponse.failure(e.getEntityId(),
+                                            DittoHeaders.newBuilder().putHeader(ERROR_MESSAGE_HEADER, errorMessage)
+                                                    .build());
+                            return CompletableFuture.completedFuture(failureResponse);
                         })
                         .build();
 
-        return Flow.<EntityIdWithRevision>create()
+        return getEntityIdWithRevisionSource()
                 .mapAsync(config.getParallelism(), askShardRegionForCleanupByTagType::apply)
                 .via(reportToSelf()) // include self-reporting for acknowledged
-                .log(EventSnapshotCleanupCoordinator.class.getSimpleName(), log)
-                .toMat(Sink.ignore(), Keep.right());
+                .log(EventSnapshotCleanupCoordinator.class.getSimpleName(), log);
     }
 
     private CompletionStage<CleanupPersistenceResponse> askShardRegionForCleanup(final ActorRef shardRegion,
@@ -387,44 +230,31 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                     if (result instanceof CleanupPersistenceResponse) {
                         final CleanupPersistenceResponse response = ((CleanupPersistenceResponse) result);
                         final DittoHeaders headers =
-                                cleanupPersistence.getDittoHeaders().toBuilder().putHeaders(response.getDittoHeaders()).build();
+                                cleanupPersistence.getDittoHeaders()
+                                        .toBuilder()
+                                        .putHeaders(response.getDittoHeaders())
+                                        .build();
                         return response.setDittoHeaders(headers);
                     } else {
-                        final String msg = String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
-                                resourceType, Objects.toString(result), Objects.toString(error));
-                        return //TODO: Dont build entity id of message.
-                                CleanupPersistenceResponse.failure(DefaultEntityId.of(msg), cleanupPersistence.getDittoHeaders());
+                        final String errorMessage =
+                                String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
+                                        resourceType, result, error);
+                        return CleanupPersistenceResponse.failure(id,
+                                cleanupPersistence.getDittoHeaders().toBuilder()
+                                        .putHeader(ERROR_MESSAGE_HEADER, errorMessage)
+                                        .build());
                     }
                 });
     }
 
-    private void retrieveHealth(final RetrieveHealth trigger) {
-        getSender().tell(RetrieveHealthResponse.of(renderStatusInfo(), trigger.getDittoHeaders()), getSelf());
-    }
-
-    private StatusInfo renderStatusInfo() {
-        return StatusInfo.fromStatus(StatusInfo.Status.UP,
-                Collections.singletonList(StatusDetailMessage.of(StatusDetailMessage.Level.INFO, render())));
-    }
-
-    private JsonObject render() {
-        return JsonObject.newBuilder()
-                .set(JSON_ENABLED, config.isEnabled())
-                .set(JSON_EVENTS, events.stream()
-                        .map(EventSnapshotCleanupCoordinator::renderEvent)
-                        .collect(JsonCollectors.valuesToArray()))
-                .set(JSON_CREDIT_DECISIONS, creditDecisions.stream()
-                        .map(EventSnapshotCleanupCoordinator::renderCreditDecision)
-                        .collect(JsonCollectors.valuesToArray()))
+    @Override
+    protected void postEnhanceStatusReport(final JsonObjectBuilder statusReportBuilder) {
+        statusReportBuilder.set(JSON_CREDIT_DECISIONS, creditDecisions.stream()
+                .map(EventSnapshotCleanupCoordinator::renderCreditDecision)
+                .collect(JsonCollectors.valuesToArray()))
                 .set(JSON_ACTIONS, actions.stream()
                         .map(EventSnapshotCleanupCoordinator::renderAction)
                         .collect(JsonCollectors.valuesToArray()))
-                .build();
-    }
-
-    private static JsonObject renderEvent(final Pair<Instant, Event> element) {
-        return JsonObject.newBuilder()
-                .set(element.first().toString(), element.second().name())
                 .build();
     }
 
@@ -439,10 +269,24 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         final DittoHeaders headers = response.getDittoHeaders();
         final int status = response.getStatusCodeValue();
         final String start = headers.getOrDefault(START, "unknown");
-        final String tagLine = String.format("%d start=%s <%s>", status, start, response.getEntityId());
+        final String message = getResponseMessage(response);
+        final String tagLine = String.format("%d start=%s <%s>", status, start, message);
         return JsonObject.newBuilder()
                 .set(element.first().toString(), tagLine)
                 .build();
+    }
+
+    private static String getResponseMessage(final CleanupPersistenceResponse response) {
+        final StringBuilder messageBuilder = new StringBuilder();
+        if (!response.getEntityId().isDummy()) {
+            messageBuilder.append(response.getEntityId().toString());
+            if (response.getDittoHeaders().containsKey(ERROR_MESSAGE_HEADER)) {
+                messageBuilder.append(": ").append(response.getDittoHeaders().get(ERROR_MESSAGE_HEADER));
+            }
+        } else {
+            messageBuilder.append(response.getDittoHeaders().get(ERROR_MESSAGE_HEADER));
+        }
+        return messageBuilder.toString();
     }
 
     private static CleanupPersistence getCleanupCommand(final EntityId id) {
@@ -450,51 +294,5 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                 .putHeader(START, Instant.now().toString())
                 .build();
         return CleanupPersistence.of(id, headers);
-    }
-
-    private static <T> void enqueue(final Deque<Pair<Instant, T>> queue, final T element, final int maxQueueSize) {
-        queue.addFirst(Pair.create(Instant.now(), element));
-        if (queue.size() > maxQueueSize) {
-            queue.removeLast();
-        }
-    }
-
-    private interface Event {
-
-        String name();
-    }
-
-    private static final class WokeUp implements Event {
-
-        private static final WokeUp ENABLED = new WokeUp(true);
-
-        private final boolean enabled;
-
-        private WokeUp(final boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        private WokeUp enable(final boolean isEnabled) {
-            return new WokeUp(isEnabled);
-        }
-
-        @Override
-        public String name() {
-            return enabled ? "WOKE_UP" : "Not waking up: background cleanup is disabled.";
-        }
-    }
-
-    private final class StreamTerminated implements Event {
-
-        private final String whatHappened;
-
-        private StreamTerminated(final String whatHappened) {
-            this.whatHappened = whatHappened;
-        }
-
-        @Override
-        public String name() {
-            return whatHappened;
-        }
     }
 }

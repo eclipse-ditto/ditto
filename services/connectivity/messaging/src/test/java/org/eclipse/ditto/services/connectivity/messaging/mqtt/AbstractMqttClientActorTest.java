@@ -12,10 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.mockito.Mockito.when;
@@ -79,8 +77,13 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMqttClientActorTest.class);
     protected static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     protected static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
-    private static final TestConstants.FreePort freePort = new TestConstants.FreePort();
-    private static final Target TARGET = newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.TWIN_EVENTS);
+    private static final TestConstants.FreePort FREE_PORT = new TestConstants.FreePort();
+    private static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
+            .address("target")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .qos(1)
+            .topics(Topic.TWIN_EVENTS)
+            .build();
     private static final String SOURCE_ADDRESS = "source";
     private static final Source MQTT_SOURCE = ConnectivityModelFactory.newSourceBuilder()
             .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -89,15 +92,17 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             .address(SOURCE_ADDRESS)
             .qos(1)
             .build();
+    protected static final ConnectionType connectionType = ConnectionType.MQTT;
 
     protected ActorSystem actorSystem;
+    protected TestProbe mockConnectionActor;
 
     protected ConnectionId connectionId;
     private String serverHost;
     protected Connection connection;
 
     @ClassRule
-    public static final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
+    public static final MqttServerRule MQTT_SERVER = new MqttServerRule(FREE_PORT.getPort());
 
     @After
     public void tearDown() {
@@ -109,9 +114,10 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Before
     public void initializeConnection() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        mockConnectionActor = TestProbe.apply("connectionActor", actorSystem);
         connectionId = TestConstants.createRandomConnectionId();
-        serverHost = "tcp://localhost:" + freePort.getPort();
-        connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+        serverHost = "tcp://localhost:" + FREE_PORT.getPort();
+        connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                 ConnectivityStatus.CLOSED, serverHost)
                 .sources(singletonList(MQTT_SOURCE))
                 .targets(singletonList(TARGET))
@@ -120,8 +126,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     }
 
     @Override
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection(final boolean isSecure) {
+        return isSecure ? setScheme(connection, "ssl") : connection;
     }
 
     @Override
@@ -132,7 +138,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -148,7 +154,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Test
     public void testTestConnection() {
         new TestKit(actorSystem) {{
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef mqttClientActor = watch(actorSystem.actorOf(props));
 
             mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -226,7 +232,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}",
                 "eclipse/+/+");
         final Connection connectionWithEnforcement =
-                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                         ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(mqttSource))
@@ -244,8 +250,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
         final Connection connectionWithEnforcement =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                        ConnectivityStatus.OPEN,
-                        serverHost)
+                        ConnectivityStatus.OPEN, serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
 
@@ -294,7 +299,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                             .collect(Collectors.toList());
 
             final Connection multipleSources =
-                    ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                    ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                             ConnectivityStatus.OPEN, serverHost)
                             .sources(Arrays.asList(
                                     newMqttSource(3, 1, "A1"),
@@ -336,7 +341,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     }
 
     @Test
-    public void testReconnectAndConsumeFromTopic() throws InterruptedException {
+    public void testReconnectAndConsumeFromTopic() {
         new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
             final Props props =
@@ -368,13 +373,13 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     public void testPublishToTopic() {
         new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singleton(""));
+            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
@@ -400,7 +405,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                 .build();
         new TestKit(actorSystem) {{
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
-            final Props props = createClientActor(getRef());
+            final Props props = createClientActor(getRef(), getConnection(false));
             final ActorRef underTest = actorSystem.actorOf(props);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
@@ -425,7 +430,6 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             controlProbe.expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
-
 
     protected abstract Props createFailingClientActor(final ActorRef testProbe);
 

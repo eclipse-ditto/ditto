@@ -34,6 +34,7 @@ public final class DefaultClientConfig implements ClientConfig {
     private final Duration initTimeout;
     private final Duration connectingMinTimeout;
     private final Duration connectingMaxTimeout;
+    private final Duration subscriptionManagerTimeout;
     private final int connectingMaxTries;
     private final Duration testingTimeout;
     private final Duration minBackoff;
@@ -43,6 +44,7 @@ public final class DefaultClientConfig implements ClientConfig {
         initTimeout = config.getDuration(ClientConfigValue.INIT_TIMEOUT.getConfigPath());
         connectingMinTimeout = config.getDuration(ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath());
         connectingMaxTimeout = config.getDuration(ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath());
+        subscriptionManagerTimeout = config.getDuration(ClientConfigValue.SUBSCRIPTION_MANAGER_TIMEOUT.getConfigPath());
         connectingMaxTries = config.getInt(ClientConfigValue.CONNECTING_MAX_TRIES.getConfigPath());
         testingTimeout = config.getDuration(ClientConfigValue.TESTING_TIMEOUT.getConfigPath());
         minBackoff = config.getDuration(ClientConfigValue.MIN_BACKOFF.getConfigPath());
@@ -68,6 +70,10 @@ public final class DefaultClientConfig implements ClientConfig {
     @Override
     public Duration getConnectingMaxTimeout() {
         return connectingMaxTimeout;
+    }
+
+    @Override
+    public Duration getSubscriptionManagerTimeout(){return subscriptionManagerTimeout;
     }
 
     @Override
@@ -105,13 +111,14 @@ public final class DefaultClientConfig implements ClientConfig {
                 Objects.equals(connectingMaxTries, that.connectingMaxTries) &&
                 Objects.equals(testingTimeout, that.testingTimeout) &&
                 Objects.equals(minBackoff, that.minBackoff) &&
-                Objects.equals(maxBackoff, that.maxBackoff);
+                Objects.equals(maxBackoff, that.maxBackoff) &&
+                Objects.equals(subscriptionManagerTimeout, that.subscriptionManagerTimeout);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(initTimeout, connectingMinTimeout, connectingMaxTimeout, connectingMaxTries,
-                testingTimeout, minBackoff, maxBackoff);
+                testingTimeout, minBackoff, maxBackoff, subscriptionManagerTimeout);
     }
 
     @Override
@@ -124,6 +131,7 @@ public final class DefaultClientConfig implements ClientConfig {
                 ", testingTimeout=" + testingTimeout +
                 ", minBackoff" + minBackoff +
                 ", maxBackoff" + maxBackoff +
+                ", subscriptionManagerTimeout" + subscriptionManagerTimeout +
                 "]";
     }
 

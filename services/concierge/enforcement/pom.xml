@@ -21,11 +21,6 @@
         <version>${revision}</version>
     </parent>
 
-    <properties>
-        <javac.source>1.8</javac.source>
-        <javac.target>1.8</javac.target>
-    </properties>
-
     <artifactId>ditto-services-concierge-enforcement</artifactId>
     <name>Eclipse Ditto :: Services :: Concierge :: Enforcement</name>
 
@@ -107,6 +102,11 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

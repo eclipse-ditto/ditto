@@ -31,7 +31,10 @@ import org.eclipse.ditto.model.things.ThingId;
 /**
  * This exception indicates that the ACL of a Thing could not be modified due to missing {@code ADMINISTRATE}
  * Permission.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableException(errorCode = AclNotModifiableException.ERROR_CODE)
 public final class AclNotModifiableException extends DittoRuntimeException implements ThingException {
@@ -104,7 +107,6 @@ public final class AclNotModifiableException extends DittoRuntimeException imple
 
     /**
      * A mutable builder with a fluent API for a {@link AclNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AclNotModifiableException> {

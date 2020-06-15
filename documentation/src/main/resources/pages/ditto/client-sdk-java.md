@@ -62,7 +62,7 @@ AuthenticationProvider authenticationProvider =
 MessagingProvider messagingProvider =
     MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
         .endpoint("wss://ditto.eclipse.org")
-        .jsonSchemaVersion(JsonSchemaVersion.V_1)
+        .jsonSchemaVersion(JsonSchemaVersion.V_2)
         // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
         .proxyConfiguration(proxyConfiguration)
         .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
@@ -91,6 +91,9 @@ client.twin().create("org.eclipse.ditto:new-thing").handle((createdThing, throwa
 
 #### Subscribe for change notifications
 
+In order to subscribe for [events](basic-signals-event.html) emitted by Ditto after a twin was modified, start the 
+consumption on the `twin` channel:
+
 ```java
 client.twin().startConsumption().get();
 System.out.println("Subscribed for Twin events");
@@ -101,6 +104,46 @@ client.twin().registerForThingChanges("my-changes", change -> {
    }
 });
 ```
+
+There is also the possibility here to apply *server side filtering* of which events will get delivered to the client:
+
+```java
+client.twin().startConsumption(
+   Options.Consumption.filter("gt(features/temperature/properties/value,23.0)")
+).get();
+System.out.println("Subscribed for Twin events");
+client.twin().registerForFeaturePropertyChanges("my-feature-changes", "temperature", "value", change -> {
+   // perform custom actions ..
+});
+```
+
+##### Subscribe to enriched change notifications
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+In order to use [enrichment](basic-enrichment.html) in the Ditto Java client, the `startConsumption()` call can be
+enhanced with the additional extra fields:
+
+```java
+client.twin().startConsumption(
+   Options.Consumption.extraFields(JsonFieldSelector.newInstance("attributes/location"))
+).get();
+client.twin().registerForThingChanges("my-enriched-changes", change -> {
+   Optional<JsonObject> extra = change.getExtra();
+   // perform custom actions, making use of the 'extra' data ..
+});
+```
+
+In combination with a `filter`, the extra fields may also be used as part of such a filter:
+
+```java
+client.twin().startConsumption(
+   Options.Consumption.extraFields(JsonFieldSelector.newInstance("attributes/location")),
+   Options.Consumption.filter("eq(attributes/location,\"kitchen\")")
+).get();
+// register the callbacks...
+```
+
 
 #### Send/receive messages
 
@@ -129,7 +172,103 @@ client.live().forId("org.eclipse.ditto:new-thing")
    );
 ```
 
-## Further Examples
+#### Manage policies
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+Read a policy:
+```java
+Policy retrievedPolicy = client.policies().retrieve(PolicyId.of("org.eclipse.ditto:new-policy"))
+   .get(); // this will block the thread! work asynchronously whenever possible!
+```
+
+Create a policy:
+```java
+Policy newPolicy = Policy.newBuilder(PolicyId.of("org.eclipse.ditto:new-policy"))
+   .forLabel("DEFAULT")
+   .setSubject(Subject.newInstance(SubjectIssuer.newInstance("nginx"), "ditto"))
+   .setGrantedPermissions(PoliciesResourceType.policyResource("/"), "READ", "WRITE")
+   .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE")
+   .build();
+
+client.policies().create(newPolicy)
+   .get(); // this will block the thread! work asynchronously whenever possible!
+```
+
+Updating and deleting policies is also possible via the Java client API, please follow the API and the JavaDoc.
+
+#### Search for things
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+Search for things using the Java 8 `java.util.Stream` API:
+```java
+client.twin().search()
+   .stream(queryBuilder -> queryBuilder.namespace("org.eclipse.ditto")
+      .filter("eq(attributes/location,'kitchen')") // apply RQL expression here
+      .options(builder -> builder.sort(s -> s.desc("thingId")).size(1))
+   )
+   .forEach(foundThing -> System.out.println("Found thing: " + foundThing));
+```
+
+Use an [RQL](basic-rql.html) query in order to filter for the searched things.
+
+Search for things using the reactive streams `org.reactivestreams.Publisher` API:
+```java
+Publisher<List<Thing>> publisher = client.twin().search()
+   .publisher(queryBuilder -> queryBuilder.namespace("org.eclipse.ditto")
+      .filter("eq(attributes/location,'kitchen')") // apply RQL expression here
+      .options(builder -> builder.sort(s -> s.desc("thingId")).size(1))
+   );
+// integrate the publisher in the reactive streams library of your choice, e.g. Akka streams:
+akka.stream.javadsl.Source<Thing, NotUsed> things = akka.stream.javadsl.Source.fromPublisher(publisher)
+   .flatMapConcat(Source::from);
+// .. proceed working with the Akka Source ..
+```
+
+
+#### Request and issue acknowledgements
+
+{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
+
+[Requesting acknowledgements](basic-acknowledgements.html#requesting-acknowledgements) is possible in the Ditto Java 
+client in the following way:
+
+```java
+DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+   .acknowledgementRequest(
+      AcknowledgementRequest.of(DittoAcknowledgementLabel.PERSISTED),
+      AcknowledgementRequest.of(AcknowledgementLabel.of("my-custom-ack"))
+   )
+   .timeout("5s")
+   .build();
+
+client.twin().forId(ThingId.of("org.eclipse.ditto:my-thing"))
+   .putAttribute("counter", 42, Options.dittoHeaders(dittoHeaders))
+   .whenComplete((aVoid, throwable) -> {
+      if (throwable instanceof AcknowledgementsFailedException) {
+         Acknowledgements acknowledgements = ((AcknowledgementsFailedException) throwable).getAcknowledgements();
+         System.out.println("Acknowledgements could not be fulfilled: " + acknowledgements);
+      }   
+   });
+```
+
+[Issuing requested acknowledgements](basic-acknowledgements.html#issuing-acknowledgements) can be done like this 
+whenever a `Change` callback is invoked with a change notification:
+
+```java
+client.twin().registerForThingChanges("REG1", change -> {
+   change.handleAcknowledgementRequest(AcknowledgementLabel.of("my-custom-ack"), ackHandle ->
+      ackHandle.acknowledge(HttpStatusCode.NOT_FOUND, JsonObject.newBuilder()
+         .set("error-detail", "Could not be found")
+         .build()
+      )
+   );
+});
+```
+
+
+## Further examples
 
 For further examples on how to use the Ditto client, please have a look at the class 
 [DittoClientUsageExamples](https://github.com/eclipse/ditto-clients/blob/master/java/src/test/java/org/eclipse/ditto/client/DittoClientUsageExamples.java)

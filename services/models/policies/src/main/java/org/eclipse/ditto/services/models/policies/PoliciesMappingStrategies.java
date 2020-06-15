@@ -13,34 +13,62 @@
 package org.eclipse.ditto.services.models.policies;
 
 import java.util.Map;
-import java.util.function.Function;
 
-import org.eclipse.ditto.json.JsonObject;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Policies service containing all {@link Jsonifiable} types known to Policies.
+ * {@link MappingStrategies} for the Policies service containing all {@link Jsonifiable} types known to Policies.
  */
-public final class PoliciesMappingStrategies extends AbstractGlobalMappingStrategies {
+@Immutable
+public final class PoliciesMappingStrategies extends MappingStrategies {
 
-    public PoliciesMappingStrategies() {
-        super(getPoliciesMappingStrategies());
+    @Nullable private static PoliciesMappingStrategies instance = null;
+
+    private PoliciesMappingStrategies(final Map<String, MappingStrategy> policiesMappingStrategies) {
+        super(policiesMappingStrategies);
     }
 
-    private static Map<String, MappingStrategy> getPoliciesMappingStrategies() {
+    /**
+     * Constructs a new policiesMappingStrategies object.
+     */
+    @SuppressWarnings("unused") // used via reflection
+    public PoliciesMappingStrategies() {
+        this(getPoliciesMappingStrategies());
+    }
+
+    /**
+     * Returns an instance of PoliciesMappingStrategies.
+     *
+     * @return the instance.
+     */
+    public static PoliciesMappingStrategies getInstance() {
+        PoliciesMappingStrategies result = instance;
+        if (null == result) {
+            result = new PoliciesMappingStrategies(getPoliciesMappingStrategies());
+            instance = result;
+        }
+        return result;
+    }
+
+    private static MappingStrategies getPoliciesMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
-                .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
+                .add(Policy.class, jsonObject -> PoliciesModelFactory.newPolicy(jsonObject))
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
                 .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject))
-                .build()
-                .getStrategies();
+                .putAll(GlobalMappingStrategies.getInstance())
+                .build();
     }
+
 }

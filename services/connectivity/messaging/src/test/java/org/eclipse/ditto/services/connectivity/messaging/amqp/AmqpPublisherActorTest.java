@@ -41,7 +41,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
@@ -95,7 +94,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
 
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing").build();
             final ThingEvent thingEvent = ThingDeleted.of(TestConstants.Things.THING_ID, 25L, dittoHeaders);
             final Target target = decorateTarget(createTestTarget());
             final OutboundSignal outboundSignal =
@@ -105,7 +105,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .withText("payload")
                             .build();
             final Adaptable adaptable =
-                    DittoProtocolAdapter.newInstance().toAdaptable(thingEvent, TopicPath.Channel.TWIN);
+                    DittoProtocolAdapter.newInstance().toAdaptable(thingEvent);
             final OutboundSignal.Mapped mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 
@@ -159,7 +159,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(dittoHeaders).withText("payload").build();
-            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source, TopicPath.Channel.TWIN);
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
             final OutboundSignal.Mapped mappedOutboundSignal =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
 
@@ -274,7 +274,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
         final Message message = messageCaptor.getValue();
 
-        assertThat(message.getStringProperty("mappedHeader1")).isEqualTo("original-header-value");
+        assertThat(message.getJMSCorrelationID()).isEqualTo(TestConstants.CORRELATION_ID);
         assertThat(message.getStringProperty("mappedHeader2")).isEqualTo("thing:id");
     }
 

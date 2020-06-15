@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.enforcers.trie;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -24,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.Policy;
@@ -108,14 +108,12 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
      */
     @Override
     public boolean hasUnrestrictedPermissions(final ResourceKey resourceKey,
-            final AuthorizationContext authorizationContext,
-            final Permissions permissions) {
+            final AuthorizationContext authorizationContext, final Permissions permissions) {
 
         final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpRevokeTrie, inheritedTrie);
         final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
-        final Set<String> subjectIds = getSubjectIds(authorizationContext);
 
-        return grantRevokeIndex.hasPermissions(subjectIds, permissions);
+        return grantRevokeIndex.hasPermissions(authorizationContext.getAuthorizationSubjectIds(), permissions);
     }
 
     /**
@@ -132,9 +130,8 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
 
         final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpGrantTrie, inheritedTrie);
         final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
-        final Set<String> subjectIds = getSubjectIds(authorizationContext);
 
-        return grantRevokeIndex.hasPermissions(subjectIds, permissions);
+        return grantRevokeIndex.hasPermissions(authorizationContext.getAuthorizationSubjectIds(), permissions);
     }
 
     @Override
@@ -146,6 +143,15 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
         return inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
                 .getGrantRevokeIndex()
                 .getEffectedSubjectIds(permissions);
+    }
+
+    @Override
+    public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+        return inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
+                .getGrantRevokeIndex()
+                .getEffectedSubjects(permissions);
     }
 
     private static void checkResourceKey(final ResourceKey resourceKey) {
@@ -168,6 +174,17 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
     }
 
     @Override
+    public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+        final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpGrantTrie, inheritedTrie);
+        final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
+        return grantRevokeIndex.getGrantedSubjects(permissions);
+    }
+
+    @Override
     public JsonObject buildJsonView(final ResourceKey resourceKey,
             final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext,
@@ -177,29 +194,14 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
         checkNotNull(jsonFields, "JSON fields");
         checkPermissions(permissions);
 
-        final Set<String> subjectIds = getSubjectIds(authorizationContext);
-
         final JsonKey typeKey = JsonKey.of(resourceKey.getResourceType());
 
         if (inheritedTrie.hasChild(typeKey)) {
             final PolicyTrie start = inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey));
-            return start.buildJsonView(jsonFields, subjectIds, permissions);
+            return start.buildJsonView(jsonFields, authorizationContext.getAuthorizationSubjectIds(), permissions);
         } else {
             return JsonFactory.newObject();
         }
-    }
-
-    /**
-     * Extracts all subject IDs from an authorization context as a set of strings.
-     *
-     * @param authorizationContext The authorization context.
-     * @return The set of subject IDs.
-     */
-    private static Set<String> getSubjectIds(final AuthorizationContext authorizationContext) {
-        checkNotNull(authorizationContext, "Authorization Context");
-        return authorizationContext.stream()
-                .map(AuthorizationSubject::getId)
-                .collect(Collectors.toSet());
     }
 
     /**

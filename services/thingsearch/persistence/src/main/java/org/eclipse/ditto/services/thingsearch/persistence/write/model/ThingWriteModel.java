@@ -20,7 +20,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.bson.Document;
 
 import com.mongodb.client.model.ReplaceOneModel;
-import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.WriteModel;
 
 /**
@@ -59,8 +59,8 @@ public final class ThingWriteModel extends AbstractWriteModel {
         return thingDocument;
     }
 
-    private static UpdateOptions upsert() {
-        return new UpdateOptions().upsert(true);
+    private static ReplaceOptions upsert() {
+        return new ReplaceOptions().upsert(true);
     }
 
     @Override

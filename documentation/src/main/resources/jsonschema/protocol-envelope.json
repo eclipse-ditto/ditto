@@ -12,23 +12,55 @@
       "type": "object",
       "description": "Additional headers.",
       "properties": {
+        "content-type": {
+          "type": "string",
+          "description": "The content-type of the message, for Ditto Protocol messages: `application/vnd.eclipse.ditto+json`."
+        },
         "correlation-id": {
           "type": "string",
           "description": "The correlation-id header is used for linking one message with another. It typically links a reply message with its requesting message."
+        },
+        "ditto-originator": {
+          "type": "string",
+          "description": "Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto."
+        },
+        "If-Match": {
+          "type": "string",
+          "description": "The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:\n * optimistic locking by specifying the `ETag` from a previous response, e.g. `If-Match: \"hash:a75ece4e\"`\n * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`"
+        },
+        "If-None-Match": {
+          "type": "string",
+          "description": "The `If-None-Match` header which has to conform to RFC-7232 (Conditional Requests)."
         },
         "response-required": {
           "type": "boolean",
           "description": "Whether a response to a command is required or if it may be omitted (fire and forget semantics)."
         },
+        "requested-acks": {
+          "description": "Defining which acknowledgements (\"ack\") are requested for a command processed by Ditto.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "description": "A single acknowledgement label containing at least 3 characters.",
+            "pattern": "[a-zA-Z0-9-_]{3,64}"
+          }
+        },
+        "timeout": {
+          "type": "string",
+          "description": "The timeout value to apply on the Ditto server side, e.g. applied when waiting for requested acknowledgements. Examples:\n * `42s`\n * `250ms`\n * `1m`\n * `60` (interpreted as seconds)",
+          "examples": [
+            "42s",
+            "250ms",
+            "1m",
+            "60"
+          ]
+        },
         "version": {
           "type": "integer",
-          "description": "Determines the version of the *Things* payload.",
+          "description": "Determines the schema version of the payload.",
           "minimum": 1,
           "maximum": 2
-        },
-        "source": {
-          "type": "string",
-          "description": "The source which initiated the command, e.g. a _clientId_."
         }
       },
       "required": [ "correlation-id" ]
@@ -44,6 +76,10 @@
     "value": {
       "type": ["object","string","number","array","boolean"],
       "description": "The `value` field contains the actual payload e.g. a sensor value."
+    },
+    "extra": {
+      "type": "object",
+      "description": "The `extra` object contains the `extraFields` which have optionally been selected to additionally be included."
     }
   },
   "required": [ "topic", "headers", "path", "value" ]

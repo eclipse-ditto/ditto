@@ -12,12 +12,22 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModifiedException;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
 /**
  * Provides a {@link ConditionalHeadersValidator} which checks conditional (http) headers based on a given ETag on
@@ -60,6 +70,7 @@ final class ThingsConditionalHeadersValidatorProvider {
         }
     }
 
+    private static final Set<JsonPointer> EXEMPTED_FIELDS = Collections.singleton(JsonPointer.of("_policy"));
     private static final ConditionalHeadersValidator INSTANCE = createInstance();
 
     private ThingsConditionalHeadersValidatorProvider() {
@@ -76,7 +87,38 @@ final class ThingsConditionalHeadersValidatorProvider {
     }
 
     private static ConditionalHeadersValidator createInstance() {
-        return ConditionalHeadersValidator.of(new ThingsConditionalHeadersValidationSettings());
+        return ConditionalHeadersValidator.of(new ThingsConditionalHeadersValidationSettings(),
+                ThingsConditionalHeadersValidatorProvider::skipExemptedFields);
     }
 
+    /**
+     * Skip precondition check if the selected fields contain exempted fields (e.g. {@code _policy} for things
+     * because the revision of a thing does not change if its policy is updated).
+     *
+     * @param command the command to check for if the conditional header check should be skipped.
+     * @return {@code true} when for the passed {@code command} the conditional header check should be skipped.
+     */
+    private static boolean skipExemptedFields(final Command<?> command) {
+
+        @Nullable final JsonFieldSelector selectedFields;
+        if (command instanceof RetrieveThing) {
+            selectedFields = ((RetrieveThing) command).getSelectedFields().orElse(null);
+        } else if (command instanceof RetrieveThings) {
+            selectedFields = ((RetrieveThings) command).getSelectedFields().orElse(null);
+        } else {
+            return false;
+        }
+
+        if (null != selectedFields) {
+            return containsExemptedField(selectedFields.getPointers());
+        }
+
+        return false;
+    }
+
+    private static boolean containsExemptedField(final Set<JsonPointer> selectedFields) {
+        final Set<JsonPointer> result = new HashSet<>(EXEMPTED_FIELDS);
+        result.retainAll(selectedFields);
+        return !result.isEmpty();
+    }
 }

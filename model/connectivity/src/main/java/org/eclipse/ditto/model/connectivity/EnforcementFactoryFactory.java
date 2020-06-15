@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 
@@ -30,8 +33,9 @@ public final class EnforcementFactoryFactory {
      * @param <I> the type from which the input values are resolved
      * @return the new {@link EnforcementFactoryFactory}
      */
-    private static <I> EnforcementFilterFactory<I, CharSequence > newEnforcementFilterFactory(final Enforcement enforcement,
-            final Placeholder<I> inputFilter, final Placeholder<CharSequence> filterPlaceholderResolver) {
+    private static <I> EnforcementFilterFactory<I, CharSequence> newEnforcementFilterFactory(
+            final Enforcement enforcement,
+            final Placeholder<I> inputFilter, final List<Placeholder<CharSequence>> filterPlaceholderResolver) {
         return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
     }
 
@@ -44,9 +48,14 @@ public final class EnforcementFactoryFactory {
      * @param inputFilter the input filter that is applied to resolve input value
      * @return the new {@link EnforcementFactoryFactory} used to match the input
      */
-    public static <I> EnforcementFilterFactory<I, CharSequence> newEnforcementFilterFactory(final Enforcement enforcement,
+    public static <I> EnforcementFilterFactory<I, CharSequence> newEnforcementFilterFactory(
+            final Enforcement enforcement,
             final Placeholder<I> inputFilter) {
-        return newEnforcementFilterFactory(enforcement, inputFilter, PlaceholderFactory.newThingPlaceholder());
+        return newEnforcementFilterFactory(enforcement, inputFilter, Arrays.asList(
+                PlaceholderFactory.newThingPlaceholder(),
+                PlaceholderFactory.newPolicyPlaceholder(),
+                PlaceholderFactory.newEntityPlaceholder()
+        ));
     }
 
     private EnforcementFactoryFactory() {

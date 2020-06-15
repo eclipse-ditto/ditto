@@ -202,6 +202,7 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
      * Sets message, description and link from a JSON object of it has matching fields with valid values.
      *
      * @param jsonObject The JSON object to read from.
+     * @return this jsonObject
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     public DittoRuntimeExceptionBuilder<T> loadJson(final JsonObject jsonObject) {

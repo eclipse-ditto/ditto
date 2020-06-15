@@ -37,9 +37,10 @@ public final class StopStreaming implements StreamControlMessage {
      * @param connectionCorrelationId the correlation ID of the connection/session.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public StopStreaming(final StreamingType streamingType, final String connectionCorrelationId) {
+    public StopStreaming(final StreamingType streamingType, final CharSequence connectionCorrelationId) {
         this.streamingType = checkNotNull(streamingType, "streamingType");
-        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId");
+        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                .toString();
     }
 
     /**

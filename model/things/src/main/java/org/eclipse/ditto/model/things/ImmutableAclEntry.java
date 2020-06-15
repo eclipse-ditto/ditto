@@ -42,7 +42,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link AclEntry}.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 final class ImmutableAclEntry implements AclEntry {
 

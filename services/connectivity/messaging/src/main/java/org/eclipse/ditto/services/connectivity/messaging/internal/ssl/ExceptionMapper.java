@@ -17,6 +17,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -38,7 +40,7 @@ final class ExceptionMapper {
      *
      * @param dittoHeaders ditto headers
      */
-    ExceptionMapper(final DittoHeaders dittoHeaders) {
+    ExceptionMapper(@Nullable final DittoHeaders dittoHeaders) {
         this.dittoHeaders = dittoHeaders != null ? dittoHeaders : DittoHeaders.empty();
     }
 
@@ -68,6 +70,7 @@ final class ExceptionMapper {
 
     /**
      * Handles common ssl exceptions and maps them to Ditto exceptions.
+     *
      * @param supplier the supplier that may throw an exception
      * @param <T> the result type
      * @return the result if no exception occurred
@@ -93,9 +96,10 @@ final class ExceptionMapper {
 
     @FunctionalInterface
     interface ThrowingSupplier<T> {
+
         /**
-        * @return the result.
-        */
+         * @return the result.
+         */
         T get() throws CertificateException, KeyStoreException, NoSuchAlgorithmException,
                 InvalidAlgorithmParameterException;
     }

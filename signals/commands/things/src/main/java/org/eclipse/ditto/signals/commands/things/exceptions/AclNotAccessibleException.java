@@ -32,7 +32,10 @@ import org.eclipse.ditto.model.things.ThingId;
 /**
  * This exception indicates that the ACL of a Thing cannot be accessed by a particular Authorization Subject because the
  * Thing could not be found or the subject has insufficient permissions.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
 @JsonParsableException(errorCode = AclNotAccessibleException.ERROR_CODE)
 public final class AclNotAccessibleException extends DittoRuntimeException implements ThingException {
@@ -106,7 +109,6 @@ public final class AclNotAccessibleException extends DittoRuntimeException imple
 
     /**
      * A mutable builder with a fluent API for a {@link AclNotAccessibleException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AclNotAccessibleException> {

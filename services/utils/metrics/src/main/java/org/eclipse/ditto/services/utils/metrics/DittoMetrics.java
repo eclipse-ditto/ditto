@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.metrics;
 
+import java.util.Map;
+
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.KamonCounter;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
@@ -52,11 +54,26 @@ public final class DittoMetrics {
     /**
      * Creates a {@link Counter} with the given name.
      *
-     * @param name The name of the counter.
-     * @return The {@link Counter} with the given name.
+     * @param name the name of the counter.
+     * @return the {@link Counter} with the given name.
+     * @throws NullPointerException if {@code name} is {@code null}.
+     * @throws IllegalArgumentException if {@code name} is empty.
      */
     public static Counter counter(final String name) {
         return KamonCounter.newCounter(name);
+    }
+
+    /**
+     * Creates a {@link Counter} with the given name and tags.
+     *
+     * @param name the name of the counter.
+     * @param tags the tags of the counter.
+     * @return the {@link Counter} with the given name.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code name} is empty.
+     */
+    public static Counter counter(final String name, final Map<String, String> tags) {
+        return KamonCounter.newCounter(name, tags);
     }
 
     /**

@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import org.eclipse.ditto.model.thingsearch.ThingSearchConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -36,7 +36,7 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
             final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
-                ThingSearchCommand.RESOURCE_TYPE,
+                ThingSearchConstants.ENTITY_TYPE,
                 namespaceOps,
                 null,
                 persistenceOperationsConfig);

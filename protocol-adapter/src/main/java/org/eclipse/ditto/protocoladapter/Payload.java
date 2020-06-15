@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.Optional;
 
@@ -27,8 +29,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Represents the {@code Payload} of an {@link Adaptable}. The Ditto Protocol defines that a {@code Payload} must
- * always have a {@code path} property.
+ * Represents the {@code Payload} of an {@link Adaptable}.
+ * The Ditto Protocol defines that a {@code Payload} must always have a {@code path} property.
  */
 public interface Payload extends Jsonifiable<JsonObject> {
 
@@ -53,6 +55,26 @@ public interface Payload extends Jsonifiable<JsonObject> {
     }
 
     /**
+     * Returns a mutable builder with a fluent API for creating a Payload.
+     * The returned builder is initialised with the values of the given payload.
+     *
+     * @param payload provides the initial properties of the returned builder.
+     * @return the builder.
+     * @throws NullPointerException if {@code payload} is {@code null}.
+     */
+    static PayloadBuilder newBuilder(final Payload payload) {
+        checkNotNull(payload, "payload");
+        final PayloadBuilder result = newBuilder(payload.getPath())
+                .withValue(payload.getValue().orElse(null))
+                .withExtra(payload.getExtra().orElse(null))
+                .withStatus(payload.getStatus().orElse(null))
+                .withTimestamp(payload.getTimestamp().orElse(null))
+                .withFields(payload.getFields().orElse(null));
+        payload.getRevision().ifPresent(result::withRevision);
+        return result;
+    }
+
+    /**
      * Returns the {@code path} of this {@code Payload}.
      *
      * @return the path.
@@ -65,6 +87,13 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * @return the optional value.
      */
     Optional<JsonValue> getValue();
+
+    /**
+     * Returns the extra information which enriches the actual value of this payload.
+     *
+     * @return the extra payload or an empty Optional.
+     */
+    Optional<JsonObject> getExtra();
 
     /**
      * Returns the {@code status} of this {@code Payload} if present.
@@ -109,6 +138,11 @@ public interface Payload extends Jsonifiable<JsonObject> {
          * JSON field containing the value.
          */
         public static final JsonFieldDefinition<JsonValue> VALUE = JsonFactory.newJsonValueFieldDefinition("value");
+
+        /**
+         * JSON field containing the extra data aka payload enrichment.
+         */
+        public static final JsonFieldDefinition<JsonObject> EXTRA = JsonFactory.newJsonObjectFieldDefinition("extra");
 
         /**
          * JSON field containing the status.

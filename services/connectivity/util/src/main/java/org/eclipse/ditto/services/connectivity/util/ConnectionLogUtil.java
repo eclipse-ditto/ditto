@@ -82,6 +82,7 @@ public final class ConnectionLogUtil {
      * and the correlation ID.
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
+     * @param correlationId the correlating Protocol message ID
      * @param connectionId the connection ID to set.
      */
     public static void enhanceLogWithCorrelationIdAndConnectionId(final DiagnosticLoggingAdapter loggingAdapter,

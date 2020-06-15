@@ -28,6 +28,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -53,7 +54,7 @@ public class ConnectivityCounterRegistryTest {
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";
-    private static final Instant FIXED_INSTANT = Instant.now();
+    private static final Instant FIXED_INSTANT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.systemDefault());
 
     private static Map<Duration, Long> getCounters(final long value) {
