@@ -4223,6 +4223,36 @@ paths:
         '412':
           $ref: '#/components/responses/preconditionFailed'
   ###
+  ### Who Am I
+  ###
+  '/whoami':
+    get:
+      summary: Retrieve information about the current caller
+      description: |-
+        Get information about the current caller, e.g. the auth subjects that are generated for the caller.
+      tags:
+        - Policies
+      responses:
+        '200':
+          description: |-
+            The request successfully returned information about the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhoAmI'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '402':
+          description: The request could not be completed due to exceeded transaction count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+  ###
   ### Things-Search
   ###
   /search/things:
@@ -4608,6 +4638,20 @@ components:
         The `featureId` key must be unique in the list.
       additionalProperties:
         $ref: '#/components/schemas/Feature'
+    WhoAmI:
+      type: object
+      description: |-
+        Contains information about the current user and the auth subjects available for the used authentication.
+      properties:
+        defaultSubject:
+          $ref: '#/components/schemas/WhoAmISubject'
+        subjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/WhoAmISubject'
+    WhoAmISubject:
+      type: string
+      description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
 
   responses:
     entityTooLarge:

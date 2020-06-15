@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -50,6 +49,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
@@ -93,6 +93,7 @@ public final class RootRoute extends AllDirectives {
     private final ThingSearchRoute thingSearchRoute;
     private final WebSocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
+    private final WhoamiRoute whoamiRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
@@ -117,6 +118,7 @@ public final class RootRoute extends AllDirectives {
         thingSearchRoute = builder.thingSearchRoute;
         websocketRouteBuilder = builder.websocketRouteBuilder;
         statsRoute = builder.statsRoute;
+        whoamiRoute = builder.whoamiRoute;
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
@@ -273,7 +275,9 @@ public final class RootRoute extends AllDirectives {
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
-                thingSearchRoute.buildSearchRoute(ctx, dittoHeaders)
+                thingSearchRoute.buildSearchRoute(ctx, dittoHeaders),
+                // /api/{apiVersion}/whoami
+                whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders)
         ).orElse(customApiSubRoutes);
     }
 
@@ -387,6 +391,7 @@ public final class RootRoute extends AllDirectives {
         private ThingSearchRoute thingSearchRoute;
         private WebSocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
+        private WhoamiRoute whoamiRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
         private GatewayAuthenticationDirective httpAuthenticationDirective;
@@ -461,6 +466,12 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder statsRoute(final StatsRoute route) {
             statsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder whoamiRoute(final WhoamiRoute route) {
+            whoamiRoute = route;
             return this;
         }
 

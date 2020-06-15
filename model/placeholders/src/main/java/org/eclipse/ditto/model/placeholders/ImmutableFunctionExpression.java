@@ -31,6 +31,7 @@ final class ImmutableFunctionExpression implements FunctionExpression {
     static final ImmutableFunctionExpression INSTANCE = new ImmutableFunctionExpression();
 
     private static final List<PipelineFunction> SUPPORTED = Collections.unmodifiableList(Arrays.asList(
+            new PipelineFunctionFilter(),          // fn:filter(filterValue,rqlFunction,comparedValue)
             new PipelineFunctionDefault(),         // fn:default('fallback value')
             new PipelineFunctionSubstringBefore(), // fn:substring-before(':')
             new PipelineFunctionSubstringAfter(),  // fn:substring-after(':')

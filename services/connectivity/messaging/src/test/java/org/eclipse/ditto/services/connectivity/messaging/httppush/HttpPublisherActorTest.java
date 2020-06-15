@@ -25,15 +25,9 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.junit.Ignore;
-import org.junit.Test;
 
-import com.typesafe.config.ConfigValueFactory;
-
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
@@ -49,7 +43,6 @@ import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 import scala.util.Try;
 
 /**
@@ -60,7 +53,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     private static final String BODY = "The quick brown fox jumps over the lazy dog.";
 
     private HttpPushFactory httpPushFactory;
-    private BlockingQueue<HttpRequest> received = new LinkedBlockingQueue<>();
+    private final BlockingQueue<HttpRequest> received = new LinkedBlockingQueue<>();
 
     @Override
     protected String getOutboundAddress() {
@@ -78,34 +71,6 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         // activate debug log to show responses
         actorSystem.eventStream().setLogLevel(Attributes.logLevelDebug());
-    }
-
-    @Test
-    @Ignore("TODO: will be removed")
-    public void testIpv6Blacklist() {
-        final ActorSystem systemWithBlacklist = ActorSystem.create("systemWithBlackList",
-                CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames",
-                        ConfigValueFactory.fromAnyRef("8.8.8.8,2001:4860:4860:0000:0000:0000:0000:0001")));
-        try {
-            new TestKit(systemWithBlacklist) {{
-                // GIVEN: A connection has a blacklisted host configured
-                final TestProbe probe = new TestProbe(systemWithBlacklist);
-                httpPushFactory = new DummyHttpPushFactory("[2001:4860:4860::1]", request -> {
-                    probe.ref().tell(request, ActorRef.noSender());
-                    return HttpResponse.create().withStatus(StatusCodes.OK);
-                });
-
-                // WHEN: the publisher is requested to send a message
-                final OutboundSignal.Mapped outboundSignal = getMockOutboundSignal();
-                final ActorRef underTest = childActorOf(getPublisherActorProps());
-                underTest.tell(outboundSignal, getRef());
-
-                // THEN: the message is dropped
-                probe.expectNoMessage();
-            }};
-        } finally {
-            TestKit.shutdownActorSystem(systemWithBlacklist);
-        }
     }
 
     @Override

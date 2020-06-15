@@ -35,6 +35,7 @@ import nl.jqno.equalsverifier.Warning;
 public class ImmutableFunctionExpressionTest {
 
     private static final Set<String> EXPECTED_FUNCTION_NAMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "filter",
             "default",
             "substring-before",
             "substring-after",
@@ -159,6 +160,27 @@ public class ImmutableFunctionExpressionTest {
         assertThat(UNDER_TEST.resolve("fn:substring-after(\"-\")", PipelineElement.resolved(THING_NAME),
                 EXPRESSION_RESOLVER))
                 .contains("id");
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionSucceeds() {
+        assertThat(UNDER_TEST.resolve("fn:filter('true','eq','true')",
+                PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
+                .contains(HEADER_VAL);
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionFails() {
+        assertThat(UNDER_TEST.resolve("fn:filter('false','eq','true')",
+                PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
+                .isEmpty();
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionSucceedsWithPlaceholder() {
+        assertThat(UNDER_TEST.resolve(String.format("fn:filter(thing:id,'eq','%s')", THING_ID.toString()),
+                PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
+                .contains(HEADER_VAL);
     }
 
 }

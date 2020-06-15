@@ -92,6 +92,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
@@ -157,7 +158,7 @@ public final class ConnectionPersistenceActor
     private final ActorRef conciergeForwarder;
     private final ClientActorPropsFactory propsFactory;
     private final int clientActorsPerNode;
-    private final Consumer<ConnectivityCommand<?>> commandValidator;
+    private final ConnectivityCommandInterceptor commandValidator;
     private final ConnectionLogger connectionLogger;
     private Instant connectionClosedAt = Instant.now();
 
@@ -180,7 +181,7 @@ public final class ConnectionPersistenceActor
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator,
+            @Nullable final ConnectivityCommandInterceptor customCommandValidator,
             final int clientActorsPerNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
@@ -246,7 +247,7 @@ public final class ConnectionPersistenceActor
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
+            @Nullable final ConnectivityCommandInterceptor commandValidator
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, conciergeForwarder,
                 propsFactory, commandValidator, CLIENT_ACTORS_PER_NODE);

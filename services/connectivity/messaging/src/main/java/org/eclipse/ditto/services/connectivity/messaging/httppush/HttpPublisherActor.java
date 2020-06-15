@@ -12,13 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,7 +39,6 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
-import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -90,7 +87,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
-    private final Collection<InetAddress> blacklistedAddresses;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
@@ -102,8 +98,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
                         .getConnectionConfig();
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
-        blacklistedAddresses =
-                ConnectionValidator.calculateBlacklistedAddresses(connectionConfig.getBlacklistedHostnames(), log);
 
         materializer = ActorMaterializer.create(getContext());
         sourceQueue =
@@ -132,6 +126,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return HttpPublishTarget.of(address);
     }
 
+    // HEAD
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
             @Nullable final Target target, final HttpPublishTarget publishTarget,
