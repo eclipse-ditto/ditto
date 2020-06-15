@@ -153,8 +153,8 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
                 ArgumentCaptor.forClass(AMQP.BasicProperties.class);
         final ArgumentCaptor<byte[]> bodyCaptor = ArgumentCaptor.forClass(byte[].class);
 
-        verify(channel, timeout(1000)).basicPublish(eq("exchange"), eq("outbound"), propertiesCaptor.capture(),
-                bodyCaptor.capture());
+        verify(channel, timeout(1000)).basicPublish(eq("exchange"), eq("outbound"), eq(true),
+                propertiesCaptor.capture(), bodyCaptor.capture());
 
         assertThat(propertiesCaptor.getValue().getHeaders().get("thing_id"))
                 .isEqualTo(TestConstants.Things.THING_ID.toString());
@@ -184,6 +184,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         verify(channel, timeout(1000)).basicPublish(
                 eq("replyTarget"),
                 eq("thing:id"),
+                eq(true),
                 propertiesCaptor.capture(),
                 bodyCaptor.capture());
 

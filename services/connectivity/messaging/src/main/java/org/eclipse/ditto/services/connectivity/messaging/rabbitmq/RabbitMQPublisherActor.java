@@ -22,8 +22,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -57,6 +60,7 @@ import com.newmotion.akka.rabbitmq.ChannelMessage;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmListener;
+import com.rabbitmq.client.ReturnListener;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -86,9 +90,9 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-rabbitmq-diagnostic");
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-
-    private final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks =
-            new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks = new ConcurrentSkipListMap<>();
+    private final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget =
+            new ConcurrentHashMap<>();
     private ConfirmMode confirmMode = ConfirmMode.UNKNOWN;
     @Nullable private ActorRef channelActor;
 
@@ -176,13 +180,14 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
         // create consumer outside channel message: need to check actor state and decide whether to handle acks.
-        final Consumer<Long> nextPublishSeqNoConsumer = computeNextPublishSeqNoConsumer(signal, target, resultFuture);
+        final Consumer<Long> nextPublishSeqNoConsumer =
+                computeNextPublishSeqNoConsumer(signal, target, publishTarget, resultFuture);
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
                 log.debug("Publishing to exchange <{}> and routing key <{}>: {}", publishTarget.getExchange(),
                         publishTarget.getRoutingKey(), basicProperties);
                 nextPublishSeqNoConsumer.accept(channel.getNextPublishSeqNo());
-                channel.basicPublish(publishTarget.getExchange(), publishTarget.getRoutingKey(), basicProperties,
+                channel.basicPublish(publishTarget.getExchange(), publishTarget.getRoutingKey(), true, basicProperties,
                         body);
             } catch (final Exception e) {
                 final String errorMessage = String.format("Failed to publish message to RabbitMQ: %s", e.getMessage());
@@ -198,11 +203,12 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     // This method is NOT thread-safe, but its returned consumer MUST be thread-safe.
     private Consumer<Long> computeNextPublishSeqNoConsumer(final Signal<?> signal,
             @Nullable final Target target,
+            final RabbitMQTarget publishTarget,
             final CompletableFuture<Acknowledgement> resultFuture) {
         if (confirmMode == ConfirmMode.ACTIVE) {
             // TODO: configure - also in other publisher actors?
             final Duration timeoutDuration = Duration.ofSeconds(60L);
-            return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, target, timeoutDuration);
+            return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, target, publishTarget, timeoutDuration);
         } else {
             final Acknowledgement unsupportedAck = getUnsupportedAck(signal, target);
             return seqNo -> resultFuture.complete(unsupportedAck);
@@ -213,10 +219,13 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private void addOutstandingAck(final Long seqNo, final Signal<?> signal,
             final CompletableFuture<Acknowledgement> resultFuture,
             @Nullable final Target target,
+            final RabbitMQTarget publishTarget,
             final Duration timeoutDuration) {
 
         final OutstandingAck outstandingAck = new OutstandingAck(signal, target, resultFuture);
         final Acknowledgement timeoutAck = getTimeoutAck(signal, target);
+
+        // index the outstanding ack by delivery tag
         outstandingAcks.put(seqNo, outstandingAck);
         resultFuture.completeOnTimeout(timeoutAck, timeoutDuration.toMillis(), TimeUnit.MILLISECONDS)
                 .handle((ack, error) -> {
@@ -224,6 +233,21 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     outstandingAcks.remove(seqNo);
                     return null;
                 });
+
+        // index the outstanding ack by publish target in order to generate negative acks on basic.return messages
+        outstandingAcksByTarget.compute(publishTarget, (key, queue) -> {
+            final Queue<OutstandingAck> result = queue != null ? queue : new ConcurrentLinkedQueue<>();
+            result.offer(outstandingAck);
+            return result;
+        });
+        // maintain outstanding-acks-by-target. It need not be accurate because outstandingAcksByTarget is only used
+        // on basic.return, which affects all messages published to 1 target but is not precise.
+        resultFuture.whenComplete((ignoredAck, ignoredError) -> {
+            outstandingAcksByTarget.computeIfPresent(publishTarget, (key, queue) -> {
+                queue.poll();
+                return queue.isEmpty() ? null : queue;
+            });
+        });
     }
 
     private void handleChannelStatus(final ChannelStatus channelStatus) {
@@ -238,7 +262,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     // called by ChannelActor; must be thread-safe.
     private Void onChannelCreated(final Channel channel) {
-        final IOException confirmationStatus = enterConfirmationMode(channel, outstandingAcks).orElse(null);
+        final IOException confirmationStatus =
+                enterConfirmationMode(channel, outstandingAcks, outstandingAcksByTarget).orElse(null);
         final Map<Target, ResourceStatus> targetStatus =
                 declareExchangesPassive(channel, targets, this::toPublishTarget, log);
         getSelf().tell(new ChannelStatus(confirmationStatus, targetStatus), ActorRef.noSender());
@@ -250,9 +275,13 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     private static Acknowledgement getUnsupportedAck(final Signal<?> signal, @Nullable final Target target) {
-        return buildAcknowledgement(signal, target, HttpStatusCode.NOT_IMPLEMENTED,
-                "The external broker does not support RabbitMQ publisher confirms. " +
-                        "Acknowledgement is not possible.");
+        if (target != null && target.getAcknowledgement().isPresent()) {
+            return buildAcknowledgement(signal, target, HttpStatusCode.NOT_IMPLEMENTED,
+                    "The external broker does not support RabbitMQ publisher confirms. " +
+                            "Acknowledgement is not possible.");
+        } else {
+            return getSuccessAck(signal, target);
+        }
     }
 
     private static Acknowledgement getSuccessAck(final Signal<?> signal, @Nullable final Target target) {
@@ -262,6 +291,12 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private static Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target target) {
         return buildAcknowledgement(signal, target, HttpStatusCode.SERVICE_UNAVAILABLE,
                 "Received negative confirm from the external broker.");
+    }
+
+    private static Acknowledgement getReturnAck(final Signal<?> signal, @Nullable final Target target,
+            final int replyCode, final String replyText) {
+        return buildAcknowledgement(signal, target, HttpStatusCode.SERVICE_UNAVAILABLE,
+                String.format("Received basic.return from the external broker: %d %s", replyCode, replyText));
     }
 
     private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target target,
@@ -306,11 +341,16 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     private static Optional<IOException> enterConfirmationMode(final Channel channel,
-            final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks) {
+            final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks,
+            final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget) {
         try {
             channel.confirmSelect();
             channel.clearConfirmListeners();
-            channel.addConfirmListener(new ActorConfirmListener(outstandingAcks));
+            channel.clearReturnListeners();
+            final ActorConfirmListener confirmListener =
+                    new ActorConfirmListener(outstandingAcks, outstandingAcksByTarget);
+            channel.addConfirmListener(confirmListener);
+            channel.addReturnListener(confirmListener);
             return Optional.empty();
         } catch (final IOException e) {
             return Optional.of(e);
@@ -342,22 +382,69 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         }
     }
 
-    private static final class ActorConfirmListener implements ConfirmListener {
+    private static final class ActorConfirmListener implements ConfirmListener, ReturnListener {
 
         private final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks;
+        private final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget;
 
-        private ActorConfirmListener(final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks) {
+        private ActorConfirmListener(final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks,
+                final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget) {
             this.outstandingAcks = outstandingAcks;
+            this.outstandingAcksByTarget = outstandingAcksByTarget;
         }
 
+        /**
+         * Handle ACK from the broker. ACK messages are always sent after a RETURN message.
+         * The channel actor runs this listener in its thread, which guarantees that this.handleAck is always
+         * called after this.handleReturn returns.
+         *
+         * @param deliveryTag The delivery tag of the acknowledged message.
+         * @param multiple Whether this acknowledgement applies to multiple messages.
+         */
         @Override
         public void handleAck(final long deliveryTag, final boolean multiple) {
             forEach(deliveryTag, multiple, OutstandingAck::completeWithSuccess);
         }
 
+        /**
+         * Handle NACK from the broker. NACK messages are always handled after this.handleReturn returns.
+         *
+         * @param deliveryTag The delivery tag of the acknowledged message.
+         * @param multiple Whether this acknowledgement applies to multiple messages.
+         */
         @Override
         public void handleNack(final long deliveryTag, final boolean multiple) {
             forEach(deliveryTag, multiple, OutstandingAck::completeWithFailure);
+        }
+
+        /**
+         * Handle RETURN from the broker. RETURN messages are sent if a routing key does not exist for an existing
+         * exchange. Since users can set publish target for each message by the means of placeholders, and because
+         * queues can be created and deleted at any time, getting RETURN messages does not imply failure of the whole
+         * channel.
+         * <p>
+         * Here all outstanding acks of an exchange, routing-key pair are completed exceptionally with the reply text
+         * and reply code.
+         *
+         * @param replyCode reply code of this RETURN message.
+         * @param replyText textual description of this RETURN message.
+         * @param exchange exchange of the outgoing message being returned.
+         * @param routingKey routing key of the outgoing message being returned.
+         * @param properties AMQP properties of the RETURN message; typically empty regardless of the properties of the
+         * outgoing message being returned.
+         * @param body body of the returned message.
+         */
+        @Override
+        public void handleReturn(final int replyCode, final String replyText, final String exchange,
+                final String routingKey,
+                final AMQP.BasicProperties properties, final byte[] body) {
+
+            final RabbitMQTarget rabbitMQTarget = RabbitMQTarget.of(exchange, routingKey);
+            final Queue<OutstandingAck> queue = outstandingAcksByTarget.get(rabbitMQTarget);
+            // cleanup handled in another thread on completion of each outstanding ack
+            if (queue != null) {
+                queue.forEach(outstandingAck -> outstandingAck.completeForReturn(replyCode, replyText));
+            }
         }
 
         private void forEach(final long deliveryTag, final boolean multiple,
@@ -403,6 +490,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         private void completeWithFailure() {
             future.complete(getFailureAck(signal, target));
+        }
+
+        private void completeForReturn(final int replyCode, final String replyText) {
+            future.complete(getReturnAck(signal, target, replyCode, replyText));
         }
     }
 
