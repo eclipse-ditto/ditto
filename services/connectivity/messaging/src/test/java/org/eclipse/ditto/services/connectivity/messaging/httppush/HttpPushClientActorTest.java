@@ -208,13 +208,13 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .build();
         final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
                 .clientCertificate(credentials);
-        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
+        final HttpsConnectionContext httpsContext = ConnectionContext.https(sslContext);
 
         final int port = binding.localAddress().getPort();
         binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
         binding = Http.get(actorSystem)
                 .bindAndHandle(handler,
-                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(invalidHttpsContext),
+                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(httpsContext),
                         mat)
                 .toCompletableFuture()
                 .join();
