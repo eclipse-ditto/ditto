@@ -125,7 +125,6 @@ import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.Creator;
-import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
