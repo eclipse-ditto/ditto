@@ -212,6 +212,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final Optional<SendingContext> replyTargetSendingContext = outbound.getSource()
                 .getDittoHeaders()
                 .getReplyTarget()
+                .filter(i -> isResponseOrErrorOrSearchEvent(outbound))
                 .flatMap(this::getReplyTargetByIndex)
                 .map(replyTarget -> sendingContextForReplyTarget(outbound, replyTarget));
 
