@@ -170,9 +170,8 @@ final class StreamingSessionActor extends AbstractActor {
                     final ActorRef self = getSelf();
                     try {
                         AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
-                                acknowledgementConfig,
-                                headerTranslator,
-                                responseSignal -> self.tell(responseSignal, self));
+                                acknowledgementConfig, headerTranslator,
+                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
                     } catch (final DittoRuntimeException e) {
                         logger.withCorrelationId(thingModifyCommand)
                                 .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
@@ -278,11 +277,16 @@ final class StreamingSessionActor extends AbstractActor {
         ).ifPresentOrElse(action, fallbackAction);
     }
 
+    // NOT thread-safe
     private void handleResponse(final CommandResponse<?> response) {
+        handleResponseThreadSafely(response, getSender());
+    }
+
+    private void handleResponseThreadSafely(final CommandResponse<?> response, @Nullable final ActorRef sender) {
         logger.withCorrelationId(response)
                 .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
                         " about it: {}", type, response);
-        eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
+        eventAndResponsePublisher.tell(SessionedJsonifiable.response(response), sender);
     }
 
     private void forwardAcknowledgement(final Acknowledgement acknowledgement) {
