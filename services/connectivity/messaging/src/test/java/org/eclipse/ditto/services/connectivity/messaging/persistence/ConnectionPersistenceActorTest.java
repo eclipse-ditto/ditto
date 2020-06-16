@@ -125,6 +125,7 @@ import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.Creator;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -1129,6 +1130,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
+
+            /*
+             *  Make sure that no further messages are sent to the probe. This is done because if we enable the
+             *  connection logs before all actions of CreateConnection are finished, an additional EnableConnectionLogs
+             *  is emitted by the "UPDATE_SUBSCRIPTIONS" action.
+             */
+            probe.expectNoMsg();
 
             // enable connection logs
             underTest.tell(enableConnectionLogs, getRef());
