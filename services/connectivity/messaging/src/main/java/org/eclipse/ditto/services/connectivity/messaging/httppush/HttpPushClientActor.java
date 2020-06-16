@@ -153,7 +153,9 @@ public final class HttpPushClientActor extends BaseClientActor {
             // check without HTTP proxy
             final SSLContextCreator sslContextCreator =
                     SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
-            final SSLSocketFactory socketFactory = sslContextCreator.withoutClientCertificate().getSocketFactory();
+            final SSLSocketFactory socketFactory = connection.getCredentials()
+                    .map(credentials -> credentials.accept(sslContextCreator))
+                    .orElse(sslContextCreator.withoutClientCertificate()).getSocketFactory();
             try (final SSLSocket socket = (SSLSocket) socketFactory.createSocket(hostWithoutLookup, port)) {
                 socket.startHandshake();
                 return statusSuccessFuture("TLS connection to '%s:%d' established successfully.",
