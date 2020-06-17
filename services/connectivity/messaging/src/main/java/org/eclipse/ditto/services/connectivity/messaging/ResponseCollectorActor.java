@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -38,6 +39,7 @@ public final class ResponseCollectorActor extends AbstractActor {
     private final List<CommandResponse<?>> commandResponses = new ArrayList<>();
     private int expectedCount = -1;
     private ActorRef querySender;
+    private DittoRuntimeException error;
 
     @SuppressWarnings("unused") // called by static props() via Reflection
     private ResponseCollectorActor(final Duration timeout) {
@@ -63,13 +65,14 @@ public final class ResponseCollectorActor extends AbstractActor {
                 .matchEquals(Query.INSTANCE, this::onQuery)
                 .match(SetCount.class, this::onSetCount)
                 .match(CommandResponse.class, this::onCommandResponse)
+                .match(DittoRuntimeException.class, this::onDittoRuntimeException)
                 .matchAny(msg -> log.warning("Unhandled <{}>", msg))
                 .build();
     }
 
     private void onReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         log.debug("ReceiveTimeout");
-        reportAndStop();
+        reportOutputAndStop();
     }
 
     private void onQuery(final Query query) {
@@ -90,15 +93,27 @@ public final class ResponseCollectorActor extends AbstractActor {
         reportIfAllCollected();
     }
 
+    private void onDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        log.debug("DittoRuntimeException <{}>", dittoRuntimeException);
+        error = dittoRuntimeException;
+        reportIfAllCollected();
+    }
+
     private void reportIfAllCollected() {
-        if (querySender != null && expectedCount >= 0 && commandResponses.size() >= expectedCount) {
-            reportAndStop();
+        if (querySender != null && error != null) {
+            reportAndStop(error);
+        } else if (querySender != null && expectedCount >= 0 && commandResponses.size() >= expectedCount) {
+            reportOutputAndStop();
         }
     }
 
-    private void reportAndStop() {
+    private void reportOutputAndStop() {
+        reportAndStop(new Output(expectedCount, commandResponses));
+    }
+
+    private void reportAndStop(final Object output) {
         if (querySender != null) {
-            querySender.tell(new Output(expectedCount, commandResponses), ActorRef.noSender());
+            querySender.tell(output, ActorRef.noSender());
         } else {
             log.error("ReceiveTimeout without Query");
         }

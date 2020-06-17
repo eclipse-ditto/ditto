@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 import akka.actor.ActorContext;
@@ -45,13 +44,13 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
     private final ThingModifyCommand<?> thingModifyCommand;
     private final AcknowledgementConfig acknowledgementConfig;
     private final HeaderTranslator headerTranslator;
-    private final Consumer<CommandResponse<?>> responseSignalConsumer;
+    private final Consumer<Object> responseSignalConsumer;
 
     private AcknowledgementAggregatorActorStarter(final ActorContext context,
             final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<CommandResponse<?>> responseSignalConsumer) {
+            final Consumer<Object> responseSignalConsumer) {
 
         actorContext = checkNotNull(context, "context");
         this.thingModifyCommand = checkNotNull(thingModifyCommand, "thingModifyCommand");
@@ -77,7 +76,7 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
             final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<CommandResponse<?>> responseSignalConsumer) {
+            final Consumer<Object> responseSignalConsumer) {
 
         return new AcknowledgementAggregatorActorStarter(context, thingModifyCommand, acknowledgementConfig,
                 headerTranslator, responseSignalConsumer);

@@ -32,7 +32,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -61,12 +60,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private final String correlationId;
     private final DittoHeaders requestCommandHeaders;
     private final AcknowledgementAggregator ackregator;
-    private final Consumer<CommandResponse<?>> responseSignalConsumer;
+    private final Consumer<Object> responseSignalConsumer;
 
     @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig, final HeaderTranslator headerTranslator,
-            final Consumer<CommandResponse<?>> responseSignalConsumer) {
+            final Consumer<Object> responseSignalConsumer) {
 
         this.responseSignalConsumer = responseSignalConsumer;
         requestCommandHeaders = thingModifyCommand.getDittoHeaders();
@@ -113,7 +112,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     static Props props(final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<CommandResponse<?>> responseSignalConsumer) {
+            final Consumer<Object> responseSignalConsumer) {
 
         final ThingModifyCommand<?> commandWithAckLabels =
                 (ThingModifyCommand<?>) ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
@@ -173,7 +172,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final ThingModifyCommand<?> thingModifyCommand,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
-            final Consumer<CommandResponse<?>> responseSignalConsumer) {
+            final Consumer<Object> responseSignalConsumer) {
 
         final AcknowledgementAggregatorActorStarter starter =
                 AcknowledgementAggregatorActorStarter.getInstance(context, thingModifyCommand, acknowledgementConfig,
@@ -213,10 +212,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
-        ackregator.addDittoRuntimeException(dittoRuntimeException);
-        final Acknowledgements acknowledgements =
-                ackregator.getAggregatedAcknowledgements(dittoRuntimeException.getDittoHeaders());
-        handleSignal(acknowledgements);
+        // abort on DittoRuntimeException
+        handleSignal(dittoRuntimeException);
         getContext().stop(getSelf());
     }
 
@@ -244,7 +241,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
-    private void handleSignal(final CommandResponse<?> signal) {
+    private void handleSignal(final Object signal) {
         responseSignalConsumer.accept(signal);
     }
 

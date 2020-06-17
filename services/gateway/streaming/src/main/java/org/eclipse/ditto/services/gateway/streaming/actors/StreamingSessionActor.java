@@ -167,7 +167,6 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
                 .match(ThingModifyCommand.class, thingModifyCommand -> {
-                    final ActorRef self = getSelf();
                     try {
                         AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
                                 acknowledgementConfig, headerTranslator,
@@ -282,11 +281,22 @@ final class StreamingSessionActor extends AbstractActor {
         handleResponseThreadSafely(response, getSender());
     }
 
-    private void handleResponseThreadSafely(final CommandResponse<?> response, @Nullable final ActorRef sender) {
-        logger.withCorrelationId(response)
-                .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
-                        " about it: {}", type, response);
-        eventAndResponsePublisher.tell(SessionedJsonifiable.response(response), sender);
+    private void handleResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {
+        if (responseOrError instanceof CommandResponse<?>) {
+            final CommandResponse<?> response = (CommandResponse<?>) responseOrError;
+            logger.withCorrelationId(response)
+                    .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
+                            " about it: {}", type, response);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.response(response), sender);
+        } else if (responseOrError instanceof DittoRuntimeException) {
+            final DittoRuntimeException error = (DittoRuntimeException) responseOrError;
+            logger.withCorrelationId(error)
+                    .debug("Got 'DittoRuntimeException' message in <{}> session, telling EventAndResponsePublisher" +
+                            " about it: {}", type, error);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.error(error), sender);
+        } else {
+            logger.error("Unexpected result from AcknowledgementAggregatorActor: <{}>", responseOrError);
+        }
     }
 
     private void forwardAcknowledgement(final Acknowledgement acknowledgement) {
