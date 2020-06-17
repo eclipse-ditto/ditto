@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -86,6 +85,7 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
@@ -361,9 +361,8 @@ public final class MessageMappingProcessorActor
                 .flatMap(source -> source.getAcknowledgements()
                         .<Signal<?>>map(sourceRequestedAcks -> {
                             final Set<AcknowledgementRequest> requestedAcks = new HashSet<>();
-                            for (AcknowledgementLabel label : sourceRequestedAcks) {
-                                requestedAcks.add(AcknowledgementRequest.of(label));
-                            }
+                            sourceRequestedAcks.stream().map(AcknowledgementRequest::of)
+                                    .forEach(requestedAcks::add);
                             requestedAcks.addAll(signal.getDittoHeaders().getAcknowledgementRequests());
                             return signal.setDittoHeaders(
                                     signal.getDittoHeaders()
@@ -683,7 +682,7 @@ public final class MessageMappingProcessorActor
     }
 
     private void forwardToPublisherActor(final OutboundSignal.MultiMapped mappedEnvelop) {
-        clientActor.tell(new PublishMappedMessage(mappedEnvelop), mappedEnvelop.getSender());
+        clientActor.tell(new PublishMappedMessage(mappedEnvelop), mappedEnvelop.getSender().orElse(null));
     }
 
     /**
@@ -841,7 +840,7 @@ public final class MessageMappingProcessorActor
                         return List.of();
                     } else {
                         final ActorRef sender = outboundSignals.get(0).sender;
-                        final List<OutboundSignal.Mapped> mappedSignals = outboundSignals.stream()
+                        final List<Mapped> mappedSignals = outboundSignals.stream()
                                 .map(OutboundSignalWithId::asMapped)
                                 .collect(Collectors.toList());
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
@@ -1076,12 +1075,12 @@ public final class MessageMappingProcessorActor
             );
         }
 
-        private OutboundSignalWithId mapped(final OutboundSignalWithId.Mapped mapped) {
+        private OutboundSignalWithId mapped(final Mapped mapped) {
             return new OutboundSignalWithId(mapped, entityId, sender, extra);
         }
 
-        private OutboundSignal.Mapped asMapped() {
-            return (OutboundSignal.Mapped) delegate;
+        private Mapped asMapped() {
+            return (Mapped) delegate;
         }
 
     }

@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -60,7 +61,7 @@ final class MultiMappedOutboundSignal implements OutboundSignal.MultiMapped {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "outboundSignals=" + outboundSignals +
-                ",sender=" + sender +
+                ", sender=" + sender +
                 "]";
     }
 
@@ -80,9 +81,8 @@ final class MultiMappedOutboundSignal implements OutboundSignal.MultiMapped {
     }
 
     @Override
-    @Nullable
-    public ActorRef getSender() {
-        return sender;
+    public Optional<ActorRef> getSender() {
+        return Optional.ofNullable(sender);
     }
 
     @Override

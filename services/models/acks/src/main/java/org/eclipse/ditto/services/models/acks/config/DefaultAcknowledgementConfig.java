@@ -96,8 +96,8 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "forwarderFallbackTimeout=" + forwarderFallbackTimeout +
-                "collectorFallbackLifetime=" + collectorFallbackLifetime +
-                "collectorFallbackAskTimeout=" + collectorFallbackAskTimeout +
+                ", collectorFallbackLifetime=" + collectorFallbackLifetime +
+                ", collectorFallbackAskTimeout=" + collectorFallbackAskTimeout +
                 "]";
     }
 

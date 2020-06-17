@@ -39,6 +39,7 @@ public final class ResponseCollectorActor extends AbstractActor {
     private int expectedCount = -1;
     private ActorRef querySender;
 
+    @SuppressWarnings("unused") // called by static props() via Reflection
     private ResponseCollectorActor(final Duration timeout) {
         getContext().setReceiveTimeout(timeout);
     }

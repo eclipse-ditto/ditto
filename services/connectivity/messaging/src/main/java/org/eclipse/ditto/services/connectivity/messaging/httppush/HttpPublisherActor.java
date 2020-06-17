@@ -126,15 +126,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return HttpPublishTarget.of(address);
     }
 
-    // HEAD
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target target, final HttpPublishTarget publishTarget,
+            @Nullable final Target autoAckTarget, final HttpPublishTarget publishTarget,
             final ExternalMessage message, int ackSizeQuota) {
 
         final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
         final HttpRequest request = createRequest(publishTarget, message);
-        final HttpPushContext context = newContext(signal, target, request, message, ackSizeQuota, resultFuture);
+        final HttpPushContext context = newContext(signal, autoAckTarget, request, message, ackSizeQuota, resultFuture);
         sourceQueue.offer(Pair.create(request, context))
                 .handle(handleQueueOfferResult(message, resultFuture));
         return resultFuture;
@@ -201,10 +200,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private HttpPushContext newContext(final Signal<?> signal,
-            @Nullable final Target target,
+            @Nullable final Target autoAckTarget,
             final HttpRequest request,
             final ExternalMessage message,
-            final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture) {
+            final int ackSizeQuota,
+            final CompletableFuture<Acknowledgement> resultFuture) {
 
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
@@ -218,7 +218,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
                 log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
-                toAcknowledgement(signal, target, response, ackSizeQuota).thenAccept(resultFuture::complete)
+                toAcknowledgement(signal, autoAckTarget, response, ackSizeQuota).thenAccept(resultFuture::complete)
                         .exceptionally(e -> {
                             resultFuture.completeExceptionally(e);
                             return null;
@@ -229,14 +229,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private CompletionStage<Acknowledgement> toAcknowledgement(final Signal<?> signal,
-            @Nullable final Target target,
+            @Nullable final Target autoAckTarget,
             final HttpResponse response,
             final int ackSizeQuota) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
+        final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
         final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
         if (statusOptional.isEmpty()) {
             response.discardEntityBytes(materializer);

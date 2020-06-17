@@ -266,11 +266,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 log().debug("Publishing mapped message of type <{}> to address <{}>: {}",
                         outbound.getSource().getType(), address, sendingContext.externalMessage);
                 final T publishTarget = publishTargetOptional.get();
-                final Target target = sendingContext.autoAckTarget;
+                @Nullable final Target autoAckTarget = sendingContext.autoAckTarget;
                 final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
                 final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping, log());
                 final CompletionStage<Acknowledgement> ackFuture =
-                        publishMessage(outbound.getSource(), target, publishTarget, mappedMessage, quota);
+                        publishMessage(outbound.getSource(), autoAckTarget, publishTarget, mappedMessage, quota);
                 // set the external message after header mapping for the result of header mapping to show up in log
                 return new Sending(sendingContext.setExternalMessage(mappedMessage), ackFuture);
             } else {
@@ -311,12 +311,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param address the address to convert to a {@link PublishTarget} of type {@code <T>}.
      * @return the instance of type {@code <T>}
      */
-    protected abstract T toPublishTarget(final String address);
+    protected abstract T toPublishTarget(String address);
 
     /**
      * Publish a message. Construct the acknowledgement regardless of any request for diagnostic purposes.
      *
      * @param signal the nullable Target for getting even more information about the configured Target to publish to.
+     * @param autoAckTarget if set, this is the Target from which {@code Acknowledgement}s should automatically be
+     * produced and delivered.
      * @param publishTarget the {@link PublishTarget} to publish to.
      * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
      * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not
@@ -324,7 +326,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return future of acknowledgement to reply to sender, or future of null if ackSizeQuota is 0.
      */
     protected abstract CompletionStage<Acknowledgement> publishMessage(Signal<?> signal,
-            @Nullable Target target, T publishTarget,
+            @Nullable Target autoAckTarget, T publishTarget,
             ExternalMessage message, int ackSizeQuota);
 
     /**
@@ -508,7 +510,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private SendingContext sendingContextForTarget(final OutboundSignal.Mapped outboundSignal, final Target target) {
         final ConnectionMonitor monitor =
                 connectionMonitorRegistry.forOutboundPublished(connectionId, target.getOriginalAddress());
-        final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
+        @Nullable final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
         return new SendingContext(outboundSignal, externalMessage, target, monitor, monitor, autoAckTarget);
     }

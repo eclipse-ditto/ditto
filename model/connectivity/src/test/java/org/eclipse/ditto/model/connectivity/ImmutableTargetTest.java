@@ -18,10 +18,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;

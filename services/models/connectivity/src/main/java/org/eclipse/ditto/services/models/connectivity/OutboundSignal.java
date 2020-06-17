@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -118,8 +117,7 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
         /**
          * @return sender of the original signal.
          */
-        @Nullable
-        ActorRef getSender();
+        Optional<ActorRef> getSender();
     }
 
     /**

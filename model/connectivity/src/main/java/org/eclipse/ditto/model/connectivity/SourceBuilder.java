@@ -18,14 +18,13 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 /**
  * A mutable builder for a {@link Source} with a fluent API.
  *
  * @param <T> the type that is returned by builder methods
  */
-public interface SourceBuilder<T extends SourceBuilder> {
+public interface SourceBuilder<T extends SourceBuilder<?>> {
 
     /**
      * Sets the addresses.

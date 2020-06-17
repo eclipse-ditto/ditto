@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 

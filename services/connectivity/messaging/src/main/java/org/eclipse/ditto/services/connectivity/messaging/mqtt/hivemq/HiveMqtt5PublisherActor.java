@@ -116,17 +116,17 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
 
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target target, final MqttPublishTarget publishTarget,
+            @Nullable final Target autoAckTarget, final MqttPublishTarget publishTarget,
             final ExternalMessage message, int ackSizeQuota) {
 
         try {
-            final MqttQos qos = determineQos(target);
+            final MqttQos qos = determineQos(autoAckTarget);
             final Mqtt5Publish mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
             if (log().isDebugEnabled()) {
                 log().debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.getTopic(),
                         decodeAsHumanReadable(mqttMessage.getPayload().orElse(null), message));
             }
-            return client.publish(mqttMessage).thenApply(msg -> toAcknowledgement(signal, target));
+            return client.publish(mqttMessage).thenApply(msg -> toAcknowledgement(signal, autoAckTarget));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -143,11 +143,11 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
         return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders);
     }
 
-    private MqttQos determineQos(@Nullable final Target target) {
-        if (target == null) {
+    private MqttQos determineQos(@Nullable final Target autoAckTarget) {
+        if (autoAckTarget == null) {
             return MqttQos.AT_MOST_ONCE;
         } else {
-            final int qos = target.getQos().orElse(DEFAULT_TARGET_QOS);
+            final int qos = autoAckTarget.getQos().orElse(DEFAULT_TARGET_QOS);
             return AbstractMqttValidator.getHiveQoS(qos);
         }
     }

@@ -20,7 +20,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
@@ -38,7 +37,6 @@ import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -51,8 +49,6 @@ import akka.Done;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
-import akka.kafka.ProducerMessage;
-import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 
 /**
@@ -138,7 +134,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target target, final KafkaPublishTarget publishTarget,
+            @Nullable final Target autoAckTarget, final KafkaPublishTarget publishTarget,
             final ExternalMessage message, int ackSizeQuota) {
 
         if (producer == null) {
@@ -152,7 +148,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
             final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
             final ProducerCallBack callBack =
-                    new ProducerCallBack(signal, target, ackSizeQuota, resultFuture, this::escalateIfNotRetriable);
+                    new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture, this::escalateIfNotRetriable);
             producer.send(record, callBack);
             return resultFuture;
         }
@@ -263,36 +259,20 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     }
 
-    /**
-     * Class that is used as a <em>pass through</em> object when sending messages via alpakka to Kafka.
-     */
-    @Immutable
-    private static class PassThrough {
-
-        private final ConnectionMonitor connectionMonitor;
-        private final ExternalMessage externalMessage;
-
-        private PassThrough(final ConnectionMonitor connectionMonitor, final ExternalMessage message) {
-            this.connectionMonitor = connectionMonitor;
-            this.externalMessage = message;
-        }
-
-    }
-
     private static final class ProducerCallBack implements Callback {
 
         private final Signal<?> signal;
-        @Nullable final Target target;
+        @Nullable final Target autoAckTarget;
         final int ackSizeQuota;
         private final CompletableFuture<Acknowledgement> resultFuture;
         private final Consumer<Exception> checkException;
         private int currentQuota;
 
-        private ProducerCallBack(final Signal<?> signal, @Nullable final Target target,
+        private ProducerCallBack(final Signal<?> signal, @Nullable final Target autoAckTarget,
                 final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture,
                 final Consumer<Exception> checkException) {
             this.signal = signal;
-            this.target = target;
+            this.autoAckTarget = autoAckTarget;
             this.ackSizeQuota = ackSizeQuota;
             this.resultFuture = resultFuture;
             this.checkException = checkException;
@@ -310,7 +290,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
             final ThingId id = ThingId.of(signal.getEntityId());
-            final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
+            final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
             if (metadata == null) {
                 return Acknowledgement.of(label, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
             } else {
