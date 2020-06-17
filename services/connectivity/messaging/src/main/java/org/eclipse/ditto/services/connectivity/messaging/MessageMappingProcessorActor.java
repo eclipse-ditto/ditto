@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -357,22 +356,16 @@ public final class MessageMappingProcessorActor
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
         // The sources acknowledgements get appended to the requested-acks DittoHeader of the mapped signal
-        return message.getSource()
-                .flatMap(source -> source.getAcknowledgements()
-                        .<Signal<?>>map(sourceRequestedAcks -> {
-                            final Set<AcknowledgementRequest> requestedAcks = new HashSet<>();
-                            for (AcknowledgementLabel label : sourceRequestedAcks) {
-                                requestedAcks.add(AcknowledgementRequest.of(label));
-                            }
-                            requestedAcks.addAll(signal.getDittoHeaders().getAcknowledgementRequests());
-                            return signal.setDittoHeaders(
-                                    signal.getDittoHeaders()
-                                            .toBuilder()
-                                            .acknowledgementRequests(requestedAcks)
-                                            .build());
-                        })
-                )
-                .orElse(signal);
+        final Set<AcknowledgementRequest> requestedAcks = new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
+        message.getSource()
+                .ifPresent(source -> source.getRequestedAcknowledgementLabels()
+                        .forEach(ack -> requestedAcks.add(AcknowledgementRequest.of(ack))));
+
+        return signal.setDittoHeaders(
+                signal.getDittoHeaders()
+                        .toBuilder()
+                        .acknowledgementRequests(requestedAcks)
+                        .build());
     }
 
     @Override

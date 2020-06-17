@@ -104,7 +104,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
-                        .acknowledgements(acknowledgements)
+                        .requestedAcknowledgementLabels(acknowledgements)
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());

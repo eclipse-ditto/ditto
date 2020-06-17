@@ -579,7 +579,7 @@ public final class ConnectivityModelFactory {
                 .authorizationContext(target.getAuthorizationContext())
                 .headerMapping(target.getHeaderMapping().orElse(null))
                 .qos(qos)
-                .acknowledgement(label)
+                .deliveredAcknowledgementLabel(label)
                 .topics(target.getTopics())
                 .build();
     }

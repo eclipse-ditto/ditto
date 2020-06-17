@@ -70,7 +70,7 @@ public final class ImmutableSourceTest {
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
-                    .acknowledgements(ACKNOWLEDGEMENTS)
+                    .requestedAcknowledgementLabels(ACKNOWLEDGEMENTS)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
@@ -80,7 +80,7 @@ public final class ImmutableSourceTest {
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
-            .set(Source.JsonFields.ACKNOWLEDGEMENTS,
+            .set(Source.JsonFields.REQUESTED_ACKNOWLEDGEMENT_LABELS,
                     JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Source.JsonFields.HEADER_MAPPING,
                     JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
@@ -105,6 +105,7 @@ public final class ImmutableSourceTest {
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .address(MQTT_SOURCE1)
             .enforcement(ENFORCEMENT)
+            .requestedAcknowledgementLabels(ACKNOWLEDGEMENTS)
             .consumerCount(2)
             .index(0)
             .qos(1)
@@ -115,6 +116,8 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(MQTT_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(Source.JsonFields.QOS, 1)
+            .set(Source.JsonFields.REQUESTED_ACKNOWLEDGEMENT_LABELS,
+                    JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.ENFORCEMENT, JsonFactory.newObjectBuilder()
                     .set(Enforcement.JsonFields.INPUT, "{{ topic }}")

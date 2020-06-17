@@ -92,7 +92,7 @@ public interface SourceBuilder<T extends SourceBuilder> {
      *
      * @since 1.2.0
      */
-    T acknowledgements(@Nullable Set<AcknowledgementLabel> acknowledgements);
+    T requestedAcknowledgementLabels(Set<AcknowledgementLabel> acknowledgements);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.

@@ -275,7 +275,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     private static Acknowledgement getUnsupportedAck(final Signal<?> signal, @Nullable final Target target) {
-        if (target != null && target.getAcknowledgement().isPresent()) {
+        if (target != null && target.getDeliveredAcknowledgementLabel().isPresent()) {
             return buildAcknowledgement(signal, target, HttpStatusCode.NOT_IMPLEMENTED,
                     "The external broker does not support RabbitMQ publisher confirms. " +
                             "Acknowledgement is not possible.");
@@ -302,7 +302,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target target,
             final HttpStatusCode statusCode, @Nullable final String message) {
         final AcknowledgementLabel label =
-                Optional.ofNullable(target).flatMap(Target::getAcknowledgement).orElse(NO_ACK_LABEL);
+                Optional.ofNullable(target).flatMap(Target::getDeliveredAcknowledgementLabel).orElse(NO_ACK_LABEL);
         return Acknowledgement.of(label, ThingId.of(signal.getEntityId()), statusCode, signal.getDittoHeaders(),
                 message == null ? null : JsonValue.of(message));
     }

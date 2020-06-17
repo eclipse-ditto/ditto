@@ -80,7 +80,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return the optional labels of acknowledgements
      * @since 1.2.0
      */
-    Optional<AcknowledgementLabel> getAcknowledgement();
+    Optional<AcknowledgementLabel> getDeliveredAcknowledgementLabel();
 
     /**
      * Defines an optional header mapping e.g. to rename, combine etc. headers for outbound message. Mapping is
@@ -159,7 +159,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         /**
          * JSON field containing the {@code Target} acknowledgements.
          */
-        public static final JsonFieldDefinition<JsonValue> ACKNOWLEDGEMENT =
+        public static final JsonFieldDefinition<JsonValue> DELIVERED_ACKNOWLEDGEMENT_LABEL =
                 JsonFactory.newJsonValueFieldDefinition("delivered-ack", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 

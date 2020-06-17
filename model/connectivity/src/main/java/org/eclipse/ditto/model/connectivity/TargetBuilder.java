@@ -91,7 +91,7 @@ public interface TargetBuilder {
      * @return this builder
      * @since 1.2.0
      */
-    TargetBuilder acknowledgement(@Nullable AcknowledgementLabel acknowledgement);
+    TargetBuilder deliveredAcknowledgementLabel(@Nullable AcknowledgementLabel acknowledgement);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.
