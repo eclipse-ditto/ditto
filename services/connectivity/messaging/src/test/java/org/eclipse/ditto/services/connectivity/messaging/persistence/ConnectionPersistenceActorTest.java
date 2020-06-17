@@ -725,17 +725,22 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
+            // wait for open connection of initial creation
+            mockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
+
             // stop actor
             getSystem().stop(underTest);
             expectTerminated(underTest);
 
             // recover actor
-            underTest = Retry.untilSuccess(() ->
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder));
+            final TestProbe recoveredMockClientProbe = TestProbe.apply(actorSystem);
+            underTest = Retry.untilSuccess(
+                    () -> TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge, connectionActor) -> MockClientActor.props(
+                                    recoveredMockClientProbe.ref())));
 
-            // connection is opened after recovery -> client actor receives OpenConnection command
-            mockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
+            // connection is opened after recovery -> recovered client actor receives OpenConnection command
+            recoveredMockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
 
             // poll connection status until status is OPEN
             final ActorRef recoveredActor = underTest;
