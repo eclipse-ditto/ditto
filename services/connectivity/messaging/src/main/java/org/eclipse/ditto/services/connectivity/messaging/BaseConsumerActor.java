@@ -22,6 +22,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -103,8 +104,18 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             reject.reject(true);
                         }
                     } else {
-                        reject.reject(false);
-                        inboundFailure(error);
+                        final DittoRuntimeException dittoRuntimeException =
+                                DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
+                                    // Redeliver and pray this unexpected error goes away
+                                    reject.reject(true);
+                                    inboundFailure(rootCause);
+                                    return null;
+                                });
+                        if (dittoRuntimeException != null) {
+                            final HttpStatusCode status = dittoRuntimeException.getStatusCode();
+                            reject.reject(!status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT);
+                            inboundFailure(dittoRuntimeException);
+                        }
                     }
                 })
                 .exceptionally(e -> {

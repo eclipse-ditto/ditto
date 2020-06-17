@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_P
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,8 +49,10 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConf
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.junit.AfterClass;
@@ -124,21 +127,40 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testPositiveSourceAcknowledgementSettlement() throws Exception {
-        testSourceAcknowledgementSettlement(true, modifyThing ->
+        testSourceAcknowledgementSettlement(true, true, modifyThing ->
                 ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders())
         );
     }
 
     @Test
     public void testNegativeSourceAcknowledgementSettlement() throws Exception {
-        testSourceAcknowledgementSettlement(false, modifyThing ->
+        testSourceAcknowledgementSettlement(false, false, modifyThing ->
                 ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
                         .dittoHeaders(modifyThing.getDittoHeaders())
                         .build()
         );
     }
 
+    @Test
+    public void testNegativeSourceAcknowledgementSettlementDueToTimeout() throws Exception {
+        testSourceAcknowledgementSettlement(false, true, modifyThing ->
+                AcknowledgementRequestTimeoutException.newBuilder(Duration.ofSeconds(1L))
+                        .dittoHeaders(modifyThing.getDittoHeaders())
+                        .build()
+        );
+    }
+
+    @Test
+    public void testNegativeSourceAcknowledgementSettlementDueToServerError() throws Exception {
+        testSourceAcknowledgementSettlement(false, true, modifyThing ->
+                ThingUnavailableException.newBuilder(modifyThing.getThingEntityId())
+                        .dittoHeaders(modifyThing.getDittoHeaders())
+                        .build()
+        );
+    }
+
     private void testSourceAcknowledgementSettlement(final boolean isSuccessExpected,
+            final boolean shouldRedeliver,
             final Function<ModifyThing, Object> responseCreator) throws Exception {
 
         new TestKit(actorSystem) {{
@@ -167,7 +189,7 @@ public abstract class AbstractConsumerActorTest<M> {
                     .collect(Collectors.toList())
             ).containsExactly(TWIN_PERSISTED);
 
-            verifyMessageSettlement(isSuccessExpected);
+            verifyMessageSettlement(isSuccessExpected, shouldRedeliver);
         }};
     }
 
@@ -246,7 +268,8 @@ public abstract class AbstractConsumerActorTest<M> {
     protected abstract M getInboundMessage(final Map.Entry<String, Object> header,
             final Map.Entry<String, Object> header2);
 
-    protected abstract void verifyMessageSettlement(boolean isSuccessExpected) throws Exception;
+    protected abstract void verifyMessageSettlement(boolean isSuccessExpected, final boolean shouldRedeliver)
+            throws Exception;
 
     private void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,

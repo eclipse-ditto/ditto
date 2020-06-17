@@ -109,12 +109,13 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     }
 
     @Override
-    protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
+    protected void verifyMessageSettlement(final boolean isSuccessExpected, final boolean shouldRedeliver)
+            throws Exception {
         if (isSuccessExpected) {
             Mockito.verify(channel, Mockito.timeout(3000L)).basicAck(anyLong(), eq(false));
         } else {
             // expect no redelivery due to DittoRuntimeException
-            Mockito.verify(channel, Mockito.timeout(3000L)).basicNack(anyLong(), eq(false), eq(false));
+            Mockito.verify(channel, Mockito.timeout(3000L)).basicNack(anyLong(), eq(false), eq(shouldRedeliver));
         }
     }
 }

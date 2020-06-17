@@ -122,14 +122,18 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     }
 
     @Override
-    protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
+    protected void verifyMessageSettlement(final boolean isSuccessExpected, final boolean shouldRedeliver)
+            throws Exception {
         final Integer ackType = jmsAcks.poll(3, TimeUnit.SECONDS);
         if (isSuccessExpected) {
             assertThat(ackType).describedAs("Expect successful settlement")
                     .isEqualTo(JmsMessageSupport.ACCEPTED);
         } else {
             assertThat(ackType).describedAs("Expect failure settlement without redelivery")
-                    .isEqualTo(JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE);
+                    .isEqualTo(shouldRedeliver
+                            ? JmsMessageSupport.MODIFIED_FAILED
+                            : JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE
+                    );
         }
     }
 

@@ -99,13 +99,14 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     }
 
     @Override
-    protected void verifyMessageSettlement(final boolean isSuccessExpected) throws Exception {
+    protected void verifyMessageSettlement(final boolean isSuccessExpected, final boolean shouldRedeliver)
+            throws Exception {
         if (isSuccessExpected) {
             assertThat(confirmLatch.await(3L, TimeUnit.SECONDS))
                     .describedAs("Expect MQTT5 confirmation")
                     .isTrue();
         }
-        // TODO: verify negative ack if supported.
+        // Negative MQTT5 acks not supported by Ditto
     }
 
     private final class MockConfirmable implements Confirmable {
