@@ -321,7 +321,7 @@ public final class TestConstants {
                                                 "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
                                         .build()))
                                 .build())
-                        .acknowledgements(new HashSet<>(Arrays.asList(AcknowledgementLabel.of("custom-ack"),
+                        .requestedAcknowledgementLabels(new HashSet<>(Arrays.asList(AcknowledgementLabel.of("custom-ack"),
                                 AcknowledgementLabel.of("very-special-ack"))))
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =

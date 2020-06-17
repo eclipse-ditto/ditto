@@ -800,7 +800,7 @@ public final class MessageMappingProcessorActorTest {
             final AcknowledgementRequest signalAck =
                     AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
             Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
-            for (AcknowledgementLabel label : CONNECTION.getSources().get(0).getAcknowledgements().orElseThrow()) {
+            for (AcknowledgementLabel label : CONNECTION.getSources().get(0).getRequestedAcknowledgementLabels()) {
                 validationSet.add(AcknowledgementRequest.of(label));
             }
             final Map<String, String> headers = new HashMap<>();

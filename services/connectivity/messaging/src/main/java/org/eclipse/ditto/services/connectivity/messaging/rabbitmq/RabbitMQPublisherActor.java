@@ -275,7 +275,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     private static Acknowledgement getUnsupportedAck(final Signal<?> signal, @Nullable final Target autoAckTarget) {
-        if (autoAckTarget != null && autoAckTarget.getAcknowledgement().isPresent()) {
+        if (autoAckTarget != null && autoAckTarget.getDeliveredAcknowledgementLabel().isPresent()) {
             return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.NOT_IMPLEMENTED,
                     "The external broker does not support RabbitMQ publisher confirms. " +
                             "Acknowledgement is not possible.");
@@ -288,8 +288,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.OK, null);
     }
 
-    private static Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target autoAckTarget) {
-        return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.SERVICE_UNAVAILABLE,
+    private static Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target target) {
+        return buildAcknowledgement(signal, target, HttpStatusCode.SERVICE_UNAVAILABLE,
                 "Received negative confirm from the external broker.");
     }
 
@@ -302,7 +302,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final HttpStatusCode statusCode, @Nullable final String message) {
         final AcknowledgementLabel label =
-                Optional.ofNullable(autoAckTarget).flatMap(Target::getAcknowledgement).orElse(NO_ACK_LABEL);
+                Optional.ofNullable(autoAckTarget).flatMap(Target::getDeliveredAcknowledgementLabel).orElse(NO_ACK_LABEL);
         return Acknowledgement.of(label, ThingId.of(signal.getEntityId()), statusCode, signal.getDittoHeaders(),
                 message == null ? null : JsonValue.of(message));
     }

@@ -48,7 +48,7 @@ public final class ImmutableTargetTest {
             .address(ADDRESS)
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .topics(TWIN_EVENTS)
-            .acknowledgement(ACKNOWLEDGEMENT)
+            .deliveredAcknowledgementLabel(ACKNOWLEDGEMENT)
             .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
@@ -60,7 +60,7 @@ public final class ImmutableTargetTest {
 
     private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
-            .set(Target.JsonFields.ACKNOWLEDGEMENT,
+            .set(Target.JsonFields.DELIVERED_ACKNOWLEDGEMENT_LABEL,
                     JsonFactory.newValue("custom-ack"))
             .set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();

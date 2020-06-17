@@ -52,7 +52,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
                 .headerMapping(TestConstants.HEADER_MAPPING)
-                .acknowledgements(acknowledgements)
+                .requestedAcknowledgementLabels(acknowledgements)
                 .build(), false);
     }
 

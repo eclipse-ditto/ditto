@@ -69,10 +69,9 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
 
     /**
      * @return the optional labels of acknowledgements that are requested from this source
-     *
      * @since 1.2.0
      */
-    Optional<Set<AcknowledgementLabel>> getAcknowledgements();
+    Set<AcknowledgementLabel> getRequestedAcknowledgementLabels();
 
     /**
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
@@ -174,9 +173,9 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         /**
          * JSON field containing the {@code Source} acknowledgements.
          */
-        public static final JsonFieldDefinition<JsonArray> ACKNOWLEDGEMENTS =
+        public static final JsonFieldDefinition<JsonArray> REQUESTED_ACKNOWLEDGEMENT_LABELS =
                 JsonFactory.newJsonArrayFieldDefinition("requested-acks", FieldType.REGULAR,
-                       JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} header mapping.

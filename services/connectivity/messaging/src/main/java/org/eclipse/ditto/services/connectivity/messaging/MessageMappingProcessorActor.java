@@ -356,22 +356,27 @@ public final class MessageMappingProcessorActor
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
-        // The sources acknowledgements get appended to the requested-acks DittoHeader of the mapped signal
-        return message.getSource()
-                .flatMap(source -> source.getAcknowledgements()
-                        .<Signal<?>>map(sourceRequestedAcks -> {
-                            final Set<AcknowledgementRequest> requestedAcks = new HashSet<>();
-                            sourceRequestedAcks.stream().map(AcknowledgementRequest::of)
-                                    .forEach(requestedAcks::add);
-                            requestedAcks.addAll(signal.getDittoHeaders().getAcknowledgementRequests());
-                            return signal.setDittoHeaders(
-                                    signal.getDittoHeaders()
-                                            .toBuilder()
-                                            .acknowledgementRequests(requestedAcks)
-                                            .build());
-                        })
-                )
-                .orElse(signal);
+        final List<AcknowledgementRequest> additionalRequestedAcks = message.getSource()
+                .map(org.eclipse.ditto.model.connectivity.Source::getRequestedAcknowledgementLabels)
+                .map(set -> set.stream().map(AcknowledgementRequest::of).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+
+        if (additionalRequestedAcks.isEmpty()) {
+            // do not change the signal's header if no additional requested-acks are defined
+            // to preserve the default behavior for signals without the header 'requested-acks'
+            return signal;
+        } else {
+            // The sources acknowledgements get appended to the requested-acks DittoHeader of the mapped signal
+            final Set<AcknowledgementRequest> requestedAcks =
+                    new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
+            requestedAcks.addAll(additionalRequestedAcks);
+
+            return signal.setDittoHeaders(
+                    signal.getDittoHeaders()
+                            .toBuilder()
+                            .acknowledgementRequests(requestedAcks)
+                            .build());
+        }
     }
 
     @Override

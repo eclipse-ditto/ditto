@@ -56,7 +56,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
-                        .acknowledgements(acknowledgements)
+                        .requestedAcknowledgementLabels(acknowledgements)
                         .build(),
                 channel,
                 CONNECTION_ID);
