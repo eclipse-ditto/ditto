@@ -113,7 +113,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
         if (isSuccessExpected) {
             Mockito.verify(channel, Mockito.timeout(3000L)).basicAck(anyLong(), eq(false));
         } else {
-            Mockito.verify(channel, Mockito.timeout(3000L)).basicNack(anyLong(), eq(false), eq(true));
+            // expect no redelivery due to DittoRuntimeException
+            Mockito.verify(channel, Mockito.timeout(3000L)).basicNack(anyLong(), eq(false), eq(false));
         }
     }
 }
