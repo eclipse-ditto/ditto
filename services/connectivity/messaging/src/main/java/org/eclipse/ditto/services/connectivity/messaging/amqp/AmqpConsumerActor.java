@@ -310,8 +310,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     private void handleJmsMessage(final JmsMessage message) {
+
         Map<String, String> headers = null;
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
+                        message.toString(),
+                        message.getAllPropertyNames().toString(), message.getAcknowledgeCallback().getAckType());
+            }
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
