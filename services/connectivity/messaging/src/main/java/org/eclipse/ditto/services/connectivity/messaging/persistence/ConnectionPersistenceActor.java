@@ -175,6 +175,7 @@ public final class ConnectionPersistenceActor
     private final MonitoringConfig monitoringConfig;
 
     private int subscriptionCounter = 0;
+    private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
@@ -610,13 +611,19 @@ public final class ConnectionPersistenceActor
 
         // remove previous subscriptions.
         // with high probability, unnecessary changes won't propagate to other cluster nodes.
+        log.debug("unsubscribe from ditto pubsub");
         dittoProtocolSub.removeSubscriber(getSelf());
+        pubSubStatus = ConnectivityStatus.CLOSED;
 
         if (isDesiredStateOpen()) {
             startEnabledLoggingChecker();
             updateLoggingIfEnabled();
             dittoProtocolSub.subscribe(toStreamingTypes(getUniqueTopics(entity)), getTargetAuthSubjects(), getSelf())
-                    .thenAccept(done -> getSelf().tell(command, ActorRef.noSender()));
+                    .thenAccept(done -> {
+                        log.debug("subscription to ditto pubsub succeeded");
+                        pubSubStatus = ConnectivityStatus.OPEN;
+                        getSelf().tell(command, ActorRef.noSender());
+                    });
         } else {
             interpretStagedCommand(command);
         }
@@ -830,7 +837,7 @@ public final class ConnectionPersistenceActor
         final Duration timeout =
                 Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
-                command.getDittoHeaders(), timeout);
+                command.getDittoHeaders(), timeout, pubSubStatus);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 
