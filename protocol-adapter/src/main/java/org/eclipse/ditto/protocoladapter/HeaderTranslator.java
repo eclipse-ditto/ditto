@@ -160,15 +160,17 @@ public final class HeaderTranslator {
             final HeaderEntryFilter headerEntryFilter, final boolean lowercaseHeaderKeys) {
 
         if (headersToFilter instanceof DittoHeaders) {
-            // performance optimization as when returning DittoHeaders, a toBuilder() on those can skip the validation
-            //  of known DittoHeaderDefinitions
-            final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder();
+            // performance optimization: when filtering on already built DittoHeaders, use the ".toBuilder()"
+            //  and remove values which were filtered out from the DittoHeadersBuilder
+            //  return DittoHeaders again so that based on this return value other ".toBuilder()" calls may
+            //  profit from the performance optimization in DittoHeaders.toBuilder() as no validation has to be done
+            final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = ((DittoHeaders) headersToFilter).toBuilder();
             final Set<String> keys = new HashSet<>(headersToFilter.keySet());
             keys.forEach(theKey -> {
                 final String key = lowercaseHeaderKeys ? theKey.toLowerCase() : theKey;
                 final String filteredValue = headerEntryFilter.apply(key, headersToFilter.get(theKey));
-                if (null != filteredValue) {
-                    dittoHeadersBuilder.putHeader(key, filteredValue);
+                if (null == filteredValue) {
+                    dittoHeadersBuilder.removeHeader(key);
                 }
             });
             return dittoHeadersBuilder.build();
