@@ -14,19 +14,28 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -35,12 +44,22 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableReplyTarget implements ReplyTarget {
 
+    private static final Set<ResponseType> DEFAULT_EXPECTED_RESPONSE_TYPES;
+
+    static {
+        DEFAULT_EXPECTED_RESPONSE_TYPES = new HashSet<>();
+        DEFAULT_EXPECTED_RESPONSE_TYPES.add(ResponseType.RESPONSE);
+        DEFAULT_EXPECTED_RESPONSE_TYPES.add(ResponseType.ERROR);
+    }
+
     private final String address;
     @Nullable private final HeaderMapping headerMapping;
+    private final Collection<ResponseType> expectedResponseTypes;
 
     private ImmutableReplyTarget(final Builder builder) {
         this.address = checkNotNull(builder.address);
         this.headerMapping = builder.headerMapping;
+        this.expectedResponseTypes = Collections.unmodifiableSet(new HashSet<>(builder.expectedResponseTypes));
     }
 
     @Override
@@ -51,6 +70,11 @@ final class ImmutableReplyTarget implements ReplyTarget {
     @Override
     public Optional<HeaderMapping> getHeaderMapping() {
         return Optional.ofNullable(headerMapping);
+    }
+
+    @Override
+    public Collection<ResponseType> getExpectedResponseTypes() {
+        return expectedResponseTypes;
     }
 
     @Override
@@ -68,6 +92,9 @@ final class ImmutableReplyTarget implements ReplyTarget {
             jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, predicate),
                     predicate);
         }
+        jsonObjectBuilder.set(JsonFields.EXPECTED_RESPONSE_TYPES, expectedResponseTypes.stream().map(Enum::name)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray()));
         return jsonObjectBuilder.build();
     }
 
@@ -81,6 +108,12 @@ final class ImmutableReplyTarget implements ReplyTarget {
                 .headerMapping(jsonObject.getValue(JsonFields.HEADER_MAPPING)
                         .map(ConnectivityModelFactory::newHeaderMapping)
                         .orElse(null))
+                .expectedResponseTypes(jsonObject.getValue(JsonFields.EXPECTED_RESPONSE_TYPES)
+                        .map(jsonArray -> jsonArray.stream()
+                                .map(JsonValue::asString)
+                                .map(ResponseType::valueOf)
+                                .collect(Collectors.toSet()))
+                        .orElse(DEFAULT_EXPECTED_RESPONSE_TYPES))
                 .build());
 
     }
@@ -91,12 +124,13 @@ final class ImmutableReplyTarget implements ReplyTarget {
         if (o == null || getClass() != o.getClass()) return false;
         final ImmutableReplyTarget that = (ImmutableReplyTarget) o;
         return Objects.equals(address, that.address) &&
-                Objects.equals(headerMapping, that.headerMapping);
+                Objects.equals(headerMapping, that.headerMapping) &&
+                Objects.equals(expectedResponseTypes, that.expectedResponseTypes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, headerMapping);
+        return Objects.hash(address, headerMapping, expectedResponseTypes);
     }
 
     @Override
@@ -104,6 +138,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
         return getClass().getSimpleName() + " [" +
                 "address=" + address +
                 ", headerMapping=" + headerMapping +
+                ", expectedResponseTypes=" + expectedResponseTypes +
                 "]";
     }
 
@@ -115,6 +150,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
 
         @Nullable private String address;
         @Nullable private HeaderMapping headerMapping;
+        private final Collection<ResponseType> expectedResponseTypes = DEFAULT_EXPECTED_RESPONSE_TYPES;
 
         @Override
         public ReplyTarget build() {
@@ -131,6 +167,18 @@ final class ImmutableReplyTarget implements ReplyTarget {
         public Builder headerMapping(@Nullable final HeaderMapping headerMapping) {
             this.headerMapping = headerMapping;
             return this;
+        }
+
+        @Override
+        public ReplyTarget.Builder expectedResponseTypes(final Collection<ResponseType> expectedResponseTypes) {
+            this.expectedResponseTypes.clear();
+            this.expectedResponseTypes.addAll(expectedResponseTypes);
+            return this;
+        }
+
+        @Override
+        public ReplyTarget.Builder expectedResponseTypes(final ResponseType... expectedResponseTypes) {
+            return expectedResponseTypes(Arrays.asList(expectedResponseTypes));
         }
     }
 }

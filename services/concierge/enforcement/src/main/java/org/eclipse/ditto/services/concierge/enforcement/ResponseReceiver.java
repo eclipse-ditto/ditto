@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.util.Collection;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -66,11 +68,13 @@ final class ResponseReceiver {
     private static DittoHeaders filterRelevantHeaders(final DittoHeaders commandHeaders) {
         final Optional<String> inboundPayloadMapper = commandHeaders.getInboundPayloadMapper();
         final Optional<Integer> replyTarget = commandHeaders.getReplyTarget();
+        final Collection<ResponseType> expectedResponseTypes = commandHeaders.getExpectedResponseTypes();
 
         final DittoHeadersBuilder<?,?> headersBuilder = DittoHeaders.newBuilder();
 
         inboundPayloadMapper.ifPresent(headersBuilder::inboundPayloadMapper);
         replyTarget.ifPresent(headersBuilder::replyTarget);
+        headersBuilder.expectedResponseTypes(expectedResponseTypes);
 
         return headersBuilder.build();
     }

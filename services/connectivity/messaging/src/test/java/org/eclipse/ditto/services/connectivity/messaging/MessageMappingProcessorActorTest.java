@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -117,6 +118,10 @@ public final class MessageMappingProcessorActorTest {
     private static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
     private static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES =
             TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
+    private static final DittoHeaders headersWithReplyInformation = DittoHeaders.newBuilder()
+            .replyTarget(0)
+            .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.N_ACK)
+            .build();
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -468,9 +473,7 @@ public final class MessageMappingProcessorActorTest {
                             .withAuthorizationContext(AUTHORIZATION_CONTEXT)
                             .withEnforcement(enforcement)
                             .withPayloadMapping(mappings)
-                            .withInternalHeaders(DittoHeaders.newBuilder()
-                                    .replyTarget(0)
-                                    .build())
+                            .withInternalHeaders(headersWithReplyInformation)
                             .build();
 
             TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
@@ -569,6 +572,7 @@ public final class MessageMappingProcessorActorTest {
                     "}";
             final ExternalMessage inboundMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withInternalHeaders(headersWithReplyInformation)
                             .withText(messageContent)
                             .withAuthorizationContext(authorizationContext)
                             .build();
@@ -655,6 +659,7 @@ public final class MessageMappingProcessorActorTest {
                     "}";
             final ExternalMessage inboundMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withInternalHeaders(headersWithReplyInformation)
                             .withText(messageContent)
                             .withAuthorizationContext(authorizationContext)
                             .build();
@@ -709,6 +714,7 @@ public final class MessageMappingProcessorActorTest {
             final JsonifiableAdaptable adaptable = ProtocolFactory
                     .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand));
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withInternalHeaders(headersWithReplyInformation)
                     .withTopicPath(adaptable.getTopicPath())
                     .withText(adaptable.toJsonString())
                     .withAuthorizationContext(context)
@@ -731,9 +737,7 @@ public final class MessageMappingProcessorActorTest {
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
                     ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
-                            DittoHeaders.newBuilder()
-                                    .correlationId(correlationId)
-                                    .build());
+                            headersWithReplyInformation.toBuilder().correlationId(correlationId).build());
 
             messageMappingProcessorActor.tell(commandResponse, getRef());
 
@@ -754,7 +758,7 @@ public final class MessageMappingProcessorActorTest {
             final String correlationId = UUID.randomUUID().toString();
             final ThingNotAccessibleException thingNotAccessibleException =
                     ThingNotAccessibleException.newBuilder(KNOWN_THING_ID)
-                            .dittoHeaders(DittoHeaders.newBuilder()
+                            .dittoHeaders(headersWithReplyInformation.toBuilder()
                                     .correlationId(correlationId)
                                     .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_THING_ID)
                                     .build())

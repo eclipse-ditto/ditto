@@ -41,6 +41,7 @@ import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -48,6 +49,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
@@ -89,6 +91,10 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .payloadMapping(payloadMapping)
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("foo")
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                                .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());
@@ -105,6 +111,10 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
                         .requestedAcknowledgementLabels(acknowledgements)
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("foo")
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                                .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());

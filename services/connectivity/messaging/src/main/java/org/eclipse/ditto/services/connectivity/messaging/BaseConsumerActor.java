@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -24,9 +25,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -130,7 +133,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      * @param message the error.
      */
     protected final void forwardToMappingActor(final DittoRuntimeException message) {
-        messageMappingProcessor.tell(message, ActorRef.noSender());
+        final DittoRuntimeException messageWithReplyInformation =
+                message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders()));
+        messageMappingProcessor.tell(messageWithReplyInformation, ActorRef.noSender());
     }
 
     protected void resetResourceStatus() {
@@ -193,13 +198,17 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         final ExternalMessageBuilder externalMessageBuilder =
                 ExternalMessageFactory.newExternalMessageBuilder(message)
                         .withSource(source);
-        if (source.getReplyTarget().isPresent()) {
-            externalMessageBuilder.withInternalHeaders(message.getInternalHeaders()
-                    .toBuilder()
-                    .replyTarget(source.getIndex())
-                    .build());
-        }
+        externalMessageBuilder.withInternalHeaders(enrichHeadersWithReplyInformation(message.getInternalHeaders()));
         return externalMessageBuilder.build();
+    }
+
+    protected DittoHeaders enrichHeadersWithReplyInformation(final DittoHeaders headers) {
+        return source.getReplyTarget()
+                .map(replyTarget -> headers.toBuilder()
+                        .replyTarget(source.getIndex())
+                        .expectedResponseTypes(replyTarget.getExpectedResponseTypes())
+                        .build())
+                .orElse(headers);
     }
 
     private static String getInstanceIdentifier() {

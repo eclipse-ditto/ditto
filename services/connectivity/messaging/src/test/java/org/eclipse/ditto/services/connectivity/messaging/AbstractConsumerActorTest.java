@@ -29,9 +29,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -82,6 +84,8 @@ public abstract class AbstractConsumerActorTest<M> {
     private static final Set<AcknowledgementLabel> acks = new HashSet<>(
             Collections.singletonList(AcknowledgementLabel.of("twin-persisted")));
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
+    protected static final Map.Entry<String, Object> EXPECTED_RESPONSE_TYPES = header("expected-response-types",
+            JsonArray.of(ResponseType.RESPONSE.name(), ResponseType.ERROR.name(), ResponseType.N_ACK.name()));
     protected static final Map.Entry<String, Object> REQUESTED_ACKS_HEADER =
             header("requested-acks", JsonValue.of("twin-persisted"));
     protected static final Enforcement ENFORCEMENT =

@@ -59,6 +59,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -298,6 +299,7 @@ public final class TestConstants {
                         .index(0)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("replyTarget/{{thing:id}}")
+                                .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.N_ACK)
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
                                         .set("mappedHeader1", "{{header:original-header}}")
                                         .set("mappedHeader2", "{{thing:id}}")
@@ -321,8 +323,9 @@ public final class TestConstants {
                                                 "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
                                         .build()))
                                 .build())
-                        .requestedAcknowledgementLabels(new HashSet<>(Arrays.asList(AcknowledgementLabel.of("custom-ack"),
-                                AcknowledgementLabel.of("very-special-ack"))))
+                        .requestedAcknowledgementLabels(
+                                new HashSet<>(Arrays.asList(AcknowledgementLabel.of("custom-ack"),
+                                        AcknowledgementLabel.of("very-special-ack"))))
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()

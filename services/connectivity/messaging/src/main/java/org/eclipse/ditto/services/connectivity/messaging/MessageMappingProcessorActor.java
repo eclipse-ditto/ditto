@@ -652,8 +652,23 @@ public final class MessageMappingProcessorActor
         enhanceLogUtil(response);
         recordResponse(response, exception);
 
-        if (response.getDittoHeaders().isResponseRequired()) {
+        if (!response.getDittoHeaders().isResponseRequired()) {
+            logger.withCorrelationId(response)
+                    .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
+                            + " ExternalMessage", DittoHeaderDefinition.RESPONSE_REQUIRED);
+            responseDroppedMonitor.success(response,
+                    "Dropped response since requester did not require response via Header {0}",
+                    DittoHeaderDefinition.RESPONSE_REQUIRED);
 
+        } else if (!response.isOfExpectedResponseType()) {
+            logger.withCorrelationId(response)
+                    .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
+                            + " ExternalMessage", DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+            responseDroppedMonitor.success(response,
+                    "Dropped response since requester did not require response via Header {0}",
+                    DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+
+        } else {
             if (isSuccessResponse(response)) {
                 logger.withCorrelationId(response).debug("Received response <{}>.", response);
             } else {
@@ -661,13 +676,6 @@ public final class MessageMappingProcessorActor
             }
 
             handleSignal(response, sender);
-        } else {
-            logger.withCorrelationId(response)
-                    .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
-                            + " ExternalMessage", DittoHeaderDefinition.RESPONSE_REQUIRED);
-            responseDroppedMonitor.success(response,
-                    "Dropped response since requester did not require response via Header {0}",
-                    DittoHeaderDefinition.RESPONSE_REQUIRED);
         }
     }
 

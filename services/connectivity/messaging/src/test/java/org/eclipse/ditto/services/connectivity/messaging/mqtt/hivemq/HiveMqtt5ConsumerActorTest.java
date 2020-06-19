@@ -22,9 +22,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 
@@ -53,6 +55,10 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .enforcement(ENFORCEMENT)
                 .headerMapping(TestConstants.HEADER_MAPPING)
                 .requestedAcknowledgementLabels(acknowledgements)
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address("foo")
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                        .build())
                 .build(), false);
     }
 
@@ -63,6 +69,10 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .enforcement(ENFORCEMENT)
                 .headerMapping(TestConstants.HEADER_MAPPING)
                 .payloadMapping(payloadMapping)
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address("foo")
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                        .build())
                 .build(), false);
     }
 
