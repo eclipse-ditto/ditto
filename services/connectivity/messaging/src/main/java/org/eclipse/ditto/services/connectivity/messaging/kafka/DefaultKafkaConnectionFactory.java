@@ -12,25 +12,30 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import java.util.Map;
+
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
-
-import akka.kafka.ProducerSettings;
 
 /**
  * Creates Kafka sinks.
  */
 final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
 
-    private final Connection connection;
-    private final ProducerSettings<String, String> settings;
+    private static final Serializer<String> KEY_SERIALIZER = new StringSerializer();
+    private static final Serializer<String> VALUE_SERIALIZER = KEY_SERIALIZER;
 
-    private DefaultKafkaConnectionFactory(final Connection connection,
-            final ProducerSettings<String, String> producerSettings) {
+    private final Connection connection;
+    private final Map<String, Object> properties;
+
+    private DefaultKafkaConnectionFactory(final Connection connection, final Map<String, Object> producerProperties) {
 
         this.connection = connection;
-        settings = producerSettings;
+        properties = producerProperties;
     }
 
     /**
@@ -41,9 +46,10 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
      * @return an Kafka connection factory.
      */
     static DefaultKafkaConnectionFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig) {
-        final ProducerSettingsFactory settingsFactory = ProducerSettingsFactory.getInstance(connection, kafkaConfig);
+        final ProducerPropertiesFactory settingsFactory =
+                ProducerPropertiesFactory.getInstance(connection, kafkaConfig);
 
-        return new DefaultKafkaConnectionFactory(connection, settingsFactory.getProducerSettings());
+        return new DefaultKafkaConnectionFactory(connection, settingsFactory.getProducerProperties());
     }
 
     @Override
@@ -53,8 +59,7 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
 
     @Override
     public org.apache.kafka.clients.producer.Producer<String, String> newProducer() {
-        // TODO: consider replacing Alpakka settings with bare Kafka client settings to remove Alpakka dependency
-        return settings.createKafkaProducer();
+        return new KafkaProducer<>(properties, KEY_SERIALIZER, VALUE_SERIALIZER);
     }
 
 }

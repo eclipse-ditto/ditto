@@ -43,7 +43,7 @@
         <akka-management.version>1.0.4</akka-management.version>
         <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
         <hivemq-mqtt-client.version>1.2.0</hivemq-mqtt-client.version>
-        <akka-stream-kafka.version>1.0.5</akka-stream-kafka.version>
+        <kafka-clients.version>2.5.0</kafka-clients.version>
 
         <mongo-scala-driver.version>2.7.0</mongo-scala-driver.version>
         <mongo-java-driver.version>3.11.0</mongo-java-driver.version>
@@ -383,9 +383,9 @@
             </dependency>
 
             <dependency>
-                <groupId>com.typesafe.akka</groupId>
-                <artifactId>akka-stream-kafka_${scala.version}</artifactId>
-                <version>${akka-stream-kafka.version}</version>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
             </dependency>
 
             <dependency>

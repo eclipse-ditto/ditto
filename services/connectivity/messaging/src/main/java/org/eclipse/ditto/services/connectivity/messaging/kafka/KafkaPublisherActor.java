@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -148,7 +149,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
             final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
             final ProducerCallBack callBack =
-                    new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture, this::escalateIfNotRetriable);
+                    new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture,
+                            this::escalateIfNotRetriable);
             producer.send(record, callBack);
             return resultFuture;
         }
@@ -212,7 +214,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private void closeProducer() {
         if (producer != null) {
-            producer.close();
+            // Give up any buffered messages and close the producer immediately.
+            producer.close(0, TimeUnit.MILLISECONDS);
         }
     }
 

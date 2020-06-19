@@ -32,7 +32,8 @@
                 <configuration>
                     <compilerArgs>
                         <!-- needed for HostnameChecker -->
-                        <arg>--add-exports</arg><arg>java.base/sun.security.util=ALL-UNNAMED</arg>
+                        <arg>--add-exports</arg>
+                        <arg>java.base/sun.security.util=ALL-UNNAMED</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -200,8 +201,8 @@
             <artifactId>hivemq-mqtt-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-kafka_${scala.version}</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
         </dependency>
 
         <!-- ### TESTING ### -->
