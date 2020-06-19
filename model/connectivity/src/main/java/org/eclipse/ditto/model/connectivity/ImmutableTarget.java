@@ -242,7 +242,7 @@ final class ImmutableTarget implements Target {
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", originalAddress=" + originalAddress +
-                ", delivered-ack=" + deliveredAcknowledgementLabel +
+                ", deliveredAcknowledgementLabel=" + deliveredAcknowledgementLabel +
                 ", headerMapping=" + headerMapping +
                 ", payloadMapping=" + payloadMapping +
                 "]";

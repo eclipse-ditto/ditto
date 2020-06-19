@@ -319,7 +319,7 @@ final class ImmutableSource implements Source {
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
-                ", requested-acks" + requestedAcknowledgementLabels +
+                ", requestedAcknowledgementLabels=" + requestedAcknowledgementLabels +
                 ", headerMapping=" + headerMapping +
                 ", replyTargetEnabled=" + replyTargetEnabled +
                 ", replyTarget=" + replyTarget +
