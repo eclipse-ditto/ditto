@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -286,6 +288,15 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     public Optional<Integer> getReplyTarget() {
         // This is an internal header. If NumberFormatException occurs then there is a bug.
         return getStringForDefinition(DittoHeaderDefinition.REPLY_TARGET).map(Integer::valueOf);
+    }
+
+    @Override
+    public Collection<ResponseType> getExpectedResponseTypes() {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+        return jsonValueArray.stream()
+                .map(JsonValue::asString)
+                .map(ResponseType::valueOf)
+                .collect(Collectors.toSet());
     }
 
     @Override

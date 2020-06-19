@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
@@ -58,6 +59,15 @@ public interface Acknowledgements
      */
     static String getType(final EntityType entityType) {
         return "acknowledgements." + checkNotNull(entityType, "entityType");
+    }
+
+    @Override
+    default ResponseType getResponseType() {
+        if (stream().allMatch(Acknowledgement::isSuccess)) {
+            return ResponseType.RESPONSE;
+        } else {
+            return ResponseType.N_ACK;
+        }
     }
 
     /**
@@ -132,6 +142,7 @@ public interface Acknowledgements
      *         </ul>
      *     </li>
      * </ul>
+     *
      * @return the status code.
      */
     HttpStatusCode getStatusCode();

@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -98,6 +99,8 @@ public final class ImmutableDittoHeadersTest {
     private static final AcknowledgementRequest KNOWN_ACK_REQUEST =
             AcknowledgementRequest.of(AcknowledgementLabel.of("ack-label-1"));
     private static final List<AcknowledgementRequest> KNOWN_ACK_REQUESTS = Lists.list(KNOWN_ACK_REQUEST);
+    private static final List<ResponseType> KNOWN_EXPECTED_RESPONSE_TYPES =
+            Lists.list(ResponseType.RESPONSE, ResponseType.N_ACK);
     private static final String KNOWN_ENTITY_ID = "known:entityId";
     private static final String KNOWN_WWW_AUTHENTICATION = "known:www-authentication";
     private static final String KNOWN_LOCATION = "known:location";
@@ -143,6 +146,7 @@ public final class ImmutableDittoHeadersTest {
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .timeout(KNOWN_TIMEOUT)
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
+                .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -350,6 +354,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
                 .set(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .set(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
+                .set(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
+                        expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -553,6 +559,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION);
         result.put(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION);
         result.put(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID);
+        result.put(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
+                expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES).toString());
 
         return result;
     }
@@ -575,6 +583,13 @@ public final class ImmutableDittoHeadersTest {
     private static JsonArray ackRequestsToJsonArray(final Collection<AcknowledgementRequest> ackRequests) {
         return ackRequests.stream()
                 .map(AcknowledgementRequest::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
+    }
+
+    private static JsonArray expectedResponseTypesToJsonArray(final Collection<ResponseType> responseTypes) {
+        return responseTypes.stream()
+                .map(ResponseType::name)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
     }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.headers;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,6 +24,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -214,6 +216,25 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @return this builder.
      */
     B replyTarget(@Nullable Integer replyTarget);
+
+    /**
+     * Set the expected response types. In combination with {@link #replyTarget(Integer)} this decides which type
+     * of responses are delivered to a reply target of a connection source.
+     *
+     * @param responseTypes the response types that should be delivered to a reply target.
+     * @return this builder.
+     */
+    B expectedResponseTypes(ResponseType... responseTypes);
+
+
+    /**
+     * Set the expected response types. In combination with {@link #replyTarget(Integer)} this decides which type
+     * of responses are delivered to a reply target of a connection source.
+     *
+     * @param responseTypes the response types that should be delivered to a reply target.
+     * @return this builder.
+     */
+    B expectedResponseTypes(Collection<ResponseType> responseTypes);
 
     /**
      * Sets the acknowledgements ("ACK") which are requested together with an issued Ditto {@code Command}.

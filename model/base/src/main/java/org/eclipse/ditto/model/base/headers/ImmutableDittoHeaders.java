@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.common.ResponseType;
 
 /**
  * Immutable default implementation of the {@code DittoHeaders} interface.

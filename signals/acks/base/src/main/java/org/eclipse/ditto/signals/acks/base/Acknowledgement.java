@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
@@ -116,6 +117,15 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @return {@code true} if this Acknowledgement is timed out.
      */
     boolean isTimeout();
+
+    @Override
+    default ResponseType getResponseType() {
+        if (isSuccess()) {
+            return ResponseType.RESPONSE;
+        } else {
+            return ResponseType.N_ACK;
+        }
+    }
 
     /**
      * Returns the status code of the Acknowledgement specifying whether it was a successful {@code ACK} or a
