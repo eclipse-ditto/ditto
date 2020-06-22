@@ -48,7 +48,27 @@ public final class DittoAckRequestsFilterTest {
     }
 
     @Test
-    public void filterValueWithMatchingHeaderDefinitionWithoutDittoInternalRequests() {
+    public void filterValueWithTwinPersistedOnlyAckRequest() {
+        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
+        final AcknowledgementRequest twinPersistedAckRequest = AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED);
+        final JsonArray ackRequestsJsonArray = JsonArray.newBuilder().add(twinPersistedAckRequest.toString()).build();
+
+        final DittoAckRequestsFilter underTest = DittoAckRequestsFilter.getInstance();
+
+        assertThat(underTest.apply(headerDefinition.getKey(), ackRequestsJsonArray.toString())).isNull();
+    }
+
+    @Test
+    public void filterEmptyStringValue() {
+        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
+
+        final DittoAckRequestsFilter underTest = DittoAckRequestsFilter.getInstance();
+
+        assertThat(underTest.apply(headerDefinition.getKey(), "")).isNull();
+    }
+
+    @Test
+    public void filterValueWithoutDittoInternalRequests() {
         final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
         final List<AcknowledgementRequest> acknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
@@ -65,7 +85,7 @@ public final class DittoAckRequestsFilterTest {
     }
 
     @Test
-    public void filterValueWithMatchingHeaderDefinitionWithDittoInternalRequests() {
+    public void filterValueWithDittoInternalRequests() {
         final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
         final List<AcknowledgementRequest> allAcknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
@@ -75,6 +95,23 @@ public final class DittoAckRequestsFilterTest {
                 .map(AcknowledgementRequest::toString)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
+        final String value = allAcknowledgementRequestsJsonArray.toString();
+        final JsonArray externalAcknowledgementRequests = allAcknowledgementRequestsJsonArray.toBuilder()
+                .remove(1)
+                .build();
+        final String expected = externalAcknowledgementRequests.toString();
+
+        final DittoAckRequestsFilter underTest = DittoAckRequestsFilter.getInstance();
+
+        assertThat(underTest.apply(headerDefinition.getKey(), value)).isEqualTo(expected);
+    }
+
+    @Test
+    public void filterValueWithEmptyAcknowledgementLabel() {
+        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
+        final JsonArray allAcknowledgementRequestsJsonArray = JsonArray.newBuilder()
+                .add("foo", "", "baz")
+                .build();
         final String value = allAcknowledgementRequestsJsonArray.toString();
         final JsonArray externalAcknowledgementRequests = allAcknowledgementRequestsJsonArray.toBuilder()
                 .remove(1)
