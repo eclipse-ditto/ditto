@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -324,28 +325,28 @@ public final class MessageMappingProcessorActor
                 });
     }
 
-    private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
+    private void handleIncomingMappedSignal(final Pair<Source<SignalWithQoS, ?>, ActorRef> mappedSignalsWithSender) {
         // TODO: tell sender how many mapped signals require acknowledgements.
-        final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
+        final Source<SignalWithQoS, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
         mappedSignals.flatMapConcat(
-                signal -> {
+                signalWithQoS -> {
                     final ActorRef self = getSelf();
-                    if (signal instanceof Acknowledgement) {
+                    if (signalWithQoS.signal instanceof Acknowledgement) {
                         // Acknowledgements are directly sent to the ConnectionPersistenceActor as the ConnectionPersistenceActor
                         //  contains all the AcknowledgementForwarderActor instances for a connection
-                        clientActor.tell(signal, sender);
-                    } else if (signal instanceof ThingSearchCommand<?>) {
+                        clientActor.tell(signalWithQoS.signal, sender);
+                    } else if (signalWithQoS.signal instanceof ThingSearchCommand<?>) {
                         // Send to connection actor for dispatching to the same client actor for each session.
                         // See javadoc of
                         //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
                         // for the message path of the search protocol.
-                        connectionActor.tell(signal, ActorRef.noSender());
-                    } else if (areAcknowledgementsRequested(signal)) {
-                        getSelf().tell(new AcksRequestingSignal(signal, sender), ActorRef.noSender());
-                        return Source.single(signal);
+                        connectionActor.tell(signalWithQoS.signal, ActorRef.noSender());
+                    } else if (areAcknowledgementsRequested(signalWithQoS)) {
+                        getSelf().tell(new AcksRequestingSignal(signalWithQoS.signal, sender), ActorRef.noSender());
+                        return Source.single(signalWithQoS.signal);
                     } else {
-                        conciergeForwarder.tell(signal, self);
+                        conciergeForwarder.tell(signalWithQoS.signal, self);
                     }
                     return Source.empty();
                 })
@@ -538,7 +539,7 @@ public final class MessageMappingProcessorActor
         inboundSourceQueue.offer(new ExternalMessageWithSender(externalMessage, getSender()));
     }
 
-    private Pair<Source<Signal<?>, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
+    private Pair<Source<SignalWithQoS, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
         final ExternalMessage externalMessage = withSender.externalMessage;
         final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, correlationId, connectionId);
@@ -575,7 +576,7 @@ public final class MessageMappingProcessorActor
         }
     }
 
-    private Source<Signal<?>, ?> mapExternalMessageToSignal(final ExternalMessageWithSender withSender) {
+    private Source<SignalWithQoS, ?> mapExternalMessageToSignal(final ExternalMessageWithSender withSender) {
         return messageMappingProcessor.process(withSender.externalMessage,
                 handleMappingResult(withSender, getAuthorizationContextOrThrow(withSender.externalMessage)));
     }
@@ -596,21 +597,26 @@ public final class MessageMappingProcessorActor
                             applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
                                     mappedInboundMessage.getTopicPath(), incomingMessage.getInternalHeaders());
 
-                    final Signal<?> adjustedSignal = appendConnectionAcknowledgementsToSignal(incomingMessage,
-                            signal.setDittoHeaders(mappedHeaders));
+                    final SignalWithQoS adjustedSignalWithQoS =
+                            new SignalWithQoS(appendConnectionAcknowledgementsToSignal(incomingMessage,
+                                    signal.setDittoHeaders(mappedHeaders)), incomingMessage.getSource()
+                                    .map(
+                                            org.eclipse.ditto.model.connectivity.Source::getQos)
+                                    .orElse(Optional.of(1))
+                                    .orElse(1));
 
-                    enhanceLogUtil(adjustedSignal);
+                    enhanceLogUtil(adjustedSignalWithQoS.signal);
                     // enforce signal ID after header mapping was done
                     connectionMonitorRegistry.forInboundEnforced(connectionId, source)
-                            .wrapExecution(adjustedSignal)
+                            .wrapExecution(adjustedSignalWithQoS.signal)
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
 
                     // This message is important to check if a command is accepted for a specific connection, as this happens
                     // quite a lot this is going to the debug level. Use best with a connection-id filter.
-                    logger.withCorrelationId(adjustedSignal)
+                    logger.withCorrelationId(adjustedSignalWithQoS.signal)
                             .debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
-                                    adjustedSignal.getType());
-                    return Source.single(adjustedSignal);
+                                    adjustedSignalWithQoS.signal.getType());
+                    return Source.single(adjustedSignalWithQoS);
                 })
                 .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
                 // skip the inbound stream directly to outbound stream
@@ -977,15 +983,17 @@ public final class MessageMappingProcessorActor
     /**
      * Test if a signal requires acknowledgements.
      *
-     * @param signal the signal.
+     * @param signalWithQoS the signal with it's sources QoS-setting.
      * @return whether it requires acknowledgements.
      */
-    private static boolean areAcknowledgementsRequested(final Signal<?> signal) {
-        return (signal instanceof ThingModifyCommand) &&
-                signal.getDittoHeaders().isResponseRequired() &&
-                signal.getDittoHeaders()
+    private static boolean areAcknowledgementsRequested(final SignalWithQoS signalWithQoS) {
+        return (signalWithQoS.signal instanceof ThingModifyCommand) &&
+                signalWithQoS.signal.getDittoHeaders().isResponseRequired() &&
+                signalWithQoS.signal.getDittoHeaders()
                         .getChannel()
-                        .filter(channel -> TopicPath.Channel.LIVE.getName().equals(channel)).isEmpty();
+                        .filter(channel -> TopicPath.Channel.LIVE.getName().equals(channel)).isEmpty() &&
+                Arrays.asList(1, 2).contains(signalWithQoS.qos) &&
+                !signalWithQoS.signal.getDittoHeaders().getAcknowledgementRequests().isEmpty();
     }
 
     private static final class AcksRequestingSignal {
@@ -996,6 +1004,17 @@ public final class MessageMappingProcessorActor
         private AcksRequestingSignal(final Signal<?> signal, final ActorRef sender) {
             this.signal = signal;
             this.sender = sender;
+        }
+    }
+
+    static final class SignalWithQoS {
+
+        private final Signal<?> signal;
+        private final Integer qos;
+
+        private SignalWithQoS(final Signal<?> signal, final Integer qos) {
+            this.signal = signal;
+            this.qos = qos;
         }
     }
 

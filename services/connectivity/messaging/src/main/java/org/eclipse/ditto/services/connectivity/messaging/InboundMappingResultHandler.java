@@ -18,7 +18,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
-import org.eclipse.ditto.signals.base.Signal;
 
 import akka.stream.javadsl.Source;
 
@@ -28,7 +27,8 @@ import akka.stream.javadsl.Source;
  * increases the according counters for mapped, dropped failed messages.
  */
 final class InboundMappingResultHandler
-        extends AbstractMappingResultHandler<MappedInboundExternalMessage, Source<Signal<?>, ?>> {
+        extends
+        AbstractMappingResultHandler<MappedInboundExternalMessage, Source<MessageMappingProcessorActor.SignalWithQoS, ?>> {
 
     private InboundMappingResultHandler(final Builder builder) {
         super(builder);
@@ -39,7 +39,8 @@ final class InboundMappingResultHandler
     }
 
     @NotThreadSafe
-    static final class Builder extends AbstractBuilder<MappedInboundExternalMessage, Source<Signal<?>, ?>, Builder> {
+    static final class Builder extends
+            AbstractBuilder<MappedInboundExternalMessage, Source<MessageMappingProcessorActor.SignalWithQoS, ?>, Builder> {
 
         private Builder() {
             super(Builder.class);
