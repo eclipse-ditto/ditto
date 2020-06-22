@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.security.authentication;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Future;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -158,7 +158,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
         return unwrapDittoRuntimeException(throwable.getCause(), dittoHeaders);
     }
 
-    protected R waitForResult(final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
+    protected R waitForResult(final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
         return AuthenticationResultWaiter.of(authenticationResultFuture, dittoHeaders).get();
     }
 
