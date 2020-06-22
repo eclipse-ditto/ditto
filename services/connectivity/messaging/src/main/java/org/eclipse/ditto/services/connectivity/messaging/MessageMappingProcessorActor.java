@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -299,9 +300,12 @@ public final class MessageMappingProcessorActor
 
     // NOT thread-safe
     private Optional<ActorRef> startAckregatorWithRandomCorrelationId(final Signal<?> signal, final ActorRef sender) {
+        final String originalCorrelationId = signal.getDittoHeaders().getCorrelationId().orElse("");
         DittoHeaders dittoHeaders;
         do {
-            dittoHeaders = signal.getDittoHeaders().toBuilder().randomCorrelationId().build();
+            dittoHeaders = signal.getDittoHeaders().toBuilder()
+                    .correlationId(originalCorrelationId + "-" + UUID.randomUUID())
+                    .build();
         } while (getContext().child(AcknowledgementAggregatorActor.determineActorName(dittoHeaders)).isDefined());
         final String newCorrelationId = dittoHeaders.getCorrelationId().orElse(null);
         logger.withCorrelationId(signal).info("SetCorrelationId {}", dittoHeaders.getCorrelationId().orElse(null));

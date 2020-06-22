@@ -28,6 +28,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -148,6 +149,41 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 AcknowledgementForwarderActorStarter.getInstance(context, entityId, dittoHeaders,
                         acknowledgementConfig);
         return starter.get();
+    }
+
+    /**
+     * Creates and starts an {@code AcknowledgementForwarderActor} actor in the passed {@code context} using the passed
+     * arguments.
+     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code dittoHeaders} and
+     * in case that an Actor with this name already exists, a new correlation ID is generated and the process repeated.
+     * If the signal does not require acknowledgements, no forwarder starts and the signal itself is returned.
+     *
+     * @param context the context ({@code getContext()} of the Actor to start the AcknowledgementForwarderActor in.
+     * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
+     * @param signal the signal for which acknowledgements are expected.
+     * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
+     * @return the signal for which a suitable ack forwarder has started whenever required.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static Signal<?> startAcknowledgementForwarderConflictFree(final akka.actor.ActorContext context,
+            final EntityIdWithType entityId,
+            final Signal<?> signal,
+            final AcknowledgementConfig acknowledgementConfig) {
+
+        final AcknowledgementForwarderActorStarter starter =
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal.getDittoHeaders(),
+                        acknowledgementConfig);
+        final Optional<String> newCorrelationId = starter.getConflictFree();
+        if (newCorrelationId.isPresent()) {
+            // signal requires acks. set new correlation ID and return.
+            return signal.setDittoHeaders(signal.getDittoHeaders()
+                    .toBuilder()
+                    .correlationId(newCorrelationId.get())
+                    .build());
+        } else {
+            // signal does not require acks.
+            return signal;
+        }
     }
 
 }

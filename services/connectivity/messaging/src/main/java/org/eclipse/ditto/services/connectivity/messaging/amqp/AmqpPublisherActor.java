@@ -209,7 +209,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                             sendResult.complete(ack);
                         }
                         log.withCorrelationId(message.getInternalHeaders()).debug("Sent: <{}>", jmsMessage);
-                        sendResult.complete(null);
                     }
 
                     @Override

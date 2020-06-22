@@ -19,6 +19,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -68,6 +69,7 @@ public final class AcknowledgementAggregator {
     private final HeaderTranslator headerTranslator;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
     private final Duration timeout;
+    private final Set<AcknowledgementLabel> expectedLabels;
 
     private AcknowledgementAggregator(final EntityIdWithType entityId,
             final Consumer<EntityIdWithType> entityIdValidator,
@@ -80,6 +82,7 @@ public final class AcknowledgementAggregator {
         this.correlationId = argumentNotEmpty(correlationId).toString();
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
+        expectedLabels = new HashSet<>();
         this.timeout = checkNotNull(timeout, "timeout");
     }
 
@@ -146,6 +149,7 @@ public final class AcknowledgementAggregator {
         checkNotNull(acknowledgementRequest, "acknowledgementRequest");
         final AcknowledgementLabel ackLabel = acknowledgementRequest.getLabel();
         acknowledgementMap.put(ackLabel, getTimeoutAcknowledgement(ackLabel));
+        expectedLabels.add(ackLabel);
     }
 
     private Acknowledgement getTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
@@ -243,10 +247,12 @@ public final class AcknowledgementAggregator {
         checkNotNull(acknowledgement, "acknowledgement");
         validateCorrelationId(acknowledgement);
         validateEntityId(acknowledgement);
-        if (isRequested(acknowledgement) && isFirstOfItsLabel(acknowledgement)) {
+        if (isExpected(acknowledgement)) {
             final DittoHeaders acknowledgementHeaders = getFilteredAcknowledgementHeaders(acknowledgement);
             final Acknowledgement adjustedAck = acknowledgement.setDittoHeaders(acknowledgementHeaders);
-            acknowledgementMap.put(adjustedAck.getLabel(), adjustedAck);
+            final AcknowledgementLabel label = adjustedAck.getLabel();
+            acknowledgementMap.put(label, adjustedAck);
+            expectedLabels.remove(label);
         }
     }
 
@@ -269,15 +275,9 @@ public final class AcknowledgementAggregator {
         entityIdValidator.accept(acknowledgement.getEntityId());
     }
 
-    private boolean isRequested(final Acknowledgement acknowledgement) {
+    private boolean isExpected(final Acknowledgement acknowledgement) {
         final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
-        return acknowledgementMap.containsKey(ackLabel);
-    }
-
-    private boolean isFirstOfItsLabel(final Acknowledgement acknowledgement) {
-        final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
-        @Nullable final Acknowledgement knownAcknowledgement = acknowledgementMap.get(ackLabel);
-        return null != knownAcknowledgement && knownAcknowledgement.isTimeout();
+        return expectedLabels.contains(ackLabel);
     }
 
     private DittoHeaders getFilteredAcknowledgementHeaders(final WithDittoHeaders<?> withDittoHeaders) {
@@ -294,9 +294,7 @@ public final class AcknowledgementAggregator {
      * acknowledgements.
      */
     public boolean receivedAllRequestedAcknowledgements() {
-        final Collection<Acknowledgement> acknowledgements = acknowledgementMap.values();
-        return acknowledgements.stream()
-                .noneMatch(Acknowledgement::isTimeout);
+        return expectedLabels.isEmpty();
     }
 
     /**

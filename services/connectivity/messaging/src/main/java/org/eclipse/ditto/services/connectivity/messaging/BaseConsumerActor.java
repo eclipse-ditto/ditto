@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -104,18 +102,21 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
                             settle.run();
                         } else {
+                            log().debug("Rejecting due to failed responses <{}>", failedResponses);
                             reject.reject(true);
                         }
                     } else {
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
                                     // Redeliver and pray this unexpected error goes away
+                                    log().debug("Rejecting due to error <{}>", rootCause);
                                     reject.reject(true);
                                     inboundFailure(rootCause);
                                     return null;
                                 });
                         if (dittoRuntimeException != null) {
                             final HttpStatusCode status = dittoRuntimeException.getStatusCode();
+                            log().debug("Rejecting due to error <{}>", dittoRuntimeException);
                             reject.reject(!status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT);
                             inboundFailure(dittoRuntimeException);
                         }

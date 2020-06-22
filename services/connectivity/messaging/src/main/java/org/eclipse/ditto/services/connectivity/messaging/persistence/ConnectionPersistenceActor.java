@@ -486,12 +486,17 @@ public final class ConnectionPersistenceActor
     }
 
     private void handleSignal(final Signal<?> signal) {
+        final Signal<?> signalToForward;
         if (signal instanceof ThingEvent) {
             final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
-            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), thingEvent.getThingEntityId(),
-                    signal.getDittoHeaders(), config.getAcknowledgementConfig());
+            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
+                    thingEvent.getThingEntityId(),
+                    signal,
+                    config.getAcknowledgementConfig());
+        } else {
+            signalToForward = signal;
         }
-        forwardSignalToClientActors(signal);
+        forwardSignalToClientActors(signalToForward);
     }
 
     private void forwardSignalToClientActors(final Signal<?> signal) {

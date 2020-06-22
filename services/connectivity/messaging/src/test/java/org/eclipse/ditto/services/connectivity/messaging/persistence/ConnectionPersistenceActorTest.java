@@ -1207,56 +1207,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
-    public void testHandleSignalWithAcknowledgementRequestUsingDuplicateCorrelationId() {
-        new TestKit(actorSystem) {{
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
-                                    TestActor.props(probe));
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnection, getRef());
-            expectMsgClass(Object.class);
-
-            final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
-                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
-                    .timeout("10s")
-                    .randomCorrelationId()
-                    .build();
-
-            // WHEN: an event with acknowledgementRequest is processed
-            final AttributeModified attributeModified = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L,
-                    dittoHeaders);
-            underTest.tell(attributeModified, getRef());
-
-            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
-            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
-
-            // WHEN: a second event reuses the DittoHeaders - and therefore the correlation-id - and asks for 2 acks
-            final AcknowledgementLabel acknowledgementLabel2 = AcknowledgementLabel.of("test-ack-2");
-            final AcknowledgementLabel acknowledgementLabel3 = AcknowledgementLabel.of("test-ack-3");
-            final DittoHeaders dittoHeaders2 = dittoHeaders.toBuilder()
-                    .acknowledgementRequest(
-                            AcknowledgementRequest.of(acknowledgementLabel2),
-                            AcknowledgementRequest.of(acknowledgementLabel3)
-                    ).build();
-            final AttributeModified attributeModified2 = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("you"), 6L, dittoHeaders2);
-            underTest.tell(attributeModified2, getRef());
-
-            // THEN: expect 2 NACKs to arrive with status 409, for both of the requested AcknowledgementLabels
-            final Acknowledgement nack1 = expectMsgClass(Acknowledgement.class);
-            assertThat(nack1.getStatusCode()).isEqualByComparingTo(HttpStatusCode.CONFLICT);
-            final Acknowledgement nack2 = expectMsgClass(Acknowledgement.class);
-            assertThat(nack2.getStatusCode()).isEqualByComparingTo(HttpStatusCode.CONFLICT);
-        }};
-    }
-
     public void forwardSearchCommands() {
         new TestKit(actorSystem) {{
             final ConnectionId myConnectionId = ConnectionId.of(UUID.randomUUID().toString());

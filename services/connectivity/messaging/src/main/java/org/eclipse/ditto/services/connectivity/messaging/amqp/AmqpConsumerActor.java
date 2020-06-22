@@ -378,6 +378,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private void acknowledge(final JmsMessage message, final int ackType, final boolean isSuccess,
             final String ackTypeName) {
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Acking <{}> with isSuccess=<{}>, ackType=<{} {}>", message.getJMSMessageID(),
+                        isSuccess, ackType, ackTypeName);
+            }
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             if (isSuccess) {
