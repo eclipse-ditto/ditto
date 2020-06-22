@@ -47,9 +47,10 @@ final class ImmutableReplyTarget implements ReplyTarget {
     private static final Set<ResponseType> DEFAULT_EXPECTED_RESPONSE_TYPES;
 
     static {
-        DEFAULT_EXPECTED_RESPONSE_TYPES = new HashSet<>();
-        DEFAULT_EXPECTED_RESPONSE_TYPES.add(ResponseType.RESPONSE);
-        DEFAULT_EXPECTED_RESPONSE_TYPES.add(ResponseType.ERROR);
+        final HashSet<ResponseType> defaultExpectedResponseTypes = new HashSet<>();
+        defaultExpectedResponseTypes.add(ResponseType.RESPONSE);
+        defaultExpectedResponseTypes.add(ResponseType.ERROR);
+        DEFAULT_EXPECTED_RESPONSE_TYPES = Collections.unmodifiableSet(new HashSet<>(defaultExpectedResponseTypes));
     }
 
     private final String address;
@@ -150,7 +151,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
 
         @Nullable private String address;
         @Nullable private HeaderMapping headerMapping;
-        private final Collection<ResponseType> expectedResponseTypes = DEFAULT_EXPECTED_RESPONSE_TYPES;
+        private final Collection<ResponseType> expectedResponseTypes = new HashSet<>(DEFAULT_EXPECTED_RESPONSE_TYPES);
 
         @Override
         public ReplyTarget build() {
