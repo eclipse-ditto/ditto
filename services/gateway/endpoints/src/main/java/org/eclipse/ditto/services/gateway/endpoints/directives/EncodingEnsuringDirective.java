@@ -34,11 +34,11 @@ public final class EncodingEnsuringDirective {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EncodingEnsuringDirective.class);
 
-    private static final String URI_INVALID_TEMPLATE = "URI ''{0}'' contains invalid characters. Please encode your URI" +
-            " according to RFC 3986.";
+    private static final String URI_INVALID_TEMPLATE =
+            "URI ''{0}'' contains invalid characters. Please encode your URI according to RFC 3986.";
 
     private EncodingEnsuringDirective() {
-        // no op
+        throw new AssertionError();
     }
 
     public static Route ensureEncoding(final Supplier<Route> inner) {
