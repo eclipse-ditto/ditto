@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -103,8 +104,9 @@ public final class RequestTimeoutHandlingDirective {
             LOGGER.withCorrelationId(correlationId).warn("Encountered slow search which took over <{}> ms: <{}> ms!",
                     SEARCH_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
         } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.withCorrelationId(correlationId).warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
-                    HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
+            LOGGER.withCorrelationId(correlationId)
+                    .warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
+                            HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
         }
     }
 
@@ -123,22 +125,21 @@ public final class RequestTimeoutHandlingDirective {
 
         final String requestMethod = request.method().name();
         final String requestUri = request.getUri().toRelative().toString();
-        LOGGER.withCorrelationId(correlationId).warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
-                httpConfig.getRequestTimeout());
-        LOGGER.withCorrelationId(correlationId)
-                .info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
-        final String rawRequestUri = getRawRequestUri(request);
-        LOGGER.withCorrelationId(correlationId).debug("Raw request URI was <{}>.", rawRequestUri);
+        try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(correlationId)) {
+            logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
+                    httpConfig.getRequestTimeout());
+            logger.info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
+            final String rawRequestUri = getRawRequestUri(request);
+            logger.debug("Raw request URI was <{}>.", rawRequestUri);
 
-        if (timer.isRunning()) {
-            timer.tag(TracingTags.STATUS_CODE, statusCode)
-                    .stop();
-            LOGGER.withCorrelationId(correlationId)
-                    .debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
-        } else {
-            LOGGER.withCorrelationId(correlationId)
-                    .warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
-                            " was detected where it should not have been");
+            if (timer.isRunning()) {
+                timer.tag(TracingTags.STATUS_CODE, statusCode)
+                        .stop();
+                logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+            } else {
+                logger.warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
+                        " was detected where it should not have been");
+            }
         }
 
         /*

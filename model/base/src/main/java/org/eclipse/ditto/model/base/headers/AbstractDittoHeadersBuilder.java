@@ -94,10 +94,10 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final R initialHeaders,
-            final Collection<? extends HeaderDefinition> definitions,final Class<?> selfType) {
+            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
 
-        checkNotNull(initialHeaders, "initial headers");
-        checkNotNull(definitions, "header definitions");
+        checkNotNull(initialHeaders, "initialHeaders");
+        checkNotNull(definitions, "definitions");
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
         this.definitions = new HashSet<>(definitions);
