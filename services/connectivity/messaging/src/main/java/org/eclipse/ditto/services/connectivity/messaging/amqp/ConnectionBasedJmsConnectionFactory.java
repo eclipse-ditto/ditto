@@ -196,7 +196,9 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.toList());
 
-        amqpParams.add("jms.presettlePolicy.presettleConsumers=true");
+        // TODO: check whether required to receive QoS=0 messages
+        // Disables source-acknowledgement by presettling all incoming messages
+        // amqpParams.add("jms.presettlePolicy.presettleConsumers=true");
 
         if (anonymous) {
             amqpParams.add("amqp.saslMechanisms=ANONYMOUS");
