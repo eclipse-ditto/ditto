@@ -56,6 +56,7 @@ interface KafkaSpecificConfig {
      * and {@code isValid}.
      *
      * @param producerProperties the producer properties to which the Kafka config is appended.
+     * Its class is {@code HashMap} instead of {@code Map} to ensure mutability.
      * @param connection the connection which contains the specific config.
      */
     void apply(HashMap<String, Object> producerProperties, Connection connection);
