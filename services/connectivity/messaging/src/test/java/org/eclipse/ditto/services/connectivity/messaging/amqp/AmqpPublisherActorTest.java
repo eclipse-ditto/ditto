@@ -233,7 +233,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             publisherActor.tell(mappedOutboundSignal, getRef());
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
-            verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+            verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
             final Message message = messageCaptor.getValue();
             final Map<String, String> receivedHeaders =
                     JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
