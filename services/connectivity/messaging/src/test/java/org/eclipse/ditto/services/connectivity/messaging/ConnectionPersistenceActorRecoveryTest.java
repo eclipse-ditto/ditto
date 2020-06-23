@@ -64,7 +64,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
-    private static ActorRef conciergeForwarder;
+    private static ActorRef proxyActor;
     private ConnectionId connectionId;
 
     private ConnectionCreated connectionCreated;
@@ -80,7 +80,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
                 TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames", blacklistedHosts);
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+        proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
 
     @AfterClass
@@ -113,7 +113,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             expectMsgEquals("persisted");
 
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, conciergeForwarder);
+                    pubSubMediator, proxyActor);
             watch(underTest);
 
             // expect termination because it was deleted (last event was ConnectionDeleted)
@@ -143,7 +143,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             expectMsgEquals("persisted");
 
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, conciergeForwarder);
+                    pubSubMediator, proxyActor);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 

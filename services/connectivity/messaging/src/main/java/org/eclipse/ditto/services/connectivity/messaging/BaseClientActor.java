@@ -132,7 +132,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ActorRef connectionActor;
     private final ProtocolAdapterProvider protocolAdapterProvider;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef proxyActor;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
@@ -144,7 +144,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
-    protected BaseClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    protected BaseClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
         this.connection = connection;
         this.connectionActor = connectionActor;
@@ -158,8 +158,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         clientConfig = connectivityConfig.getClientConfig();
-        this.conciergeForwarder =
-                Optional.ofNullable(conciergeForwarder).orElse(getContext().getSystem().deadLetters());
+        this.proxyActor =
+                Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
@@ -206,7 +206,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
 
         messageMappingProcessorActor = startMessageMappingProcessorActor();
-        subscriptionManager = startSubscriptionManager(this.conciergeForwarder);
+        subscriptionManager = startSubscriptionManager(this.proxyActor);
 
         initialize();
 
@@ -1171,7 +1171,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
-        final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
+        final Props props = MessageMappingProcessorActor.props(proxyActor, getSelf(), processor,
                 connectionId(), connectionActor, connection.getProcessorPoolSize());
 
         return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
@@ -1183,11 +1183,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return reference of the subscription manager.
      */
-    private ActorRef startSubscriptionManager(final ActorRef conciergeForwarder) {
+    private ActorRef startSubscriptionManager(final ActorRef proxyActor) {
         final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final ActorMaterializer mat = ActorMaterializer.create(getContext());
         final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
-                conciergeForwarder, mat);
+                proxyActor, mat);
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
     }
 

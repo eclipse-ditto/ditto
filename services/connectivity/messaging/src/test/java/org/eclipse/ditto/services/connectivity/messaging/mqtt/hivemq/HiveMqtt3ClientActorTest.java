@@ -69,9 +69,9 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
     }
 
     @Override
-    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
-        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe,
-                mockHiveMqtt3ClientFactory.withTestProbe(testProbe));
+    protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
+        return HiveMqtt3ClientActor.props(connection, proxyActor, proxyActor,
+                mockHiveMqtt3ClientFactory.withTestProbe(proxyActor));
     }
 
     @Override

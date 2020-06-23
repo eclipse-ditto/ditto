@@ -28,11 +28,10 @@ public interface ClientActorPropsFactory {
      * Create actor {@link Props} for a connection.
      *
      * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param connectionActor the connectionPersistenceActor which creates this client.
      * @return the actor props
      */
-    Props getActorPropsForType(Connection connection, @Nullable ActorRef conciergeForwarder,
-            ActorRef connectionActor);
+    Props getActorPropsForType(Connection connection, @Nullable ActorRef proxyActor, ActorRef connectionActor);
 
 }

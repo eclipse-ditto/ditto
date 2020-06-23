@@ -88,10 +88,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
-            @Nullable final ActorRef conciergeForwarder,
+            @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
 
-        super(connection, conciergeForwarder, connectionActor);
+        super(connection, proxyActor, connectionActor);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
@@ -104,10 +104,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private RabbitMQClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    private RabbitMQClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
 
-        this(connection, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder,
+        this(connection, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), proxyActor,
                 connectionActor);
     }
 
@@ -115,14 +115,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
 
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), conciergeForwarder,
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor,
                 connectionActor);
     }
 
@@ -130,16 +130,16 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
      * @return the Akka configuration Props object.
      */
-    static Props propsForTests(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    static Props propsForTests(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), rabbitConnectionFactoryFactory,
-                conciergeForwarder, connectionActor);
+                proxyActor, connectionActor);
     }
 
     private static Connection validateConnection(final Connection connection) {
