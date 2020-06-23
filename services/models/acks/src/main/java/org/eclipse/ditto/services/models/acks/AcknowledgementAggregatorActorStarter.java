@@ -103,13 +103,9 @@ final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<A
 
         final DittoHeaders dittoHeaders = thingModifyCommand.getDittoHeaders();
 
-        if (dittoHeaders.isResponseRequired()) {
             final Props props = AcknowledgementAggregatorActor.props(thingModifyCommand, acknowledgementConfig,
                     headerTranslator, responseSignalConsumer);
             return actorContext.actorOf(props, AcknowledgementAggregatorActor.determineActorName(dittoHeaders));
-        } else {
-            return null;
-        }
     }
 
     private DittoRuntimeException getDuplicateCorrelationIdException(final Throwable cause) {

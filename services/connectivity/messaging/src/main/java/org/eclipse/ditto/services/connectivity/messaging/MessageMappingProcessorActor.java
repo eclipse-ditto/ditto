@@ -323,7 +323,15 @@ public final class MessageMappingProcessorActor
                 messageMappingProcessor.getHeaderTranslator(),
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
-                    getSelf().tell(responseSignal, getSelf());
+                    if (signal.getDittoHeaders().isResponseRequired()) {
+                        logger.withCorrelationId((CommandResponse<?>) responseSignal)
+                                .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
+                                        + " ExternalMessage", DittoHeaderDefinition.RESPONSE_REQUIRED);
+                        responseDroppedMonitor.success((CommandResponse<?>) responseSignal,
+                                "Dropped response since requester did not require response via Header {0}",
+                                DittoHeaderDefinition.RESPONSE_REQUIRED);
+                        getSelf().tell(responseSignal, getSelf());
+                    }
                     // forward acks to the original sender for consumer settlement
                     sender.tell(responseSignal, ActorRef.noSender());
                 });
@@ -992,7 +1000,6 @@ public final class MessageMappingProcessorActor
      */
     private static boolean areAcknowledgementsRequested(final SignalWithQoS signalWithQoS) {
         return (signalWithQoS.signal instanceof ThingModifyCommand) &&
-                signalWithQoS.signal.getDittoHeaders().isResponseRequired() &&
                 signalWithQoS.signal.getDittoHeaders()
                         .getChannel()
                         .filter(channel -> TopicPath.Channel.LIVE.getName().equals(channel)).isEmpty() &&
