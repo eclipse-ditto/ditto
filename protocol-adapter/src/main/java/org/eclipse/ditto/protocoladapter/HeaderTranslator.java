@@ -171,13 +171,15 @@ public final class HeaderTranslator {
     private static DittoHeaders filterDittoHeaders(final DittoHeaders headersToFilter,
             final HeaderEntryFilter headerEntryFilter, final boolean lowerCaseHeaderKeys) {
 
-        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = headersToFilter.toBuilder();
         for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
             final String originalKey = entry.getKey();
             final String originalValue = entry.getValue();
             final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
             final String filteredValue = headerEntryFilter.apply(key, originalValue);
-            if (null != filteredValue) {
+            if (null == filteredValue) {
+                dittoHeadersBuilder.removeHeader(key);
+            } else if (!filteredValue.equals(originalValue)) {
                 dittoHeadersBuilder.putHeader(key, filteredValue);
             }
         }
@@ -190,9 +192,8 @@ public final class HeaderTranslator {
         final Map<String, String> result = new HashMap<>(headersToFilter.size());
         for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
             final String originalKey = entry.getKey();
-            final String originalValue = entry.getValue();
             final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
-            final String filteredValue = headerEntryFilter.apply(key, originalValue);
+            final String filteredValue = headerEntryFilter.apply(key, entry.getValue());
             if (null != filteredValue) {
                 result.put(key, filteredValue);
             }

@@ -21,10 +21,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -55,7 +53,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     protected final S myself;
     private final Map<String, String> headers;
-    private final Collection<HeaderDefinition> definitions;
+    private final Map<String, HeaderDefinition> definitions;
 
     /**
      * Constructs a new {@code AbstractDittoHeadersBuilder} object.
@@ -76,8 +74,22 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
-        this.definitions = new HashSet<>(definitions);
-        Collections.addAll(this.definitions, DittoHeaderDefinition.values());
+        this.definitions = getHeaderDefinitionsAsMap(definitions);
+    }
+
+    private static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
+            final Collection<? extends HeaderDefinition> headerDefinitions) {
+
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> result =
+                new HashMap<>(headerDefinitions.size() + dittoHeaderDefinitions.length);
+        for (final HeaderDefinition definition : headerDefinitions) {
+            result.put(definition.getKey(), definition);
+        }
+        for (final DittoHeaderDefinition dittoHeaderDefinition : DittoHeaderDefinition.values()) {
+            result.put(dittoHeaderDefinition.getKey(), dittoHeaderDefinition);
+        }
+        return result;
     }
 
     /**
@@ -100,8 +112,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         checkNotNull(definitions, "definitions");
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
-        this.definitions = new HashSet<>(definitions);
-        Collections.addAll(this.definitions, DittoHeaderDefinition.values());
+        this.definitions = getHeaderDefinitionsAsMap(definitions);
     }
 
     /**
@@ -397,16 +408,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     protected void validateValueType(final CharSequence key, final CharSequence value) {
-        definitions.stream()
-                .filter(definition -> Objects.equals(definition.getKey(), key.toString()))
-                .findAny()
-                .ifPresent(definition -> definition.validateValue(value));
+        @Nullable final HeaderDefinition headerDefinition = definitions.get(key.toString());
+        if (null != headerDefinition) {
+            headerDefinition.validateValue(value);
+        }
     }
 
     @Override
     public S putHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
-        validateValueTypes(headers, definitions);
+        validateValueTypes(headers, definitions.values());
         this.headers.putAll(headers);
         return myself;
     }
