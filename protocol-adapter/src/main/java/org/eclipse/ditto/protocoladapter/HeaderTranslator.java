@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -172,30 +171,32 @@ public final class HeaderTranslator {
     private static DittoHeaders filterDittoHeaders(final DittoHeaders headersToFilter,
             final HeaderEntryFilter headerEntryFilter, final boolean lowerCaseHeaderKeys) {
 
-        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = headersToFilter.toBuilder();
-        headersToFilter.forEach((originalKey, originalValue) -> {
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder();
+        for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
+            final String originalKey = entry.getKey();
+            final String originalValue = entry.getValue();
             final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
             final String filteredValue = headerEntryFilter.apply(key, originalValue);
-            if (null == filteredValue) {
-                dittoHeadersBuilder.removeHeader(key);
-            } else if (!filteredValue.equals(originalValue)) {
+            if (null != filteredValue) {
                 dittoHeadersBuilder.putHeader(key, filteredValue);
             }
-        });
+        }
         return dittoHeadersBuilder.build();
     }
 
     private static Map<String, String> filterHeadersMap(final Map<String, String> headersToFilter,
             final HeaderEntryFilter headerEntryFilter, final boolean lowerCaseHeaderKeys) {
 
-        final Map<String, String> result = new LinkedHashMap<>(headersToFilter.size());
-        headersToFilter.forEach((originalKey, originalValue) -> {
+        final Map<String, String> result = new HashMap<>(headersToFilter.size());
+        for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
+            final String originalKey = entry.getKey();
+            final String originalValue = entry.getValue();
             final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
             final String filteredValue = headerEntryFilter.apply(key, originalValue);
             if (null != filteredValue) {
                 result.put(key, filteredValue);
             }
-        });
+        }
         return result;
     }
 
