@@ -323,15 +323,9 @@ public final class MessageMappingProcessorActor
                 messageMappingProcessor.getHeaderTranslator(),
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
-                    if (signal.getDittoHeaders().isResponseRequired()) {
-                        logger.withCorrelationId((CommandResponse<?>) responseSignal)
-                                .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
-                                        + " ExternalMessage", DittoHeaderDefinition.RESPONSE_REQUIRED);
-                        responseDroppedMonitor.success((CommandResponse<?>) responseSignal,
-                                "Dropped response since requester did not require response via Header {0}",
-                                DittoHeaderDefinition.RESPONSE_REQUIRED);
-                        getSelf().tell(responseSignal, getSelf());
-                    }
+                    // acks don't get send when no response-required by #handleCommandResponse
+                    getSelf().tell(responseSignal, getSelf());
+
                     // forward acks to the original sender for consumer settlement
                     sender.tell(responseSignal, ActorRef.noSender());
                 });
