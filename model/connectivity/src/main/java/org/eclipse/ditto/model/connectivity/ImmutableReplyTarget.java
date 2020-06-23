@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -112,7 +113,9 @@ final class ImmutableReplyTarget implements ReplyTarget {
                 .expectedResponseTypes(jsonObject.getValue(JsonFields.EXPECTED_RESPONSE_TYPES)
                         .map(jsonArray -> jsonArray.stream()
                                 .map(JsonValue::asString)
-                                .map(ResponseType::valueOf)
+                                .map(ResponseType::fromName)
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
                                 .collect(Collectors.toSet()))
                         .orElse(DEFAULT_EXPECTED_RESPONSE_TYPES))
                 .build());

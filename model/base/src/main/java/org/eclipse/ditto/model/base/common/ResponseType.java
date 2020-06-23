@@ -12,19 +12,35 @@
  */
 package org.eclipse.ditto.model.base.common;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 public enum ResponseType {
 
     /**
      * Type of error responses.
      */
-    ERROR,
+    ERROR("error"),
     /**
      * Type of negative acknowledgements responses.
      */
-    N_ACK,
+    N_ACK("n_ack"),
     /**
      * Type of normal responses. This includes positive acknowledgements.
      */
-    RESPONSE;
+    RESPONSE("response");
+
+    private final String name;
+
+    ResponseType(final String name) {
+        this.name = name;
+    }
+
+    public static Optional<ResponseType> fromName(String name) {
+        final String lowerCaseName = name.toLowerCase();
+        return Arrays.stream(values())
+                .filter(responseType -> responseType.name.equals(lowerCaseName))
+                .findAny();
+    }
 
 }

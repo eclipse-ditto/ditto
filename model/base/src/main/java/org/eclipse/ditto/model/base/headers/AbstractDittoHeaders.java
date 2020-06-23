@@ -295,7 +295,9 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
-                .map(ResponseType::valueOf)
+                .map(ResponseType::fromName)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toSet());
     }
 
