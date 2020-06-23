@@ -51,6 +51,17 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder, R extends DittoHeaders>
         implements DittoHeadersBuilder<S, R> {
 
+    private static final Map<String, HeaderDefinition> BUILT_IN_DEFINITIONS;
+
+    static {
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> definitions = new HashMap<>(dittoHeaderDefinitions.length);
+        for (final DittoHeaderDefinition dittoHeaderDefinition : dittoHeaderDefinitions) {
+            definitions.put(dittoHeaderDefinition.getKey(), dittoHeaderDefinition);
+        }
+        BUILT_IN_DEFINITIONS = Collections.unmodifiableMap(definitions);
+    }
+
     protected final S myself;
     private final Map<String, String> headers;
     private final Map<String, HeaderDefinition> definitions;
@@ -86,9 +97,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         for (final HeaderDefinition definition : headerDefinitions) {
             result.put(definition.getKey(), definition);
         }
-        for (final DittoHeaderDefinition dittoHeaderDefinition : DittoHeaderDefinition.values()) {
-            result.put(dittoHeaderDefinition.getKey(), dittoHeaderDefinition);
-        }
+        result.putAll(BUILT_IN_DEFINITIONS);
         return result;
     }
 
