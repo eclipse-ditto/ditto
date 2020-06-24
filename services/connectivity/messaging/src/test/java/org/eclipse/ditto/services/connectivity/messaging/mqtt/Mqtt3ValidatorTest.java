@@ -73,6 +73,8 @@ public final class Mqtt3ValidatorTest {
     public void testValidSourceAddress() {
         Mqtt3Validator.newInstance().validate(connectionWithSource("ditto/topic/+/123"), DittoHeaders.empty(),
                 actorSystem);
+        Mqtt3Validator.newInstance().validate(connectionWithSource("test%2Fde/#"), DittoHeaders.empty(), actorSystem);
+        Mqtt3Validator.newInstance().validate(connectionWithSource("!$%&/#"), DittoHeaders.empty(), actorSystem);
         Mqtt3Validator.newInstance().validate(connectionWithSource("ditto/#"), DittoHeaders.empty(), actorSystem);
         Mqtt3Validator.newInstance().validate(connectionWithSource("#"), DittoHeaders.empty(), actorSystem);
         Mqtt3Validator.newInstance().validate(connectionWithSource("+"), DittoHeaders.empty(), actorSystem);
@@ -81,6 +83,7 @@ public final class Mqtt3ValidatorTest {
     @Test
     public void testInvalidSourceAddress() {
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("ditto/topic/+123"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("ditto/+123"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("ditto/#/123"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("##"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource(""));

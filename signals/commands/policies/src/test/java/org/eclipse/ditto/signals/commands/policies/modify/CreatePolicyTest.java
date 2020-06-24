@@ -71,7 +71,6 @@ public final class CreatePolicyTest {
         CreatePolicy.of(policy, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void createInstanceWithValidPolicyId() {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder("test.ns:foo-bar")
