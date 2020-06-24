@@ -142,21 +142,10 @@ public final class LogUtil {
 
         final Map<String, Object> mdcMap = getMDC(loggingAdapter);
 
-        boolean mdcUpdated = false;
-        @Nullable final Object existingValue = mdcMap.get(fieldName);
-        if (existingValue == null || !existingValue.equals(fieldValue)) {
-            enhanceMdcWithAdditionalField(mdcMap, fieldName, fieldValue);
-            mdcUpdated = true;
-        }
+        enhanceMdcWithAdditionalField(mdcMap, fieldName, fieldValue);
+        enhanceMdcWithAdditionalFields(mdcMap, additionalMdcFields);
 
-        if (additionalMdcFields.length > 0) {
-            enhanceMdcWithAdditionalFields(mdcMap, additionalMdcFields);
-            mdcUpdated = true;
-        }
-
-        if (mdcUpdated) {
-            loggingAdapter.setMDC(mdcMap);
-        }
+        loggingAdapter.setMDC(mdcMap);
     }
 
     private static void enhanceMdcWithAdditionalFields(final Map<String, Object> mdc, final MdcField... additionalMdcFields) {
@@ -279,7 +268,7 @@ public final class LogUtil {
     }
 
     /**
-     * Removes the {@code fieldName} from the {@code loggingAdapter}.
+     * Removes the {@code fieldName} from the default slf4j {@link org.slf4j.MDC}.
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to remove the MDC field from.
      * @param fieldName the field to remove.
