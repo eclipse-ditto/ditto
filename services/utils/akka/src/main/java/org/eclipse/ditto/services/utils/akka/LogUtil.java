@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.akka;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -304,7 +305,7 @@ public final class LogUtil {
      * @return a copy of the MDC of {@code loggingAdapter}.
      */
     private static Map<String, Object> getMDC(final DiagnosticLoggingAdapter loggingAdapter) {
-        return loggingAdapter.getMDC();
+        return new HashMap<>(loggingAdapter.getMDC());
     }
 
     /**
