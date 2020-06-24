@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -30,9 +31,11 @@ import scala.collection.immutable.Map;
 final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAdapter {
 
     private final DiagnosticLoggingAdapter loggingAdapter;
+    @Nullable private CharSequence correlationId;
 
     private DefaultDiagnosticLoggingAdapter(final DiagnosticLoggingAdapter loggingAdapter) {
         this.loggingAdapter = checkNotNull(loggingAdapter, "loggingAdapter");
+        correlationId = null;
     }
 
     /**
@@ -93,12 +96,24 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     @Override
     public void error(final Throwable cause, final String message) {
-        loggingAdapter.error(cause, message);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(cause, message);
+        }
+    }
+
+    private void putCorrelationIdToMdc() {
+        if (null != correlationId) {
+            LogUtil.enhanceLogWithCustomField(loggingAdapter, LogUtil.X_CORRELATION_ID, correlationId.toString());
+        }
     }
 
     @Override
     public void error(final Throwable cause, final String template, final Object arg1) {
-        loggingAdapter.error(cause, template, arg1);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(cause, template, arg1);
+        }
     }
 
     @Override
@@ -107,7 +122,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg1,
             final Object arg2) {
 
-        loggingAdapter.error(cause, template, arg1, arg2);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(cause, template, arg1, arg2);
+        }
     }
 
     @Override
@@ -117,7 +135,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg2,
             final Object arg3) {
 
-        loggingAdapter.error(cause, template, arg1, arg2, arg3);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(cause, template, arg1, arg2, arg3);
+        }
     }
 
     @Override
@@ -128,22 +149,34 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg3,
             final Object arg4) {
 
-        loggingAdapter.error(cause, template, arg1, arg2, arg3, arg4);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(cause, template, arg1, arg2, arg3, arg4);
+        }
     }
 
     @Override
     public void error(final String message) {
-        loggingAdapter.error(message);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(message);
+        }
     }
 
     @Override
     public void error(final String template, final Object arg1) {
-        loggingAdapter.error(template, arg1);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(template, arg1);
+        }
     }
 
     @Override
     public void error(final String template, final Object arg1, final Object arg2) {
-        loggingAdapter.error(template, arg1, arg2);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(template, arg1, arg2);
+        }
     }
 
     @Override
@@ -152,7 +185,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg2,
             final Object arg3) {
 
-        loggingAdapter.error(template, arg1, arg2, arg3);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(template, arg1, arg2, arg3);
+        }
     }
 
     @Override
@@ -162,22 +198,34 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg3,
             final Object arg4) {
 
-        loggingAdapter.error(template, arg1, arg2, arg3, arg4);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.error(template, arg1, arg2, arg3, arg4);
+        }
     }
 
     @Override
     public void warning(final String message) {
-        loggingAdapter.warning(message);
+        if (isWarningEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.warning(message);
+        }
     }
 
     @Override
     public void warning(final String template, final Object arg1) {
-        loggingAdapter.warning(template, arg1);
+        if (isWarningEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.warning(template, arg1);
+        }
     }
 
     @Override
     public void warning(final String template, final Object arg1, final Object arg2) {
-        loggingAdapter.warning(template, arg1, arg2);
+        if (isWarningEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.warning(template, arg1, arg2);
+        }
     }
 
     @Override
@@ -186,7 +234,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg2,
             final Object arg3) {
 
-        loggingAdapter.warning(template, arg1, arg2, arg3);
+        if (isWarningEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.warning(template, arg1, arg2, arg3);
+        }
     }
 
     @Override
@@ -196,22 +247,34 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg3,
             final Object arg4) {
 
-        loggingAdapter.warning(template, arg1, arg2, arg3, arg4);
+        if (isWarningEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.warning(template, arg1, arg2, arg3, arg4);
+        }
     }
 
     @Override
     public void info(final String message) {
-        loggingAdapter.info(message);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.info(message);
+        }
     }
 
     @Override
     public void info(final String template, final Object arg1) {
-        loggingAdapter.info(template, arg1);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.info(template, arg1);
+        }
     }
 
     @Override
     public void info(final String template, final Object arg1, final Object arg2) {
-        loggingAdapter.info(template, arg1, arg2);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.info(template, arg1, arg2);
+        }
     }
 
     @Override
@@ -220,7 +283,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg2,
             final Object arg3) {
 
-        loggingAdapter.info(template, arg1, arg2, arg3);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.info(template, arg1, arg2, arg3);
+        }
     }
 
     @Override
@@ -230,22 +296,34 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg3,
             final Object arg4) {
 
-        loggingAdapter.info(template, arg1, arg2, arg3, arg4);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.info(template, arg1, arg2, arg3, arg4);
+        }
     }
 
     @Override
     public void debug(final String message) {
-        loggingAdapter.debug(message);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.debug(message);
+        }
     }
 
     @Override
     public void debug(final String template, final Object arg1) {
-        loggingAdapter.debug(template, arg1);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.debug(template, arg1);
+        }
     }
 
     @Override
     public void debug(final String template, final Object arg1, final Object arg2) {
-        loggingAdapter.debug(template, arg1, arg2);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.debug(template, arg1, arg2);
+        }
     }
 
     @Override
@@ -254,7 +332,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg2,
             final Object arg3) {
 
-        loggingAdapter.debug(template, arg1, arg2, arg3);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.debug(template, arg1, arg2, arg3);
+        }
     }
 
     @Override
@@ -264,7 +345,10 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             final Object arg3,
             final Object arg4) {
 
-        loggingAdapter.debug(template, arg1, arg2, arg3, arg4);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            loggingAdapter.debug(template, arg1, arg2, arg3, arg4);
+        }
     }
 
     @Override
@@ -298,7 +382,14 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     }
 
     @Override
+    public DefaultDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
+        this.correlationId = correlationId;
+        return this;
+    }
+
+    @Override
     public void discardCorrelationId() {
+        correlationId = null;
         LogUtil.removeCustomField(loggingAdapter, LogUtil.X_CORRELATION_ID);
     }
 
