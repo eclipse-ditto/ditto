@@ -49,6 +49,56 @@ public abstract class NamespacedEntityIdWithType extends EntityIdWithType implem
         return namespacedEntityId.getName();
     }
 
+    /**
+     * Checks if the passed entity ID is compatible with this entity ID.
+     * The entity IDs are regarded as compatible if they are equal to each other as defined in {@link #equals(Object)}.
+     * Furthermore they are compatible if they have the same names while the namespace of each entity ID may be empty.
+     * This could be the case for example for "Create Thing" commands where the default namespace is added at a later
+     * step.
+     * If the namespaces of both compared entity IDs are not empty, they have to be equal.
+     * The entity types always have to be equal.
+     *
+     * @param otherEntityId the entity ID to be compared for equality with this entity ID.
+     * @throws IllegalArgumentException if {@code otherEntityId} is not compatible with this entity ID.
+     * @return {@code true} if {@code otherEntityId} is compatible with this entity ID.
+     * @since 1.2.0
+     */
+    @Override
+    public boolean isCompatibleOrThrow(@Nullable final EntityIdWithType otherEntityId) {
+        final boolean result;
+        if (null == otherEntityId) {
+            result = false;
+        } else if (equals(otherEntityId)) {
+            result = true;
+        } else if (!Objects.equals(getEntityType(), otherEntityId.getEntityType())) {
+            result = false;
+        } else if (otherEntityId instanceof NamespacedEntityIdWithType) {
+            result = isNamespaceAndNameCompatible((NamespacedEntityId) otherEntityId);
+        } else {
+            result = false;
+        }
+        if (!result) {
+            throw getIllegalArgumentExceptionForDifferentEntityIds(otherEntityId);
+        }
+        return result;
+    }
+
+    private boolean isNamespaceAndNameCompatible(final NamespacedEntityId otherEntityId) {
+        final boolean result;
+        if (Objects.equals(getName(), otherEntityId.getName())) {
+            final String namespace = getNamespace();
+            final String otherNamespace = otherEntityId.getNamespace();
+            if (namespace.equals(otherNamespace)) {
+                result = true;
+            } else {
+                result = namespace.isEmpty() || otherNamespace.isEmpty();
+            }
+        } else {
+            result = false;
+        }
+        return result;
+    }
+
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -61,12 +111,13 @@ public abstract class NamespacedEntityIdWithType extends EntityIdWithType implem
             return false;
         }
         final NamespacedEntityIdWithType that = (NamespacedEntityIdWithType) o;
-        return Objects.equals(namespacedEntityId, that.namespacedEntityId);
+        return Objects.equals(namespacedEntityId, that.namespacedEntityId) &&
+                Objects.equals(getEntityType(), that.getEntityType());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), namespacedEntityId);
+        return Objects.hash(super.hashCode(), namespacedEntityId, getEntityType());
     }
 
 }

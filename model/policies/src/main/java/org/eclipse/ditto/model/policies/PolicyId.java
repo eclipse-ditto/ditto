@@ -36,7 +36,6 @@ public final class PolicyId implements NamespacedEntityId {
         this.entityId = entityId;
     }
 
-
     /**
      * Returns a {@link PolicyId} based on the given policyId CharSequence. May return the same instance as
      * the parameter if the given parameter is already a PolicyId. Skips validation if the given
@@ -109,17 +108,20 @@ public final class PolicyId implements NamespacedEntityId {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final PolicyId thingId = (PolicyId) o;
-        return Objects.equals(entityId, thingId.entityId);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final PolicyId that = (PolicyId) o;
+        return Objects.equals(entityId, that.entityId);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(entityId);
     }
-
 
     @Override
     public String toString() {
@@ -130,4 +132,5 @@ public final class PolicyId implements NamespacedEntityId {
     public boolean isDummy() {
         return entityId.isDummy();
     }
+
 }

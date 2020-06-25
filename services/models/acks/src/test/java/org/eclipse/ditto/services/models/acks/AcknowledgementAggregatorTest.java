@@ -233,7 +233,7 @@ public final class AcknowledgementAggregatorTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The entity ID <%s> differs from the expected <%s>!",
+                .withMessage("The entity ID <%s> is not compatible with <%s>!",
                         unexpectedEntityId, ENTITY_ID)
                 .withNoCause();
     }

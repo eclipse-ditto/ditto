@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -57,20 +56,17 @@ public final class AcknowledgementAggregator {
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
     private final EntityIdWithType entityId;
-    private final Consumer<EntityIdWithType> entityIdValidator;
     private final String correlationId;
     private final HeaderTranslator headerTranslator;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
     private final Duration timeout;
 
     private AcknowledgementAggregator(final EntityIdWithType entityId,
-            final Consumer<EntityIdWithType> entityIdValidator,
             final CharSequence correlationId,
             final Duration timeout,
             final HeaderTranslator headerTranslator) {
 
         this.entityId = checkNotNull(entityId, "entityId");
-        this.entityIdValidator = entityIdValidator;
         this.correlationId = argumentNotEmpty(correlationId).toString();
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
@@ -90,13 +86,11 @@ public final class AcknowledgementAggregator {
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final EntityIdWithType entityId,
-            final CharSequence correlationId, final Duration timeout, final HeaderTranslator headerTranslator) {
+            final CharSequence correlationId,
+            final Duration timeout,
+            final HeaderTranslator headerTranslator) {
 
-        return new AcknowledgementAggregator(entityId,
-                EntityIdWithType.createEqualityValidator(entityId),
-                correlationId,
-                timeout,
-                headerTranslator);
+        return new AcknowledgementAggregator(entityId, correlationId, timeout, headerTranslator);
     }
 
     /**
@@ -112,13 +106,11 @@ public final class AcknowledgementAggregator {
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final NamespacedEntityIdWithType entityId,
-            final CharSequence correlationId, final Duration timeout, final HeaderTranslator headerTranslator) {
+            final CharSequence correlationId,
+            final Duration timeout,
+            final HeaderTranslator headerTranslator) {
 
-        return new AcknowledgementAggregator(entityId,
-                EntityIdWithType.createEqualityValidator(entityId),
-                correlationId,
-                timeout,
-                headerTranslator);
+        return new AcknowledgementAggregator(entityId, correlationId, timeout, headerTranslator);
     }
 
     /**
@@ -146,10 +138,8 @@ public final class AcknowledgementAggregator {
 
         // This Acknowledgement was not actually received, thus it cannot have "real" DittoHeaders.
         final DittoRuntimeException timeoutException = AcknowledgementRequestTimeoutException.newBuilder(timeout)
-                .dittoHeaders(DittoHeaders.newBuilder()
-                        .correlationId(correlationId)
-                        .build()
-                ).build();
+                .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                .build();
         return Acknowledgement.of(acknowledgementLabel, entityId, timeoutException.getStatusCode(),
                 timeoutException.getDittoHeaders(), timeoutException.toJson());
     }
@@ -178,7 +168,6 @@ public final class AcknowledgementAggregator {
      * </ul>
      */
     public void addReceivedTwinPersistedAcknowledgment(final ThingCommandResponse<?> thingCommandResponse) {
-
         checkNotNull(thingCommandResponse, "thingCommandResponse");
         final DittoHeaders acknowledgementHeaders = getFilteredAcknowledgementHeaders(thingCommandResponse);
 
@@ -236,7 +225,7 @@ public final class AcknowledgementAggregator {
     }
 
     private void validateEntityId(final Acknowledgement acknowledgement) {
-        entityIdValidator.accept(acknowledgement.getEntityId());
+        entityId.isCompatibleOrThrow(acknowledgement.getEntityId());
     }
 
     private boolean isRequested(final Acknowledgement acknowledgement) {
