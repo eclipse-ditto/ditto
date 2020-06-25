@@ -95,8 +95,12 @@ public final class ImmutableAcknowledgementsTest {
 
     @Test
     public void testHashCodeAndEquals() {
+        final ThingId red = ThingId.generateRandom();
+        final ThingId black = ThingId.generateRandom();
+
         EqualsVerifier.forClass(ImmutableAcknowledgements.class)
                 .usingGetClass()
+                .withPrefabValues(EntityIdWithType.class, red, black)
                 .verify();
     }
 
@@ -137,7 +141,7 @@ public final class ImmutableAcknowledgementsTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS))
-                .withMessage("The entity ID <%s> differs from the expected <%s>!", otherEntityId, KNOWN_ENTITY_ID)
+                .withMessage("The entity ID <%s> is not compatible with <%s>!", otherEntityId, KNOWN_ENTITY_ID)
                 .withNoCause();
     }
 
