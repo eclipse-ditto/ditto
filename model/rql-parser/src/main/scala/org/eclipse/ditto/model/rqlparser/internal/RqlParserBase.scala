@@ -35,10 +35,12 @@ class RqlParserBase(val input: ParserInput) extends Parser {
   private val WhiteSpaceChar = CharPredicate(" \n\r\t\f")
   private val CommaClosingParenthesisQuote = CharPredicate(",)\"\\")
   private val QuoteBackslash = CharPredicate("\"\\")
+  private val SingleQuoteBackslash = CharPredicate("'\\")
   private val QuoteBackslashSlash = QuoteBackslash ++ "/"
+  private val SingleQuoteBackslashSlash = SingleQuoteBackslash ++ "/"
 
   protected def Literal: Rule1[java.lang.Object] = rule {
-    (DoubleLiteral | LongLiteral | StringLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
+    (DoubleLiteral | LongLiteral | StringLiteral | StringSingleQuoteLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
       "false" ~ WhiteSpace ~ push(java.lang.Boolean.FALSE) | "null" ~ WhiteSpace ~ push(None)) ~ WhiteSpace
   }
 
@@ -66,12 +68,20 @@ class RqlParserBase(val input: ParserInput) extends Parser {
     '"' ~ clearSB() ~ CharactersInQuotes ~ ws('"') ~ push(sb.toString)
   }
 
+  protected def StringSingleQuoteLiteral: Rule1[java.lang.String] = rule {
+    '\'' ~ clearSB() ~ CharactersInSingleQuotes ~ ws('\'') ~ push(sb.toString)
+  }
+
   protected def PropertyLiteral: Rule1[java.lang.String] = rule {
     clearSB() ~ Characters ~ push(sb.toString)
   }
 
   protected def CharactersInQuotes: Rule[HNil, HNil] = rule {
     zeroOrMore(NormalCharInQuotes | '\\' ~ EscapedChar)
+  }
+
+  protected def CharactersInSingleQuotes: Rule[HNil, HNil] = rule {
+    zeroOrMore(NormalCharInSingleQuotes | '\\' ~ SingleQuoteEscapedChar)
   }
 
   protected def Characters: Rule[HNil, HNil] = rule {
@@ -82,12 +92,26 @@ class RqlParserBase(val input: ParserInput) extends Parser {
     !QuoteBackslash ~ ANY ~ appendSB()
   }
 
+  protected def NormalCharInSingleQuotes: Rule[HNil, HNil] = rule {
+    !SingleQuoteBackslash ~ ANY ~ appendSB()
+  }
+
   protected def NormalChar: Rule[HNil, HNil] = rule {
     !CommaClosingParenthesisQuote ~ ANY ~ appendSB()
   }
 
   protected def EscapedChar: Rule[HNil, HNil] = rule(
     QuoteBackslashSlash ~ appendSB()
+      | 'b' ~ appendSB('\b')
+      | 'f' ~ appendSB('\f')
+      | 'n' ~ appendSB('\n')
+      | 'r' ~ appendSB('\r')
+      | 't' ~ appendSB('\t')
+      | Unicode ~> { code: Int => sb.append(code.asInstanceOf[Char]); () }
+  )
+
+  protected def SingleQuoteEscapedChar: Rule[HNil, HNil] = rule(
+    SingleQuoteBackslashSlash ~ appendSB()
       | 'b' ~ appendSB('\b')
       | 'f' ~ appendSB('\f')
       | 'n' ~ appendSB('\n')
