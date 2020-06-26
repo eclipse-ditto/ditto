@@ -14,9 +14,6 @@ pipeline {
                 label 'docker-slave'
             }
             steps {
-                echo 'Clean Workspace'
-                cleanWs()
-
                 echo 'Checkout scm'
                 checkout scm
             }
