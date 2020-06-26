@@ -52,7 +52,9 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
-                assumingFields("blacklistedHostnames")
+                assumingFields("allowedHostnames")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                assumingFields("blockedHostnames")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(DefaultSupervisorConfig.class,
                         SnapshotConfig.class,
@@ -79,8 +81,12 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
 
-        softly.assertThat(underTest.getBlacklistedHostnames())
-                .as(ConnectionConfig.ConnectionConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath())
+        softly.assertThat(underTest.getAllowedHostnames())
+                .as(ConnectionConfig.ConnectionConfigValue.ALLOWED_HOSTNAMES.getConfigPath())
+                .containsExactly("eclipse.org");
+
+        softly.assertThat(underTest.getBlockedHostnames())
+                .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_HOSTNAMES.getConfigPath())
                 .containsExactly("localhost");
 
         softly.assertThat(underTest.getSupervisorConfig())

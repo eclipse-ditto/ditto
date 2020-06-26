@@ -102,7 +102,7 @@ public final class ConnectionValidator {
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
-        validateBlacklistedHostnames(connection, dittoHeaders, actorSystem);
+        validateHostnames(connection, dittoHeaders, actorSystem);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
             spec.validate(connection, dittoHeaders, actorSystem);
@@ -112,24 +112,23 @@ public final class ConnectionValidator {
     }
 
     /**
-     * Resolve blacklisted hostnames into IP addresses that should not be accessed.
+     * Resolve blocked hostnames into IP addresses that should not be accessed.
      *
-     * @param configuredBlacklistedHostnames blacklisted hostnames.
+     * @param configuredBlockedHostnames blocked hostnames.
      * @param log the logger.
-     * @return blacklisted IP addresses.
+     * @return blocked IP addresses.
      */
-    public static Collection<InetAddress> calculateBlacklistedAddresses(
-            final Collection<String> configuredBlacklistedHostnames,
+    public static Collection<InetAddress> calculateBlockedAddresses(
+            final Collection<String> configuredBlockedHostnames,
             final LoggingAdapter log) {
 
-        return configuredBlacklistedHostnames.stream()
+        return configuredBlockedHostnames.stream()
                 .filter(host -> !host.isEmpty())
                 .flatMap(host -> {
                     try {
                         return Stream.of(InetAddress.getAllByName(host));
                     } catch (final UnknownHostException e) {
-                        log.error(e, "Could not resolve hostname during building blacklisted hostnames set: <{}>",
-                                host);
+                        log.warning("Could not resolve hostname during building blocked hostnames set: <{}>", host);
                         return Stream.empty();
                     }
                 })
@@ -137,27 +136,41 @@ public final class ConnectionValidator {
     }
 
     /**
-     * Check if connections to a host are forbidden by a blacklist or by the category of its IP.
+     * Check if connections to a host are forbidden by a blocklist or by the category of its IP.
      * Loopback, private, multicast and wildcard addresses are allowed only if the blacklist is empty.
      *
      * @param host the host to check.
-     * @param blacklistedAddresses list of IP addresses to block. If empty, then all hosts are permitted.
+     * @param allowedHostnames list of allowed hostnames
+     * @param blockedAddresses list of IP addresses to block. If empty, then all hosts are permitted.
      * @return whether connections to the host are permitted.
      */
-    public static boolean isHostForbidden(final Host host, final Collection<InetAddress> blacklistedAddresses) {
-        if (blacklistedAddresses.isEmpty()) {
-            // If not even localhost is blacklisted, then permit even private, loopback, multicast and wildcard IPs.
+    public static boolean isHostForbidden(final Host host,
+            final Collection<String> allowedHostnames,
+            final Collection<InetAddress> blockedAddresses) {
+        return isHostForbidden(host, allowedHostnames, blockedAddresses,
+                ConnectionValidator::getInetAddressesAndHandleUnknownHost);
+    }
+
+    static boolean isHostForbidden(final Host host,
+            final Collection<String> allowedHostnames,
+            final Collection<InetAddress> blockedAddresses,
+            final Function<Host, Iterable<InetAddress>> inetAddressesResolver) {
+        if (blockedAddresses.isEmpty()) {
+            // If not even localhost is blocked, then permit even private, loopback, multicast and wildcard IPs.
+            return false;
+        } else if (allowedHostnames.contains(host.address())) {
+            // the host is contained in the allow-list, do not block
             return false;
         } else {
-            // Forbid blacklisted, private, loopback, multicast and wildcard IPs.
-            final Iterable<InetAddress> inetAddresses = getInetAddressesAndHandleUnknownHost(host);
+            // Forbid blocked, private, loopback, multicast and wildcard IPs.
+            final Iterable<InetAddress> inetAddresses = inetAddressesResolver.apply(host);
             return StreamSupport.stream(inetAddresses.spliterator(), false)
                     .anyMatch(requestAddress ->
                             requestAddress.isLoopbackAddress() ||
                                     requestAddress.isSiteLocalAddress() ||
                                     requestAddress.isMulticastAddress() ||
                                     requestAddress.isAnyLocalAddress() ||
-                                    blacklistedAddresses.contains(requestAddress));
+                                    blockedAddresses.contains(requestAddress));
         }
     }
 
@@ -247,26 +260,29 @@ public final class ConnectionValidator {
                 .build();
     }
 
-    private static void validateBlacklistedHostnames(final Connection connection, final DittoHeaders dittoHeaders,
+    private static void validateHostnames(final Connection connection, final DittoHeaders dittoHeaders,
             final ActorSystem actorSystem) {
 
-        final Collection<String> configuredBlacklistedHostnames = DittoConnectivityConfig.of(
+        final Collection<String> configuredAllowedHostnames = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getConnectionConfig().getBlacklistedHostnames();
-        final Collection<InetAddress> blacklisted =
-                calculateBlacklistedAddresses(configuredBlacklistedHostnames, actorSystem.log());
+        ).getConnectionConfig().getAllowedHostnames();
+        final Collection<String> configuredBlockedHostnames = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        ).getConnectionConfig().getBlockedHostnames();
+        final Collection<InetAddress> blockedAddresses =
+                calculateBlockedAddresses(configuredBlockedHostnames, actorSystem.log());
 
-        validateBlacklistedHostnames(connection, dittoHeaders, blacklisted);
+        validateHostnames(connection, dittoHeaders, configuredAllowedHostnames, blockedAddresses);
     }
 
-    public static void validateBlacklistedHostnames(final Connection connection, final DittoHeaders dittoHeaders,
-            final Collection<InetAddress> blacklisted) {
+    public static void validateHostnames(final Connection connection, final DittoHeaders dittoHeaders,
+            final Collection<String> allowedHostnames, final Collection<InetAddress> blockedAddresses) {
         final Host connectionHost = Uri.create(connection.getUri()).getHost();
-        if (isHostForbidden(connectionHost, blacklisted)) {
+        if (isHostForbidden(connectionHost, allowedHostnames, blockedAddresses)) {
             final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",
                     connectionHost);
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                    .description("It is a blacklisted or otherwise forbidden hostname which may not be used.")
+                    .description("It is a blocked or otherwise forbidden hostname which may not be used.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

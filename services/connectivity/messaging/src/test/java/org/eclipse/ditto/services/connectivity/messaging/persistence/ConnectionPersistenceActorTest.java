@@ -514,37 +514,37 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
-    public void createClosedConnectionWithBlacklistedHost() {
+    public void createClosedConnectionWithBlockedHost() {
 
-        final CreateConnection createClosedConnectionWithBlacklistedHost =
+        final CreateConnection createClosedConnectionWithBlockedHost =
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
                         DittoHeaders.empty());
 
         sendCommandWithEnabledBlacklist(
-                entry(createClosedConnectionWithBlacklistedHost,
-                        ConnectionPersistenceActorTest::assertHostBlacklisted));
+                entry(createClosedConnectionWithBlockedHost,
+                        ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
     @Test
-    public void testConnectionWithBlacklistedHost() {
+    public void testConnectionWithBlockedHost() {
         final TestConnection testConnectionWithUnknownHost =
                 TestConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
                         DittoHeaders.empty());
 
         sendCommandWithEnabledBlacklist(
-                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlacklisted));
+                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
     @Test
-    public void modifyClosedConnectionWithBlacklistedHost() {
+    public void modifyClosedConnectionWithBlockedHost() {
 
         // connection is created with a valid host/ip
         final CreateConnection createClosedConnectionWithValidHost =
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://8.8.8.8:1234").build(),
                         DittoHeaders.empty());
 
-        // later modified with a blacklisted host
-        final ModifyConnection modifyClosedConnectionWithBlacklistedHost =
+        // later modified with a blocked host
+        final ModifyConnection modifyClosedConnectionWithBlockedHost =
                 ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
                         .uri("amqp://localhost:1234").build(), DittoHeaders.empty());
 
@@ -552,15 +552,15 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
                 // modify fails because the new host is invalid
-                entry(modifyClosedConnectionWithBlacklistedHost,
-                        ConnectionPersistenceActorTest::assertHostBlacklisted));
+                entry(modifyClosedConnectionWithBlockedHost,
+                        ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
     @SafeVarargs
     private void sendCommandWithEnabledBlacklist(
             final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
         final Config configWithBlacklist =
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames",
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
                         ConfigValueFactory.fromAnyRef("127.0.0.1"));
         final ActorSystem systemWithBlacklist = ActorSystem.create(getClass().getSimpleName() + "WithBlacklist",
                 configWithBlacklist);
@@ -597,7 +597,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         assertThat(exception).hasMessageContaining("The configured host 'invalid' is invalid");
     }
 
-    private static void assertHostBlacklisted(Object response) {
+    private static void assertHostBlocked(Object response) {
         assertThat(response).isInstanceOf(ConnectionConfigurationInvalidException.class);
         final ConnectionConfigurationInvalidException e = (ConnectionConfigurationInvalidException) response;
         assertThat(e).hasMessageContaining("The configured host 'localhost' may not be used for the connection");

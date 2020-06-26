@@ -273,7 +273,7 @@ public final class MessageMappingProcessor {
             } else {
                 result = handler.onMessageDropped();
                 logger.withCorrelationId(message.getInternalHeaders())
-                        .debug("Not mapping message with mapper <{}> as content-type <{}> was blacklisted.",
+                        .debug("Not mapping message with mapper <{}> as content-type <{}> was blocked.",
                                 mapper.getId(), message.findContentType());
             }
         } catch (final DittoRuntimeException e) {

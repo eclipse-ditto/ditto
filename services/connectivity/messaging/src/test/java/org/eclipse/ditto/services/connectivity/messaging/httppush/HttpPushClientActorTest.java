@@ -84,9 +84,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void createActorSystem() {
-        // create actor system with deactivated hostname blacklist to connect to localhost
+        // create actor system with deactivated hostname blocklist to connect to localhost
         actorSystem = ActorSystem.create(getClass().getSimpleName(),
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blacklisted-hostnames",
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blocked-hostnames",
                         ConfigValueFactory.fromAnyRef("")));
         mat = ActorMaterializer.create(actorSystem);
         requestQueue = new LinkedBlockingQueue<>();
