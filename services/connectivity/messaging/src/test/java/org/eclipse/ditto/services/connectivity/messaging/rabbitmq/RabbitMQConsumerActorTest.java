@@ -87,7 +87,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     }
 
     @Override
-    protected Delivery getInboundMessage(final Map.Entry<String, Object> header) {
+    protected Delivery getInboundMessage(final String payload, final Map.Entry<String, Object> header) {
         final Map<String, Object> headers = new HashMap<>();
         headers.put(REPLY_TO_HEADER.getKey(), REPLY_TO_HEADER.getValue());
         headers.put(header.getKey(), header.getValue());
@@ -97,25 +97,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
                         .headers(headers)
                         .replyTo(REPLY_TO_HEADER.getValue()).build(),
-                TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8));
-    }
-
-    @Override
-    protected Delivery getInboundMessage(final Map.Entry<String, Object> header,
-            final Map.Entry<String, Object> header2) {
-        final Map<String, Object> headers = new HashMap<>();
-        headers.put(REPLY_TO_HEADER.getKey(), REPLY_TO_HEADER.getValue());
-        headers.put(header.getKey(), header.getValue());
-        headers.put(header2.getKey(), header2.getValue());
-
-        return new Delivery(ENVELOPE,
-                new AMQP.BasicProperties.Builder()
-                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
-                        .headers(headers)
-                        .replyTo(REPLY_TO_HEADER.getValue()).build(),
-                TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8));
-
-
+                payload.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override

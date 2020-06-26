@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -365,25 +366,51 @@ public final class MessageMappingProcessorActor
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
         final List<AcknowledgementRequest> additionalRequestedAcks = message.getSource()
                 .map(org.eclipse.ditto.model.connectivity.Source::getRequestedAcknowledgementLabels)
-                .map(set -> set.stream().map(AcknowledgementRequest::of).collect(Collectors.toList()))
+                .map(set -> set.stream()
+                        .map(AcknowledgementRequest::of)
+                        // Filter out empty acknowledgements placeholder
+                        .collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
 
         if (additionalRequestedAcks.isEmpty()) {
             // do not change the signal's header if no additional requested-acks are defined
             // to preserve the default behavior for signals without the header 'requested-acks'
-            return signal;
+            return handleAcknowledgementPlaceholders(signal);
         } else {
             // The sources acknowledgements get appended to the requested-acks DittoHeader of the mapped signal
             final Set<AcknowledgementRequest> requestedAcks =
                     new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
             requestedAcks.addAll(additionalRequestedAcks);
 
-            return signal.setDittoHeaders(
+            return handleAcknowledgementPlaceholders(signal.setDittoHeaders(
                     signal.getDittoHeaders()
                             .toBuilder()
                             .acknowledgementRequests(requestedAcks)
+                            .build()));
+        }
+    }
+
+    private Signal<?> handleAcknowledgementPlaceholders(Signal<?> signal) {
+        if (!signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
+            final List<String> acksList = signal.getDittoHeaders().getAcknowledgementRequests().stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .map(AcknowledgementLabel::toString)
+                    .collect(Collectors.toList());
+            if (acksList.contains("DISABLE_ACKS")) {
+                acksList.clear();
+            }
+            acksList.remove("[]");
+
+            return signal.setDittoHeaders(
+                    signal.getDittoHeaders()
+                            .toBuilder()
+                            .acknowledgementRequests(acksList.stream()
+                                    .map(AcknowledgementLabel::of)
+                                    .map(AcknowledgementRequest::of)
+                                    .collect(Collectors.toSet()))
                             .build());
         }
+        return signal;
     }
 
     @Override

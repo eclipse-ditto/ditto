@@ -668,6 +668,27 @@ public final class TestConstants {
                 "}";
     }
 
+    public static final String MODIFY_THING_WITH_ACK =
+            "{\"topic\":\"ditto/thing/things/twin/commands/modify\"," +
+                    "\"headers\":{\"content-type\":\"application/vnd.eclipse.ditto+json\"," +
+                    "\"reply-to\":\"replies\",\"response-required\":true,\"correlation-id\":\"cid\"," +
+                    "\"requested-acks\":[\"twin-persisted\"]},\"path\":\"/\"," +
+                    "\"value\":{\"__schemaVersion\":2,\"_namespace\":\"ditto\",\"thingId\":\"ditto:thing\"}}";
+
+    public static final String MODIFY_THING_WITH_DISABLE_ACKS =
+            "{\"topic\":\"ditto/thing/things/twin/commands/modify\"," +
+                    "\"headers\":{\"content-type\":\"application/vnd.eclipse.ditto+json\"," +
+                    "\"reply-to\":\"replies\",\"response-required\":true,\"correlation-id\":\"cid\"," +
+                    "\"requested-acks\":[\"twin-persisted\",\"DISABLE_ACKS\"]},\"path\":\"/\"," +
+                    "\"value\":{\"__schemaVersion\":2,\"_namespace\":\"ditto\",\"thingId\":\"ditto:thing\"}}";
+
+    public static final String MODIFY_THING_WITH_EMPTY_ACK =
+            "{\"topic\":\"ditto/thing/things/twin/commands/modify\"," +
+                    "\"headers\":{\"content-type\":\"application/vnd.eclipse.ditto+json\"," +
+                    "\"reply-to\":\"replies\",\"response-required\":true,\"correlation-id\":\"cid\"," +
+                    "\"requested-acks\":[\"twin-persisted\",\"[]\"]},\"path\":\"/\"," +
+                    "\"value\":{\"__schemaVersion\":2,\"_namespace\":\"ditto\",\"thingId\":\"ditto:thing\"}}";
+
     private static <K, V> Map.Entry<K, V> entry(final K interval, final V count) {
         return new AbstractMap.SimpleImmutableEntry<>(interval, count);
     }

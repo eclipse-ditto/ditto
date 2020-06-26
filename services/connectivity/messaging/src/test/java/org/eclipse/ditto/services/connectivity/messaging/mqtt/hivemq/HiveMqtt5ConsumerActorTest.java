@@ -77,30 +77,13 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     }
 
     @Override
-    protected Mqtt5Publish getInboundMessage(final Map.Entry<String, Object> header) {
+    protected Mqtt5Publish getInboundMessage(final String payload, final Map.Entry<String, Object> header) {
         final Mqtt5Publish mqtt5Publish = Mqtt5Publish.builder()
                 .topic("org.eclipse.ditto.test/testThing/things/twin/commands/modify")
-                .payload(TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8))
+                .payload(payload.getBytes(StandardCharsets.UTF_8))
                 .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
                 .userProperties(Mqtt5UserProperties.builder()
                         .add(header.getKey(), header.getValue().toString())
-                        .build())
-                .responseTopic(REPLY_TO_HEADER.getValue())
-                .build();
-        final MqttPublish mqttPublish = (MqttPublish) mqtt5Publish;
-        return mqttPublish.withConfirmable(new MockConfirmable());
-    }
-
-    @Override
-    protected Mqtt5Publish getInboundMessage(final Map.Entry<String, Object> header,
-            final Map.Entry<String, Object> header2) {
-        final Mqtt5Publish mqtt5Publish = Mqtt5Publish.builder()
-                .topic("org.eclipse.ditto.test/testThing/things/twin/commands/modify")
-                .payload(TestConstants.modifyThing().getBytes(StandardCharsets.UTF_8))
-                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
-                .userProperties(Mqtt5UserProperties.builder()
-                        .add(header.getKey(), header.getValue().toString())
-                        .add(header2.getKey(), header2.getValue().toString())
                         .build())
                 .responseTopic(REPLY_TO_HEADER.getValue())
                 .build();

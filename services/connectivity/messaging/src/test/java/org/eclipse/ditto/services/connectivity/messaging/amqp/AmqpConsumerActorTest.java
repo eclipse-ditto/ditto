@@ -121,14 +121,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     }
 
     @Override
-    protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header) {
-        return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, REPLY_TO_HEADER);
-    }
-
-    @Override
-    protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header,
-            final Map.Entry<String, Object> header2) {
-        return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, header2, REPLY_TO_HEADER);
+    protected JmsMessage getInboundMessage(final String payload, final Map.Entry<String, Object> header) {
+        return getJmsMessage(payload, "amqp-10-test", header, REPLY_TO_HEADER);
     }
 
     @Override

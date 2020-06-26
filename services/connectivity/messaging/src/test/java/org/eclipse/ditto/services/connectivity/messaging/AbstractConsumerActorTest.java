@@ -15,10 +15,14 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_ACK;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_DISABLE_ACKS;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_EMPTY_ACK;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,7 +34,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.ResponseType;
@@ -87,7 +90,11 @@ public abstract class AbstractConsumerActorTest<M> {
     protected static final Map.Entry<String, Object> EXPECTED_RESPONSE_TYPES = header("expected-response-types",
             JsonArray.of(ResponseType.RESPONSE.name(), ResponseType.ERROR.name(), ResponseType.N_ACK.name()));
     protected static final Map.Entry<String, Object> REQUESTED_ACKS_HEADER =
-            header("requested-acks", JsonValue.of("twin-persisted"));
+            header("requested-acks", "twin-persisted");
+    protected static final Map.Entry<String, Object> NO_REQUESTED_ACKS_HEADER =
+            header("requested-acks", Arrays.asList("twin-persisted", "DISABLE_ACKS"));
+    protected static final Map.Entry<String, Object> EMPTY_REQUESTED_ACKS_HEADER =
+            header("requested-acks", Arrays.asList("twin-persisted", "[]"));
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
@@ -132,7 +139,51 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testPositiveSourceAcknowledgementSettlement() throws Exception {
         testSourceAcknowledgementSettlement(true, true, modifyThing ->
-                ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders())
+                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
+                MODIFY_THING_WITH_ACK, publishMappedMessage ->
+                        assertThat(publishMappedMessage.getOutboundSignal()
+                                .first()
+                                .getExternalMessage()
+                                .getInternalHeaders()
+                                .getAcknowledgementRequests()
+                                .stream()
+                                .map(AcknowledgementRequest::getLabel)
+                                .collect(Collectors.toList())
+                        ).containsExactly(TWIN_PERSISTED)
+        );
+    }
+
+    @Test
+    public void testSourceAcknowledgementDisableAcksPlaceholder() throws Exception {
+        testSourceAcknowledgementSettlement(true, true, modifyThing ->
+                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
+                MODIFY_THING_WITH_DISABLE_ACKS, publishMappedMessage ->
+                        assertThat(publishMappedMessage.getOutboundSignal()
+                                .first()
+                                .getExternalMessage()
+                                .getInternalHeaders()
+                                .getAcknowledgementRequests()
+                                .stream()
+                                .map(AcknowledgementRequest::getLabel)
+                                .collect(Collectors.toList())
+                        ).isEmpty()
+        );
+    }
+
+    @Test
+    public void testSourceAcknowledgementEmptyAcksPlaceholder() throws Exception {
+        testSourceAcknowledgementSettlement(true, true, modifyThing ->
+                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
+                MODIFY_THING_WITH_EMPTY_ACK, publishMappedMessage ->
+                        assertThat(publishMappedMessage.getOutboundSignal()
+                                .first()
+                                .getExternalMessage()
+                                .getInternalHeaders()
+                                .getAcknowledgementRequests()
+                                .stream()
+                                .map(AcknowledgementRequest::getLabel)
+                                .collect(Collectors.toList())
+                        ).containsOnly(TWIN_PERSISTED)
         );
     }
 
@@ -141,7 +192,16 @@ public abstract class AbstractConsumerActorTest<M> {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
                 ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
                         .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build()
+                        .build(), MODIFY_THING_WITH_ACK, publishMappedMessage ->
+                assertThat(publishMappedMessage.getOutboundSignal()
+                        .first()
+                        .getExternalMessage()
+                        .getInternalHeaders()
+                        .getAcknowledgementRequests()
+                        .stream()
+                        .map(AcknowledgementRequest::getLabel)
+                        .collect(Collectors.toList())
+                ).containsExactly(TWIN_PERSISTED)
         );
     }
 
@@ -150,22 +210,43 @@ public abstract class AbstractConsumerActorTest<M> {
         testSourceAcknowledgementSettlement(false, true, modifyThing ->
                 AcknowledgementRequestTimeoutException.newBuilder(Duration.ofSeconds(1L))
                         .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build()
+                        .build(), MODIFY_THING_WITH_ACK, publishMappedMessage ->
+                assertThat(publishMappedMessage.getOutboundSignal()
+                        .first()
+                        .getExternalMessage()
+                        .getInternalHeaders()
+                        .getAcknowledgementRequests()
+                        .stream()
+                        .map(AcknowledgementRequest::getLabel)
+                        .collect(Collectors.toList())
+                ).containsExactly(TWIN_PERSISTED)
         );
     }
 
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToServerError() throws Exception {
         testSourceAcknowledgementSettlement(false, true, modifyThing ->
-                ThingUnavailableException.newBuilder(modifyThing.getThingEntityId())
-                        .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build()
+                        ThingUnavailableException.newBuilder(modifyThing.getThingEntityId())
+                                .dittoHeaders(modifyThing.getDittoHeaders())
+                                .build(), MODIFY_THING_WITH_ACK,
+                publishMappedMessage -> assertThat(publishMappedMessage.getOutboundSignal()
+                        .first()
+                        .getExternalMessage()
+                        .getInternalHeaders()
+                        .getAcknowledgementRequests()
+                        .stream()
+                        .map(AcknowledgementRequest::getLabel)
+                        .collect(Collectors.toList())
+                ).containsExactly(TWIN_PERSISTED)
         );
     }
 
     private void testSourceAcknowledgementSettlement(final boolean isSuccessExpected,
             final boolean shouldRedeliver,
-            final Function<ModifyThing, Object> responseCreator) throws Exception {
+            final Function<ModifyThing, Object> responseCreator,
+            final String payload,
+            final Consumer<PublishMappedMessage> messageConsumer)
+            throws Exception {
 
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
@@ -173,26 +254,16 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe clientActor = TestProbe.apply(actorSystem);
 
             final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
-            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, acks));
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, Collections.emptySet()));
 
-            underTest.tell(getInboundMessage(header("device_id", TestConstants.Things.THING_ID), REQUESTED_ACKS_HEADER),
+            underTest.tell(getInboundMessage(payload, header("device_id", TestConstants.Things.THING_ID)),
                     sender.ref());
 
             final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
             assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             concierge.reply(responseCreator.apply(modifyThing));
 
-            final PublishMappedMessage publishedMessage = clientActor.expectMsgClass(PublishMappedMessage.class);
-            assertThat(publishedMessage.getOutboundSignal()
-                    .first()
-                    .getExternalMessage()
-                    .getInternalHeaders()
-                    .getAcknowledgementRequests()
-                    .stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .collect(Collectors.toList())
-            ).containsExactly(TWIN_PERSISTED);
-
+            messageConsumer.accept(clientActor.expectMsgClass(PublishMappedMessage.class));
             verifyMessageSettlement(isSuccessExpected, shouldRedeliver);
         }};
     }
@@ -267,10 +338,7 @@ public abstract class AbstractConsumerActorTest<M> {
     protected abstract Props getConsumerActorProps(final ActorRef mappingActor,
             final Set<AcknowledgementLabel> acknowledgements);
 
-    protected abstract M getInboundMessage(final Map.Entry<String, Object> header);
-
-    protected abstract M getInboundMessage(final Map.Entry<String, Object> header,
-            final Map.Entry<String, Object> header2);
+    protected abstract M getInboundMessage(final String payload, final Map.Entry<String, Object> header);
 
     protected abstract void verifyMessageSettlement(boolean isSuccessExpected, final boolean shouldRedeliver)
             throws Exception;
@@ -300,7 +368,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, payloadMapping));
 
-            underTest.tell(getInboundMessage(header), sender.ref());
+            underTest.tell(getInboundMessage(TestConstants.modifyThing(), header), sender.ref());
 
             if (forwardedToConcierge >= 0) {
                 for (int i = 0; i < forwardedToConcierge; i++) {
