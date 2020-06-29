@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
@@ -166,7 +167,7 @@ final class StreamingSessionActor extends AbstractActor {
                 )
                 .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
-                .match(ThingModifyCommand.class, thingModifyCommand -> {
+                .match(ThingModifyCommand.class, this::isResponseRequired, thingModifyCommand -> {
                     try {
                         AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
                                 acknowledgementConfig, headerTranslator,
@@ -265,6 +266,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
                         .warning("Got unknown message in '{}' session: '{}'", type, any))
                 .build();
+    }
+
+    private boolean isResponseRequired(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().isResponseRequired();
     }
 
     private void potentiallyForwardToAckregator(final CommandResponse<?> response, final Runnable fallbackAction) {

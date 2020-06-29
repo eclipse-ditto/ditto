@@ -333,7 +333,6 @@ public final class MessageMappingProcessorActor
     }
 
     private void handleIncomingMappedSignal(final Pair<Source<SignalWithQoS, ?>, ActorRef> mappedSignalsWithSender) {
-        // TODO: tell sender how many mapped signals require acknowledgements.
         final Source<SignalWithQoS, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
         mappedSignals.flatMapConcat(
