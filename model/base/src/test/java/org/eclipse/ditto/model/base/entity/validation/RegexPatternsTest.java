@@ -80,7 +80,8 @@ public final class RegexPatternsTest {
             "org.1eclipse",
             "org.ec lipse",
             "org.",
-            ".org"
+            ".org",
+            "$test"
     );
 
     private static final List<String> GOOD_NAMESPACES = Arrays.asList(

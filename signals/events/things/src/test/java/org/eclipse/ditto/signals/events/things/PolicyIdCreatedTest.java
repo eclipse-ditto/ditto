@@ -41,12 +41,10 @@ public class PolicyIdCreatedTest {
             .set(PolicyIdCreated.JSON_POLICY_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(PolicyIdCreated.class, areImmutable(), provided(PolicyId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -67,7 +65,6 @@ public class PolicyIdCreatedTest {
                 TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final PolicyIdCreated underTest =
@@ -78,7 +75,6 @@ public class PolicyIdCreatedTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
