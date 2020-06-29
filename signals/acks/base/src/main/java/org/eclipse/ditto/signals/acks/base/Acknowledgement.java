@@ -123,7 +123,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
         if (isSuccess()) {
             return ResponseType.RESPONSE;
         } else {
-            return ResponseType.N_ACK;
+            return ResponseType.NACK;
         }
     }
 

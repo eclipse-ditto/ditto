@@ -124,6 +124,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          *
          * @param expectedResponseTypes the expected response types.
          * @return this builder.
+         * @since 1.2.0
          */
         Builder expectedResponseTypes(Collection<ResponseType> expectedResponseTypes);
 
@@ -132,6 +133,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          *
          * @param expectedResponseTypes the expected response types.
          * @return this builder.
+         * @since 1.2.0
          */
         Builder expectedResponseTypes(ResponseType... expectedResponseTypes);
 

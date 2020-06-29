@@ -93,7 +93,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                         .payloadMapping(payloadMapping)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("foo")
-                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
@@ -113,7 +113,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                         .requestedAcknowledgementLabels(acknowledgements)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("foo")
-                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,

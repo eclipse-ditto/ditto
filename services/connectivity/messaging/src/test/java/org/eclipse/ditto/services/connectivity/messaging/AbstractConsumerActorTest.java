@@ -22,10 +22,8 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.di
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -33,10 +31,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -84,17 +80,7 @@ public abstract class AbstractConsumerActorTest<M> {
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
-    private static final Set<AcknowledgementLabel> acks = new HashSet<>(
-            Collections.singletonList(AcknowledgementLabel.of("twin-persisted")));
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
-    protected static final Map.Entry<String, Object> EXPECTED_RESPONSE_TYPES = header("expected-response-types",
-            JsonArray.of(ResponseType.RESPONSE.name(), ResponseType.ERROR.name(), ResponseType.N_ACK.name()));
-    protected static final Map.Entry<String, Object> REQUESTED_ACKS_HEADER =
-            header("requested-acks", "twin-persisted");
-    protected static final Map.Entry<String, Object> NO_REQUESTED_ACKS_HEADER =
-            header("requested-acks", Arrays.asList("twin-persisted", "DISABLE_ACKS"));
-    protected static final Map.Entry<String, Object> EMPTY_REQUESTED_ACKS_HEADER =
-            header("requested-acks", Arrays.asList("twin-persisted", "[]"));
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 

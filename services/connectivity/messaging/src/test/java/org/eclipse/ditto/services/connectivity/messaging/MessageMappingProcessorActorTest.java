@@ -120,7 +120,7 @@ public final class MessageMappingProcessorActorTest {
             TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
     private static final DittoHeaders headersWithReplyInformation = DittoHeaders.newBuilder()
             .replyTarget(0)
-            .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.N_ACK)
+            .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
             .build();
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =

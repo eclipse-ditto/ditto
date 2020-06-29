@@ -57,7 +57,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .requestedAcknowledgementLabels(acknowledgements)
                 .replyTarget(ReplyTarget.newBuilder()
                         .address("foo")
-                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
                 .build(), false);
     }
@@ -71,7 +71,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .payloadMapping(payloadMapping)
                 .replyTarget(ReplyTarget.newBuilder()
                         .address("foo")
-                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
                 .build(), false);
     }

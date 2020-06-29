@@ -299,7 +299,7 @@ public final class TestConstants {
                         .index(0)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("replyTarget/{{thing:id}}")
-                                .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.N_ACK)
+                                .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
                                         .set("mappedHeader1", "{{header:original-header}}")
                                         .set("mappedHeader2", "{{thing:id}}")

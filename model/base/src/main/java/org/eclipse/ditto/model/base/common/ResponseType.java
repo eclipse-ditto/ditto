@@ -15,6 +15,10 @@ package org.eclipse.ditto.model.base.common;
 import java.util.Arrays;
 import java.util.Optional;
 
+/**
+ * An enumeration of different response types for a request.
+ * @since 1.2.0
+ */
 public enum ResponseType {
 
     /**
@@ -24,7 +28,7 @@ public enum ResponseType {
     /**
      * Type of negative acknowledgements responses.
      */
-    N_ACK("n_ack"),
+    NACK("nack"),
     /**
      * Type of normal responses. This includes positive acknowledgements.
      */

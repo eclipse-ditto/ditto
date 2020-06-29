@@ -61,7 +61,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .requestedAcknowledgementLabels(acknowledgements)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("foo")
-                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build(),
                 channel,
@@ -79,7 +79,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                         .payloadMapping(payloadMapping)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("foo")
-                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.N_ACK)
+                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build(),
                 channel,

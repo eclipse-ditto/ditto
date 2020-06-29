@@ -55,6 +55,7 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
      * {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#EXPECTED_RESPONSE_TYPES} header.
      *
      * @return true if this response is expected, false if not.
+     * @since 1.2.0
      */
     default boolean isOfExpectedResponseType() {
         return getDittoHeaders().getExpectedResponseTypes().contains(getResponseType());
@@ -62,6 +63,7 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
 
     /**
      * @return the type of this response.
+     * @since 1.2.0
      */
     default ResponseType getResponseType() {
         return ResponseType.RESPONSE;
