@@ -12,17 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -40,14 +35,11 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MapperLimitsConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
-import akka.http.javadsl.model.Host;
-import akka.http.javadsl.model.Uri;
 
 /**
  * Validate a connection according to its type.
@@ -61,31 +53,37 @@ public final class ConnectionValidator {
     private final int mappingNumberLimitSource;
     private final int mappingNumberLimitTarget;
 
+    private final HostValidator hostValidator;
+
     private ConnectionValidator(
-            final MapperLimitsConfig mapperLimitsConfig,
-            final AbstractProtocolValidator... connectionSpecs) {
+            final ConnectivityConfig connectivityConfig,
+            LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(specMap);
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory =
-                new ModelBasedThingsFieldExpressionFactory();
+        final ThingsFieldExpressionFactory fieldExpressionFactory = new ModelBasedThingsFieldExpressionFactory();
         queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+
+        final MapperLimitsConfig mapperLimitsConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
         mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
+
+        hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
     }
 
     /**
      * Create a connection validator from connection specs.
      *
-     * @param mapperLimitsConfig the mapper limits configuration
+     * @param connectivityConfig the connectivity config
+     * @param loggingAdapter a logging adapter
      * @param connectionSpecs specs of supported connection types.
      * @return a connection validator.
      */
-    public static ConnectionValidator of(final MapperLimitsConfig mapperLimitsConfig,
-            final AbstractProtocolValidator... connectionSpecs) {
-        return new ConnectionValidator(mapperLimitsConfig, connectionSpecs);
+    public static ConnectionValidator of(final ConnectivityConfig connectivityConfig,
+            LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
+        return new ConnectionValidator(connectivityConfig, loggingAdapter, connectionSpecs);
     }
 
     /**
@@ -102,96 +100,13 @@ public final class ConnectionValidator {
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
-        validateHostnames(connection, dittoHeaders, actorSystem);
+        hostValidator.validateHostnames(connection.getHostname(), dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
             spec.validate(connection, dittoHeaders, actorSystem);
         } else {
             throw new IllegalStateException("Unknown connection type: " + connection);
         }
-    }
-
-    /**
-     * Resolve blocked hostnames into IP addresses that should not be accessed.
-     *
-     * @param configuredBlockedHostnames blocked hostnames.
-     * @param log the logger.
-     * @return blocked IP addresses.
-     */
-    public static Collection<InetAddress> calculateBlockedAddresses(
-            final Collection<String> configuredBlockedHostnames,
-            final LoggingAdapter log) {
-
-        return configuredBlockedHostnames.stream()
-                .filter(host -> !host.isEmpty())
-                .flatMap(host -> {
-                    try {
-                        return Stream.of(InetAddress.getAllByName(host));
-                    } catch (final UnknownHostException e) {
-                        log.warning("Could not resolve hostname during building blocked hostnames set: <{}>", host);
-                        return Stream.empty();
-                    }
-                })
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * Check if connections to a host are forbidden by a blocklist or by the category of its IP.
-     * Loopback, private, multicast and wildcard addresses are allowed only if the blacklist is empty.
-     *
-     * @param host the host to check.
-     * @param allowedHostnames list of allowed hostnames
-     * @param blockedAddresses list of IP addresses to block. If empty, then all hosts are permitted.
-     * @return whether connections to the host are permitted.
-     */
-    public static boolean isHostForbidden(final Host host,
-            final Collection<String> allowedHostnames,
-            final Collection<InetAddress> blockedAddresses) {
-        return isHostForbidden(host, allowedHostnames, blockedAddresses,
-                ConnectionValidator::getInetAddressesAndHandleUnknownHost);
-    }
-
-    static boolean isHostForbidden(final Host host,
-            final Collection<String> allowedHostnames,
-            final Collection<InetAddress> blockedAddresses,
-            final Function<Host, Iterable<InetAddress>> inetAddressesResolver) {
-        if (blockedAddresses.isEmpty()) {
-            // If not even localhost is blocked, then permit even private, loopback, multicast and wildcard IPs.
-            return false;
-        } else if (allowedHostnames.contains(host.address())) {
-            // the host is contained in the allow-list, do not block
-            return false;
-        } else {
-            // Forbid blocked, private, loopback, multicast and wildcard IPs.
-            final Iterable<InetAddress> inetAddresses = inetAddressesResolver.apply(host);
-            return StreamSupport.stream(inetAddresses.spliterator(), false)
-                    .anyMatch(requestAddress ->
-                            requestAddress.isLoopbackAddress() ||
-                                    requestAddress.isSiteLocalAddress() ||
-                                    requestAddress.isMulticastAddress() ||
-                                    requestAddress.isAnyLocalAddress() ||
-                                    blockedAddresses.contains(requestAddress));
-        }
-    }
-
-    private static Iterable<InetAddress> getInetAddressesAndHandleUnknownHost(final Host host) {
-        final Iterable<InetAddress> inetAddresses;
-        try {
-            inetAddresses = getInetAddresses(host);
-        } catch (UnknownHostException e) {
-            final String errorMessage = String.format("The configured host '%s' is invalid: %s", host, e.getMessage());
-            throw ConnectionConfigurationInvalidException
-                    .newBuilder(errorMessage)
-                    .description("The configured host could not be resolved, make sure the Connection URI is correct.")
-                    .cause(e)
-                    .build();
-        }
-        return inetAddresses;
-    }
-
-    @SuppressWarnings("RedundantThrows") // UnknownHostException is thrown by java.net.InetAddress#getAllByName
-    private static Iterable<InetAddress> getInetAddresses(final Host host) throws UnknownHostException {
-        return host.getInetAddresses();
     }
 
     /**
@@ -260,31 +175,4 @@ public final class ConnectionValidator {
                 .build();
     }
 
-    private static void validateHostnames(final Connection connection, final DittoHeaders dittoHeaders,
-            final ActorSystem actorSystem) {
-
-        final Collection<String> configuredAllowedHostnames = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getConnectionConfig().getAllowedHostnames();
-        final Collection<String> configuredBlockedHostnames = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getConnectionConfig().getBlockedHostnames();
-        final Collection<InetAddress> blockedAddresses =
-                calculateBlockedAddresses(configuredBlockedHostnames, actorSystem.log());
-
-        validateHostnames(connection, dittoHeaders, configuredAllowedHostnames, blockedAddresses);
-    }
-
-    public static void validateHostnames(final Connection connection, final DittoHeaders dittoHeaders,
-            final Collection<String> allowedHostnames, final Collection<InetAddress> blockedAddresses) {
-        final Host connectionHost = Uri.create(connection.getUri()).getHost();
-        if (isHostForbidden(connectionHost, allowedHostnames, blockedAddresses)) {
-            final String errorMessage = String.format("The configured host '%s' may not be used for the connection.",
-                    connectionHost);
-            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                    .description("It is a blocked or otherwise forbidden hostname which may not be used.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
 }

@@ -198,7 +198,8 @@ public final class ConnectionPersistenceActor
 
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
-                        connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
+                        connectivityConfig,
+                        actorSystem.log(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(),
