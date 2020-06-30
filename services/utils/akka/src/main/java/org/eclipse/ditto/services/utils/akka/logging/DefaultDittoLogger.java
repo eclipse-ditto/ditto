@@ -19,7 +19,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 
@@ -57,7 +56,7 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     @Override
     public DefaultDittoLogger withCorrelationId(@Nullable final CharSequence correlationId) {
         currentLogger = autoClosingSlf4jLogger;
-        LogUtil.enhanceLogWithCorrelationId(correlationId);
+        currentLogger.setCorrelationId(correlationId);
         return this;
     }
 
@@ -69,15 +68,13 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     @Override
     public DefaultDittoLogger withCorrelationId(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        currentLogger = autoClosingSlf4jLogger;
-        LogUtil.enhanceLogWithCorrelationId(dittoHeaders);
-        return this;
+        return withCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
     }
 
     @Override
     public DefaultDittoLogger setCorrelationId(@Nullable final CharSequence correlationId) {
         currentLogger = autoCloseableSlf4jLogger;
-        LogUtil.enhanceLogWithCorrelationId(correlationId);
+        currentLogger.setCorrelationId(correlationId);
         return this;
     }
 
@@ -89,14 +86,12 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     @Override
     public DefaultDittoLogger setCorrelationId(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        currentLogger = autoCloseableSlf4jLogger;
-        LogUtil.enhanceLogWithCorrelationId(dittoHeaders);
-        return this;
+        return setCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
     }
 
     @Override
     public void discardCorrelationId() {
-        close();
+        currentLogger.discardCorrelationId();
     }
 
     @Override

@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -67,8 +68,12 @@ public final class ImmutableAcknowledgementTest {
 
     @Test
     public void testHashCodeAndEquals() {
+        final ThingId red = ThingId.generateRandom();
+        final ThingId black = ThingId.generateRandom();
+
         EqualsVerifier.forClass(ImmutableAcknowledgement.class)
                 .usingGetClass()
+                .withPrefabValues(EntityIdWithType.class, red, black)
                 .verify();
     }
 
