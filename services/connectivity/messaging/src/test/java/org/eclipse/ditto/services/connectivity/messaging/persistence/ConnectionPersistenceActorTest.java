@@ -477,7 +477,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://invalid:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 entry(createClosedConnectionWithUnknownHost,
                         ConnectionPersistenceActorTest::assertHostInvalid));
     }
@@ -488,7 +488,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 TestConnection.of(closedConnection.toBuilder().uri("amqp://invalid:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
     }
 
@@ -505,7 +505,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
                         .uri("amqp://invalid:1234").build(), DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
                 // modify fails because the new host is invalid
@@ -520,7 +520,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 entry(createClosedConnectionWithBlockedHost,
                         ConnectionPersistenceActorTest::assertHostBlocked));
     }
@@ -531,7 +531,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 TestConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
@@ -548,7 +548,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
                         .uri("amqp://localhost:1234").build(), DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
                 // modify fails because the new host is invalid
@@ -557,22 +557,22 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @SafeVarargs
-    private void sendCommandWithEnabledBlacklist(
+    private void sendCommandWithEnabledBlocklist(
             final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
-        final Config configWithBlacklist =
+        final Config configWithBlocklist =
                 TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
                         ConfigValueFactory.fromAnyRef("127.0.0.1"));
-        final ActorSystem systemWithBlacklist = ActorSystem.create(getClass().getSimpleName() + "WithBlacklist",
-                configWithBlacklist);
-        final ActorRef pubSubMediator = DistributedPubSub.get(systemWithBlacklist).mediator();
+        final ActorSystem systemWithBlocklist = ActorSystem.create(getClass().getSimpleName() + "WithBlocklist",
+                configWithBlocklist);
+        final ActorRef pubSubMediator = DistributedPubSub.get(systemWithBlocklist).mediator();
         final ActorRef conciergeForwarder =
-                systemWithBlacklist.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+                systemWithBlocklist.actorOf(TestConstants.ConciergeForwarderActorMock.props());
 
         try {
-            new TestKit(systemWithBlacklist) {{
-                final TestProbe probe = TestProbe.apply(systemWithBlacklist);
+            new TestKit(systemWithBlocklist) {{
+                final TestProbe probe = TestProbe.apply(systemWithBlocklist);
                 final ActorRef underTest =
-                        TestConstants.createConnectionSupervisorActor(connectionId, systemWithBlacklist,
+                        TestConstants.createConnectionSupervisorActor(connectionId, systemWithBlocklist,
                                 pubSubMediator,
                                 conciergeForwarder,
                                 (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
@@ -587,7 +587,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 probe.expectNoMessage();
             }};
         } finally {
-            TestKit.shutdownActorSystem(systemWithBlacklist);
+            TestKit.shutdownActorSystem(systemWithBlocklist);
         }
     }
 

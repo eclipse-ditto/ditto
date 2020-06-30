@@ -131,7 +131,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     @Test
     public void testRecoveryOfConnectionWithBlockedHost() {
 
-        // enable blacklist for this test
+        // enable blocklist for this test
         when(blockedHosts.unwrapped()).thenReturn("127.0.0.1");
 
         new TestKit(actorSystem) {{
