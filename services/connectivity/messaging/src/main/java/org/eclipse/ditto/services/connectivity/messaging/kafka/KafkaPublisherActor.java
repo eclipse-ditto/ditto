@@ -150,7 +150,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
             final ProducerCallBack callBack =
                     new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture,
-                            this::escalateIfNotRetriable);
+                            this::escalateIfNotRetriable, connection);
             producer.send(record, callBack);
             return resultFuture;
         }
@@ -270,15 +270,17 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private final CompletableFuture<Acknowledgement> resultFuture;
         private final Consumer<Exception> checkException;
         private int currentQuota;
+        private final Connection connection;
 
         private ProducerCallBack(final Signal<?> signal, @Nullable final Target autoAckTarget,
                 final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture,
-                final Consumer<Exception> checkException) {
+                final Consumer<Exception> checkException, final Connection connection) {
             this.signal = signal;
             this.autoAckTarget = autoAckTarget;
             this.ackSizeQuota = ackSizeQuota;
             this.resultFuture = resultFuture;
             this.checkException = checkException;
+            this.connection = connection;
         }
 
         @Override
@@ -304,16 +306,18 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private JsonObject toPayload(final RecordMetadata metadata) {
             final JsonObjectBuilder builder = JsonObject.newBuilder();
             currentQuota = ackSizeQuota;
-            builder.set("topic", metadata.topic(), this::isQuotaSufficient);
-            builder.set("partition", metadata.partition(), this::isQuotaSufficient);
-            if (metadata.hasOffset()) {
-                builder.set("offset", metadata.offset(), this::isQuotaSufficient);
-            }
             if (metadata.hasTimestamp()) {
                 builder.set("timestamp", metadata.timestamp(), this::isQuotaSufficient);
             }
             builder.set("serializedKeySize", metadata.serializedKeySize(), this::isQuotaSufficient);
             builder.set("serializedValueSize", metadata.serializedValueSize(), this::isQuotaSufficient);
+            if (connection.getSpecificConfig().getOrDefault("debug-enabled", String.valueOf(false)).equals(String.valueOf(true))) {
+                builder.set("topic", metadata.topic(), this::isQuotaSufficient);
+                builder.set("partition", metadata.partition(), this::isQuotaSufficient);
+                if (metadata.hasOffset()) {
+                    builder.set("offset", metadata.offset(), this::isQuotaSufficient);
+                }
+            }
             return builder.build();
         }
 

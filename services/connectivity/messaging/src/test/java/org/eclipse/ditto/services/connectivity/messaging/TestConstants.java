@@ -768,6 +768,18 @@ public final class TestConstants {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
+    public static Connection createConnectionWithDebugEnabled() {
+        final Map<String, String> specificConfig = new HashMap<>();
+        specificConfig.put("debug-enabled", String.valueOf(true));
+
+        return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE, ConnectivityStatus.OPEN,
+                getUriOfNewMockServer())
+                .targets(Targets.TARGETS)
+                .lifecycle(ConnectionLifecycle.ACTIVE)
+                .specificConfig(specificConfig)
+                .build();
+    }
+
     public static Connection createConnectionWithAcknowledgements() {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_ACKNOWLEDGEMENTS);
     }

@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,12 +35,26 @@ import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -79,6 +94,10 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         return KafkaPublisherActor.props(TestConstants.createConnection(), connectionFactory, false);
     }
 
+    protected Props getPublisherActorPropsWithDebugEnabled() {
+        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(), connectionFactory, false);
+    }
+
     @Override
     protected void verifyPublishedMessage() {
         Awaitility.await().until(() -> !received.isEmpty());
@@ -116,15 +135,68 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
         assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
         assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
-                .set("topic", "topic")
-                .set("partition", 5)
-                .set("offset", 0)
                 .set("timestamp", 0)
                 .set("serializedKeySize", 0)
                 .set("serializedValueSize", 0)
                 .build());
     }
 
+    @Test
+    public void verifyAcknowledgementsWithDebugEnabled() {
+        new TestKit(actorSystem) {
+            {
+                final TestProbe probe = new TestProbe(actorSystem);
+                setupMocks(probe);
+                final Props publisherProps = getPublisherActorPropsWithDebugEnabled();
+                final ActorRef publisherActor = childActorOf(publisherProps);;
+
+                final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                        .correlationId(TestConstants.CORRELATION_ID)
+                        .putHeader("device_id", "ditto:thing")
+                        .acknowledgementRequest(
+                                AcknowledgementRequest.parseAcknowledgementRequest("please-verify")).build();
+                final Target target = ConnectivityModelFactory.newTargetBuilder()
+                        .address(getOutboundAddress())
+                        .originalAddress(getOutboundAddress())
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .deliveredAcknowledgementLabel(AcknowledgementLabel.of("please-verify"))
+                        .topics(Topic.TWIN_EVENTS)
+                        .build();
+
+                final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
+                final OutboundSignal outboundSignal =
+                        OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+                final ExternalMessage externalMessage =
+                        ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                                .withText("payload")
+                                .build();
+                final Adaptable adaptable =
+                        DittoProtocolAdapter.newInstance().toAdaptable(source);
+                final OutboundSignal.Mapped mappedSignal =
+                        OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+                final OutboundSignal.MultiMapped multiMappedSignal =
+                        OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mappedSignal), getRef());
+
+                publisherCreated(this, publisherActor);
+                publisherActor.tell(multiMappedSignal, getRef());
+
+                final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+                assertThat(acks.getSize()).isEqualTo(1);
+                final Acknowledgement ack = acks.stream().findAny().orElseThrow();
+                assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+                assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+                assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
+                        .set("timestamp", 0)
+                        .set("serializedKeySize", 0)
+                        .set("serializedValueSize", 0)
+                        .set("topic", "topic")
+                        .set("partition", 5)
+                        .set("offset", 0)
+                        .build());
+            }
+        };
+    }
 
     @Override
     protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {

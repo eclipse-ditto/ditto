@@ -104,6 +104,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             .description("Please contact the service team.")
             .build();
 
+    protected final Connection connection;
     protected final ConnectionId connectionId;
     protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
@@ -117,6 +118,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     protected BasePublisherActor(final Connection connection) {
         checkNotNull(connection, "connection");
+        this.connection = connection;
         this.connectionId = connection.getId();
         this.targets = connection.getTargets();
         resourceStatusMap = new HashMap<>();
