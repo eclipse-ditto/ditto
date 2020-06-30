@@ -624,24 +624,25 @@ public final class MessageMappingProcessorActor
                     final Signal<?> signal = mappedInboundMessage.getSignal();
                     enhanceLogUtil(signal);
 
-                    // the above throws an exception if signal id enforcement fails
                     final DittoHeaders mappedHeaders =
                             applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
                                     mappedInboundMessage.getTopicPath(), incomingMessage.getInternalHeaders());
 
-                    final SignalWithQoS adjustedSignalWithQoS =
-                            new SignalWithQoS(appendConnectionAcknowledgementsToSignal(incomingMessage,
-                                    signal.setDittoHeaders(mappedHeaders)), incomingMessage.getSource()
-                                    .map(
-                                            org.eclipse.ditto.model.connectivity.Source::getQos)
-                                    .orElse(Optional.of(1))
-                                    .orElse(1));
+                    // TODO: set requested-acks per incoming QoS? define standard QoS "header" for MQTT?
+                    final SignalWithQoS adjustedSignalWithQoS = new SignalWithQoS(
+                            appendConnectionAcknowledgementsToSignal(incomingMessage,
+                                    signal.setDittoHeaders(mappedHeaders)),
+                            incomingMessage.getSource()
+                                    .flatMap(org.eclipse.ditto.model.connectivity.Source::getQos)
+                                    .orElse(1)
+                    );
 
                     enhanceLogUtil(adjustedSignalWithQoS.signal);
                     // enforce signal ID after header mapping was done
                     connectionMonitorRegistry.forInboundEnforced(connectionId, source)
                             .wrapExecution(adjustedSignalWithQoS.signal)
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
+                    // the above throws an exception if signal id enforcement fails
 
                     // This message is important to check if a command is accepted for a specific connection, as this happens
                     // quite a lot this is going to the debug level. Use best with a connection-id filter.
