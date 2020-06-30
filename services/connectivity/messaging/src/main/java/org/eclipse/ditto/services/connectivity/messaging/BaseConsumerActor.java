@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -102,22 +103,25 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
                             settle.run();
                         } else {
-                            log().debug("Rejecting due to failed responses <{}>", failedResponses);
-                            reject.reject(true);
+                            final boolean shouldRedeliver = someFailedResponseRequiresRedelivery(failedResponses);
+                            log().debug("Rejecting [redeliver={}] due to failed responses <{}>",
+                                    shouldRedeliver, failedResponses);
+                            reject.reject(shouldRedeliver);
                         }
                     } else {
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
                                     // Redeliver and pray this unexpected error goes away
-                                    log().debug("Rejecting due to error <{}>", rootCause);
+                                    log().debug("Rejecting [redeliver=true] due to error <{}>", rootCause);
                                     reject.reject(true);
                                     inboundFailure(rootCause);
                                     return null;
                                 });
                         if (dittoRuntimeException != null) {
-                            final HttpStatusCode status = dittoRuntimeException.getStatusCode();
-                            log().debug("Rejecting due to error <{}>", dittoRuntimeException);
-                            reject.reject(!status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT);
+                            final boolean shouldRedeliver = requiresRedelivery(dittoRuntimeException.getStatusCode());
+                            log().debug("Rejecting [redeliver={}] due to error <{}>",
+                                    shouldRedeliver, dittoRuntimeException);
+                            reject.reject(shouldRedeliver);
                             inboundFailure(dittoRuntimeException);
                         }
                     }
@@ -214,6 +218,16 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     private static String getInstanceIdentifier() {
         return InstanceIdentifierSupplier.getInstance().get();
+    }
+
+    private static boolean someFailedResponseRequiresRedelivery(final Collection<CommandResponse<?>> failedResponses) {
+        return failedResponses.stream()
+                .map(CommandResponse::getStatusCode)
+                .anyMatch(status -> !status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT);
+    }
+
+    private static boolean requiresRedelivery(final HttpStatusCode status) {
+        return !status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT;
     }
 
     /**

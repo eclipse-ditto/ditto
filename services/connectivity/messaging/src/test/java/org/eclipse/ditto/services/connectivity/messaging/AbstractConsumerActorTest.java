@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -50,6 +51,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConf
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -174,7 +176,7 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     @Test
-    public void testNegativeSourceAcknowledgementSettlement() throws Exception {
+    public void testNegativeSourceAcknowledgementSettlementDueToError() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
                 ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
                         .dittoHeaders(modifyThing.getDittoHeaders())
@@ -188,6 +190,16 @@ public abstract class AbstractConsumerActorTest<M> {
                         .map(AcknowledgementRequest::getLabel)
                         .collect(Collectors.toList())
                 ).containsExactly(TWIN_PERSISTED)
+        );
+    }
+
+    @Test
+    public void testNegativeSourceAcknowledgementSettlementDueToNAck() throws Exception {
+        testSourceAcknowledgementSettlement(false, false, modifyThing ->
+                        Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getThingEntityId(),
+                                HttpStatusCode.BAD_REQUEST, modifyThing.getDittoHeaders()),
+                MODIFY_THING_WITH_ACK,
+                publishMappedMessage -> {}
         );
     }
 
