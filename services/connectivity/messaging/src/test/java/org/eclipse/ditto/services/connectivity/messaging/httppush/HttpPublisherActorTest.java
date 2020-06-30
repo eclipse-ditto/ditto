@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -31,6 +31,8 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
+import akka.http.javadsl.model.ContentType;
+import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
@@ -43,6 +45,7 @@ import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
+import akka.util.ByteString;
 import scala.util.Try;
 
 /**
@@ -50,7 +53,9 @@ import scala.util.Try;
  */
 public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
-    private static final String BODY = "The quick brown fox jumps over the lazy dog.";
+    private static final ContentType CONTENT_TYPE =
+            ContentTypes.parse("APPLICATION/VND.ECLIPSE.DITTO+JSON ; PARAM_NAME=PARAM_VALUE");
+    private static final String BODY = "[\"The quick brown fox jumps over the lazy dog.\"]";
 
     private HttpPushFactory httpPushFactory;
     private final BlockingQueue<HttpRequest> received = new LinkedBlockingQueue<>();
@@ -66,7 +71,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             received.offer(request);
             return HttpResponse.create()
                     .withStatus(StatusCodes.OK)
-                    .withEntity(BODY);
+                    .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
+                            (akka.http.scaladsl.model.ContentType) CONTENT_TYPE,
+                            ByteString.fromString(BODY)
+                    ));
         });
 
         // activate debug log to show responses
@@ -123,7 +131,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
         assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
         assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
-        assertThat(ack.getEntity()).contains(JsonValue.of(BODY));
+        assertThat(ack.getEntity()).contains(JsonFactory.readFrom(BODY));
     }
 
     @Override

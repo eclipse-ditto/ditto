@@ -49,13 +49,13 @@ import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.MediaType;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
@@ -279,24 +279,41 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     final Charset charset = strictEntity.getContentType().getCharsetOption()
                             .map(HttpCharset::nioCharset)
                             .orElse(StandardCharsets.UTF_8);
-                    if (strictEntity.getContentType().binary()) {
-                        // do not include binary payload
+                    if (isApplicationJson(strictEntity.getContentType().mediaType())) {
+                        // check for application/.*json first: vendor JSON types are classified incorrectly as binary
+                        final String bodyString = new String(strictEntity.getData().toArray(), charset);
+                        try {
+                            return JsonFactory.readFrom(bodyString);
+                        } catch (Exception e) {
+                            return JsonValue.of(bodyString);
+                        }
+                    } else if (!strictEntity.getContentType().binary()) {
+                        // leave out non-JSON binary payload
                         return null;
                     } else {
-                        final String bodyString = new String(strictEntity.getData().toArray(), charset);
-                        if (strictEntity.getContentType() == ContentTypes.APPLICATION_JSON) {
-                            try {
-                                return JsonFactory.readFrom(bodyString);
-                            } catch (Exception e) {
-                                // fall through: JSON is invalid, possibly due to truncation. return body as string.
-                            }
-                        }
-                        return JsonValue.of(bodyString);
+                        // add text payload as JSON string
+                        return JsonFactory.newValue(new String(strictEntity.getData().toArray(), charset));
                     }
                 });
     }
 
     private static Uri stripUserInfo(final Uri requestUri) {
         return requestUri.userInfo("");
+    }
+
+    /**
+     * Test if a media type is application/json or application/vnd.xxx+json.
+     * Akka HTTP converts subtype to lower case, why case-insensitive comparison is unnecessary.
+     *
+     * @param mediaType the media type to test.
+     * @return whether the media type indicates a JSON content type.
+     */
+    private static boolean isApplicationJson(final MediaType mediaType) {
+        if (mediaType.isApplication()) {
+            final String subType = mediaType.subType();
+            return subType.equals("json") || subType.startsWith("vnd.") && subType.endsWith("+json");
+        } else {
+            return false;
+        }
     }
 }
