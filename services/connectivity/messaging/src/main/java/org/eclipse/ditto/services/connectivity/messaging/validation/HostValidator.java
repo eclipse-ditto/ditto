@@ -136,7 +136,7 @@ final class HostValidator {
     /**
      * @throws ConnectionConfigurationInvalidException if the connection is not valid
      */
-    void validateHostnames(final String connectionHost, final DittoHeaders dittoHeaders) {
+    void validateHostname(final String connectionHost, final DittoHeaders dittoHeaders) {
         final HostValidationResult validationResult = validateHost(connectionHost);
         if (!validationResult.valid) {
             throw validationResult.toException(dittoHeaders);

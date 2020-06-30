@@ -17,7 +17,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.CONNECTIVITY_CONFIG;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -45,16 +44,19 @@ import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.services.connectivity.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
@@ -67,16 +69,16 @@ import akka.testkit.javadsl.TestKit;
 public class ConnectionValidatorTest {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
-    protected static final MapperLimitsConfig MAPPER_LIMITS_CONFIG =
-            TestConstants.MAPPING_CONFIG.getMapperLimitsConfig();
-
+    private static final Config CONFIG =
+            TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
+                    ConfigValueFactory.fromAnyRef("8.8.8.8,2001:4860:4860:0000:0000:0000:0000:0001"));
+    private static final ConnectivityConfig CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST =
+            DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
     private static ActorSystem actorSystem;
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem",
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
-                        ConfigValueFactory.fromAnyRef("8.8.8.8,2001:4860:4860:0000:0000:0000:0000:0001")));
+        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
     }
 
     @AfterClass
@@ -96,7 +98,7 @@ public class ConnectionValidatorTest {
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class).isAlsoImmutable());
+                provided(QueryFilterCriteriaFactory.class, HostValidator.class).isAlsoImmutable());
     }
 
     @Test
@@ -257,8 +259,6 @@ public class ConnectionValidatorTest {
         expectConnectionConfigurationInvalid(underTest, getConnectionWithHost("224.0.1.1"));
     }
 
-
-
     private static void expectConnectionConfigurationInvalid(final ConnectionValidator underTest,
             final Connection connection) {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -349,6 +349,7 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(CONNECTIVITY_CONFIG, actorSystem.log(), AmqpValidator.newInstance());
+        return ConnectionValidator.of(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST, actorSystem.log(),
+                AmqpValidator.newInstance());
     }
 }

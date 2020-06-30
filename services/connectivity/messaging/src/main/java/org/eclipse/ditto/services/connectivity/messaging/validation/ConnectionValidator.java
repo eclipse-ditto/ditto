@@ -100,7 +100,7 @@ public final class ConnectionValidator {
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
-        hostValidator.validateHostnames(connection.getHostname(), dittoHeaders);
+        hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
             spec.validate(connection, dittoHeaders, actorSystem);
