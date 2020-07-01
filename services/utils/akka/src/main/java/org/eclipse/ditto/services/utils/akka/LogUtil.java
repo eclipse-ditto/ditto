@@ -15,13 +15,11 @@ package org.eclipse.ditto.services.utils.akka;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -29,7 +27,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.slf4j.Logger;
 import org.slf4j.MDC;
 
 import akka.actor.Actor;
@@ -61,141 +58,6 @@ public final class LogUtil {
      */
     public static DiagnosticLoggingAdapter obtain(final Actor logSource) {
         return Logging.apply(logSource);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id} extracted from the passed
-     * {@code withDittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param withDittoHeaders where to extract a possible correlation ID from.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final WithDittoHeaders<?> withDittoHeaders,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, withDittoHeaders.getDittoHeaders(), logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id} extracted from the passed
-     * {@code withDittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param withDittoHeaders where to extract a possible correlation ID from.
-     * @param additionalMdcFields additional fields which should bet set to the MDC.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger,
-            final WithDittoHeaders<?> withDittoHeaders,
-            final Map<String, String> additionalMdcFields,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, withDittoHeaders.getDittoHeaders(), additionalMdcFields, logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id} extracted from the passed
-     * {@code dittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param dittoHeaders where to extract a possible correlation ID from.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final DittoHeaders dittoHeaders,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, dittoHeaders.getCorrelationId(), logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id} extracted from the passed
-     * {@code dittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param dittoHeaders where to extract a possible correlation ID from.
-     * @param additionalMdcFields additional fields which should bet set to the MDC.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger,
-            final DittoHeaders dittoHeaders,
-            final Map<String, String> additionalMdcFields,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, dittoHeaders.getCorrelationId(), additionalMdcFields, logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id}.
-     * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlation ID to put onto the MDC.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final Optional<String> correlationId,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, correlationId.orElse(null), logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id}.
-     * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlation ID to put onto the MDC.
-     * @param additionalMdcFields additional fields which should bet set to the MDC.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger,
-            final Optional<String> correlationId,
-            final Map<String, String> additionalMdcFields,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, correlationId.orElse(null), additionalMdcFields, logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id}.
-     * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlation ID to put onto the MDC.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger, @Nullable final CharSequence correlationId,
-            final Consumer<Logger> logConsumer) {
-
-        logWithCorrelationId(slf4jLogger, correlationId, Collections.emptyMap(), logConsumer);
-    }
-
-    /**
-     * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id}.
-     * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *  @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlation ID to put onto the MDC.
-     * @param additionalMdcFields additional fields which should bet set to the MDC.
-     * @param logConsumer the consumer with which the caller must log.
-     */
-    public static void logWithCorrelationId(final Logger slf4jLogger,
-            @Nullable final CharSequence correlationId,
-            final Map<String, String> additionalMdcFields,
-            final Consumer<Logger> logConsumer) {
-
-        final Map<String, String> originalContext = MDC.getCopyOfContextMap();
-        enhanceLogWithCorrelationId(correlationId);
-
-        additionalMdcFields.forEach(MDC::put);
-        try {
-            logConsumer.accept(slf4jLogger);
-        } finally {
-            if (null != originalContext) {
-                MDC.setContextMap(originalContext);
-            } else {
-                MDC.clear();
-            }
-        }
     }
 
     /**

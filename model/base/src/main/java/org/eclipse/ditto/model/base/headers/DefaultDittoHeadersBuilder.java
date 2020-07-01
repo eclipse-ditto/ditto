@@ -28,9 +28,14 @@ import org.eclipse.ditto.json.JsonObject;
 final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<DefaultDittoHeadersBuilder, DittoHeaders> {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = ImmutableDittoHeaders.of(Collections.emptyMap());
+    private static final EnumSet<DittoHeaderDefinition> DEFINITIONS = EnumSet.allOf(DittoHeaderDefinition.class);
 
     private DefaultDittoHeadersBuilder(final Map<String, String> headers) {
-        super(headers, EnumSet.allOf(DittoHeaderDefinition.class), DefaultDittoHeadersBuilder.class);
+        super(headers, DEFINITIONS, DefaultDittoHeadersBuilder.class);
+    }
+
+    private DefaultDittoHeadersBuilder(final DittoHeaders dittoHeaders) {
+        super(dittoHeaders, DEFINITIONS, DefaultDittoHeadersBuilder.class);
     }
 
     /**
@@ -52,6 +57,9 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
      * that did not represent its appropriate Java type.
      */
     static DefaultDittoHeadersBuilder of(final Map<String, String> headers) {
+        if (headers instanceof DittoHeaders) {
+            return new DefaultDittoHeadersBuilder((DittoHeaders) headers);
+        }
         return new DefaultDittoHeadersBuilder(headers);
     }
 
