@@ -39,11 +39,10 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This mapper extracts the headers {@code creation-time} and {@code ttd} from the message and builds a
@@ -57,7 +56,7 @@ import org.slf4j.LoggerFactory;
 )
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
 
     static final String HEADER_HONO_TTD = "ttd";
     static final String HEADER_HONO_CREATION_TIME = "creation-time";
@@ -110,10 +109,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             return doMap(externalMessage);
         } catch (final Exception e) {
             // we don't want to throw an exception in case something went wrong during the mapping
-            LogUtil.logWithCorrelationId(LOGGER, externalMessage.getInternalHeaders(), logger ->
-                    logger.info("Error occurred during mapping: <{}>: {}",
-                            e.getClass().getSimpleName(), e.getMessage())
-            );
+            LOGGER.withCorrelationId(externalMessage.getInternalHeaders())
+                    .info("Error occurred during mapping: <{}>: {}", e.getClass().getSimpleName(), e.getMessage());
             return EMPTY_RESULT;
         }
     }
@@ -176,9 +173,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
                 ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, JsonValue.of(readyUntil.toString()),
                         newDittoHeaders);
 
-        LogUtil.logWithCorrelationId(LOGGER, newDittoHeaders, logger ->
-                logger.debug("ModifyFeatureProperty for ConnectionStatus created by mapper: {}", modifyFeatureProperty)
-        );
+        LOGGER.withCorrelationId(newDittoHeaders)
+                .debug("ModifyFeatureProperty for ConnectionStatus created by mapper: {}", modifyFeatureProperty);
         return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeatureProperty);
     }
 
@@ -204,9 +200,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, newDittoHeaders);
 
-        LogUtil.logWithCorrelationId(LOGGER, newDittoHeaders, logger ->
-                logger.debug("ModifyFeature for ConnectionStatus created by mapper: {}", modifyFeature)
-        );
+        LOGGER.withCorrelationId(newDittoHeaders)
+                .debug("ModifyFeature for ConnectionStatus created by mapper: {}", modifyFeature);
         return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeature);
     }
 

@@ -54,6 +54,9 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @throws IllegalArgumentException if {@code headers} contains an invalid key-value-pair.
      */
     static DittoHeaders of(final Map<String, String> headers) {
+        if (headers instanceof DittoHeaders) {
+            return (DittoHeaders) headers;
+        }
         return newBuilder(headers).build();
     }
 

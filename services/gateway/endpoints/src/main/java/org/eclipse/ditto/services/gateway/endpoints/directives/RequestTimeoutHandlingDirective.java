@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRawRequestUri;
 
 import java.time.Duration;
@@ -23,14 +22,14 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpRequest;
@@ -45,7 +44,7 @@ import akka.util.ByteString;
  */
 public final class RequestTimeoutHandlingDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RequestTimeoutHandlingDirective.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestTimeoutHandlingDirective.class);
 
     private static final Duration SEARCH_WARN_TIMEOUT_MS = Duration.ofMillis(5_000);
     private static final Duration HTTP_WARN_TIMEOUT_MS = Duration.ofMillis(1_000);
@@ -75,19 +74,16 @@ public final class RequestTimeoutHandlingDirective {
      * @return the new Route wrapping {@code inner} with the response headers.
      */
     public Route handleRequestTimeout(final CharSequence correlationId, final Supplier<Route> inner) {
-        return Directives.extractActorSystem(actorSystem -> extractRequestContext(requestContext ->
-                enhanceLogWithCorrelationId(correlationId, () -> {
+        return Directives.extractActorSystem(actorSystem -> extractRequestContext(requestContext -> {
                     final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
-                    LOGGER.debug("Started mutable timer <{}>.", timer);
+                    LOGGER.withCorrelationId(correlationId).debug("Started mutable timer <{}>.", timer);
 
                     final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
                         final int statusCode = response.status().intValue();
                         if (timer.isRunning()) {
-                            final StoppedTimer stoppedTimer = enhanceLogWithCorrelationId(correlationId, () -> {
-                                final StoppedTimer result = timer.tag(TracingTags.STATUS_CODE, statusCode).stop();
-                                LOGGER.debug("Finished timer <{}> with status <{}>.", timer, statusCode);
-                                return result;
-                            });
+                            final StoppedTimer stoppedTimer = timer.tag(TracingTags.STATUS_CODE, statusCode).stop();
+                            LOGGER.withCorrelationId(correlationId)
+                                    .debug("Finished timer <{}> with status <{}>.", timer, statusCode);
                             checkDurationWarning(stoppedTimer, correlationId);
                         }
                         return response;
@@ -95,7 +91,7 @@ public final class RequestTimeoutHandlingDirective {
 
                     return Directives.withRequestTimeoutResponse(request ->
                             doHandleRequestTimeout(correlationId, requestContext, timer), innerWithTimer);
-                })
+                }
         ));
     }
 
@@ -103,16 +99,15 @@ public final class RequestTimeoutHandlingDirective {
         final Duration duration = mutableTimer.getDuration();
         final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
 
-        LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
-            if (requestPath != null && requestPath.contains("/search/things") &&
-                    SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-                logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!",
-                        SEARCH_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
-            } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-                logger.warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
-                        HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
-            }
-        });
+        if (requestPath != null && requestPath.contains("/search/things") &&
+                SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+            LOGGER.withCorrelationId(correlationId).warn("Encountered slow search which took over <{}> ms: <{}> ms!",
+                    SEARCH_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
+        } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+            LOGGER.withCorrelationId(correlationId)
+                    .warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
+                            HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
+        }
     }
 
     private HttpResponse doHandleRequestTimeout(final CharSequence correlationId, final RequestContext requestContext,
@@ -128,9 +123,9 @@ public final class RequestTimeoutHandlingDirective {
            in case of a timeout */
         final int statusCode = cre.getStatusCode().toInt();
 
-        LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
-            final String requestMethod = request.method().name();
-            final String requestUri = request.getUri().toRelative().toString();
+        final String requestMethod = request.method().name();
+        final String requestUri = request.getUri().toRelative().toString();
+        try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(correlationId)) {
             logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
                     httpConfig.getRequestTimeout());
             logger.info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
@@ -145,7 +140,7 @@ public final class RequestTimeoutHandlingDirective {
                 logger.warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
                         " was detected where it should not have been");
             }
-        });
+        }
 
         /*
          * We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be

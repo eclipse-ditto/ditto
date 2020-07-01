@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Marker;
@@ -438,6 +439,17 @@ final class AutoClosingSlf4jLogger implements AutoCloseableSlf4jLogger {
         try (final AutoCloseableSlf4jLogger l = autoCloseableSlf4jLogger) {
             l.error(marker, msg, t);
         }
+    }
+
+    @Override
+    public AutoClosingSlf4jLogger setCorrelationId(@Nullable final CharSequence correlationId) {
+        autoCloseableSlf4jLogger.setCorrelationId(correlationId);
+        return this;
+    }
+
+    @Override
+    public void discardCorrelationId() {
+        autoCloseableSlf4jLogger.discardCorrelationId();
     }
 
     @Override

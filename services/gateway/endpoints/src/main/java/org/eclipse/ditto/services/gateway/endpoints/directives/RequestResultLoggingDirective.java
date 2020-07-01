@@ -12,19 +12,18 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequestContext;
+import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
 import static akka.http.javadsl.server.Directives.mapRouteResult;
 
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils;
 import org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
-import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.server.Complete;
 import akka.http.javadsl.server.Route;
 
@@ -34,12 +33,12 @@ import akka.http.javadsl.server.Route;
 public final class RequestResultLoggingDirective {
 
     private static final String DITTO_TRACE_HEADERS = "ditto-trace-headers";
-    private static final Logger LOGGER = LoggerFactory.getLogger(RequestResultLoggingDirective.class);
-    private static final Logger TRACE_LOGGER =
-            LoggerFactory.getLogger(RequestResultLoggingDirective.class.getName() + "." + DITTO_TRACE_HEADERS);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestResultLoggingDirective.class);
+    private static final DittoLogger TRACE_LOGGER =
+            DittoLoggerFactory.getLogger(RequestResultLoggingDirective.class.getName() + "." + DITTO_TRACE_HEADERS);
 
     private RequestResultLoggingDirective() {
-        // no op
+        throw new AssertionError();
     }
 
     /**
@@ -49,40 +48,39 @@ public final class RequestResultLoggingDirective {
      * @param inner the inner Route to be logged
      * @return the new Route wrapping {@code inner} with logging
      */
-    public static Route logRequestResult(final String correlationId, final Supplier<Route> inner) {
+    public static Route logRequestResult(final CharSequence correlationId, final Supplier<Route> inner) {
         // add akka standard logging to the route
         final Supplier<Route> innerWithAkkaLoggingRoute = () -> logRequest("http-request", () ->
                 logResult("http-response", inner));
 
         // add our own logging with time measurement and creating a kamon trace
         // code is inspired by DebuggingDirectives#logRequestResult
-        return extractRequestContext(requestContext -> {
-            final HttpRequest request = requestContext.getRequest();
+        return extractRequest(request -> {
             final String requestMethod = request.method().name();
             final String requestUri = request.getUri().toRelative().toString();
-            return mapRouteResult(
-                    routeResult -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
-
-                        if (routeResult instanceof Complete) {
-                            final Complete complete = (Complete) routeResult;
-                            final int statusCode = complete.getResponse().status().intValue();
-                            LOGGER.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
-                            final String rawRequestUri = HttpUtils.getRawRequestUri(request);
-                            LOGGER.debug("Raw request URI was: {}", rawRequestUri);
-                            request.getHeader(DITTO_TRACE_HEADERS)
-                                    .filter(unused -> TRACE_LOGGER.isDebugEnabled())
-                                    .ifPresent(
-                                            unused -> TRACE_LOGGER.debug("Request headers: {}", request.getHeaders()));
-                        } else {
+            return mapRouteResult(routeResult -> {
+                try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(correlationId)) {
+                    if (routeResult instanceof Complete) {
+                        final Complete complete = (Complete) routeResult;
+                        final int statusCode = complete.getResponse().status().intValue();
+                        logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
+                        final String rawRequestUri = HttpUtils.getRawRequestUri(request);
+                        logger.debug("Raw request URI was: {}", rawRequestUri);
+                        request.getHeader(DITTO_TRACE_HEADERS)
+                                .filter(unused -> TRACE_LOGGER.isDebugEnabled())
+                                .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
+                                        .debug("Request headers: {}", request.getHeaders()));
+                    } else {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
-                            LOGGER.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
-                                            "akka default RejectionHandler.", requestMethod, requestUri,
-                                    routeResult);
-                        }
+                        logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
+                                        "akka default RejectionHandler.", requestMethod, requestUri,
+                                routeResult);
+                    }
 
-                        return routeResult;
-                    }), innerWithAkkaLoggingRoute);
+                    return routeResult;
+                }
+            }, innerWithAkkaLoggingRoute);
         });
     }
 }
