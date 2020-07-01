@@ -8,7 +8,7 @@ pipeline {
         theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
         JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
-    parameter {
+    parameters {
         string(name: 'DOCKER_ARGS', defaultValue: '',  description: 'Add arguments which are passed to the running docker container')
         string(name: 'DOCKER_IMAGE', defaultValue: '', description: 'Insert the docker image version to run the build')
     }
