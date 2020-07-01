@@ -49,7 +49,7 @@ pipeline {
             }
             steps {
                 configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    withSonarQubeEnv(installationName: "${env.SONAR_QUBE_ENV}", credentialsId: 'sonarqube') {
+                    withSonarQubeEnv(installationName: "$SONAR_QUBE_ENV", credentialsId: 'sonarqube') {
                         sh "mvn -s $MVN_SETTINGS --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} -Drevision=${theVersion}"
                     }
                 }
