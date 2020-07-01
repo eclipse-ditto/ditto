@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -42,6 +43,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
@@ -222,12 +224,39 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     private static boolean someFailedResponseRequiresRedelivery(final Collection<CommandResponse<?>> failedResponses) {
         return failedResponses.stream()
+                .flatMap(BaseConsumerActor::extractAggregatedResponses)
                 .map(CommandResponse::getStatusCode)
-                .anyMatch(status -> !status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT);
+                .anyMatch(BaseConsumerActor::requiresRedelivery);
     }
 
+    private static Stream<? extends CommandResponse<?>> extractAggregatedResponses(final CommandResponse<?> response) {
+        if (response instanceof Acknowledgements) {
+            return ((Acknowledgements) response).stream();
+        } else {
+            return Stream.of(response);
+        }
+    }
+
+    /**
+     * Decide whether an Acknowledgement or DittoRuntimeException requires redelivery based on the status code.
+     * Client errors excluding 408 request-timeout and 424 failed-dependency are considered unrecoverable
+     * and no redelivery will be attempted.
+     *
+     * @param status Status code of the Acknowledgement or DittoRuntimeException.
+     * @return whether it requires redelivery.
+     */
     private static boolean requiresRedelivery(final HttpStatusCode status) {
-        return !status.isClientError() || status == HttpStatusCode.REQUEST_TIMEOUT;
+        if (status.isClientError()) {
+            switch (status) {
+                case REQUEST_TIMEOUT:
+                case FAILED_DEPENDENCY:
+                    return true;
+                default:
+                    return false;
+            }
+        } else {
+            return true;
+        }
     }
 
     /**
