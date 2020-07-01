@@ -62,7 +62,7 @@ public final class SubscriptionManager extends AbstractActor {
 
     private final Duration idleTimeout;
     private final ActorRef pubSubMediator;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef proxyActor;
     private final ActorMaterializer materializer;
     private final DittoDiagnosticLoggingAdapter log;
 
@@ -73,11 +73,11 @@ public final class SubscriptionManager extends AbstractActor {
 
     SubscriptionManager(final Duration idleTimeout,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ActorMaterializer materializer) {
         this.idleTimeout = idleTimeout;
         this.pubSubMediator = pubSubMediator;
-        this.conciergeForwarder = conciergeForwarder;
+        this.proxyActor = proxyActor;
         this.materializer = materializer;
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -92,16 +92,16 @@ public final class SubscriptionManager extends AbstractActor {
      *
      * @param idleTimeout lifetime of an idle SubscriptionActor.
      * @param pubSubMediator pub-sub mediator for reporting of out-of-sync things.
-     * @param conciergeForwarder recipient of thing and StreamThings commands.
+     * @param proxyActor recipient of thing and StreamThings commands.
      * @param materializer materializer for the search streams.
      * @return Props of the actor.
      */
     public static Props props(final Duration idleTimeout,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ActorMaterializer materializer) {
 
-        return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, conciergeForwarder, materializer);
+        return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, proxyActor, materializer);
     }
 
     private static JsonArray asJsonArray(final Collection<String> strings) {
@@ -187,7 +187,7 @@ public final class SubscriptionManager extends AbstractActor {
         try {
             final SearchSource searchSource = SearchSource.newBuilder()
                     .pubSubMediator(pubSubMediator)
-                    .conciergeForwarder(conciergeForwarder)
+                    .conciergeForwarder(proxyActor)
                     .namespaces(namespaces)
                     .filter(createSubscription.getFilter().orElse(null))
                     .fields(createSubscription.getSelectedFields().orElse(null))
