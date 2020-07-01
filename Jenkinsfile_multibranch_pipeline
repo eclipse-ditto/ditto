@@ -8,6 +8,10 @@ pipeline {
         theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
         JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
     parameters {
         string(name: 'DOCKER_ARGS_FOR_BUILD', defaultValue: '',  description: 'Docker args for building the ditto project inside the container')
         string(name: 'DOCKER_ARGS_FOR_SONAR', defaultValue: '',  description: 'Docker args for SonarScan stage')
