@@ -13,7 +13,7 @@ meaning that project code as well as all used dependencies were "[...] reviewed 
 expressed are correct, licensing is valid and compatible, and that other issues have been uncovered and properly 
 investigated."
 
-## What's in this release?
+## Changelog
 
 Eclipse Ditto 1.0.0 focuses on the following areas:
 
@@ -25,24 +25,22 @@ If you want to upgrade an existing Ditto installation to 1.0.0, the following da
 before upgrading: **Follow the steps documented in [the migration notes](#migration-notes)**." %}
 
 
-### Changelog
-
 Compared to the latest milestone release [1.0.0-M2](release_notes_100-M2.html), the following changes, new features and
 bugfixes were added.
 
 
-#### Changes
+### Changes
 
-##### [Remove suffixed collections](https://github.com/eclipse/ditto/issues/537)
+#### [Remove suffixed collections](https://github.com/eclipse/ditto/issues/537)
 
 We removed suffixed collection support from Things and Policies persistence.
 These collections do not scale well with increased amount of namespaces and lead to massive problems with mongodb as 
 sharding can't be used.
 
 
-#### New features
+### New features
 
-##### [Comprehensive support for command responses](https://github.com/eclipse/ditto/issues/540)
+#### [Comprehensive support for command responses](https://github.com/eclipse/ditto/issues/540)
 
 Adds the possibility to define a "reply target" for [connection sources](basic-connections.html#sources) where 
 * the response address may be configured
@@ -54,19 +52,19 @@ specified a `reply-to` address.
 Used in combination with [Eclipse Hono](https://eclipse.org/hono/)  it is possible to send responses to devices which 
 e.g. need to retrieve data from Ditto.
 
-##### [Add "definition" to Thing in order to reference used model](https://github.com/eclipse/ditto/issues/247)
+#### [Add "definition" to Thing in order to reference used model](https://github.com/eclipse/ditto/issues/247)
 
 In order to specify which model a Thing follows, the JSON of the Thing entity was enhanced with a single string for 
 `"definintion"`. This can e.g. be used in order to place an [Eclipse Vorto](https://eclipse.org/vorto/) 
 "Information Model" reference to a Thing.
 
-#### Bugfixes
+### Bugfixes
 
-##### [Fixed NullPointer in StreamingSessionActor](https://github.com/eclipse/ditto/pull/546)
+#### [Fixed NullPointer in StreamingSessionActor](https://github.com/eclipse/ditto/pull/546)
 
 When closing a WebSocket session, a `NullPointerException` occurred which is fixed now.
 
-### Migration notes
+## Migration notes
 
 OpenID Connect URLs are now prefixed with `https://` per default. Any configured URLs containing `https://` will break the configuration.
 Instead of `https://auth.eclipse.de/auth/realms/ditto` it has to be `auth.eclipse.de/auth/realms/ditto` instead.
