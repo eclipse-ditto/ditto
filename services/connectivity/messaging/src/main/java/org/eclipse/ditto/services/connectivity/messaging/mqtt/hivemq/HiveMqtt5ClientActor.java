@@ -64,8 +64,8 @@ import akka.pattern.Patterns;
  */
 public final class HiveMqtt5ClientActor extends BaseClientActor {
 
-    // we always want to use clean session -> we need to subscribe after reconnects
-    private static final boolean CLEAN_START = true;
+    // TODO: decide whether to support protocol-level QoS-1 for MQTT-5
+    private static final boolean CLEAN_START = false;
 
     private final Connection connection;
     private final HiveMqtt5ClientFactory clientFactory;
