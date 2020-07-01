@@ -36,8 +36,6 @@ jobs:
         docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-concierge:$IMAGE_TAG     -t eclipse/ditto-concierge:$IMAGE_MINOR_TAG     -t eclipse/ditto-concierge:$IMAGE_MAJOR_TAG     -t eclipse/ditto-concierge:latest .;
         docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-gateway-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:$IMAGE_MINOR_TAG       -t eclipse/ditto-gateway:$IMAGE_MAJOR_TAG       -t eclipse/ditto-gateway:latest .;
         docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-connectivity-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-connectivity:$IMAGE_TAG  -t eclipse/ditto-connectivity:$IMAGE_MINOR_TAG  -t eclipse/ditto-connectivity:$IMAGE_MAJOR_TAG  -t eclipse/ditto-connectivity:latest .;
-      env:
-        IMAGE_TAG: ${{ steps.branch_name.outputs.IMAGE_TAG }}
     - name: Push the Docker images to Docker Hub
       run: |
         docker push eclipse/ditto-policies:$IMAGE_TAG;
