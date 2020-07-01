@@ -30,8 +30,8 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    args "$DOCKER_ARGS_FOR_BUILD"
-                    image "$DOCKER_IMAGE_MAVEN_JDK_11"
+                    args "$DITTO_DOCKER_ARGS"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
                 }
             }
             steps {
@@ -43,8 +43,8 @@ pipeline {
         stage('SonarQube Scan') {
             agent {
                 docker {
-                    args "$DOCKER_ARGS_FOR_SONAR"
-                    image "$DOCKER_IMAGE_MAVEN_JDK_11"
+                    args "$DITTO_DOCKER_ARGS"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
                 }
             }
             steps {
