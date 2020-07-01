@@ -400,9 +400,9 @@ public final class BaseClientActorTest {
         private final ActorRef publisherActor;
         private final BaseClientActor delegate;
 
-        public DummyClientActor(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+        public DummyClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
                 final ActorRef connectionActor, final ActorRef publisherActor, final BaseClientActor delegate) {
-            super(connection, conciergeForwarder, connectionActor);
+            super(connection, proxyActor, connectionActor);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }
@@ -412,14 +412,14 @@ public final class BaseClientActorTest {
          *
          * @param connection the connection.
          * @param connectionActor the connectionPersistenceActor which created this client.
-         * @param conciergeForwarder the actor used to send signals to the concierge service.
+         * @param proxyActor the actor used to send signals into the ditto cluster.
          * @param publisherActor the actor that publishes to external system
          * @return the Akka configuration Props object.
          */
         public static Props props(final Connection connection, final ActorRef connectionActor,
-                @Nullable final ActorRef conciergeForwarder,
+                @Nullable final ActorRef proxyActor,
                 final ActorRef publisherActor, final BaseClientActor delegate) {
-            return Props.create(DummyClientActor.class, connection, connectionActor, conciergeForwarder,
+            return Props.create(DummyClientActor.class, connection, connectionActor, proxyActor,
                     publisherActor, delegate);
         }
 

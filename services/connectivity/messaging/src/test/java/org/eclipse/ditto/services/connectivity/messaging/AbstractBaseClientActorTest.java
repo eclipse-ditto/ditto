@@ -216,7 +216,7 @@ public abstract class AbstractBaseClientActorTest {
 
     protected abstract Connection getConnection(final boolean isSecure);
 
-    protected abstract Props createClientActor(final ActorRef conciergeForwarder, final Connection connection);
+    protected abstract Props createClientActor(final ActorRef proxyActor, final Connection connection);
 
     protected abstract ActorSystem getActorSystem();
 }

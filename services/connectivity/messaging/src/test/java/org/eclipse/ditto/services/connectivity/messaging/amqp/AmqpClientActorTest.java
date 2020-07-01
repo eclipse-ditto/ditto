@@ -505,8 +505,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
+    public void testConsumeMessageAndExpectForwardToProxyActor() throws JMSException {
+        testConsumeMessageAndExpectForwardToProxyActor(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
                         TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT)));
     }
@@ -520,7 +520,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         final AtomicBoolean messageReceivedForGlobalContext = new AtomicBoolean(false);
         final AtomicBoolean messageReceivedForSourceContext = new AtomicBoolean(false);
 
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 2,
+        testConsumeMessageAndExpectForwardToProxyActor(connection, 2,
                 c -> {
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
@@ -540,22 +540,22 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConsumeMessageAndExpectForwardToConciergeForwarderWithCorrectAuthContext() throws JMSException {
+    public void testConsumeMessageAndExpectForwardToProxyActorWithCorrectAuthContext() throws JMSException {
         final Connection connection =
                 TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
+        testConsumeMessageAndExpectForwardToProxyActor(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
                         .isEqualTo(TestConstants.Authorization.withUnprefixedSubjects(
                                 Authorization.SOURCE_SPECIFIC_CONTEXT)));
     }
 
-    private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
+    private void testConsumeMessageAndExpectForwardToProxyActor(final Connection connection,
             final int consumers, final Consumer<Command> commandConsumer) throws JMSException {
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, consumers, commandConsumer, null);
+        testConsumeMessageAndExpectForwardToProxyActor(connection, consumers, commandConsumer, null);
     }
 
-    private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
+    private void testConsumeMessageAndExpectForwardToProxyActor(final Connection connection,
             final int consumers,
             final Consumer<Command> commandConsumer,
             @Nullable final Consumer<ActorRef> postStep) throws JMSException {
@@ -589,22 +589,22 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse() throws JMSException {
-        testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+    public void testConsumeMessageAndExpectForwardToProxyActorAndReceiveResponse() throws JMSException {
+        testConsumeMessageAndExpectForwardToProxyActorAndReceiveResponse(
                 connection, (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
                 "replyTarget/",
                 message -> message.contains("\"status\":2"));
     }
 
     @Test
-    public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponseForConnectionWithoutTarget()
+    public void testConsumeMessageAndExpectForwardToProxyActorAndReceiveResponseForConnectionWithoutTarget()
             throws JMSException {
 
         final String targetsKey = Connection.JsonFields.TARGETS.getPointer().toString();
         final Connection connectionWithoutTargets
                 = ConnectivityModelFactory.connectionFromJson(connection.toJson().remove(targetsKey));
 
-        testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+        testConsumeMessageAndExpectForwardToProxyActorAndReceiveResponse(
                 connectionWithoutTargets,
                 (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
                 "replyTarget/",
@@ -612,15 +612,15 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveError() throws JMSException {
-        testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+    public void testConsumeMessageAndExpectForwardToProxyActorAndReceiveError() throws JMSException {
+        testConsumeMessageAndExpectForwardToProxyActorAndReceiveResponse(
                 connection, (id, headers) -> ThingErrorResponse.of(id,
                         ThingNotModifiableException.newBuilder(id).dittoHeaders(headers).build()),
                 "replyTarget/",
                 message -> message.contains("ditto/thing/things/twin/errors"));
     }
 
-    private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(final Connection connection,
+    private void testConsumeMessageAndExpectForwardToProxyActorAndReceiveResponse(final Connection connection,
             final BiFunction<ThingId, DittoHeaders, CommandResponse> responseSupplier,
             final String expectedAddressPrefix,
             final Predicate<String> messageTextPredicate) throws JMSException {
@@ -778,7 +778,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 final Connection connectionWithSpecialCharacters =
                         TestConstants.createConnection(connectionId, singletonList(source));
 
-                testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, cmd -> {
+                testConsumeMessageAndExpectForwardToProxyActor(connectionWithSpecialCharacters, 1, cmd -> {
                     // nothing to do here
                 }, ref -> {
                     ref.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), getRef());
@@ -824,7 +824,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final Connection connectionWithSpecialCharacters =
                     TestConstants.createConnection(connectionId, singletonList(source));
 
-            testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, cmd -> {
+            testConsumeMessageAndExpectForwardToProxyActor(connectionWithSpecialCharacters, 1, cmd -> {
                 // nothing to do here
             }, ref -> ref.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), getRef()));
         }};
@@ -891,8 +891,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef conciergeForwarder, final Connection connection) {
-        return AmqpClientActor.propsForTests(connection, conciergeForwarder, connectionActor,
+    protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
+        return AmqpClientActor.propsForTests(connection, proxyActor, connectionActor,
                 (ac, el) -> mockConnection);
     }
 

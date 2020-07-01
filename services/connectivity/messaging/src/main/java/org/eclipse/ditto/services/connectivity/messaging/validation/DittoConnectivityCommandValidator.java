@@ -36,19 +36,19 @@ import akka.actor.ActorSystem;
 public final class DittoConnectivityCommandValidator implements ConnectivityCommandInterceptor {
 
     private final ClientActorPropsFactory propsFactory;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef proxyActor;
     private final ActorRef connectionActor;
     private final ConnectionValidator connectionValidator;
     private final ActorSystem actorSystem;
 
     public DittoConnectivityCommandValidator(
             final ClientActorPropsFactory propsFactory,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final ConnectionValidator connectionValidator,
             final ActorSystem actorSystem) {
         this.propsFactory = propsFactory;
-        this.conciergeForwarder = conciergeForwarder;
+        this.proxyActor = proxyActor;
         this.connectionActor = connectionActor;
         this.connectionValidator = connectionValidator;
         this.actorSystem = actorSystem;
@@ -63,7 +63,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
                 resolveConnection(connectionSupplier)
                         .ifPresentOrElse(connection -> {
                                     connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
-                                    propsFactory.getActorPropsForType(connection, conciergeForwarder, connectionActor);
+                                    propsFactory.getActorPropsForType(connection, proxyActor, connectionActor);
                                 },
                                 // should never happen
                                 handleNullConnection(command));

@@ -256,9 +256,9 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
-        return RabbitMQClientActor.propsForTests(connection, testProbe,
-                testProbe, (con, exHandler) -> mockConnectionFactory)
+    protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
+        return RabbitMQClientActor.propsForTests(connection, proxyActor,
+                proxyActor, (con, exHandler) -> mockConnectionFactory)
                 .withDispatcher(CallingThreadDispatcher.Id());
     }
 
