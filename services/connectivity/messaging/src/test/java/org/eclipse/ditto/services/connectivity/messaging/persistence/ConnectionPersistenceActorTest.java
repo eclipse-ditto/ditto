@@ -566,7 +566,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 configWithBlocklist);
         final ActorRef pubSubMediator = DistributedPubSub.get(systemWithBlocklist).mediator();
         final ActorRef conciergeForwarder =
-                systemWithBlocklist.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+                systemWithBlocklist.actorOf(TestConstants.ProxyActorMock.props());
 
         try {
             new TestKit(systemWithBlocklist) {{
