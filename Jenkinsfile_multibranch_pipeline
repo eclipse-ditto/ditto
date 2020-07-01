@@ -1,0 +1,55 @@
+#!groovy
+pipeline {
+    agent none
+    environment {
+        // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
+        theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
+        theVersion = "0-${theBranch}-SNAPSHOT"
+        theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
+        JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
+    }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+    stages {
+        stage('Checkout scm') {
+            agent {
+                label "$DITTO_BUILD_NODE"
+            }
+            steps {
+                echo 'Checkout scm'
+                checkout scm
+            }
+        }
+        stage('Build') {
+            agent {
+                docker {
+                    args "$DITTO_DOCKER_ARGS"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                }
+            }
+            steps {
+                configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
+                    sh "mvn -s $MVN_SETTINGS clean deploy source:jar -T1C --batch-mode --errors -Pbuild-documentation,ditto -Drevision=${theVersion}"
+                }
+            }
+        }
+        stage('SonarQube Scan') {
+            agent {
+                docker {
+                    args "$DITTO_DOCKER_ARGS"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                }
+            }
+            steps {
+                configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
+                    withSonarQubeEnv(installationName: "$SONAR_QUBE_ENV", credentialsId: 'sonarqube') {
+                        sh "mvn -s $MVN_SETTINGS --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} -Drevision=${theVersion}"
+                    }
+                }
+            }
+        }
+    }
+}
+
