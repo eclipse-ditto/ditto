@@ -177,8 +177,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             jmsParams.add("jms.password=" + password);
         }
 
-        // TODO: set prefetch policy no matter what the specific config is
-        // jmsParams.add("jms.prefetchPolicy.all=" + DEFAULT_PREFETCH_POLICY_ALL);
+        // set prefetch policy no matter what the specific config is
+        jmsParams.add("jms.prefetchPolicy.all=" + DEFAULT_PREFETCH_POLICY_ALL);
 
         return jmsParams;
     }
