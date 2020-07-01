@@ -12,11 +12,6 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
     }
-    parameters {
-        string(name: 'DOCKER_ARGS_FOR_BUILD', defaultValue: '',  description: 'Docker args for building the ditto project inside the container')
-        string(name: 'DOCKER_ARGS_FOR_SONAR', defaultValue: '',  description: 'Docker args for SonarScan stage')
-        string(name: 'DOCKER_IMAGE_MAVEN_JDK_11', defaultValue: '', description: 'Insert the docker image version to run the build')
-    }
     stages {
         stage('Checkout scm') {
             agent {
