@@ -9,8 +9,9 @@ pipeline {
         JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
     parameters {
-        string(name: 'DOCKER_ARGS', defaultValue: '',  description: 'Add arguments which are passed to the running docker container')
-        string(name: 'DOCKER_IMAGE', defaultValue: '', description: 'Insert the docker image version to run the build')
+        string(name: 'DOCKER_ARGS_FOR_BUILD', defaultValue: '',  description: 'Docker args for building the ditto project inside the container')
+        string(name: 'DOCKER_ARGS_FOR_SONAR', defaultValue: '',  description: 'Docker args for SonarScan stage')
+        string(name: 'DOCKER_IMAGE_MAVEN_JDK_11', defaultValue: '', description: 'Insert the docker image version to run the build')
     }
     stages {
         stage('Checkout scm') {
@@ -25,10 +26,8 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-//                    args '-v /home/jenkins-slave/.m2:/home/jenkins-slave/.m2:z --cpus=4'
-//                    image 'thingsdev.azurecr.io/things-pipeline/maven-jdk-11:latest'
-                    args "$DOCKER_ARGS"
-                    image "$DOCKER_IMAGE"
+                    args "$DOCKER_ARGS_FOR_BUILD"
+                    image "$DOCKER_IMAGE_MAVEN_JDK_11"
                 }
             }
             steps {
@@ -40,8 +39,8 @@ pipeline {
         stage('SonarQube Scan') {
             agent {
                 docker {
-                    args "$DOCKER_ARGS"
-                    image "$DOCKER_IMAGE"
+                    args "$DOCKER_ARGS_FOR_SONAR"
+                    image "$DOCKER_IMAGE_MAVEN_JDK_11"
                 }
             }
             steps {
