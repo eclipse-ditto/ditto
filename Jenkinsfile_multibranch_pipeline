@@ -8,6 +8,10 @@ pipeline {
         theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
         JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
+    parameter {
+        string(name: 'DOCKER_ARGS', defaultValue: '',  description: 'Add arguments which are passed to the running docker container')
+        string(name: 'DOCKER_IMAGE', defaultValue: '', description: 'Insert the docker image version to run the build')
+    }
     stages {
         stage('Checkout scm') {
             agent {
@@ -21,8 +25,10 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    args '-v /home/jenkins-slave/.m2:/home/jenkins-slave/.m2:z --cpus=4'
-                    image 'thingsdev.azurecr.io/things-pipeline/maven-jdk-11:latest'
+//                    args '-v /home/jenkins-slave/.m2:/home/jenkins-slave/.m2:z --cpus=4'
+//                    image 'thingsdev.azurecr.io/things-pipeline/maven-jdk-11:latest'
+                    args "$DOCKER_ARGS"
+                    image "$DOCKER_IMAGE"
                 }
             }
             steps {
@@ -34,8 +40,8 @@ pipeline {
         stage('SonarQube Scan') {
             agent {
                 docker {
-                    args '-v /home/jenkins-slave/.m2:/home/jenkins-slave/.m2:z'
-                    image 'thingsdev.azurecr.io/things-pipeline/maven-jdk-11:latest'
+                    args "$DOCKER_ARGS"
+                    image "$DOCKER_IMAGE"
                 }
             }
             steps {
