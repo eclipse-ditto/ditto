@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_ACK;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_DISABLE_ACKS;
@@ -307,16 +306,10 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWithHeaderMapping() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
-            assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
-            assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
-            assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID.toString());
-            assertThat(msg.getDittoHeaders()).containsEntry("prefixed_thing_id",
-                    "some.prefix." + TestConstants.Things.THING_ID);
-            assertThat(msg.getDittoHeaders()).containsEntry("suffixed_thing_id",
-                    TestConstants.Things.THING_ID + ".some.suffix");
-        }, response -> fail("not expected"));
+        testHeaderMapping();
     }
+
+    protected abstract void testHeaderMapping();
 
     @Test
     public void testInboundMessageWithHeaderMappingThrowsUnresolvedPlaceholderException() {
@@ -341,7 +334,7 @@ public abstract class AbstractConsumerActorTest<M> {
     protected abstract void verifyMessageSettlement(boolean isSuccessExpected, final boolean shouldRedeliver)
             throws Exception;
 
-    private void testInboundMessage(final Map.Entry<String, Object> header,
+    protected void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,
             final Consumer<Signal<?>> verifySignal,
             final Consumer<OutboundSignal.Mapped> verifyResponse) {

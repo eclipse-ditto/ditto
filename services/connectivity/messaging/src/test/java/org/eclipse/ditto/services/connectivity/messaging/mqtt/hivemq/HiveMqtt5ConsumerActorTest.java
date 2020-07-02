@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -60,6 +62,19 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
                 .build(), false);
+    }
+
+    @Override
+    protected void testHeaderMapping() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
+            assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
+            assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
+            assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID.toString());
+            assertThat(msg.getDittoHeaders()).containsEntry("prefixed_thing_id",
+                    "some.prefix." + TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("suffixed_thing_id",
+                    TestConstants.Things.THING_ID + ".some.suffix");
+        }, response -> fail("not expected"));
     }
 
     @Override

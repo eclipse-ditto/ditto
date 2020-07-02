@@ -15,12 +15,14 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
@@ -48,6 +50,8 @@ import akka.actor.Props;
 public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
     private static final String MQTT_TOPIC_HEADER = "mqtt.topic";
+    private static final String MQTT_QOS_HEADER = "mqtt.qos";
+    private static final String MQTT_RETAIN_HEADER = "mqtt.retain";
     static final String NAME = "HiveMqtt3ConsumerActor";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
@@ -121,7 +125,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
     private Optional<ExternalMessage> hiveToExternalMessage(final Mqtt3Publish message,
             final ConnectionId connectionId) {
-        final HashMap<String, String> headers = new HashMap<>();
+        HashMap<String, String> headers = null;
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             final ByteBuffer payload = message.getPayload()
@@ -131,9 +135,14 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
             final String topic = message.getTopic().toString();
             log.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
 
-            headers.put(MQTT_TOPIC_HEADER, topic);
-            final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(
-                    Collections.singletonMap(MQTT_TOPIC_HEADER, topic));
+            headers = extractHeadersMapFromMqttMessage(message);
+            final Map<String, String> headerMappingMap = new HashMap<>();
+            headerMappingMap.put(MQTT_TOPIC_HEADER, topic);
+            headerMappingMap.putAll(source.getHeaderMapping()
+                    .map(HeaderMapping::getMapping)
+                    .orElse(Collections.emptyMap()));
+
+            final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)
                     .withTextAndBytes(textPayload, payload)
@@ -147,13 +156,34 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
             return Optional.of(externalMessage);
         } catch (final DittoRuntimeException e) {
-            log.info("Failed to handle MQTT message: {}", e.getMessage());
-            inboundMonitor.failure(headers, e);
+            log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
+            if (headers != null) {
+                // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
+                // because we need a reply-to address to send the error response
+                inboundMonitor.failure(headers, e);
+                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)));
+            } else {
+                inboundMonitor.failure(e);
+            }
         } catch (final Exception e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());
-            inboundMonitor.exception(headers, e);
+            if (null != headers) {
+                inboundMonitor.exception(headers, e);
+            } else {
+                inboundMonitor.exception(e);
+            }
+
         }
         return Optional.empty();
+    }
+
+    private HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt3Publish message) {
+        final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
+
+        headersFromMqttMessage.put(MQTT_QOS_HEADER, String.valueOf(message.getQos().getCode()));
+        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, String.valueOf(message.isRetain()));
+
+        return headersFromMqttMessage;
     }
 
     @Nullable

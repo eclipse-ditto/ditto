@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -109,5 +112,18 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
             // expect no redelivery due to DittoRuntimeException
             Mockito.verify(channel, Mockito.timeout(3000L)).basicNack(anyLong(), eq(false), eq(shouldRedeliver));
         }
+    }
+
+    @Override
+    protected void testHeaderMapping() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
+            assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
+            assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
+            assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID.toString());
+            assertThat(msg.getDittoHeaders()).containsEntry("prefixed_thing_id",
+                    "some.prefix." + TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("suffixed_thing_id",
+                    TestConstants.Things.THING_ID + ".some.suffix");
+        }, response -> fail("not expected"));
     }
 }

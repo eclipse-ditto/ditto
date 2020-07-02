@@ -201,6 +201,16 @@ public final class TestConstants {
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
+    public static final HeaderMapping MQTT3_HEADER_MAPPING;
+
+    static {
+        final Map<String, String> map = new HashMap<>();
+        map.put("mqtt.topic", "{{ header:mqtt.topic }}");
+        map.put("mqtt.qos", "{{ header:mqtt.qos }}");
+        map.put("mqtt.retain", "{{ header:mqtt.retain }}");
+        MQTT3_HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
+    }
+
     public static final Instant INSTANT = Instant.now();
 
     public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {

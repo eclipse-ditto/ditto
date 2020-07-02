@@ -318,7 +318,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             final List<String> receivedTopics = new LinkedList<>();
             IntStream.range(0, subscriptions.length).forEach(i -> {
                 LOGGER.info("Consuming message {}", i);
-                final String topic = expectMsgClass(ModifyThing.class).getDittoHeaders().get("mqtt.topic");
+                final ModifyThing modifyThing = expectMsgClass(ModifyThing.class);
+                final String topic = modifyThing.getDittoHeaders().get("mqtt.topic");
                 LOGGER.info("Got message with topic {}", topic);
                 receivedTopics.add(topic);
             });
