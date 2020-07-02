@@ -20,8 +20,8 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
@@ -150,29 +150,27 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 final Props publisherProps = getPublisherActorPropsWithDebugEnabled();
                 final ActorRef publisherActor = childActorOf(publisherProps);;
 
+                final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("please-verify");
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                         .correlationId(TestConstants.CORRELATION_ID)
                         .putHeader("device_id", "ditto:thing")
-                        .acknowledgementRequest(
-                                AcknowledgementRequest.parseAcknowledgementRequest("please-verify")).build();
+                        .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                        .build();
                 final Target target = ConnectivityModelFactory.newTargetBuilder()
                         .address(getOutboundAddress())
                         .originalAddress(getOutboundAddress())
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
-                        .deliveredAcknowledgementLabel(AcknowledgementLabel.of("please-verify"))
+                        .deliveredAcknowledgementLabel(acknowledgementLabel)
                         .topics(Topic.TWIN_EVENTS)
                         .build();
 
                 final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
-                final OutboundSignal outboundSignal =
-                        OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
-                final ExternalMessage externalMessage =
-                        ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
-                                .withText("payload")
-                                .build();
-                final Adaptable adaptable =
-                        DittoProtocolAdapter.newInstance().toAdaptable(source);
+                final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, List.of(target));
+                final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
+                        .withText("payload")
+                        .build();
+                final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
                 final OutboundSignal.Mapped mappedSignal =
                         OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
                 final OutboundSignal.MultiMapped multiMappedSignal =
@@ -181,19 +179,23 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 publisherCreated(this, publisherActor);
                 publisherActor.tell(multiMappedSignal, getRef());
 
-                final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
-                assertThat(acks.getSize()).isEqualTo(1);
-                final Acknowledgement ack = acks.stream().findAny().orElseThrow();
-                assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
-                assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
-                assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
-                        .set("timestamp", 0)
-                        .set("serializedKeySize", 0)
-                        .set("serializedValueSize", 0)
-                        .set("topic", "topic")
-                        .set("partition", 5)
-                        .set("offset", 0)
-                        .build());
+                final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
+
+                assertThat(acknowledgements)
+                        .hasSize(1)
+                        .first()
+                        .satisfies(ack -> {
+                            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+                            assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+                            assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
+                                    .set("timestamp", 0)
+                                    .set("serializedKeySize", 0)
+                                    .set("serializedValueSize", 0)
+                                    .set("topic", "topic")
+                                    .set("partition", 5)
+                                    .set("offset", 0)
+                                    .build());
+                        });
             }
         };
     }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -61,12 +62,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-kafka-diagnostic");
 
     /**
-     * List of retriable producer exceptions.
+     * List of retryable producer exceptions.
      * Please keep up-to-date against {@link org.apache.kafka.clients.producer.Callback}.
      * Cannot check for containment as set as these classes are not final.
      * Keep the classes fully qualified to ensure they stay in the right package.
      */
-    private static final List<Class<?>> RETRIABLE_EXCEPTIONS = List.of(
+    private static final List<Class<?>> RETRYABLE_EXCEPTIONS = List.of(
             org.apache.kafka.common.errors.CorruptRecordException.class,
             org.apache.kafka.common.errors.InvalidMetadataException.class,
             org.apache.kafka.common.errors.NotEnoughReplicasAfterAppendException.class,
@@ -135,8 +136,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target autoAckTarget, final KafkaPublishTarget publishTarget,
-            final ExternalMessage message, int ackSizeQuota) {
+            @Nullable final Target autoAckTarget,
+            final KafkaPublishTarget publishTarget,
+            final ExternalMessage message,
+            final int ackSizeQuota) {
 
         if (producer == null) {
             final MessageSendingFailedException error = MessageSendingFailedException.newBuilder()
@@ -148,23 +151,23 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         } else {
             final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
             final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
-            final ProducerCallBack callBack =
-                    new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture,
-                            this::escalateIfNotRetriable, connection);
+            final Callback callBack = new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture,
+                    this::escalateIfNotRetryable, connection);
             producer.send(record, callBack);
             return resultFuture;
         }
     }
 
     /**
-     * Check a send exception. Escalate to parent if it cannot be recovered from.
+     * Check a send exception.
+     * Escalate to parent if it cannot be recovered from.
      * Called by ProducerCallBack; must be thread-safe.
      *
      * @param exception the exception.
      */
-    private void escalateIfNotRetriable(final Exception exception) {
-        if (!isRetriable(exception)) {
-            escalate(exception, "Got non-retriable exception");
+    private void escalateIfNotRetryable(final Exception exception) {
+        if (!isRetryable(exception)) {
+            escalate(exception, "Got non-retryable exception");
         }
     }
 
@@ -200,9 +203,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     .map(ByteString::fromByteBuffer)
                     .map(ByteString::utf8String)
                     .orElse("");
-
+        } else {
+            return "";
         }
-        return "";
     }
 
     private void startInternalKafkaProducer(final Connection connection) {
@@ -245,8 +248,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         getContext().stop(getSelf());
     }
 
-    private static boolean isRetriable(final Exception exception) {
-        return RETRIABLE_EXCEPTIONS.stream().anyMatch(clazz -> clazz.isInstance(exception));
+    private static boolean isRetryable(final Exception exception) {
+        return RETRYABLE_EXCEPTIONS.stream().anyMatch(clazz -> clazz.isInstance(exception));
     }
 
     /**
@@ -265,16 +268,20 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private static final class ProducerCallBack implements Callback {
 
         private final Signal<?> signal;
-        @Nullable final Target autoAckTarget;
-        final int ackSizeQuota;
+        @Nullable private final Target autoAckTarget;
+        private final int ackSizeQuota;
         private final CompletableFuture<Acknowledgement> resultFuture;
         private final Consumer<Exception> checkException;
         private int currentQuota;
         private final Connection connection;
 
-        private ProducerCallBack(final Signal<?> signal, @Nullable final Target autoAckTarget,
-                final int ackSizeQuota, final CompletableFuture<Acknowledgement> resultFuture,
-                final Consumer<Exception> checkException, final Connection connection) {
+        private ProducerCallBack(final Signal<?> signal,
+                @Nullable final Target autoAckTarget,
+                final int ackSizeQuota,
+                final CompletableFuture<Acknowledgement> resultFuture,
+                final Consumer<Exception> checkException,
+                final Connection connection) {
+
             this.signal = signal;
             this.autoAckTarget = autoAckTarget;
             this.ackSizeQuota = ackSizeQuota;
@@ -311,7 +318,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             }
             builder.set("serializedKeySize", metadata.serializedKeySize(), this::isQuotaSufficient);
             builder.set("serializedValueSize", metadata.serializedValueSize(), this::isQuotaSufficient);
-            if (connection.getSpecificConfig().getOrDefault("debug-enabled", String.valueOf(false)).equals(String.valueOf(true))) {
+            if (isDebugEnabled()) {
                 builder.set("topic", metadata.topic(), this::isQuotaSufficient);
                 builder.set("partition", metadata.partition(), this::isQuotaSufficient);
                 if (metadata.hasOffset()) {
@@ -331,6 +338,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 return false;
             }
         }
+
+        private boolean isDebugEnabled() {
+            final Map<String, String> specificConfig = connection.getSpecificConfig();
+            return Boolean.parseBoolean(specificConfig.get("debug-enabled"));
+        }
+
     }
 
 }

@@ -769,14 +769,11 @@ public final class TestConstants {
     }
 
     public static Connection createConnectionWithDebugEnabled() {
-        final Map<String, String> specificConfig = new HashMap<>();
-        specificConfig.put("debug-enabled", String.valueOf(true));
-
         return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE, ConnectivityStatus.OPEN,
                 getUriOfNewMockServer())
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)
-                .specificConfig(specificConfig)
+                .specificConfig(Map.of("debug-enabled", String.valueOf(true)))
                 .build();
     }
 
