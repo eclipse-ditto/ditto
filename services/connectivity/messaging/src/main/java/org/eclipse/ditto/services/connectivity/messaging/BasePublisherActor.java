@@ -119,8 +119,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected BasePublisherActor(final Connection connection) {
         checkNotNull(connection, "connection");
         this.connection = connection;
-        this.connectionId = connection.getId();
-        this.targets = connection.getTargets();
+        connectionId = connection.getId();
+        targets = connection.getTargets();
         resourceStatusMap = new HashMap<>();
         final Instant now = Instant.now();
         targets.forEach(target ->
@@ -134,10 +134,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionConfig = connectivityConfig.getConnectionConfig();
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
-        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
+        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
+        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connectionId);
         connectionLogger =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(connectionId);
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
     }
 
@@ -192,7 +192,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
-    private int computeMaxAckPayloadBytesForSignal(final OutboundSignal.MultiMapped multiMapped) {
+    private static int computeMaxAckPayloadBytesForSignal(final OutboundSignal.MultiMapped multiMapped) {
         final int numberOfSignals = multiMapped.getMappedOutboundSignals().size();
         // TODO: move to AcknowledgementConfig
         final int budget = 100000;
@@ -338,31 +338,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private static <T> CompletionStage<List<T>> aggregateNonNullFutures(final CompletableFuture<T>[] futures) {
         return CompletableFuture.allOf(futures)
-                .thenApply(_void ->
+                .thenApply(aVoid ->
                         Arrays.stream(futures)
                                 .map(CompletableFuture::join)
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList())
                 );
-    }
-
-    private static void monitorSendFailure(final ExternalMessage message, final Exception exception,
-            final ConnectionMonitor publishedMonitor) {
-        if (exception instanceof DittoRuntimeException) {
-            publishedMonitor.failure(message, (DittoRuntimeException) exception);
-        } else {
-            publishedMonitor.exception(message, exception);
-        }
-    }
-
-    private static Exception getRootCause(final Throwable throwable) {
-        if (throwable instanceof CompletionException && throwable.getCause() != null) {
-            return getRootCause(throwable.getCause());
-        } else if (throwable instanceof Exception) {
-            return (Exception) throwable;
-        } else {
-            return new RuntimeException(throwable);
-        }
     }
 
     /**
@@ -550,14 +531,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }
     }
 
-    private static DittoRuntimeException ackToException(final Acknowledgement ack) {
-        return MessageSendingFailedException.newBuilder()
-                .statusCode(ack.getStatusCode())
-                .message("Received negative acknowledgement for label <" + ack.getLabel() + ">.")
-                .description("Payload: " + ack.getEntity().map(JsonValue::toString).orElse("<empty>"))
-                .build();
-    }
-
     private static final class SendingContext {
 
         private final OutboundSignal.Mapped outboundSignal;
@@ -644,6 +617,34 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     }
             );
         }
+
+        private static DittoRuntimeException ackToException(final Acknowledgement ack) {
+            return MessageSendingFailedException.newBuilder()
+                    .statusCode(ack.getStatusCode())
+                    .message("Received negative acknowledgement for label <" + ack.getLabel() + ">.")
+                    .description("Payload: " + ack.getEntity().map(JsonValue::toString).orElse("<empty>"))
+                    .build();
+        }
+
+        private static Exception getRootCause(final Throwable throwable) {
+            if (throwable instanceof CompletionException && throwable.getCause() != null) {
+                return getRootCause(throwable.getCause());
+            } else if (throwable instanceof Exception) {
+                return (Exception) throwable;
+            } else {
+                return new RuntimeException(throwable);
+            }
+        }
+
+        private static void monitorSendFailure(final ExternalMessage message, final Exception exception,
+                final ConnectionMonitor publishedMonitor) {
+            if (exception instanceof DittoRuntimeException) {
+                publishedMonitor.failure(message, (DittoRuntimeException) exception);
+            } else {
+                publishedMonitor.exception(message, exception);
+            }
+        }
+
     }
 
     private static final class Sending implements SendingOrDropped {

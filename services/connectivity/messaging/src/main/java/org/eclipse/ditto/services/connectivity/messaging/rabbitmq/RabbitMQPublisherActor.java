@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -116,7 +117,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
                 .match(ChannelCreated.class, channelCreated -> {
-                    this.channelActor = channelCreated.channel();
+                    channelActor = channelCreated.channel();
 
                     final ChannelMessage channelMessage = ChannelMessage.apply(this::onChannelCreated, false);
                     channelCreated.channel().tell(channelMessage, getSelf());
@@ -142,8 +143,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target autoAckTarget, final RabbitMQTarget publishTarget,
-            final ExternalMessage message, int ackSizeQuota) {
+            @Nullable final Target autoAckTarget,
+            final RabbitMQTarget publishTarget,
+            final ExternalMessage message,
+            final int ackSizeQuota) {
 
         if (channelActor == null) {
             return sendFailedFuture(signal, "No channel available, dropping response.");
@@ -180,7 +183,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
         // create consumer outside channel message: need to check actor state and decide whether to handle acks.
-        final Consumer<Long> nextPublishSeqNoConsumer =
+        final LongConsumer nextPublishSeqNoConsumer =
                 computeNextPublishSeqNoConsumer(signal, autoAckTarget, publishTarget, resultFuture);
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
@@ -201,10 +204,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     // This method is NOT thread-safe, but its returned consumer MUST be thread-safe.
-    private Consumer<Long> computeNextPublishSeqNoConsumer(final Signal<?> signal,
+    private LongConsumer computeNextPublishSeqNoConsumer(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
             final CompletableFuture<Acknowledgement> resultFuture) {
+
         if (confirmMode == ConfirmMode.ACTIVE) {
             // TODO: configure - also in other publisher actors?
             final Duration timeoutDuration = Duration.ofSeconds(60L);
@@ -242,12 +246,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         });
         // maintain outstanding-acks-by-target. It need not be accurate because outstandingAcksByTarget is only used
         // on basic.return, which affects all messages published to 1 target but is not precise.
-        resultFuture.whenComplete((ignoredAck, ignoredError) -> {
-            outstandingAcksByTarget.computeIfPresent(publishTarget, (key, queue) -> {
-                queue.poll();
-                return queue.isEmpty() ? null : queue;
-            });
-        });
+        resultFuture.whenComplete(
+                (ignoredAck, ignoredError) -> outstandingAcksByTarget.computeIfPresent(publishTarget, (key, queue) -> {
+                    queue.poll();
+                    return queue.isEmpty() ? null : queue;
+                }));
     }
 
     private void handleChannelStatus(final ChannelStatus channelStatus) {
@@ -288,17 +291,6 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.OK, null);
     }
 
-    private static Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target target) {
-        return buildAcknowledgement(signal, target, HttpStatusCode.SERVICE_UNAVAILABLE,
-                "Received negative confirm from the external broker.");
-    }
-
-    private static Acknowledgement getReturnAck(final Signal<?> signal, @Nullable final Target autoAckTarget,
-            final int replyCode, final String replyText) {
-        return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.SERVICE_UNAVAILABLE,
-                String.format("Received basic.return from the external broker: %d %s", replyCode, replyText));
-    }
-
     private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final HttpStatusCode statusCode, @Nullable final String message) {
         final AcknowledgementLabel label =
@@ -318,31 +310,30 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                         Function.identity()
                 ));
         final Map<Target, ResourceStatus> declarationStatus = new HashMap<>();
-        for (final String exchange : exchanges.keySet()) {
+        exchanges.forEach((exchange, target) -> {
             log.debug("Checking for existence of exchange <{}>", exchange);
             try {
                 channel.exchangeDeclarePassive(exchange);
             } catch (final IOException e) {
                 log.warning("Failed to declare exchange <{}> passively", exchange);
-                final Target target = exchanges.get(exchange);
                 if (target != null) {
                     declarationStatus.put(target,
                             ConnectivityModelFactory.newTargetStatus(
                                     InstanceIdentifierSupplier.getInstance().get(),
                                     ConnectivityStatus.FAILED,
                                     target.getAddress(),
-                                    "Exchange '" + exchange + "' was missing at " +
-                                            Instant.now())
+                                    "Exchange '" + exchange + "' was missing at " + Instant.now())
                     );
                 }
             }
-        }
+        });
         return Collections.unmodifiableMap(declarationStatus);
     }
 
     private static Optional<IOException> enterConfirmationMode(final Channel channel,
             final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks,
             final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget) {
+
         try {
             channel.confirmSelect();
             channel.clearConfirmListeners();
@@ -492,9 +483,24 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             future.complete(getFailureAck(signal, autoAckTarget));
         }
 
+        private static Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target target) {
+            return buildAcknowledgement(signal, target, HttpStatusCode.SERVICE_UNAVAILABLE,
+                    "Received negative confirm from the external broker.");
+        }
+
         private void completeForReturn(final int replyCode, final String replyText) {
             future.complete(getReturnAck(signal, autoAckTarget, replyCode, replyText));
         }
+
+        private static Acknowledgement getReturnAck(final Signal<?> signal,
+                @Nullable final Target autoAckTarget,
+                final int replyCode,
+                final String replyText) {
+
+            return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.SERVICE_UNAVAILABLE,
+                    String.format("Received basic.return from the external broker: %d %s", replyCode, replyText));
+        }
+
     }
 
     private enum ConfirmMode {

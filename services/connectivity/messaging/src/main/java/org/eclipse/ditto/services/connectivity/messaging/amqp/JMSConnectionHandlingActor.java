@@ -66,7 +66,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      * JmsConnection.java:315         ack mode is passed verbatim to JmsSession constructor after validation
      * JmsConnection.java:554         call to JmsSession.validateSessionMode, which accepts 101 as valid
      */
-    private final int JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER = 101;
+    private static final int JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER = 101;
 
     /**
      * The Actor name prefix.
@@ -183,7 +183,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         final ActorRef self = getSelf();
 
         // try to close an existing session first
-        recoverSession.getSession().ifPresent((session) -> {
+        recoverSession.getSession().ifPresent(session -> {
             try {
                 session.close();
             } catch (final JMSException e) {
@@ -203,7 +203,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 final AmqpClientActor.JmsSessionRecovered r =
                         new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
-                log.debug("Session of connection <{}> recovered successfully.", this.connection.getId());
+                log.debug("Session of connection <{}> recovered successfully.", connection.getId());
             } catch (final ConnectionFailedException e) {
                 sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());
@@ -278,13 +278,14 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private Session createSession(final JmsConnection jmsConnection) {
         final Session session = safelyExecuteJmsOperation(jmsConnection, "create session",
-                () -> (jmsConnection.createSession(JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER)));
+                () -> jmsConnection.createSession(JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER));
         currentSession = session;
         return session;
     }
 
     private <T> T safelyExecuteJmsOperation(@Nullable final JmsConnection jmsConnection,
             final String task, final ThrowingSupplier<T> jmsOperation) {
+
         try {
             return jmsOperation.get();
         } catch (final JMSException | NamingException e) {
@@ -324,13 +325,16 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     @Nullable
-    private ConsumerData createJmsConsumer(final Session session, final Map<String, Exception> failedSources,
-            final Source source, final String sourceAddress, final String addressWithIndex) {
+    private ConsumerData createJmsConsumer(final Session session,
+            final Map<String, Exception> failedSources,
+            final Source source,
+            final String sourceAddress,
+            final String addressWithIndex) {
+
         log.debug("Creating AMQP Consumer for <{}>", addressWithIndex);
-        final Destination destination = new JmsQueue(sourceAddress);
-        final MessageConsumer messageConsumer;
         try {
-            messageConsumer = session.createConsumer(destination);
+            final Destination destination = new JmsQueue(sourceAddress);
+            final MessageConsumer messageConsumer = session.createConsumer(destination);
             return ConsumerData.of(source, sourceAddress, addressWithIndex, messageConsumer);
         } catch (final JMSException jmsException) {
             failedSources.put(addressWithIndex, jmsException);
@@ -368,14 +372,14 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             try {
                 jmsConnection.stop();
             } catch (final JMSException e) {
-                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}",
-                        this.connection.getId(), e.getMessage());
+                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}", connection.getId(),
+                        e.getMessage());
             }
             try {
                 jmsConnection.close();
             } catch (final JMSException e) {
-                log.debug("Closing connection <{}> failed, probably it was already closed: {}",
-                        this.connection.getId(), e.getMessage());
+                log.debug("Closing connection <{}> failed, probably it was already closed: {}", connection.getId(),
+                        e.getMessage());
             }
         }
     }
@@ -405,5 +409,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
          * @throws NamingException if the identifier of connection could not be found in the Context.
          */
         T get() throws JMSException, NamingException;
+
     }
+
 }

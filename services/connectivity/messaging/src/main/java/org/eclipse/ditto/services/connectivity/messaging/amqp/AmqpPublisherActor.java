@@ -92,13 +92,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         super(connection);
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         this.session = checkNotNull(session, "session");
-        this.staticTargets = new HashMap<>();
-        this.dynamicTargets = new LinkedHashMap<>(); // insertion order important for maintenance of producer cache
+        staticTargets = new HashMap<>();
+        dynamicTargets = new LinkedHashMap<>(); // insertion order important for maintenance of producer cache
         producerCacheSize = checkArgument(connectionConfig.getAmqp10Config().getProducerCacheSize(), i -> i > 0,
                 () -> "producer-cache-size must be 1 or more");
 
-        this.backOffActor =
-                getContext().actorOf(BackOffActor.props(connectionConfig.getAmqp10Config().getBackOffConfig()));
+        backOffActor = getContext().actorOf(BackOffActor.props(connectionConfig.getAmqp10Config().getBackOffConfig()));
     }
 
     @Override
@@ -108,7 +107,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         // we open producers for static addresses (no placeholders) on startup and try to reopen them when closed.
         // producers for other addresses (with placeholders, reply-to) are opened on demand and may be closed to
         // respect the cache size limit
-        this.handleStartProducer(START_PRODUCER);
+        handleStartProducer(START_PRODUCER);
     }
 
     /**
@@ -132,7 +131,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private void handleStartProducer(final Object startProducer) {
         try {
-            this.isInBackOffMode = false;
+            isInBackOffMode = false;
             createStaticTargetProducers(targets);
         } catch (final Exception e) {
             log.warning("Failed to create static target producers: {}", e.getMessage());
@@ -143,7 +142,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
-        if (!this.isInBackOffMode) {
+        if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
             final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
             log.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
@@ -151,7 +150,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
 
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
-            this.backOff();
+            backOff();
         } else {
             log.info("Got closed JMS producer while already in backOff mode '{}'." +
                     " Will ignore the closed info as this should never happen " +
@@ -160,8 +159,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private void backOff() {
-        this.isInBackOffMode = true;
-        this.backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(START_PRODUCER), getSelf());
+        isInBackOffMode = true;
+        backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(START_PRODUCER), getSelf());
     }
 
     @Override
@@ -176,11 +175,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target autoAckTarget, final AmqpTarget publishTarget,
-            final ExternalMessage message, int ackSizeQuota) {
+            @Nullable final Target autoAckTarget,
+            final AmqpTarget publishTarget,
+            final ExternalMessage message,
+            final int ackSizeQuota) {
 
         if (!isInBackOffMode) {
-            return doPublishMessage(signal, autoAckTarget, publishTarget, message, ackSizeQuota);
+            return doPublishMessage(signal, autoAckTarget, publishTarget, message);
         } else {
             final CompletableFuture<Acknowledgement> backOffModeFuture = new CompletableFuture<>();
             backOffModeFuture.completeExceptionally(getBackOffModeError(message, publishTarget.getJmsDestination()));
@@ -189,8 +190,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private CompletionStage<Acknowledgement> doPublishMessage(@Nullable final Signal<?> signal,
-            @Nullable final Target autoAckTarget, final AmqpTarget publishTarget, final ExternalMessage message,
-            final int ackSizeQuota) {
+            @Nullable final Target autoAckTarget,
+            final AmqpTarget publishTarget,
+            final ExternalMessage message) {
+
         final CompletableFuture<Acknowledgement> sendResult = new CompletableFuture<>();
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
@@ -233,7 +236,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return sendResult;
     }
 
-    private Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget) {
+    private static Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
@@ -243,14 +246,16 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders);
     }
 
-    private MessageSendingFailedException getMessageSendingException(final ExternalMessage message, final Throwable e) {
+    private static MessageSendingFailedException getMessageSendingException(final ExternalMessage message,
+            final Throwable e) {
+
         return MessageSendingFailedException.newBuilder()
                 .cause(e)
                 .dittoHeaders(message.getInternalHeaders())
                 .build();
     }
 
-    private MessageSendingFailedException getBackOffModeError(final ExternalMessage message,
+    private static MessageSendingFailedException getBackOffModeError(final ExternalMessage message,
             final Destination destination) {
 
         final String errorMessage = String.format("Producer for target address '%s' is in back off mode, as the " +
