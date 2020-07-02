@@ -432,7 +432,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     private static final class RestartMessageConsumer {
 
-        private long restartAt;
+        private final long restartAt;
 
         private RestartMessageConsumer(final long restartAt) {
             this.restartAt = restartAt;

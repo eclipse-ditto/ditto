@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3SubscriptionHandler.MqttConsumer;
 
+import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientConnectedContext;
 import com.hivemq.client.mqtt.mqtt3.lifecycle.Mqtt3ClientDisconnectedContext;
@@ -48,8 +49,8 @@ import akka.pattern.Patterns;
  */
 public final class HiveMqtt3ClientActor extends BaseClientActor {
 
-    // we always want to use clean session -> we need to subscribe after reconnects
-    private static final boolean CLEAN_SESSION = true;
+    // Ask broker to redeliver on reconnect
+    private static final boolean CLEAN_SESSION = false;
 
     private final Connection connection;
     private final HiveMqtt3ClientFactory clientFactory;
@@ -120,6 +121,14 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected void doInit() {
+        createClientAndSubscriptionHandler();
+    }
+
+    /**
+     * Create a new client using the configuration of this actor.
+     * On failure, send a ConnectionFailure to self.
+     */
+    private void createClientAndSubscriptionHandler() {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
         final String mqttClientId = resolveMqttClientId(connection.getId(), mqttSpecificConfig);
         final ActorRef self = getContext().getSelf();
@@ -129,10 +138,18 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                     connected -> self.tell(connected, ActorRef.noSender()),
                     disconnected -> self.tell(disconnected, ActorRef.noSender()));
             this.subscriptionHandler = new HiveMqtt3SubscriptionHandler(connection, client, log);
+            // TODO: redelivered PUBLISH end up in the unsolicited stream.
+            client.toAsync()
+                    .publishes(MqttGlobalPublishFilter.UNSOLICITED, publish -> log.debug("UNSOLICITED {}", publish));
         } catch (final Exception e) {
             log.debug("Connecting failed ({}): {}", e.getClass().getName(), e.getMessage());
             self.tell(new ImmutableConnectionFailure(self, e, null), self);
         }
+    }
+
+    private void resetClientAndSubscriptionHandler() {
+        client = null;
+        subscriptionHandler = null;
     }
 
     private String resolveMqttClientId(final ConnectionId connectionId, final MqttSpecificConfig mqttSpecificConfig) {
@@ -204,6 +221,13 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         final ActorRef self = getSelf();
+        if (client == null) {
+            createClientAndSubscriptionHandler();
+            if (client == null) {
+                // client creation failed; a ConnectionFailure event will arrive and cause transition to failure state
+                return;
+            }
+        }
         getClient().toAsync()
                 .connectWith()
                 .cleanSession(CLEAN_SESSION)
@@ -246,16 +270,21 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        final CompletionStage<ClientDisconnected> disconnectFuture = disconnectClient(getClient())
-                .handle((aVoid, throwable) -> {
-                    if (null != throwable) {
-                        log.info("Error while disconnecting: {}", throwable);
-                    } else {
-                        log.debug("Successfully disconnected.");
-                    }
-                    return getClientDisconnected(origin);
-                });
-        Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
+        if (client != null) {
+            final CompletionStage<ClientDisconnected> disconnectFuture = disconnectClient(getClient())
+                    .handle((aVoid, throwable) -> {
+                        if (null != throwable) {
+                            log.info("Error while disconnecting: {}", throwable);
+                        } else {
+                            log.debug("Successfully disconnected.");
+                        }
+                        return getClientDisconnected(origin);
+                    });
+            Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
+        } else {
+            // client is already disconnected
+            getSelf().tell(getClientDisconnected(origin), origin);
+        }
     }
 
     private static ClientDisconnected getClientDisconnected(@Nullable final ActorRef origin) {
@@ -267,6 +296,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         stopCommandConsumers(subscriptionHandler);
         stopChildActor(publisherActor);
         safelyDisconnectClient(client);
+        resetClientAndSubscriptionHandler();
     }
 
     @Override
