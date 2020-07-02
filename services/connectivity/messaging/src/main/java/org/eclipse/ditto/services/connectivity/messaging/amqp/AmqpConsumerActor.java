@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+import static org.apache.qpid.jms.message.JmsMessageSupport.ACCEPTED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -22,7 +23,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
@@ -35,7 +35,6 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -73,23 +72,17 @@ import akka.pattern.Patterns;
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener {
+final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener, MessageRateLimiterBehavior<String> {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
-    private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
-    // the configured throttling interval
-    private final Duration throttlingInterval;
-    // the configured maximum of messages per interval
-    private final int throttlingLimit;
-    // the state for message throttling
-    private final AtomicReference<ThrottleState> throttleState;
+    private final MessageRateLimiter<String> messageRateLimiter;
 
     // Access to the actor who performs JMS tasks in own thread
     private final ActorRef jmsActor;
@@ -116,9 +109,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         this.jmsActor = checkNotNull(jmsActor, "jmsActor");
         jmsActorAskTimeout = connectionConfig.getClientActorAskTimeout();
 
-        throttlingInterval = amqp10Config.getConsumerThrottlingInterval();
-        throttlingLimit = amqp10Config.getConsumerThrottlingLimit();
-        throttleState = new AtomicReference<>(new ThrottleState(0L, 0));
+        messageRateLimiter = initMessageRateLimiter(amqp10Config);
 
         final Enforcement enforcement = consumerData.getSource().getEnforcement().orElse(null);
         headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory
@@ -143,18 +134,21 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(RestartMessageConsumer.class, this::handleRestartMessageConsumer)
+        final Receive messageHandlingBehavior = ReceiveBuilder.create()
                 .match(JmsMessage.class, this::handleJmsMessage)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .match(ConsumerClosedStatusReport.class, this::matchesOwnConsumer, this::handleConsumerClosed)
                 .match(CreateMessageConsumerResponse.class, this::messageConsumerCreated)
                 .match(Status.Failure.class, this::messageConsumerFailed)
+                .build();
+        final Receive rateLimiterBehavior = getRateLimiterBehavior();
+        final Receive matchAnyBehavior = ReceiveBuilder.create()
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+        return messageHandlingBehavior.orElse(rateLimiterBehavior.orElse(matchAnyBehavior));
     }
 
     @Override
@@ -171,9 +165,32 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     @Override
     public void onMessage(final Message message) {
         getSelf().tell(message, ActorRef.noSender());
-        if (isThrottlingEnabled()) {
-            throttleMessageConsumer();
+    }
+
+    private void stopMessageConsumer() {
+        if (messageConsumer != null) {
+            ((JmsMessageConsumer) messageConsumer).stop();
         }
+    }
+
+    @Override
+    public void startMessageConsumer() {
+        if (messageConsumer != null) {
+            ((JmsMessageConsumer) messageConsumer).start();
+        }
+    }
+
+    @Override
+    public void stopMessageConsumerDueToRateLimit(final String reason) {
+        inboundMonitor.getCounter().recordFailure();
+        inboundMonitor.getLogger()
+                .failure("Source <{0}> is rate-limited due to {1}.", sourceAddress, reason);
+        stopMessageConsumer();
+    }
+
+    @Override
+    public MessageRateLimiter<String> getMessageRateLimiter() {
+        return messageRateLimiter;
     }
 
     private void initMessageConsumer() throws JMSException {
@@ -194,22 +211,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             }
             messageConsumer = null;
         }
-    }
-
-    private void stopMessageConsumer() {
-        if (messageConsumer != null) {
-            ((JmsMessageConsumer) messageConsumer).stop();
-        }
-    }
-
-    private void startMessageConsumer() {
-        if (messageConsumer != null) {
-            ((JmsMessageConsumer) messageConsumer).start();
-        }
-    }
-
-    private boolean isThrottlingEnabled() {
-        return throttlingInterval.toMillis() > 0 && throttlingLimit > 0;
     }
 
     private boolean matchesOwnConsumer(final ConsumerClosedStatusReport event) {
@@ -264,55 +265,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         getContext().getParent().tell(connectionFailed, getSelf());
     }
 
-    /**
-     * Tracks the number of messages consumed within the last {@code throttlingInterval}. If the number exceeds the
-     * configured {@code throttlingLimit} the messageConsumer is stopped and scheduled to be restarted after the
-     * current interval. The method is always called from the same JMS dispatcher thread.
-     */
-    private void throttleMessageConsumer() {
-        final long interval = System.currentTimeMillis() / throttlingInterval.toMillis();
-        final ThrottleState state = throttleState.updateAndGet(previousState -> {
-            final int nextMessages;
-            if (interval == previousState.currentInterval) {
-                nextMessages = previousState.currentMessagePerInterval + 1;
-            } else {
-                nextMessages = 1;
-            }
-            return new ThrottleState(interval, nextMessages);
-        });
-        if (state.currentMessagePerInterval >= throttlingLimit) {
-            log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
-                    throttlingInterval);
-            stopMessageConsumer();
-            // calculate timestamp of next interval when the consumer should be restarted
-            final long restartConsumerAt = (interval + 1) * throttlingInterval.toMillis();
-            getSelf().tell(new RestartMessageConsumer(restartConsumerAt), ActorRef.noSender());
-            inboundMonitor.getCounter().recordFailure();
-            inboundMonitor.getLogger()
-                    .failure("Source <{0}> is rate-limited due to excessive messaging.", sourceAddress);
-        }
-    }
-
-    /**
-     * Restarts the message consumer either immediately or schedules the restart of the consumer with some delay.
-     *
-     * @param restartMessageConsumer the message signalling that we should restart the consumer
-     */
-    private void handleRestartMessageConsumer(final RestartMessageConsumer restartMessageConsumer) {
-        final long delay = restartMessageConsumer.getRestartAt() - System.currentTimeMillis();
-        if (delay <= 25) { // restart message consumer immediately if delay is negative or too small to schedule
-            log.debug("Restarting message consumer.");
-            startMessageConsumer();
-        } else { // otherwise schedule restarting of consumer
-            log.debug("Scheduling restart of message consumer after {}ms.", delay);
-            getTimers().startSingleTimer(RESTART_MESSAGE_CONSUMER, restartMessageConsumer, Duration.ofMillis(delay));
-        }
-    }
-
     private void handleJmsMessage(final JmsMessage message) {
-
         Map<String, String> headers = null;
         try {
+            recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {
                 log.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
                         message.toString(),
@@ -336,15 +292,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                         externalMessage.getTextPayload().orElse("binary"));
             }
             forwardToMappingActor(externalMessage,
-                    // JMS client will make these constants package-private.
-                    // TODO: replace JMS client.
-                    () -> acknowledge(message, JmsMessageSupport.ACCEPTED, true, "accepted"),
-                    redeliver -> acknowledge(
-                            message,
-                            redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE,
-                            false,
-                            redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]"
-                    )
+                    () -> acknowledge(message, true, false),
+                    redeliver -> acknowledge(message, false, redeliver)
             );
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
@@ -371,17 +320,24 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * Acknowledge an incoming message with a given acknowledgement type.
      *
      * @param message The incoming message.
-     * @param ackType The acknowledgement type corresponding to a delivery state in the disposition.
+     * @param redeliver whether redelivery should be requested.
      * @param isSuccess Whether this ackType is considered a success.
-     * @param ackTypeName The AMQP delivery state corresponding to ackType.
      */
-    private void acknowledge(final JmsMessage message, final int ackType, final boolean isSuccess,
-            final String ackTypeName) {
+    private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver) {
         try {
-            if (log.isDebugEnabled()) {
-                log.debug("Acking <{}> with isSuccess=<{}>, ackType=<{} {}>", message.getJMSMessageID(),
-                        isSuccess, ackType, ackTypeName);
+            final String messageId = message.getJMSMessageID();
+            recordAckForRateLimit(messageId, isSuccess, redeliver);
+            // Beware: JMS client may make JmsMessageSupport constants ACCEPTED, etc. package-private.
+            final int ackType;
+            final String ackTypeName;
+            if (isSuccess) {
+                ackType = ACCEPTED;
+                ackTypeName = "accepted";
+            } else {
+                ackType = redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE;
+                ackTypeName = redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]";
             }
+            log.debug("Acking <{}> with isSuccess=<{}>, ackType=<{} {}>", messageId, isSuccess, ackType, ackTypeName);
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             if (isSuccess) {
@@ -426,32 +382,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     @Override
-    protected DittoDiagnosticLoggingAdapter log() {
+    public DittoDiagnosticLoggingAdapter log() {
         return log;
-    }
-
-    private static final class RestartMessageConsumer {
-
-        private final long restartAt;
-
-        private RestartMessageConsumer(final long restartAt) {
-            this.restartAt = restartAt;
-        }
-
-        private long getRestartAt() {
-            return restartAt;
-        }
-    }
-
-    private static final class ThrottleState {
-
-        private final long currentInterval;
-        private final int currentMessagePerInterval;
-
-        private ThrottleState(final long currentInterval, final int currentMessagePerInterval) {
-            this.currentInterval = currentInterval;
-            this.currentMessagePerInterval = currentMessagePerInterval;
-        }
     }
 
     /**

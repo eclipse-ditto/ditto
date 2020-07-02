@@ -16,8 +16,8 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
+import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
@@ -25,6 +25,20 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
  */
 @Immutable
 public interface Amqp10Config {
+
+    /**
+     * Return how many unacknowledged messages are allowed, including messages for which redelivery is requested.
+     *
+     * @return the maximum number of messages in flight.
+     */
+    int getConsumerMaxInFlight();
+
+    /**
+     * Return when to forget messages for which redelivery was requested (they may be consumed by another consumer).
+     *
+     * @return the duration a redelivery request is kept.
+     */
+    Duration getConsumerRedeliveryExpectationTimeout();
 
     /**
      * Returns the consumer throttling config.
@@ -72,6 +86,16 @@ public interface Amqp10Config {
      * {@code Amqp10Config}.
      */
     enum Amqp10ConfigValue implements KnownConfigValue {
+
+        /**
+         * How many unacknowledged messages are allowed, including messages for which redelivery is requested.
+         */
+        CONSUMER_MAX_IN_FLIGHT("consumer.max-in-flight", 200),
+
+        /**
+         * When to forget messages for which redelivery was requested (they may be consumed by another consumer).
+         */
+        CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT("consumer.redelivery-expectation-timeout", Duration.ofMinutes(2L)),
 
         /**
          * How many message producers to cache per client actor.
