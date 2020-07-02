@@ -56,9 +56,9 @@ final class MessageRateLimiter<S> {
 
     private MessageRateLimiter(final int maxPerPeriod, final int maxInFlight,
             final Duration redeliveryExpectationTimeout, final boolean enabled) {
-        this.maxPerPeriod = maxPerPeriod;
-        this.maxInFlight = maxInFlight;
-        this.redeliveryExpectationTimeout = redeliveryExpectationTimeout;
+        this.maxPerPeriod = Math.max(maxPerPeriod, 1);
+        this.maxInFlight = Math.max(maxInFlight, 1);
+        this.redeliveryExpectationTimeout = maxDuration(redeliveryExpectationTimeout, Duration.ofSeconds(1L));
         this.enabled = enabled;
     }
 
@@ -192,6 +192,10 @@ final class MessageRateLimiter<S> {
      */
     void reduceConsumedInPeriod() {
         consumedInPeriod = Math.max(consumedInPeriod - maxPerPeriod, 0);
+    }
+
+    private static Duration maxDuration(final Duration d1, final Duration d2) {
+        return d2.minus(d1).isNegative() ? d1 : d2;
     }
 
 }

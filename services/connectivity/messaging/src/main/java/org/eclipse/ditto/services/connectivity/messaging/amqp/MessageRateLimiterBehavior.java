@@ -65,7 +65,7 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
      * @return the rate limiter as a part of the actor state.
      */
     default MessageRateLimiter<S> initMessageRateLimiter(final Amqp10Config config) {
-        final boolean enabled = isThrottlingEnabled(config);
+        final boolean enabled = config.isConsumerRateLimitEnabled();
         if (enabled) {
             // schedule periodic throughput check
             timers().startPeriodicTimer(Control.CHECK_RATE_LIMIT, Control.CHECK_RATE_LIMIT,
@@ -125,7 +125,7 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
     }
 
     private void checkRateLimitForConsumedThisPeriod(final MessageRateLimiter<S> rateLimiter) {
-        if (rateLimiter.isMaxPerPeriodExceeded()) {
+        if (rateLimiter.isMaxPerPeriodExceeded() && rateLimiter.isConsumerOpen()) {
             stopConsumerDueToRateLimit(rateLimiter, true, false);
         }
     }
@@ -150,7 +150,7 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
     }
 
     private void startConsumerDueToRateLimit(final MessageRateLimiter<S> rateLimiter) {
-        log().info("Restarting message consumer.");
+        logRateLimiter(rateLimiter, "Starting");
         startMessageConsumer();
         rateLimiter.setIsConsumerOpen(true);
     }
@@ -159,16 +159,20 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
             final boolean maxPerPeriodExceeded,
             final boolean maxInFlightExceeded) {
 
-        log().info("Stopping message consumer. received {} this period; " +
-                        "in-flight={} redelivering={} max-in-flight={}",
-                rateLimiter.getConsumedInPeriod() + "/" + rateLimiter.getMaxPerPeriod(),
+        logRateLimiter(rateLimiter, "Stopping");
+        final String reason = getMessageConsumerStoppedReason(maxPerPeriodExceeded, maxInFlightExceeded);
+        stopMessageConsumerDueToRateLimit(reason);
+        rateLimiter.setIsConsumerOpen(false);
+    }
+
+    private void logRateLimiter(final MessageRateLimiter<S> rateLimiter, final String action) {
+        log().info("RATELIMITER {} in-flight={} redelivering={} max-in-flight={}",
+                action + " message consumer. period=" +
+                        rateLimiter.getConsumedInPeriod() + "/" + rateLimiter.getMaxPerPeriod(),
                 rateLimiter.getInFlight(),
                 rateLimiter.getToBeRedelivered(),
                 rateLimiter.getMaxInFlight()
         );
-        final String reason = getMessageConsumerStoppedReason(maxPerPeriodExceeded, maxInFlightExceeded);
-        stopMessageConsumerDueToRateLimit(reason);
-        rateLimiter.setIsConsumerOpen(false);
     }
 
     private void checkAckStatus(final AckStatus<S> ack) {
@@ -203,12 +207,6 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
         } else {
             return "too many unacknowledged commands";
         }
-    }
-
-    private boolean isThrottlingEnabled(final Amqp10Config config) {
-        final Duration throttlingInterval = config.getConsumerThrottlingInterval();
-        final int throttlingLimit = config.getConsumerThrottlingLimit();
-        return Duration.ZERO.minus(throttlingInterval).isNegative() && throttlingLimit > 0;
     }
 
     final class Forget<S> {

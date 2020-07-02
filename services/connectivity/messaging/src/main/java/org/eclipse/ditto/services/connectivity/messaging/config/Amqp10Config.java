@@ -27,6 +27,13 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface Amqp10Config {
 
     /**
+     * Return whether rate limit based on throughput _and_ acknowledgements is enabled.
+     *
+     * @return whether rate limit is enabled.
+     */
+    boolean isConsumerRateLimitEnabled();
+
+    /**
      * Return how many unacknowledged messages are allowed, including messages for which redelivery is requested.
      *
      * @return the maximum number of messages in flight.
@@ -86,6 +93,11 @@ public interface Amqp10Config {
      * {@code Amqp10Config}.
      */
     enum Amqp10ConfigValue implements KnownConfigValue {
+
+        /**
+         * Whether consumer rate limit is enabled.
+         */
+        CONSUMER_RATE_LIMIT_ENABLED("consumer.rate-limit-enabled", true),
 
         /**
          * How many unacknowledged messages are allowed, including messages for which redelivery is requested.

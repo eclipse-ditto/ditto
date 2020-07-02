@@ -36,6 +36,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private static final String CONFIG_PATH = "amqp10";
     private static final String CONSUMER_PATH = "consumer";
 
+    private final boolean consumerRateLimitEnabled;
     private final int consumerMaxInFlight;
     private final Duration consumerRedeliveryExpectationTimeout;
     private final int producerCacheSize;
@@ -43,6 +44,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private final ThrottlingConfig consumerThrottlingConfig;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
+        consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
         consumerMaxInFlight = config.getInt(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT.getConfigPath());
         consumerRedeliveryExpectationTimeout =
                 config.getDuration(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath());
@@ -62,6 +64,11 @@ public final class DefaultAmqp10Config implements Amqp10Config {
      */
     public static DefaultAmqp10Config of(final Config config) {
         return new DefaultAmqp10Config(ConfigWithFallback.newInstance(config, CONFIG_PATH, Amqp10ConfigValue.values()));
+    }
+
+    @Override
+    public boolean isConsumerRateLimitEnabled() {
+        return consumerRateLimitEnabled;
     }
 
     @Override
@@ -98,7 +105,8 @@ public final class DefaultAmqp10Config implements Amqp10Config {
             return false;
         }
         final DefaultAmqp10Config that = (DefaultAmqp10Config) o;
-        return consumerMaxInFlight == that.consumerMaxInFlight &&
+        return consumerRateLimitEnabled == that.consumerRateLimitEnabled &&
+                consumerMaxInFlight == that.consumerMaxInFlight &&
                 Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
                 producerCacheSize == that.producerCacheSize &&
                 Objects.equals(backOffConfig, that.backOffConfig) &&
@@ -107,14 +115,15 @@ public final class DefaultAmqp10Config implements Amqp10Config {
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerMaxInFlight, consumerRedeliveryExpectationTimeout, producerCacheSize, backOffConfig,
-                consumerThrottlingConfig);
+        return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
+                producerCacheSize, backOffConfig, consumerThrottlingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "consumerMaxInFlight=" + consumerMaxInFlight +
+                "consumerRateLimitEnabled=" + consumerRateLimitEnabled +
+                ", consumerMaxInFlight=" + consumerMaxInFlight +
                 ", consumerRedeliveryExpectationTimeout=" + consumerRedeliveryExpectationTimeout +
                 ", producerCacheSize=" + producerCacheSize +
                 ", backOffConfig=" + backOffConfig +
