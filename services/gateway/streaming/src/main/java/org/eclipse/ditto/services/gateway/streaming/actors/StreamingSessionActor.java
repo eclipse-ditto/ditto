@@ -169,9 +169,12 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
                 .match(ThingModifyCommand.class, this::isResponseRequired, thingModifyCommand -> {
                     try {
-                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
-                                acknowledgementConfig, headerTranslator,
-                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+                        if (!isLiveSignal(thingModifyCommand)) {
+                            AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                                    thingModifyCommand,
+                                    acknowledgementConfig, headerTranslator,
+                                    response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+                        }
                     } catch (final DittoRuntimeException e) {
                         logger.withCorrelationId(thingModifyCommand)
                                 .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
@@ -266,6 +269,13 @@ final class StreamingSessionActor extends AbstractActor {
                 .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
                         .warning("Got unknown message in '{}' session: '{}'", type, any))
                 .build();
+    }
+
+    private boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders()
+                .getChannel()
+                .filter(value -> TopicPath.Channel.LIVE.getName().equals(value))
+                .isPresent();
     }
 
     private boolean isResponseRequired(final WithDittoHeaders<?> signal) {
