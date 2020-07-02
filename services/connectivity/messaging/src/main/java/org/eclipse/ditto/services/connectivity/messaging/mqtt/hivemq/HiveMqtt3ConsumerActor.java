@@ -180,6 +180,7 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     private HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt3Publish message) {
         final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
 
+        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, message.getTopic().toString());
         headersFromMqttMessage.put(MQTT_QOS_HEADER, String.valueOf(message.getQos().getCode()));
         headersFromMqttMessage.put(MQTT_RETAIN_HEADER, String.valueOf(message.isRetain()));
 
