@@ -486,17 +486,7 @@ public final class ConnectionPersistenceActor
     }
 
     private void handleSignal(final Signal<?> signal) {
-        final Signal<?> signalToForward;
-        if (signal instanceof ThingEvent) {
-            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
-            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
-                    thingEvent.getThingEntityId(),
-                    signal,
-                    config.getAcknowledgementConfig());
-        } else {
-            signalToForward = signal;
-        }
-        forwardSignalToClientActors(signalToForward);
+        forwardSignalToClientActors(signal);
     }
 
     private void forwardSignalToClientActors(final Signal<?> signal) {
@@ -520,7 +510,18 @@ public final class ConnectionPersistenceActor
             return;
         }
 
-        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(),
+        final Signal<?> signalToForward;
+        if (signal instanceof ThingEvent) {
+            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
+            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
+                    thingEvent.getThingEntityId(),
+                    signal,
+                    config.getAcknowledgementConfig());
+        } else {
+            signalToForward = signal;
+        }
+
+        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signalToForward.getType(),
                 subscribedAndAuthorizedTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
