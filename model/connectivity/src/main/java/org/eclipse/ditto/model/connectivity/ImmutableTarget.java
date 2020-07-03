@@ -59,7 +59,7 @@ final class ImmutableTarget implements Target {
     @Nullable private final Integer qos;
     private final AuthorizationContext authorizationContext;
     private final String originalAddress;
-    @Nullable private final AcknowledgementLabel deliveredAcknowledgementLabel;
+    @Nullable private final AcknowledgementLabel issuedAcknowledgementLabel;
     @Nullable private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
 
@@ -70,7 +70,7 @@ final class ImmutableTarget implements Target {
                 new HashSet<>(builder.topics == null ? Collections.emptySet() : builder.topics));
         qos = builder.qos;
         authorizationContext = checkNotNull(builder.authorizationContext, "authorizationContext");
-        deliveredAcknowledgementLabel = builder.deliveredAcknowledgementLabel;
+        issuedAcknowledgementLabel = builder.issuedAcknowledgementLabel;
         headerMapping = builder.headerMapping;
         payloadMapping = builder.payloadMapping;
     }
@@ -106,8 +106,8 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
-    public Optional<AcknowledgementLabel> getDeliveredAcknowledgementLabel() {
-        return Optional.ofNullable(deliveredAcknowledgementLabel);
+    public Optional<AcknowledgementLabel> getIssuedAcknowledgementLabel() {
+        return Optional.ofNullable(issuedAcknowledgementLabel);
     }
 
     @Override
@@ -141,9 +141,9 @@ final class ImmutableTarget implements Target {
                     .collect(JsonCollectors.valuesToArray()), predicate);
         }
 
-        if (deliveredAcknowledgementLabel != null) {
-            jsonObjectBuilder.set(JsonFields.DELIVERED_ACKNOWLEDGEMENT_LABEL, JsonFactory.newValue(
-                    deliveredAcknowledgementLabel.toString()));
+        if (issuedAcknowledgementLabel != null) {
+            jsonObjectBuilder.set(JsonFields.ISSUED_ACKNOWLEDGEMENT_LABEL, issuedAcknowledgementLabel.toString(),
+                    predicate);
         }
 
         if (headerMapping != null) {
@@ -186,10 +186,10 @@ final class ImmutableTarget implements Target {
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
                         authorizationSubjects);
 
-        final AcknowledgementLabel acknowledgement = jsonObject.getValue(Target.JsonFields.DELIVERED_ACKNOWLEDGEMENT_LABEL)
-                .map(JsonValue::asString)
-                .map(AcknowledgementLabel::of)
-                .orElse(null);
+        final AcknowledgementLabel readIssuedAcknowledgementLabel =
+                jsonObject.getValue(Target.JsonFields.ISSUED_ACKNOWLEDGEMENT_LABEL)
+                        .map(AcknowledgementLabel::of)
+                        .orElse(null);
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING)
@@ -206,7 +206,7 @@ final class ImmutableTarget implements Target {
                 .topics(readTopics)
                 .qos(jsonObject.getValue(JsonFields.QOS).orElse(null))
                 .authorizationContext(readAuthorizationContext)
-                .deliveredAcknowledgementLabel(acknowledgement)
+                .issuedAcknowledgementLabel(readIssuedAcknowledgementLabel)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readMapping)
                 .build();
@@ -223,14 +223,14 @@ final class ImmutableTarget implements Target {
                 Objects.equals(qos, that.qos) &&
                 authorizationContext.equals(that.authorizationContext) &&
                 originalAddress.equals(that.originalAddress) &&
-                Objects.equals(deliveredAcknowledgementLabel, that.deliveredAcknowledgementLabel) &&
+                Objects.equals(issuedAcknowledgementLabel, that.issuedAcknowledgementLabel) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 payloadMapping.equals(that.payloadMapping);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, qos, authorizationContext, originalAddress, deliveredAcknowledgementLabel,
+        return Objects.hash(address, topics, qos, authorizationContext, originalAddress, issuedAcknowledgementLabel,
                 headerMapping, payloadMapping);
     }
 
@@ -242,7 +242,7 @@ final class ImmutableTarget implements Target {
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", originalAddress=" + originalAddress +
-                ", deliveredAcknowledgementLabel=" + deliveredAcknowledgementLabel +
+                ", issuedAcknowledgementLabel=" + issuedAcknowledgementLabel +
                 ", headerMapping=" + headerMapping +
                 ", payloadMapping=" + payloadMapping +
                 "]";
@@ -260,7 +260,7 @@ final class ImmutableTarget implements Target {
         @Nullable private Set<FilteredTopic> topics;
         @Nullable private Integer qos;
         @Nullable private AuthorizationContext authorizationContext;
-        @Nullable private AcknowledgementLabel deliveredAcknowledgementLabel;
+        @Nullable private AcknowledgementLabel issuedAcknowledgementLabel;
         @Nullable private HeaderMapping headerMapping;
 
         Builder() {
@@ -272,7 +272,7 @@ final class ImmutableTarget implements Target {
                     .topics(target.getTopics())
                     .headerMapping(target.getHeaderMapping().orElse(null))
                     .qos(target.getQos().orElse(null))
-                    .deliveredAcknowledgementLabel(target.getDeliveredAcknowledgementLabel().orElse(null))
+                    .issuedAcknowledgementLabel(target.getIssuedAcknowledgementLabel().orElse(null))
                     .payloadMapping(target.getPayloadMapping());
         }
 
@@ -330,8 +330,8 @@ final class ImmutableTarget implements Target {
         }
 
         @Override
-        public TargetBuilder deliveredAcknowledgementLabel(@Nullable final AcknowledgementLabel acknowledgement) {
-            this.deliveredAcknowledgementLabel = acknowledgement;
+        public TargetBuilder issuedAcknowledgementLabel(@Nullable final AcknowledgementLabel acknowledgementLabel) {
+            this.issuedAcknowledgementLabel = acknowledgementLabel;
             return this;
         }
 

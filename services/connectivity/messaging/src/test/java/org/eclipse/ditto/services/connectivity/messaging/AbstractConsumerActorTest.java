@@ -327,7 +327,7 @@ public abstract class AbstractConsumerActorTest<M> {
     protected abstract Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping);
 
     protected abstract Props getConsumerActorProps(final ActorRef mappingActor,
-            final Set<AcknowledgementLabel> acknowledgements);
+            final Set<AcknowledgementRequest> acknowledgementRequests);
 
     protected abstract M getInboundMessage(final String payload, final Map.Entry<String, Object> header);
 

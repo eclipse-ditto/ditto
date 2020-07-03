@@ -38,7 +38,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -803,10 +802,8 @@ public final class MessageMappingProcessorActorTest {
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final AcknowledgementRequest signalAck =
                     AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
-            Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
-            for (AcknowledgementLabel label : CONNECTION.getSources().get(0).getRequestedAcknowledgementLabels()) {
-                validationSet.add(AcknowledgementRequest.of(label));
-            }
+            final Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
+            validationSet.addAll(CONNECTION.getSources().get(0).getAcknowledgementRequests());
             final Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
             final AuthorizationContext context =

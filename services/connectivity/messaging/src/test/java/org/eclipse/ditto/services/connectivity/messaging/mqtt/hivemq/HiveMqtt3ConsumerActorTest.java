@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -44,11 +44,11 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
-            final Set<AcknowledgementLabel> acknowledgements) {
+            final Set<AcknowledgementRequest> acknowledgementRequests) {
         return HiveMqtt3ConsumerActor.props(CONNECTION_ID, mappingActor, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .headerMapping(TestConstants.MQTT3_HEADER_MAPPING)
-                .requestedAcknowledgementLabels(acknowledgements)
+                .acknowledgementRequests(acknowledgementRequests)
                 .replyTarget(ReplyTarget.newBuilder()
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)

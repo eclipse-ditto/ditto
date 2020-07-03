@@ -42,7 +42,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -104,7 +104,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
-            final Set<AcknowledgementLabel> acknowledgements) {
+            final Set<AcknowledgementRequest> acknowledgementRequests) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
         final ConsumerData mockConsumerData =
                 consumerData(CONNECTION_ID.toString(), messageConsumer, ConnectivityModelFactory.newSourceBuilder()
@@ -112,7 +112,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
                         .payloadMapping(ConnectivityModelFactory.emptyPayloadMapping())
-                        .requestedAcknowledgementLabels(acknowledgements)
+                        .acknowledgementRequests(acknowledgementRequests)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("foo")
                                 .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)

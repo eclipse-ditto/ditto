@@ -16,7 +16,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -83,15 +83,13 @@ public interface SourceBuilder<T extends SourceBuilder<?>> {
     T enforcement(@Nullable Enforcement enforcement);
 
     /**
-     * Sets the {@link org.eclipse.ditto.model.base.acks.AcknowledgementLabel} of
-     * {@link org.eclipse.ditto.signals.acks.base.Acknowledgement} requested from a source .
+     * Sets the {@link AcknowledgementRequest}s that are requested from messages consumed in the built source.
      *
-     * @param acknowledgements the labels of acknowledgements
+     * @param acknowledgementRequests the acknowledgement requests
      * @return this builder
-     *
      * @since 1.2.0
      */
-    T requestedAcknowledgementLabels(Set<AcknowledgementLabel> acknowledgements);
+    T acknowledgementRequests(Set<AcknowledgementRequest> acknowledgementRequests);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.

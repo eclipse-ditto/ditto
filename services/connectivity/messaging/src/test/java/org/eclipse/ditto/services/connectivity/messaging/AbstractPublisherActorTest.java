@@ -149,7 +149,7 @@ public abstract class AbstractPublisherActorTest {
                 .originalAddress(getOutboundAddress())
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .headerMapping(TestConstants.HEADER_MAPPING)
-                .deliveredAcknowledgementLabel(acks.length != 1 ? null : AcknowledgementLabel.of(acks[0]))
+                .issuedAcknowledgementLabel(acks.length != 1 ? null : AcknowledgementLabel.of(acks[0]))
                 .topics(Topic.TWIN_EVENTS)
                 .build();
     }

@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -50,8 +51,9 @@ public final class ImmutableSourceTest {
 
     private static final Map<String, String> MAPPING;
 
-    private static final Set<AcknowledgementLabel> ACKNOWLEDGEMENTS = new HashSet<>(
-            Arrays.asList(AcknowledgementLabel.of("custom-ack"), AcknowledgementLabel.of("second-custom-ack")));
+    private static final Set<AcknowledgementRequest> ACKNOWLEDGEMENT_REQUESTS = new HashSet<>(
+            Arrays.asList(AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
+                    AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack"))));
 
     static {
         final Map<String, String> mapping = new HashMap<>();
@@ -70,7 +72,7 @@ public final class ImmutableSourceTest {
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
-                    .requestedAcknowledgementLabels(ACKNOWLEDGEMENTS)
+                    .acknowledgementRequests(ACKNOWLEDGEMENT_REQUESTS)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
@@ -80,7 +82,7 @@ public final class ImmutableSourceTest {
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
-            .set(Source.JsonFields.REQUESTED_ACKNOWLEDGEMENT_LABELS,
+            .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
                     JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Source.JsonFields.HEADER_MAPPING,
                     JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
@@ -105,7 +107,7 @@ public final class ImmutableSourceTest {
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .address(MQTT_SOURCE1)
             .enforcement(ENFORCEMENT)
-            .requestedAcknowledgementLabels(ACKNOWLEDGEMENTS)
+            .acknowledgementRequests(ACKNOWLEDGEMENT_REQUESTS)
             .consumerCount(2)
             .index(0)
             .qos(1)
@@ -116,7 +118,7 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(MQTT_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(Source.JsonFields.QOS, 1)
-            .set(Source.JsonFields.REQUESTED_ACKNOWLEDGEMENT_LABELS,
+            .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
                     JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.ENFORCEMENT, JsonFactory.newObjectBuilder()
@@ -139,7 +141,7 @@ public final class ImmutableSourceTest {
                 areImmutable(),
                 provided(AuthorizationContext.class,
                         Enforcement.class,
-                        AcknowledgementLabel.class,
+                        AcknowledgementRequest.class,
                         HeaderMapping.class,
                         PayloadMapping.class,
                         ReplyTarget.class).areAlsoImmutable());

@@ -161,7 +161,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .originalAddress(getOutboundAddress())
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
-                        .deliveredAcknowledgementLabel(acknowledgementLabel)
+                        .issuedAcknowledgementLabel(acknowledgementLabel)
                         .topics(Topic.TWIN_EVENTS)
                         .build();
 

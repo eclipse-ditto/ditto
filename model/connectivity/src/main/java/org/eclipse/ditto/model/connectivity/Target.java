@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -75,12 +74,13 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     AuthorizationContext getAuthorizationContext();
 
     /**
-     * Defines optional label of an acknowledgement to send to the target.
+     * Defines the optional label of an acknowledgement which should automatically be issued by this target
+     * based on the technical settlement/ACK the connection channel provides.
      *
-     * @return the optional labels of acknowledgements
+     * @return the optional label of an automatically issued acknowledgement
      * @since 1.2.0
      */
-    Optional<AcknowledgementLabel> getDeliveredAcknowledgementLabel();
+    Optional<AcknowledgementLabel> getIssuedAcknowledgementLabel();
 
     /**
      * Defines an optional header mapping e.g. to rename, combine etc. headers for outbound message. Mapping is
@@ -157,10 +157,10 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Target} acknowledgements.
+         * JSON field containing the {@code Target} acknowledgement label of an automatically issued acknowledgement.
          */
-        public static final JsonFieldDefinition<JsonValue> DELIVERED_ACKNOWLEDGEMENT_LABEL =
-                JsonFactory.newJsonValueFieldDefinition("delivered-ack", FieldType.REGULAR,
+        public static final JsonFieldDefinition<String> ISSUED_ACKNOWLEDGEMENT_LABEL =
+                JsonFactory.newStringFieldDefinition("issuedAcknowledgementLabel", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**

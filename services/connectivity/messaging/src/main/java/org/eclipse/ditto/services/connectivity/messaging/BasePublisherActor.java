@@ -392,7 +392,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return the configured auto-ack label if any exists, or an empty optional.
      */
     protected static Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
-        return Optional.ofNullable(target).flatMap(Target::getDeliveredAcknowledgementLabel);
+        return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel);
     }
 
     /**
@@ -480,7 +480,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .stream()
                 .map(AcknowledgementRequest::getLabel)
                 .collect(Collectors.toSet());
-        return target.getDeliveredAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
+        return target.getIssuedAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
     }
 
     private SendingContext sendingContextForReplyTarget(final OutboundSignal.Mapped outboundSignal,

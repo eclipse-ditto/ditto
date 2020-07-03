@@ -363,13 +363,9 @@ public final class MessageMappingProcessorActor
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
-        final List<AcknowledgementRequest> additionalRequestedAcks = message.getSource()
-                .map(org.eclipse.ditto.model.connectivity.Source::getRequestedAcknowledgementLabels)
-                .map(set -> set.stream()
-                        .map(AcknowledgementRequest::of)
-                        // Filter out empty acknowledgements placeholder
-                        .collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+        final Set<AcknowledgementRequest> additionalRequestedAcks = message.getSource()
+                .map(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
+                .orElse(Collections.emptySet());
 
         if (additionalRequestedAcks.isEmpty()) {
             // do not change the signal's header if no additional requested-acks are defined

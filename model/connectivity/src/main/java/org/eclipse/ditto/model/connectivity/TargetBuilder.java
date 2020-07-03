@@ -83,14 +83,14 @@ public interface TargetBuilder {
     TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics);
 
     /**
-     * Sets the optional {@link org.eclipse.ditto.model.base.acks.AcknowledgementLabel} of
-     * {@link org.eclipse.ditto.signals.acks.base.Acknowledgement} to be delivered to the target.
+     * Sets the label of an acknowledgement which should automatically be issued by this target based on the technical
+     * settlement/ACK the connection channel provides.
      *
-     * @param acknowledgement the label of the acknowledgement
+     * @param acknowledgementLabel the label of the automatically issued acknowledgement
      * @return this builder
      * @since 1.2.0
      */
-    TargetBuilder deliveredAcknowledgementLabel(@Nullable AcknowledgementLabel acknowledgement);
+    TargetBuilder issuedAcknowledgementLabel(@Nullable AcknowledgementLabel acknowledgementLabel);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.

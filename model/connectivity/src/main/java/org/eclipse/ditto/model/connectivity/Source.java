@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -68,10 +68,12 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<Enforcement> getEnforcement();
 
     /**
-     * @return the optional labels of acknowledgements that are requested from this source
+     * Returns the acknowledgement requests which should be added to each by the source consumed message.
+     *
+     * @return the acknowledgements that are requested from messages consumed in this source
      * @since 1.2.0
      */
-    Set<AcknowledgementLabel> getRequestedAcknowledgementLabels();
+    Set<AcknowledgementRequest> getAcknowledgementRequests();
 
     /**
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
@@ -171,10 +173,11 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Source} acknowledgements.
+         * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
+         * source.
          */
-        public static final JsonFieldDefinition<JsonArray> REQUESTED_ACKNOWLEDGEMENT_LABELS =
-                JsonFactory.newJsonArrayFieldDefinition("requested-acks", FieldType.REGULAR,
+        public static final JsonFieldDefinition<JsonArray> ACKNOWLEDGEMENT_REQUESTS =
+                JsonFactory.newJsonArrayFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**

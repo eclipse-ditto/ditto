@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -54,14 +54,14 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
-            final Set<AcknowledgementLabel> acknowledgements) {
+            final Set<AcknowledgementRequest> acknowledgementRequests) {
         return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
                 ConnectivityModelFactory.newSourceBuilder()
                         .address("rmq-consumer")
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .enforcement(ENFORCEMENT)
                         .headerMapping(TestConstants.HEADER_MAPPING)
-                        .requestedAcknowledgementLabels(acknowledgements)
+                        .acknowledgementRequests(acknowledgementRequests)
                         .replyTarget(ReplyTarget.newBuilder()
                                 .address("foo")
                                 .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
