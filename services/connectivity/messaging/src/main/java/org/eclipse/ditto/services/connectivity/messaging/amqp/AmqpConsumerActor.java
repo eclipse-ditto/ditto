@@ -173,8 +173,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         }
     }
 
-    @Override
-    public void startMessageConsumer() {
+    private void startMessageConsumer() {
         if (messageConsumer != null) {
             ((JmsMessageConsumer) messageConsumer).start();
         }
@@ -186,6 +185,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         inboundMonitor.getLogger()
                 .failure("Source <{0}> is rate-limited due to {1}.", sourceAddress, reason);
         stopMessageConsumer();
+    }
+
+    @Override
+    public void startMessageConsumerDueToRateLimit() {
+        inboundMonitor.getLogger()
+                .success("Rate limit on source <{0}> is lifted.", sourceAddress);
+        startMessageConsumer();
     }
 
     @Override

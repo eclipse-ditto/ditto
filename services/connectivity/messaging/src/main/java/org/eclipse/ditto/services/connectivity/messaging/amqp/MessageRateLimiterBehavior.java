@@ -42,7 +42,7 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
     /**
      * Start message consumer. NOT required to be thread-safe. May be asynchronous.
      */
-    void startMessageConsumer();
+    void startMessageConsumerDueToRateLimit();
 
     /**
      * Stop message consumer. NOT required to be thread-safe. May be asynchronous.
@@ -151,7 +151,7 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
 
     private void startConsumerDueToRateLimit(final MessageRateLimiter<S> rateLimiter) {
         logRateLimiter(rateLimiter, "Starting");
-        startMessageConsumer();
+        startMessageConsumerDueToRateLimit();
         rateLimiter.setIsConsumerOpen(true);
     }
 
