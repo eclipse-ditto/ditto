@@ -279,7 +279,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
             final ActorRef jmsActor = getConnectConnectionHandler(connection());

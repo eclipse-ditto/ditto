@@ -545,7 +545,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
-                .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
+                .event(ClientConnected.class, BaseClientData.class, this::clientConnectedInConnectingState)
                 .event(InitializationResult.class, BaseClientData.class, this::handleInitializationResult)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection)
                 .event(OpenConnection.class, BaseClientData.class, this::openConnectionInConnectingState);
@@ -791,7 +791,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
     }
 
-    private State<BaseClientState, BaseClientData> clientConnected(final ClientConnected clientConnected,
+    /**
+     * Handle the event ClientConnected in state CONNECTING.
+     * By default, allocate resources, and then start publisher and consumer actors.
+     */
+    protected State<BaseClientState, BaseClientData> clientConnectedInConnectingState(
+            final ClientConnected clientConnected,
             final BaseClientData data) {
 
         return ifEventUpToDate(clientConnected, () -> {
@@ -799,26 +804,34 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
             allocateResourcesOnConnection(clientConnected);
 
-            final CompletionStage<InitializationResult> init =
-                    startPublisherActor()
-                            .thenRun(() -> log.info("Publisher started. Now starting consumers."))
-                            .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
-                            .thenRun(
-                                    () -> log.info("Consumers started. Client actor is now ready to process messages."))
-                            .thenApply(unused -> InitializationResult.success())
-                            .exceptionally(InitializationResult::failed);
-
-            Patterns.pipe(init, getContext().getDispatcher()).to(getSelf());
+            Patterns.pipe(startPublisherAndConsumerActors(clientConnected), getContext().getDispatcher())
+                    .to(getSelf());
 
             return stay().using(data);
         });
+    }
+
+    /**
+     * Start publisher and consumer actors.
+     *
+     * @return Future that completes with the result of starting publisher and consumer actors.
+     */
+    protected CompletionStage<InitializationResult> startPublisherAndConsumerActors(
+            @Nullable final ClientConnected clientConnected) {
+
+        return startPublisherActor()
+                .thenRun(() -> log.info("Publisher started. Now starting consumers."))
+                .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
+                .thenRun(() -> log.info("Consumers started. Client actor is now ready to process messages."))
+                .thenApply(unused -> InitializationResult.success())
+                .exceptionally(InitializationResult::failed);
     }
 
     private State<BaseClientState, BaseClientData> handleInitializationResult(
             final InitializationResult initializationResult, final BaseClientData data) {
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-        if (initializationResult.getFailure() == null) {
+        if (initializationResult.isSuccess()) {
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
@@ -846,11 +859,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * connected and the publisher actor was started (this is important otherwise we are not able to publish
      * potential error responses for consumed messages).
      *
-     * @param clientConnected message indicating that the client has successfully been connected to the external system
+     * @param clientConnected message indicating that the client has successfully been connected to the external system,
+     * or null if consumer actors are to be started before the client becomes connected.
      * @return a completion stage that completes either successfully when all consumers were started
      * successfully or exceptionally when starting a consumer actor failed
      */
-    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));
     }
 
@@ -1131,8 +1145,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> handleOutboundSignal(final OutboundSignal signal,
             final BaseClientData data) {
 
-        enhanceLogUtil(signal.getSource());
-        messageMappingProcessorActor.tell(signal, getSender());
+        if (stateName() == CONNECTED) {
+            enhanceLogUtil(signal.getSource());
+            messageMappingProcessorActor.tell(signal, getSender());
+        } else {
+            log.debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), signal);
+        }
         return stay();
     }
 
@@ -1221,7 +1239,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // See javadoc of
         //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
         // for the message path of the search protocol.
-        subscriptionManager.tell(command, messageMappingProcessorActor);
+        if (stateName() == CONNECTED) {
+            subscriptionManager.tell(command, messageMappingProcessorActor);
+        } else {
+            log.debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);
+        }
         return stay();
     }
 
@@ -1460,7 +1482,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     /**
      * Signals successful or failed result of client actor initialization.
      */
-    static final class InitializationResult {
+    public static final class InitializationResult {
 
         @Nullable private final ConnectionFailure failure;
 
@@ -1480,6 +1502,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         @Nullable
         public ConnectionFailure getFailure() {
             return failure;
+        }
+
+        public boolean isSuccess() {
+            return failure == null;
         }
 
     }

@@ -26,6 +26,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.hivemq.client.internal.checkpoint.Confirmable;
+import com.hivemq.client.internal.mqtt.message.publish.mqtt3.Mqtt3PublishView;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
@@ -93,10 +95,21 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
 
     @Override
     protected Mqtt3Publish mqttMessage(final String topic, final String payload) {
-        return Mqtt3Publish.builder()
+        final Mqtt3PublishView p = (Mqtt3PublishView) Mqtt3Publish.builder()
                 .topic(topic)
                 .payload(ByteBuffer.wrap(payload.getBytes(StandardCharsets.UTF_8)))
                 .build();
+        return Mqtt3PublishView.of(p.getDelegate().withConfirmable(new Confirmable() {
+            @Override
+            public long getId() {
+                return 0;
+            }
+
+            @Override
+            public boolean confirm() {
+                return true;
+            }
+        }));
     }
 
     @Override

@@ -290,7 +290,7 @@ public final class HiveMqtt5ClientActor extends BaseClientActor {
     }
 
     @Override
-    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         startHiveMqConsumers(getSubscriptionHandler()::handleMqttConsumer);
         return getSubscriptionHandler().getCompletionStage();
     }

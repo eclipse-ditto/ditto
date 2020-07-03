@@ -128,17 +128,6 @@ public final class BaseClientData {
     }
 
     /**
-     * @return the DittoHeaders from the most recently added {@code sessionSenders}
-     */
-    public DittoHeaders getLastSessionHeaders() {
-        if (sessionSenders.isEmpty()) {
-            return DittoHeaders.empty();
-        } else {
-            return sessionSenders.get(sessionSenders.size() - 1).second();
-        }
-    }
-
-    /**
      * Updates the managed connection returning a new instance of BaseClientData.
      *
      * @param connection the new connection to use

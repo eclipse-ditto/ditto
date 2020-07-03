@@ -60,7 +60,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     private CompletableFuture<Mqtt3SubAck> subscribeFuture =
             CompletableFuture.completedFuture(mock(Mqtt3SubAck.class));
 
-    private final List<Mqtt3Client> clients = new LinkedList<>();
+    private final List<Mqtt3AsyncClient> clients = new LinkedList<>();
 
     MockHiveMqtt3ClientFactory withException(final Exception connectException) {
         this.connectException = connectException;
@@ -94,9 +94,8 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     }
 
     void expectDisconnectCalled() {
-        clients.forEach(c -> verify(c.toAsync(), timeout(500)
-                .atLeastOnce() // disconnect may be called multiple times, just be sure connection is closed
-        ).disconnect());
+        // disconnect may be called multiple times, just be sure connection is closed
+        clients.forEach(c -> verify(c, timeout(500).atLeastOnce()).disconnect());
     }
 
     @Override
@@ -104,11 +103,9 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
 
-        final Mqtt3Client client = mock(Mqtt3Client.class);
-
-        final Mqtt3AsyncClient async = Mockito.mock(Mqtt3AsyncClient.class);
-        when(client.toAsync()).thenReturn(async);
-        final Mqtt3ConnectBuilder.Send send = mock(Mqtt3ConnectBuilder.Send.class, RETURNS_SELF);
+        final Mqtt3AsyncClient client = mock(Mqtt3AsyncClient.class);
+        when(client.toAsync()).thenReturn(client);
+        final Mqtt3ConnectBuilder.Send<?> send = mock(Mqtt3ConnectBuilder.Send.class, RETURNS_SELF);
         final CompletableFuture<Mqtt3ConnAck> connectFuture = new CompletableFuture<>();
 
         if (connectException != null) {
@@ -120,7 +117,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
         final CompletableFuture<Void> disconnectFuture = CompletableFuture.completedFuture(null);
 
         // mock connect
-        when(async.connectWith()).thenReturn(send);
+        when(client.connectWith()).thenAnswer(params -> send);
         when(send.send()).then(invocation -> {
             if (connectedListener != null) {
                 connectedListener.onConnected(mock(Mqtt3ClientConnectedContext.class));
@@ -133,29 +130,30 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
         });
 
         // mock disconnect
-        when(client.toAsync().disconnect()).thenReturn(disconnectFuture);
+        when(client.disconnect()).thenReturn(disconnectFuture);
 
         // mock subscribe
-        when(client.toAsync().subscribe(any(Mqtt3Subscribe.class), any(Consumer.class), anyBoolean())).thenAnswer(i -> {
+        when(client.subscribe(any(Mqtt3Subscribe.class), any(Consumer.class), anyBoolean())).thenAnswer(i -> {
             if (!subscribeFuture.isCompletedExceptionally()) {
                 // try to send messages for this topic
                 final Mqtt3Subscribe sub = i.getArgument(0);
                 final Consumer<Mqtt3Publish> consumer = i.getArgument(1);
 
-                sub.getSubscriptions().forEach(s -> {
+                // wait for conn future to complete before sending PUBLISH messages
+                connectFuture.thenAccept(connAck -> sub.getSubscriptions().forEach(s -> {
                     final MqttTopicFilter topicFilter = s.getTopicFilter();
 
                     messages.entrySet().stream()
                             .filter(e -> topicFilter.matches(MqttTopic.of(e.getKey())))
                             .flatMap(e -> e.getValue().stream())
                             .forEach(m -> ForkJoinPool.commonPool().execute(() -> consumer.accept(m)));
-                });
+                }));
             }
             return subscribeFuture;
         });
 
         // mock publish
-        when(client.toAsync().publish(any(Mqtt3Publish.class))).thenAnswer(i -> {
+        when(client.publish(any(Mqtt3Publish.class))).thenAnswer(i -> {
             final Mqtt3Publish mqtt3Publish = i.getArgument(0);
             if (testProbe != null) {
                 testProbe.tell(mqtt3Publish, ActorRef.noSender());

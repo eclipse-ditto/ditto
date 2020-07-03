@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -23,21 +24,17 @@ import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscribe;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3SubscribeBuilder;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscription;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
 
 import akka.actor.ActorRef;
-import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
@@ -47,40 +44,22 @@ final class HiveMqtt3SubscriptionHandler {
 
     private static final MqttQos DEFAULT_QOS = MqttQos.AT_MOST_ONCE;
     private final Connection connection;
-    private final Mqtt3Client client;
-    private final CompletableFuture<Status.Status> subscriptionsDone;
+    private final Mqtt3AsyncClient client;
     private final DiagnosticLoggingAdapter log;
 
     private final Map<Source, ActorRef> consumerActors = new HashMap<>();
     private final Map<Source, Mqtt3Subscribe> mqtt3Subscribe;
 
-    private boolean isConnected = false;
-
-    HiveMqtt3SubscriptionHandler(final Connection connection, final Mqtt3Client client,
+    HiveMqtt3SubscriptionHandler(final Connection connection, final Mqtt3AsyncClient client,
             final DiagnosticLoggingAdapter log) {
         this.connection = connection;
         this.client = client;
-        this.subscriptionsDone = new CompletableFuture<>();
         this.log = log;
         mqtt3Subscribe = prepareSubscriptions();
     }
 
-    void handleConnected() {
-        isConnected = true;
-        subscribeIfReady();
-    }
-
-    void handleDisconnected() {
-        isConnected = false;
-    }
-
     void handleMqttConsumer(final MqttConsumer consumer) {
         consumerActors.put(consumer.getSource(), consumer.getConsumerActor());
-        subscribeIfReady();
-    }
-
-    CompletionStage<Status.Status> getCompletionStage() {
-        return subscriptionsDone;
     }
 
     private boolean allConsumersReady() {
@@ -92,57 +71,38 @@ final class HiveMqtt3SubscriptionHandler {
         consumerActors.clear();
     }
 
-    private void subscribeIfReady() {
-        if (!isConnected) {
-            log.debug("Not connected, not subscribing.");
-        } else if (!allConsumersReady()) {
-            log.debug("Consumers are not initialized, not subscribing.");
-        } else {
+    CompletionStage<List<Mqtt3SubAck>> subscribe() {
+        final boolean allConsumersReady = allConsumersReady();
+        if (allConsumersReady) {
             log.info("Client connected and all consumers ready, subscribing now.");
-            CompletableFuture
-                    .allOf(mqtt3Subscribe.entrySet().stream()
-                            .map(e -> {
-                                final Source source = e.getKey();
-                                final Mqtt3Subscribe theMqtt3Subscribe = e.getValue();
-                                final ActorRef consumerActorRef = consumerActors.get(source);
-                                if (consumerActorRef == null) {
-                                    return failedFuture(new IllegalStateException("no consumer"));
-                                } else {
-                                    return subscribe(source, theMqtt3Subscribe, consumerActorRef);
-                                }
-                            })
-                            .toArray(CompletableFuture[]::new))
-                    .whenComplete((result, t) -> {
-                        if (t == null) {
-                            log.debug("All subscriptions created successfully.");
-                            subscriptionsDone.complete(new Status.Success("successfully subscribed"));
-                        } else {
-                            log.info("Subscribe failed due to: {}", t.getMessage());
-                            subscriptionsDone.completeExceptionally(t);
-                        }
-                    });
+            final List<CompletableFuture<Mqtt3SubAck>> subAckFutures = mqtt3Subscribe.entrySet()
+                    .stream()
+                    .map(e -> {
+                        final Source source = e.getKey();
+                        final Mqtt3Subscribe theMqtt3Subscribe = e.getValue();
+                        final ActorRef consumerActorRef = consumerActors.get(source);
+                        return consumerActorRef == null
+                                ? CompletableFuture.<Mqtt3SubAck>failedFuture(new IllegalStateException("no consumer"))
+                                : subscribe(source, theMqtt3Subscribe, consumerActorRef);
+                    })
+                    .collect(Collectors.toList());
+            return CompletableFuture.allOf(subAckFutures.toArray(CompletableFuture[]::new))
+                    .thenApply(_void -> subAckFutures.stream()
+                            .map(CompletableFuture::join)
+                            .collect(Collectors.toList())
+                    );
+        } else {
+            final String message = "Consumers are not initialized, not subscribing.";
+            log.error(message);
+            return CompletableFuture.failedFuture(new IllegalStateException(message));
         }
-    }
-
-    @Nonnull
-    private static CompletableFuture<?> failedFuture(final Throwable throwable) {
-        final CompletableFuture<Object> failedFuture = new CompletableFuture<>();
-        failedFuture.completeExceptionally(throwable);
-        return failedFuture;
-    }
-
-    @Nonnull
-    private ImmutableConnectionFailure noConsumerActorFound(final Source source) {
-        return new ImmutableConnectionFailure(null, null,
-                "No consumer actor found for source: " + source);
     }
 
     private CompletableFuture<Mqtt3SubAck> subscribe(final Source source, final Mqtt3Subscribe mqtt3Subscribe,
             final ActorRef consumerActor) {
-        return client.toAsync()
-                // enable manual acknowledgement:
-                // individual incoming message may carry requested-acks even if the source does not
-                .subscribe(mqtt3Subscribe, msg -> consumerActor.tell(msg, ActorRef.noSender()), true)
+        // enable manual acknowledgement:
+        // individual incoming message may carry requested-acks even if the source does not
+        return client.subscribe(mqtt3Subscribe, msg -> consumerActor.tell(msg, ActorRef.noSender()), true)
                 .whenComplete((mqtt3SubAck, throwable) -> {
                     if (throwable != null) {
                         // Handle failure to subscribe

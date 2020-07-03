@@ -32,6 +32,8 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -104,12 +106,26 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
     private void handleMqttMessage(final Mqtt3Publish message) {
         log.debug("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
+        final ActorRef parent = getContext().getParent();
         externalMessageOptional.ifPresent(externalMessage ->
-                // negative PUBREC not possible with MQTT3
-                forwardToMappingActor(externalMessage, () -> acknowledge(message),
-                        redeliver -> inboundMonitor.exception(
-                                "Withholding PUBREC or PUBACK due to unfulfilled acknowledgements."))
+                forwardToMappingActor(externalMessage,
+                        () -> acknowledge(message),
+                        redeliver -> reject(message, redeliver, parent))
         );
+    }
+
+    private void reject(final Mqtt3Publish publish, final boolean redeliver, final ActorRef parent) {
+        if (redeliver) {
+            final String message = "Restarting connection for redeliveries due to unfulfilled acknowledgements.";
+            inboundMonitor.exception(message);
+            final ConnectionFailure failure = new ImmutableConnectionFailure(null, null, message);
+            getContext().getParent().tell(failure, getSelf());
+        } else {
+            final String message = "Unfulfilled acknowledgements are present, but redelivery is not possible. " +
+                    "Sending ";
+            inboundMonitor.exception(message);
+            publish.acknowledge();
+        }
     }
 
     private void acknowledge(final Mqtt3Publish message) {
