@@ -151,8 +151,10 @@ public final class HiveMqtt5PublisherActor extends BasePublisherActor<MqttPublis
                 }
             });
         } catch (final Exception e) {
-            log().info("Won't publish message, since currently in disconnected state.");
-            publishedMonitor.failure(message, "Won't publish message since currently not connected.");
+            log().info(
+                    "Won't publish message, since currently in disconnected state or due to an undefined behaviour.");
+            publishedMonitor.failure(message, "Won't publish message since currently not connected or due to an " +
+                    "undefined behaviour. (e.g. wrong topic format)");
         }
     }
 
