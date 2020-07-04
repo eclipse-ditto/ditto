@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 import static org.mockito.Answers.RETURNS_SELF;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -62,7 +63,7 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
     private CompletableFuture<Mqtt5SubAck> subscribeFuture =
             CompletableFuture.completedFuture(mock(Mqtt5SubAck.class));
 
-    private final List<Mqtt5Client> clients = new LinkedList<>();
+    private final List<Mqtt5AsyncClient> clients = new LinkedList<>();
 
     MockHiveMqtt5ClientFactory withException(final Exception connectException) {
         this.connectException = connectException;
@@ -96,20 +97,17 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
     }
 
     void expectDisconnectCalled() {
-        clients.forEach(c -> verify(c.toAsync(), timeout(500)
-                .atLeastOnce() // disconnect may be called multiple times, just be sure connection is closed
-        ).disconnect());
+        // disconnect may be called multiple times, just be sure connection is closed
+        clients.forEach(c -> verify(c, timeout(500).atLeastOnce()).disconnect());
     }
 
     @Override
-    public Mqtt5Client newClient(final Connection connection, final String identifier, final boolean reconnect,
+    public Mqtt5AsyncClient newClient(final Connection connection, final String identifier, final boolean reconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
 
-        final Mqtt5Client client = mock(Mqtt5Client.class);
-
-        final Mqtt5AsyncClient async = Mockito.mock(Mqtt5AsyncClient.class);
-        when(client.toAsync()).thenReturn(async);
+        final Mqtt5AsyncClient client = mock(Mqtt5AsyncClient.class);
+        doReturn(client).when(client).toAsync();
         final Mqtt5ConnectBuilder.Send send = mock(Mqtt5ConnectBuilder.Send.class, RETURNS_SELF);
         final CompletableFuture<Mqtt5ConnAck> connectFuture = new CompletableFuture<>();
 
@@ -123,7 +121,7 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
 
 
         // mock connect
-        when(async.connectWith()).thenReturn(send);
+        when(client.connectWith()).thenReturn(send);
         when(send.send()).then(invocation -> {
             if (connectedListener != null) {
                 connectedListener.onConnected(mock(Mqtt5ClientConnectedContext.class));
@@ -136,10 +134,10 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
         });
 
         // mock disconnect
-        when(client.toAsync().disconnect()).thenReturn(disconnectFuture);
+        when(client.disconnect()).thenReturn(disconnectFuture);
 
         // mock subscribe
-        when(client.toAsync().subscribe(any(Mqtt5Subscribe.class), any(Consumer.class), anyBoolean())).thenAnswer(i -> {
+        when(client.subscribe(any(Mqtt5Subscribe.class), any(Consumer.class), anyBoolean())).thenAnswer(i -> {
             if (!subscribeFuture.isCompletedExceptionally()) {
                 // try to send messages for this topic
                 final Mqtt5Subscribe sub = i.getArgument(0);
@@ -158,7 +156,7 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
         });
 
         // mock publish
-        when(client.toAsync().publish(any(Mqtt5Publish.class))).thenAnswer(i -> {
+        when(client.publish(any(Mqtt5Publish.class))).thenAnswer(i -> {
             final Mqtt5Publish mqtt5Publish = i.getArgument(0);
             if (testProbe != null) {
                 testProbe.tell(mqtt5Publish, ActorRef.noSender());
@@ -181,13 +179,13 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
                 Mockito.mock(Mqtt5ClientAdvancedConfigBuilder.Nested.class);
         final Mqtt5ClientInterceptorsBuilder.Nested<Mqtt5ClientAdvancedConfigBuilder.Nested<Mqtt5ClientBuilder>>
                 interceptors = Mockito.mock(Mqtt5ClientInterceptorsBuilder.Nested.class);
-        Mockito.doReturn(client).when(builder).build();
-        Mockito.doReturn(advancedConfig).when(builder).advancedConfig();
-        Mockito.doReturn(interceptors).when(advancedConfig).interceptors();
-        Mockito.doReturn(interceptors).when(interceptors).incomingQos1Interceptor(any());
-        Mockito.doReturn(interceptors).when(interceptors).incomingQos2Interceptor(any());
-        Mockito.doReturn(advancedConfig).when(interceptors).applyInterceptors();
-        Mockito.doReturn(builder).when(advancedConfig).applyAdvancedConfig();
+        doReturn(client).when(builder).build();
+        doReturn(advancedConfig).when(builder).advancedConfig();
+        doReturn(interceptors).when(advancedConfig).interceptors();
+        doReturn(interceptors).when(interceptors).incomingQos1Interceptor(any());
+        doReturn(interceptors).when(interceptors).incomingQos2Interceptor(any());
+        doReturn(advancedConfig).when(interceptors).applyInterceptors();
+        doReturn(builder).when(advancedConfig).applyAdvancedConfig();
         return builder;
     }
 

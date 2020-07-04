@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 
 /**
@@ -41,7 +41,8 @@ public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientF
     }
 
     @Override
-    public Mqtt3Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
+    public Mqtt3AsyncClient newClient(final Connection connection, final String identifier,
+            final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
 
