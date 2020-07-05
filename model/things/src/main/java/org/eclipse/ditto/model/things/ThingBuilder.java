@@ -473,6 +473,14 @@ public interface ThingBuilder {
         FromScratch setModified(@Nullable Instant modified);
 
         /**
+         * Sets the given Metadata to this builder.
+         *
+         * @param metadata the modified to be set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setMetadata(JsonPointer resourcePath, Metadata metadata);
+
+        /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
          *
          * @param thingId the Thing ID to be set.
@@ -1402,6 +1410,14 @@ public interface ThingBuilder {
         FromCopy setModified(Predicate<Instant> existingModifiedPredicate, @Nullable Instant modified);
 
         /**
+         * Sets the given metadata to this builder.
+         *
+         * @param metadata the modified to be set.
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setMetadata(JsonPointer resourcePath, Metadata metadata);
+
+        /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
          *
          * @param thingId the Thing ID to be set.
@@ -1485,7 +1501,6 @@ public interface ThingBuilder {
          * @return a new Thing object.
          */
         Thing build();
-
 
     }
 

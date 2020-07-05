@@ -17,6 +17,13 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
+import static org.eclipse.ditto.model.things.TestConstants.Metadata.METADATA;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.DEFINITION;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.LIFECYCLE;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.MODIFIED;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.REVISION;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
 
 import java.util.Collections;
@@ -24,6 +31,7 @@ import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -861,4 +869,19 @@ public final class ImmutableThingFromCopyBuilderTest {
                 .hasNamespace(namespace);
     }
 
+    @Test
+    public void parseThingWithMetadata() {
+        final Thing testThing = ImmutableThing.of(THING_ID, TestConstants.Thing.POLICY_ID,
+            DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, METADATA);
+
+        final Thing thing = ImmutableThingFromCopyBuilder
+            .of(testThing.toJson(JsonSchemaVersion.V_2, field -> true))
+            .build();
+
+        final JsonObject serializedTHing = thing.toJson(JsonSchemaVersion.V_2, field -> true);
+
+        assertThat(serializedTHing.getField("_metadata"))
+            .isNotEmpty();
+
+    }
 }

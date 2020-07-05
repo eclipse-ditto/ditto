@@ -46,9 +46,12 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     @Override
     public Thing handle(final T event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
+            final String issuedAt = event.getDittoHeaders().get("_issuedAt");
+
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null));
+                    // .setMetadata(event.getResourcePath(), event.getEntity());
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }

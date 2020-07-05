@@ -542,6 +542,67 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Returns a new immutable empty {@link Metadata}.
+     *
+     * @return the new immutable empty {@code Metadata}.
+     */
+    public static Metadata emptyMetadata() {
+        return MetadataModelFactory.emptyMetadata();
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which represents {@code null}.
+     *
+     * @return the new {@code null}-like {@code Metadata}.
+     */
+    public static Metadata nullMetadata() {
+        return MetadataModelFactory.nullMetadata();
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON object.
+     *
+     * @param jsonObject provides the initial values of the result.
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
+    public static Metadata newMetadata(final JsonObject jsonObject) {
+        return MetadataModelFactory.newMetadata(jsonObject);
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON string. This
+     * string is required to be a valid {@link JsonObject}.
+     *
+     * @param jsonString provides the initial values of the result;
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code Metadata}.
+     */
+    public static Metadata newMetadata(final String jsonString) {
+        return MetadataModelFactory.newMetadata(jsonString);
+    }
+
+    /**
+     * Returns a new empty builder for a {@link Metadata}.
+     *
+     * @return the builder.
+     */
+    public static MetadataBuilder newMetadataBuilder() {
+        return MetadataModelFactory.newMetadataBuilder();
+    }
+
+    /**
+     * Returns a new builder for a {@link Metadata} which is initialised with the values of the given JSON object.
+     *
+     * @param jsonObject provides the initial values of the result.
+     * @return the builder.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
+    public static MetadataBuilder newMetadataBuilder(final JsonObject jsonObject) {
+        return MetadataModelFactory.newMetadataBuilder(jsonObject);
+    }
+
+    /**
      * Returns a new immutable {@link ThingRevision} which is initialised with the given revision number.
      *
      * @param revisionNumber the {@code long} value of the revision.

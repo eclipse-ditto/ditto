@@ -52,6 +52,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable private ThingDefinition definition;
     @Nullable private FeaturesBuilder featuresBuilder;
     @Nullable private Features features;
+    @Nullable private Metadata metadata;
 
     private ImmutableThingFromScratchBuilder() {
         id = null;
@@ -337,6 +338,12 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    public FromScratch setMetadata(JsonPointer resourcePath, Metadata metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+
+    @Override
     @Deprecated
     public FromScratch setPermissions(final JsonObject accessControlListJsonObject) {
         final AccessControlList accessControlList = ThingsModelFactory.newAcl(accessControlListJsonObject);
@@ -437,10 +444,10 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     public Thing build() {
         if (null != policyId) {
             return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified);
+                    revision, modified, metadata);
         } else {
             return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified);
+                    revision, modified, metadata);
         }
     }
 

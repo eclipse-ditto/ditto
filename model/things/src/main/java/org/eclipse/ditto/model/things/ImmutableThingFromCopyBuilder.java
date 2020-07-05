@@ -123,6 +123,10 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
                 .map(ImmutableThingFromCopyBuilder::tryToParseModified)
                 .ifPresent(result::setModified);
 
+        jsonObject.getValue(Thing.JsonFields.METADATA)
+                .map(ThingsModelFactory::newMetadata)
+                .ifPresent(result::setMetadata);
+
         return result;
     }
 
@@ -687,6 +691,17 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         if (existingModifiedPredicate.test(fromScratchBuilder.modified)) {
             setModified(modified);
         }
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(JsonPointer resourcePath, Metadata metadata) {
+        fromScratchBuilder.setMetadata(resourcePath, metadata);
+        return this;
+    }
+
+    public FromCopy setMetadata(Metadata metadata) {
+        fromScratchBuilder.setMetadata(JsonPointer.empty(), metadata);
         return this;
     }
 
