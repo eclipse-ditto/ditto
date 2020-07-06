@@ -524,7 +524,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 final HttpStatusCode status = HttpStatusCode.INTERNAL_SERVER_ERROR;
                 final String message = Optional.ofNullable(exception.getMessage()).orElse("Unknown error.");
                 final JsonObject payload = JsonObject.newBuilder()
-                        .set(DittoRuntimeException.JsonFields.MESSAGE, message)
+                        .set(DittoRuntimeException.JsonFields.MESSAGE, "Encountered '" + exception.getClass().getSimpleName() + "'")
+                        .set(DittoRuntimeException.JsonFields.DESCRIPTION, message)
                         .build();
                 return Acknowledgement.of(label.orElseThrow(), entityId, status, dittoHeaders, payload);
             }

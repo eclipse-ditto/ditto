@@ -67,7 +67,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * Cannot check for containment as set as these classes are not final.
      * Keep the classes fully qualified to ensure they stay in the right package.
      */
-    private static final List<Class<?>> RETRYABLE_EXCEPTIONS = List.of(
+    private static final List<Class<?>> RETRIABLE_EXCEPTIONS = List.of(
             org.apache.kafka.common.errors.CorruptRecordException.class,
             org.apache.kafka.common.errors.InvalidMetadataException.class,
             org.apache.kafka.common.errors.NotEnoughReplicasAfterAppendException.class,
@@ -166,7 +166,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param exception the exception.
      */
     private void escalateIfNotRetryable(final Exception exception) {
-        if (!isRetryable(exception)) {
+        if (!isRetriable(exception)) {
             escalate(exception, "Got non-retryable exception");
         }
     }
@@ -248,8 +248,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         getContext().stop(getSelf());
     }
 
-    private static boolean isRetryable(final Exception exception) {
-        return RETRYABLE_EXCEPTIONS.stream().anyMatch(clazz -> clazz.isInstance(exception));
+    private static boolean isRetriable(final Exception exception) {
+        return RETRIABLE_EXCEPTIONS.stream().anyMatch(clazz -> clazz.isInstance(exception));
     }
 
     /**
@@ -303,7 +303,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
             final ThingId id = ThingId.of(signal.getEntityId());
             final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
-            if (metadata == null) {
+            if (metadata == null || !isDebugEnabled()) {
                 return Acknowledgement.of(label, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
             } else {
                 return Acknowledgement.of(label, id, HttpStatusCode.OK, signal.getDittoHeaders(), toPayload(metadata));
@@ -318,12 +318,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             }
             builder.set("serializedKeySize", metadata.serializedKeySize(), this::isQuotaSufficient);
             builder.set("serializedValueSize", metadata.serializedValueSize(), this::isQuotaSufficient);
-            if (isDebugEnabled()) {
-                builder.set("topic", metadata.topic(), this::isQuotaSufficient);
-                builder.set("partition", metadata.partition(), this::isQuotaSufficient);
-                if (metadata.hasOffset()) {
-                    builder.set("offset", metadata.offset(), this::isQuotaSufficient);
-                }
+            builder.set("topic", metadata.topic(), this::isQuotaSufficient);
+            builder.set("partition", metadata.partition(), this::isQuotaSufficient);
+            if (metadata.hasOffset()) {
+                builder.set("offset", metadata.offset(), this::isQuotaSufficient);
             }
             return builder.build();
         }
@@ -341,7 +339,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private boolean isDebugEnabled() {
             final Map<String, String> specificConfig = connection.getSpecificConfig();
-            return Boolean.parseBoolean(specificConfig.get("debug-enabled"));
+            return Boolean.parseBoolean(specificConfig.getOrDefault("debug-enabled", Boolean.FALSE.toString()));
         }
 
     }
