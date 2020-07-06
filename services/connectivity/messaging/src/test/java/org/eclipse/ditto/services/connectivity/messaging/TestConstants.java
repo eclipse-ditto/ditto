@@ -335,9 +335,8 @@ public final class TestConstants {
                                         .build()))
                                 .build())
                         .acknowledgementRequests(
-                                new HashSet<>(Arrays.asList(
-                                        AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
-                                        AcknowledgementRequest.of(AcknowledgementLabel.of("very-special-ack")))))
+                                new HashSet<>(Arrays.asList(AcknowledgementRequest.parseAcknowledgementRequest("custom-ack"),
+                                        AcknowledgementRequest.parseAcknowledgementRequest("very-special-ack"))))
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()

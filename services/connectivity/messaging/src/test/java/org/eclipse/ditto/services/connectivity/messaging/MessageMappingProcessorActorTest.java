@@ -802,8 +802,10 @@ public final class MessageMappingProcessorActorTest {
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
             final AcknowledgementRequest signalAck =
                     AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
-            final Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
-            validationSet.addAll(CONNECTION.getSources().get(0).getAcknowledgementRequests());
+            Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
+            for (AcknowledgementRequest request : CONNECTION.getSources().get(0).getAcknowledgementRequests()) {
+                validationSet.add(request);
+            }
             final Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
             final AuthorizationContext context =

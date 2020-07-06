@@ -55,6 +55,11 @@ public final class ImmutableSourceTest {
             Arrays.asList(AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
                     AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack"))));
 
+    private static final Set<AcknowledgementRequest> SINGLE_ACKNOWLEDGEMENT_REQUESTS = new HashSet<>(
+            Collections.singletonList(AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack"))));
+
+    private static final String ACKNOWLEDGEMENT_FILTER = "fn:filter(header:qos-level,'ne',0)";
+
     static {
         final Map<String, String> mapping = new HashMap<>();
         mapping.put("correlation-id", "{{ header:message-id }}");
@@ -73,6 +78,7 @@ public final class ImmutableSourceTest {
                     .index(0)
                     .address(AMQP_SOURCE1)
                     .acknowledgementRequests(ACKNOWLEDGEMENT_REQUESTS)
+                    .acknowledgementFilter(ACKNOWLEDGEMENT_FILTER)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
@@ -83,7 +89,10 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
-                    JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
+                    JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder()
+                                    .set("include", JsonArray.of("custom-ack", "second-custom-ack")).build(),
+                            JsonFactory.newObjectBuilder()
+                                    .set("filter", "fn:filter(header:qos-level,'ne',0)").build()).build())
             .set(Source.JsonFields.HEADER_MAPPING,
                     JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
                             .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
@@ -107,7 +116,7 @@ public final class ImmutableSourceTest {
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .address(MQTT_SOURCE1)
             .enforcement(ENFORCEMENT)
-            .acknowledgementRequests(ACKNOWLEDGEMENT_REQUESTS)
+            .acknowledgementRequests(SINGLE_ACKNOWLEDGEMENT_REQUESTS)
             .consumerCount(2)
             .index(0)
             .qos(1)
@@ -118,13 +127,16 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(MQTT_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(Source.JsonFields.QOS, 1)
-            .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
-                    JsonFactory.newArrayBuilder().add("custom-ack", "second-custom-ack").build())
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.ENFORCEMENT, JsonFactory.newObjectBuilder()
                     .set(Enforcement.JsonFields.INPUT, "{{ topic }}")
                     .set(Enforcement.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(MQTT_FILTER).build())
                     .build())
+            .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
+                    JsonFactory.newArrayBuilder()
+                            .add(JsonFactory.newObjectBuilder()
+                                    .set("include", JsonArray.of(JsonValue.of("second-custom-ack"))).build())
+                            .build())
             .build();
 
 

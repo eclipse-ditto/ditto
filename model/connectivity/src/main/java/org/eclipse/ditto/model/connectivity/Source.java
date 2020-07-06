@@ -76,6 +76,14 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Set<AcknowledgementRequest> getAcknowledgementRequests();
 
     /**
+     * Returns the filters applied to the sources acknowledgement requests.
+     *
+     * @return the acknowledgements that are requested from messages consumed in this source
+     * @since 1.2.0
+     */
+    Optional<String> getAcknowledgementFilter();
+
+    /**
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
      * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
      * placeholders.

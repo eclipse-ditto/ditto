@@ -92,6 +92,15 @@ public interface SourceBuilder<T extends SourceBuilder<?>> {
     T acknowledgementRequests(Set<AcknowledgementRequest> acknowledgementRequests);
 
     /**
+     * Sets a filter that is applied to the sources acknowledgementRequests.
+     *
+     * @param acknowledgementFilter the filter
+     * @return this builder
+     * @since 1.2.0
+     */
+    T acknowledgementFilter(@Nullable String acknowledgementFilter);
+
+    /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.
      *
      * @param headerMapping the headerMapping
