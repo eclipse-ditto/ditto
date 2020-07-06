@@ -143,20 +143,16 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
-        if (mqttSpecificConfig.reconnectForRedelivery()) {
-            return super.inConnectedState()
-                    .eventEquals(Control.RECONNECT_CONSUMER_CLIENT, this::reconnectConsumerClient)
-                    .eventEquals(Control.DO_RECONNECT_CONSUMER_CLIENT, this::doReconnectConsumerClient);
-        } else {
-            return super.inConnectedState();
-        }
+        return super.inConnectedState()
+                .eventEquals(Control.RECONNECT_CONSUMER_CLIENT, this::reconnectConsumerClient)
+                .eventEquals(Control.DO_RECONNECT_CONSUMER_CLIENT, this::doReconnectConsumerClient);
     }
 
     private FSM.State<BaseClientState, BaseClientData> reconnectConsumerClient(final Control reconnectConsumerClient,
             final BaseClientData data) {
         // Restart once in 10 seconds max
         final Control trigger = Control.DO_RECONNECT_CONSUMER_CLIENT;
-        if (!isTimerActive(trigger.name())) {
+        if (mqttSpecificConfig.reconnectForRedelivery() && !isTimerActive(trigger.name())) {
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final Duration delay = getReconnectForRedeliveryDelayWithLowerBound();
                 log.info("Restarting consumer client in <{}> by request.", delay);
@@ -181,14 +177,16 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private FSM.State<BaseClientState, BaseClientData> doReconnectConsumerClient(final Control reconnectConsumerClient,
             final BaseClientData data) {
 
-        final Q oldClient = getClient();
-        final AbstractMqttSubscriptionHandler<S, P, R> oldSubscriptionHandler = getSubscriptionHandler();
-        safelyDisconnectClient(oldClient);
-        createSubscriberClientAndSubscriptionHandler();
-        oldSubscriptionHandler.stream().forEach(getSubscriptionHandler()::handleMqttConsumer);
-        subscribeAndSendConn(false).whenComplete((result, error) ->
-                log.info("Consumer client restarted: result{}, error={]", result, error)
-        );
+        if (mqttSpecificConfig.reconnectForRedelivery()) {
+            final Q oldClient = getClient();
+            final AbstractMqttSubscriptionHandler<S, P, R> oldSubscriptionHandler = getSubscriptionHandler();
+            safelyDisconnectClient(oldClient);
+            createSubscriberClientAndSubscriptionHandler();
+            oldSubscriptionHandler.stream().forEach(getSubscriptionHandler()::handleMqttConsumer);
+            subscribeAndSendConn(false).whenComplete((result, error) ->
+                    log.info("Consumer client restarted: result{}, error={]", result, error)
+            );
+        }
 
         return stay();
     }
