@@ -20,8 +20,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -130,6 +132,14 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
         return isSecure ? setScheme(connection, "ssl") : connection;
     }
 
+    private Connection getConnectionWithoutSeparatePublisherClient(final boolean isSecure) {
+        final Map<String, String> specificConfig = new HashMap<>();
+        specificConfig.put("separatePublisherClient", "false");
+        return getConnection(isSecure).toBuilder()
+                .specificConfig(specificConfig)
+                .build();
+    }
+
     @Override
     protected ActorSystem getActorSystem() {
         return actorSystem;
@@ -138,7 +148,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
-            final Props props = createClientActor(getRef(), getConnection(false));
+            final Props props = createClientActor(getRef(), getConnectionWithoutSeparatePublisherClient(false));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());

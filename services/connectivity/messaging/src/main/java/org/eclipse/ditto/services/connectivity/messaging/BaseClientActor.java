@@ -213,7 +213,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         initialize();
 
         // Send init message to allow for unsafe initialization of subclasses.
-        getSelf().tell(Init.getInstance(), getSelf());
+        getSelf().tell(Init.INSTANCE, getSelf());
     }
 
     @Override
@@ -513,7 +513,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
-        return matchEvent(Init.class, BaseClientData.class, (init, baseClientData) -> init())
+        return matchEventEquals(Init.INSTANCE, BaseClientData.class, (init, baseClientData) -> init())
                 .anyEvent((o, baseClientData) -> {
                     stash();
                     return stay();
@@ -1508,23 +1508,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return failure == null;
         }
 
+        @Override
+        public String toString() {
+            return isSuccess() ? "Success" : failure.toString();
+        }
     }
 
-    protected static class Init {
-
-        @Nullable private static Init instance = null;
-
-        private Init() {
-        }
-
-        static Init getInstance() {
-            Init result = instance;
-            if (null == result) {
-                result = new Init();
-                instance = result;
-            }
-            return result;
-        }
-
+    protected enum Init {
+        INSTANCE
     }
 }

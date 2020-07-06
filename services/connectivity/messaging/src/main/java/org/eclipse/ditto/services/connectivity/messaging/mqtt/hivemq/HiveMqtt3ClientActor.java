@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -99,8 +100,9 @@ public final class HiveMqtt3ClientActor
     }
 
     @Override
-    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef mappingActor) {
+    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef mappingActor,
+            final MqttSpecificConfig specificConfig) {
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
-                HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun));
+                HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun, specificConfig));
     }
 }

@@ -12,15 +12,20 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import java.util.Collections;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Class providing access to MQTT specific configuration.
@@ -28,12 +33,25 @@ import org.eclipse.ditto.model.connectivity.Connection;
 @Immutable
 public final class MqttSpecificConfig {
 
+    private static final String CLEAN_SESSION = "cleanSession";
+    private static final String RECONNECT_FOR_REDELIVERY = "reconnectForRedelivery";
+    private static final String SEPARATE_PUBLISHER_CLIENT = "separatePublisherClient";
     private static final String CLIENT_ID = "clientId";
+    private static final String PUBLISHER_ID = "publisherId";
+    private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
 
-    private final Map<String, String> specificConfig;
+    private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
+    private static final Duration DEFAULT_DURATION = Duration.ofSeconds(10L);
 
-    private MqttSpecificConfig(final Map<String, String> specificConfig) {
-        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(specificConfig));
+    private final Config specificConfig;
+
+    MqttSpecificConfig(final Map<String, String> specificConfig) {
+        final HashMap<String, Object> defaultMap = new HashMap<>();
+        defaultMap.put(RECONNECT_FOR_REDELIVERY, DEFAULT_RECONNECT_FOR_REDELIVERY);
+        defaultMap.put(SEPARATE_PUBLISHER_CLIENT, DEFAULT_RECONNECT_FOR_REDELIVERY);
+        defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, DEFAULT_DURATION);
+        this.specificConfig = ConfigFactory.parseMap(specificConfig)
+                .withFallback(ConfigFactory.parseMap(defaultMap));
     }
 
     /**
@@ -48,10 +66,52 @@ public final class MqttSpecificConfig {
     }
 
     /**
+     * @return whether subscriber CONN messages should set clean-session or clean-start flag to true.
+     * Default to the negation of "reconnectForRedelivery" (if reconnect for redelivery then persistent session,
+     * otherwise clean-session or clean-start.)
+     */
+    public boolean cleanSession() {
+        if (specificConfig.hasPath(CLEAN_SESSION)) {
+            return getSafely(() -> specificConfig.getBoolean(CLEAN_SESSION), false);
+        } else {
+            return !reconnectForRedelivery();
+        }
+    }
+
+    /**
+     * @return whether reconnect-for-redelivery behavior is activated.
+     */
+    public boolean reconnectForRedelivery() {
+        return getSafely(() -> specificConfig.getBoolean(RECONNECT_FOR_REDELIVERY), DEFAULT_RECONNECT_FOR_REDELIVERY);
+    }
+
+    /**
+     * @return whether to use a separate client for publisher actors so that reconnect-for-redelivery
+     * does not disrupt the publisher.
+     */
+    public boolean separatePublisherClient() {
+        return getSafely(() -> specificConfig.getBoolean(SEPARATE_PUBLISHER_CLIENT), DEFAULT_RECONNECT_FOR_REDELIVERY);
+    }
+
+    /**
+     * @return how long to wait before reconnect a consumer client for redelivery.
+     */
+    public Duration getReconnectForDeliveryDelay() {
+        return specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY);
+    }
+
+    /**
      * @return the optional clientId which should be used by the MQTT client when connecting to the MQTT broker.
      */
     public Optional<String> getMqttClientId() {
-        return Optional.ofNullable(specificConfig.get(CLIENT_ID));
+        return getStringOptional(CLIENT_ID);
+    }
+
+    /**
+     * @return the optional publisherId which should be used as the client ID of the publisher actor.
+     */
+    public Optional<String> getMqttPublisherId() {
+        return getStringOptional(PUBLISHER_ID);
     }
 
     @Override
@@ -76,5 +136,21 @@ public final class MqttSpecificConfig {
         return getClass().getSimpleName() + " [" +
                 "specificConfig=" + specificConfig +
                 "]";
+    }
+
+    private Optional<String> getStringOptional(final String key) {
+        if (specificConfig.hasPath(key)) {
+            return Optional.of(specificConfig.getString(key));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private static <T> T getSafely(Supplier<T> supplier, final T defaultValue) {
+        try {
+            return supplier.get();
+        } catch (final ConfigException e) {
+            return defaultValue;
+        }
     }
 }

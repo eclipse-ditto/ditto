@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -41,6 +42,8 @@ import akka.actor.Props;
 public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<Mqtt3Publish> {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final MqttSpecificConfig SPECIFIC_CONFIG =
+            MqttSpecificConfig.fromConnection(TestConstants.createConnection(CONNECTION_ID));
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
@@ -53,7 +56,7 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false);
+                .build(), false, SPECIFIC_CONFIG);
     }
 
     @Override
@@ -66,7 +69,7 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false);
+                .build(), false, SPECIFIC_CONFIG);
     }
 
     @Override

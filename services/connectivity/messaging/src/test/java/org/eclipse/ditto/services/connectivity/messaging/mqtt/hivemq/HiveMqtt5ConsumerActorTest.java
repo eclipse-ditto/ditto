@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 
 import com.hivemq.client.internal.checkpoint.Confirmable;
 import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
@@ -48,6 +49,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     private final CountDownLatch confirmLatch = new CountDownLatch(1);
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final MqttSpecificConfig SPECIFIC_CONFIG =
+            MqttSpecificConfig.fromConnection(TestConstants.createConnection(CONNECTION_ID));
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
@@ -61,7 +64,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false);
+                .build(), false, SPECIFIC_CONFIG);
     }
 
     @Override
@@ -88,7 +91,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false);
+                .build(), false, SPECIFIC_CONFIG);
     }
 
     @Override

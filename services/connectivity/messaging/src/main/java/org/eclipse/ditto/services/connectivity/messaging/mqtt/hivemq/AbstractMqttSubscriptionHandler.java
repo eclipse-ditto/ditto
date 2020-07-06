@@ -23,6 +23,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -64,6 +65,13 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
      * @return the SUBSCRIBE message.
      */
     abstract Optional<S> toMqttSubscribe(final Source source);
+
+    /**
+     * @return all source/consumer-actor pairs known to this subscription handler as a stream.
+     */
+    Stream<MqttConsumer> stream() {
+        return consumerActors.entrySet().stream().map(entry -> MqttConsumer.of(entry.getKey(), entry.getValue()));
+    }
 
     /**
      * Add a source/consumer pair.
