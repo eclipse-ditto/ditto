@@ -79,6 +79,10 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
     abstract String getTopic(P message);
 
+    abstract String getQoS(P message);
+
+    abstract String getRetain(P message);
+
     abstract void sendPubAck(P message);
 
     @Nullable
@@ -128,6 +132,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
             final Map<String, String> headerMappingMap = new HashMap<>();
             headerMappingMap.put(MQTT_TOPIC_HEADER, topic);
+            headerMappingMap.put(MQTT_QOS_HEADER, getQoS(message));
+            headerMappingMap.put(MQTT_RETAIN_HEADER, getRetain(message));
             headerMappingMap.putAll(source.getHeaderMapping()
                     .map(HeaderMapping::getMapping)
                     .orElse(Collections.emptyMap()));

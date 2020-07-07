@@ -90,6 +90,8 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
 
         final String topic = message.getTopic().toString();
         headersFromMqttMessage.put(MQTT_TOPIC_HEADER, topic);
+        headersFromMqttMessage.put(MQTT_QOS_HEADER, getQoS(message));
+        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, getRetain(message));
 
         message.getCorrelationData().ifPresent(correlationData -> {
             final String correlationId = ByteBufferUtils.toUtf8String(correlationData);
@@ -120,6 +122,12 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     String getTopic(final Mqtt5Publish message) {
         return message.getTopic().toString();
     }
+
+    @Override
+    String getQoS(final Mqtt5Publish message) { return message.getQos().toString(); }
+
+    @Override
+    String getRetain(final Mqtt5Publish message) { return String.valueOf(message.isRetain()); }
 
     @Override
     void sendPubAck(final Mqtt5Publish message) {

@@ -68,9 +68,9 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt3Publish message) {
         final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
 
-        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, message.getTopic().toString());
-        headersFromMqttMessage.put(MQTT_QOS_HEADER, String.valueOf(message.getQos().getCode()));
-        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, String.valueOf(message.isRetain()));
+        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, getTopic(message));
+        headersFromMqttMessage.put(MQTT_QOS_HEADER, getQoS(message));
+        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, getRetain(message));
 
         return headersFromMqttMessage;
     }
@@ -84,6 +84,12 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     String getTopic(final Mqtt3Publish message) {
         return message.getTopic().toString();
     }
+
+    @Override
+    String getQoS(final Mqtt3Publish message) { return message.getQos().toString(); }
+
+    @Override
+    String getRetain(final Mqtt3Publish message) { return String.valueOf(message.isRetain()); }
 
     @Override
     void sendPubAck(final Mqtt3Publish message) {
