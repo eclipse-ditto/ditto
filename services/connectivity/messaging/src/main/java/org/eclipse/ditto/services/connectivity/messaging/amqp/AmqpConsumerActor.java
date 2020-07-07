@@ -148,7 +148,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
-        return messageHandlingBehavior.orElse(rateLimiterBehavior.orElse(matchAnyBehavior));
+        return messageHandlingBehavior
+                .orElse(rateLimiterBehavior)
+                .orElse(matchAnyBehavior);
     }
 
     @Override
