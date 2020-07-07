@@ -35,7 +35,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.ImmutableFilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -243,7 +242,7 @@ final class ImmutableSource implements Source {
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
         final FilteredAcknowledgementRequest acknowledgementRequests =
-                jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS).map(ImmutableFilteredAcknowledgementRequest::fromJson).orElse(null);
+                jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS).map(FilteredAcknowledgementRequest::fromJson).orElse(null);
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);

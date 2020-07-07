@@ -43,10 +43,18 @@ public interface FilteredAcknowledgementRequest extends Jsonifiable<JsonObject> 
      * @return the instance.
      * @throws NullPointerException if {@code includes} is {@code null}.
      */
-    static FilteredAcknowledgementRequest of(final Set<AcknowledgementRequest> includes, @Nullable final String filter) {
+    static FilteredAcknowledgementRequest of(final Set<AcknowledgementRequest> includes,
+            @Nullable final String filter) {
         return AcknowledgementRequests.newFilteredAcknowledgementRequest(includes, filter);
     }
 
+    /**
+     * Serializes the FilteredAcknowledgementRequest from Json
+     *
+     * @return the serialized FilteredAcknowledgementRequest.
+     */
+    static FilteredAcknowledgementRequest fromJson(
+            JsonObject jsonObject) {return AcknowledgementRequests.filteredAcknowledgementRequestFromJson(jsonObject);}
     /**
      * Returns the requested acknowledgements.
      *

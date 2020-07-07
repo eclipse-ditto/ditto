@@ -37,7 +37,7 @@ import org.eclipse.ditto.json.JsonValue;
  * @since 1.2.0
  */
 @Immutable
-public final class ImmutableFilteredAcknowledgementRequest implements FilteredAcknowledgementRequest {
+final class ImmutableFilteredAcknowledgementRequest implements FilteredAcknowledgementRequest {
 
     private final Set<AcknowledgementRequest> includes;
     @Nullable private final String filter;
