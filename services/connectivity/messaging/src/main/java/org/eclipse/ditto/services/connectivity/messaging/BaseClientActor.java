@@ -165,15 +165,34 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
-        final BaseClientData startingData = new BaseClientData(connectionId, connection,
-                ConnectivityStatus.UNKNOWN, ConnectivityStatus.OPEN, "initialized", Instant.now());
-
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
         clientConnectingGauge = DittoMetrics.gauge("connecting_client")
                 .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
+
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
+        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+
+        connectionLoggerRegistry.initForConnection(connection);
+        connectionCounterRegistry.initForConnection(connection);
+
+        connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
+
+        reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
+
+        messageMappingProcessorActor = startMessageMappingProcessorActor(connection);
+        subscriptionManager = startSubscriptionManager(this.conciergeForwarder);
+
+        // Send init message to allow for unsafe initialization of subclasses.
+        getSelf().tell(Init.INSTANCE, getSelf());
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
 
         // stable states
         when(UNKNOWN, inUnknownState());
@@ -190,30 +209,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         when(TESTING, inTestingState());
 
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
+        final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
+                ConnectivityStatus.UNKNOWN, ConnectivityStatus.OPEN, "initialized", Instant.now());
         startWith(UNKNOWN, startingData);
 
         onTransition(this::onTransition);
 
         whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
-        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-
-        connectionLoggerRegistry.initForConnection(connection);
-        connectionCounterRegistry.initForConnection(connection);
-
-        connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
-
-        reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
-
-        messageMappingProcessorActor = startMessageMappingProcessorActor();
-        subscriptionManager = startSubscriptionManager(this.conciergeForwarder);
-
         initialize();
-
-        // Send init message to allow for unsafe initialization of subclasses.
-        getSelf().tell(Init.INSTANCE, getSelf());
     }
 
     @Override
@@ -1102,7 +1106,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private DittoRuntimeException unhandledExceptionForSignalInState(final Object signal,
             final BaseClientState state) {
         final DittoHeaders headers = signal instanceof WithDittoHeaders
-                ? ((WithDittoHeaders) signal).getDittoHeaders()
+                ? ((WithDittoHeaders<?>) signal).getDittoHeaders()
                 : DittoHeaders.empty();
         switch (state) {
             case CONNECTING:
@@ -1114,7 +1118,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .build();
             default:
                 final String signalType = signal instanceof Signal
-                        ? ((Signal) signal).getType()
+                        ? ((Signal<?>) signal).getType()
                         : "unknown"; // no need to disclose Java class of signal to clients
                 return ConnectionSignalIllegalException.newBuilder(connectionId())
                         .illegalSignalForState(signalType, state.name().toLowerCase())
@@ -1191,13 +1195,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * which will also cause a side-effect that stores the mapping actor in the local variable {@code
      * messageMappingProcessorActor}.
      */
-    private ActorRef startMessageMappingProcessorActor() {
-        final Connection connection = connection();
+    private ActorRef startMessageMappingProcessorActor(final Connection connection) {
 
         final MessageMappingProcessor processor;
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            processor = MessageMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(),
+            processor = MessageMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
                     getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
@@ -1214,7 +1217,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
         final Props props = MessageMappingProcessorActor.props(conciergeForwarder, getSelf(), processor,
-                connection(), connectionActor, connection.getProcessorPoolSize());
+                connection, connectionActor, connection.getProcessorPoolSize());
 
         return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
     }
