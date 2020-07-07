@@ -14,6 +14,9 @@ package org.eclipse.ditto.model.base.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Set;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -42,6 +45,20 @@ final class AcknowledgementRequests {
             final AcknowledgementLabel acknowledgementLabel) {
 
         return ImmutableAcknowledgementRequest.getInstance(acknowledgementLabel);
+    }
+
+    /**
+     * Returns a new instance of AcknowledgementRequest.
+     *
+     * @param acknowledgementRequests the AcknowledgementRequests of the new FilteredAcknowledgementRequest.
+     * @param filter the filter to be applied to the AcknowledgementRequests
+     * @return the instance.
+     * @throws NullPointerException if {@code acknowledgementLabel} is {@code null}.
+     */
+    public static ImmutableFilteredAcknowledgementRequest newFilteredAcknowledgementRequest(
+            final Set<AcknowledgementRequest> acknowledgementRequests, @Nullable final String filter) {
+
+        return ImmutableFilteredAcknowledgementRequest.getInstance(acknowledgementRequests, filter);
     }
 
     /**

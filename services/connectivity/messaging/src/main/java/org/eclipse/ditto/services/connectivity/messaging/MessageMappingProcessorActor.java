@@ -41,6 +41,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -364,7 +365,8 @@ public final class MessageMappingProcessorActor
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
         final Set<AcknowledgementRequest> additionalRequestedAcks = message.getSource()
-                .map(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests).orElse(Collections.emptySet());
+                .flatMap(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
+                .map(FilteredAcknowledgementRequest::getIncludes).orElse(Collections.emptySet());
 
         if (additionalRequestedAcks.isEmpty()) {
             // do not change the signal's header if no additional requested-acks are defined

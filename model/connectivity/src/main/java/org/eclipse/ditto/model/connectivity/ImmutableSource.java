@@ -34,8 +34,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.ImmutableFilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -86,8 +86,7 @@ final class ImmutableSource implements Source {
     private final int index;
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
-    private final Set<AcknowledgementRequest> acknowledgementRequests;
-    @Nullable private final String acknowledgementFilter;
+    @Nullable private final FilteredAcknowledgementRequest acknowledgementRequests;
     @Nullable private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
     private final boolean replyTargetEnabled;
@@ -101,9 +100,7 @@ final class ImmutableSource implements Source {
         this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
         this.index = builder.index;
         this.enforcement = builder.enforcement;
-        this.acknowledgementRequests =
-                Collections.unmodifiableSet(new HashSet<>(builder.acknowledgementRequests));
-        this.acknowledgementFilter = builder.acknowledgementFilter;
+        this.acknowledgementRequests = builder.acknowledgementRequests;
         this.headerMapping = builder.headerMapping;
         this.payloadMapping = builder.payloadMapping;
         this.replyTargetEnabled = builder.replyTargetEnabled;
@@ -141,13 +138,8 @@ final class ImmutableSource implements Source {
     }
 
     @Override
-    public Set<AcknowledgementRequest> getAcknowledgementRequests() {
-        return acknowledgementRequests;
-    }
-
-    @Override
-    public Optional<String> getAcknowledgementFilter() {
-        return Optional.ofNullable(acknowledgementFilter);
+    public Optional<FilteredAcknowledgementRequest> getAcknowledgementRequests() {
+        return Optional.ofNullable(acknowledgementRequests);
     }
 
     @Override
@@ -195,23 +187,8 @@ final class ImmutableSource implements Source {
             jsonObjectBuilder.set(JsonFields.ENFORCEMENT, enforcement.toJson(schemaVersion, thePredicate), predicate);
         }
 
-        if (acknowledgementFilter != null || !acknowledgementRequests.isEmpty()) {
-            JsonArray acknowledgementsRequestArray = JsonArray.empty();
-            if (!acknowledgementRequests.isEmpty()) {
-                acknowledgementsRequestArray = acknowledgementsRequestArray.add(
-                        JsonFactory.newObjectBuilder()
-                                .set("include", JsonFactory.readFrom(acknowledgementRequests.stream()
-                                        .map(AcknowledgementRequest::getLabel)
-                                        .map(AcknowledgementLabel::toString)
-                                        .map(JsonFactory::newValue)
-                                        .collect(JsonCollectors.valuesToArray()).toString()))
-                                .build());
-            }
-            if (acknowledgementFilter != null) {
-                acknowledgementsRequestArray = acknowledgementsRequestArray.add(JsonFactory.newObjectBuilder().set("filter", acknowledgementFilter).build());
-            }
-            jsonObjectBuilder.set(JsonFields.ACKNOWLEDGEMENT_REQUESTS, acknowledgementsRequestArray, predicate);
-        }
+        if (acknowledgementRequests != null)
+            jsonObjectBuilder.set(JsonFields.ACKNOWLEDGEMENT_REQUESTS, acknowledgementRequests.toJson(), predicate);
 
         if (headerMapping != null) {
             jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
@@ -265,40 +242,8 @@ final class ImmutableSource implements Source {
         final Enforcement readEnforcement =
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
-        final Set<AcknowledgementRequest> acknowledgementRequests =
-                jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS)
-                        .map(acks -> acks.stream()
-                                .map(JsonValue::asObject)
-                                .filter(jsonFields -> jsonFields.contains("include"))
-                                .map(jsonFields -> jsonFields.getValue("include").map(jsonValue -> {
-                                    //Single acknowledgements can't be parsed to JsonArray and thus have to be converted
-                                    if (jsonValue.isArray()) {
-                                        return jsonValue.asArray();
-                                    }
-                                    return JsonArray.of(jsonValue);
-                                })
-                                        .map(jsonValues -> jsonValues.stream()
-                                                .filter(jsonValue -> !jsonValue.asString().isEmpty())
-                                                .map(JsonValue::asString)
-                                                .map(AcknowledgementRequest::parseAcknowledgementRequest)
-                                                .collect(Collectors.toSet())).orElse(Collections.emptySet()))
-                                .collect(Collectors.toList())
-                                .get(0)).orElse(Collections.emptySet());
-
-        final String acknowledgementFilter =
-                jsonObject.getValue(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS)
-                        .map(acks -> acks.stream()
-                                .map(JsonValue::asObject)
-                                .filter(jsonFields -> jsonFields.contains("filter"))
-                                .map(jsonFields -> jsonFields.getValue("filter")
-                                        .map(JsonValue::asString).orElse(null))
-                                .collect(Collectors.joining())).map(stringValue -> {
-                    //Collectors.joining joins null to empty string
-                    if (stringValue.isEmpty()) {
-                        return null;
-                    }
-                    return stringValue;
-                }).orElse(null);
+        final FilteredAcknowledgementRequest acknowledgementRequests =
+                jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS).map(ImmutableFilteredAcknowledgementRequest::fromJson).orElse(null);
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
@@ -324,7 +269,6 @@ final class ImmutableSource implements Source {
                 .index(index)
                 .enforcement(readEnforcement)
                 .acknowledgementRequests(acknowledgementRequests)
-                .acknowledgementFilter(acknowledgementFilter)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
                 .replyTargetEnabled(replyTargetEnabled)
@@ -343,7 +287,6 @@ final class ImmutableSource implements Source {
                 Objects.equals(qos, that.qos) &&
                 Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(acknowledgementRequests, that.acknowledgementRequests) &&
-                Objects.equals(acknowledgementFilter, that.acknowledgementFilter) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
@@ -354,7 +297,7 @@ final class ImmutableSource implements Source {
     @Override
     public int hashCode() {
         return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement,
-                acknowledgementRequests, acknowledgementFilter,
+                acknowledgementRequests,
                 headerMapping, payloadMapping, replyTargetEnabled, replyTarget);
     }
 
@@ -368,7 +311,6 @@ final class ImmutableSource implements Source {
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
                 ", requestedAcknowledgementLabels=" + acknowledgementRequests +
-                ", requestedAcknowledgementFilter=" + acknowledgementFilter +
                 ", headerMapping=" + headerMapping +
                 ", replyTargetEnabled=" + replyTargetEnabled +
                 ", replyTarget=" + replyTarget +
@@ -426,12 +368,11 @@ final class ImmutableSource implements Source {
         @Nullable private Enforcement enforcement;
         @Nullable private HeaderMapping headerMapping;
         @Nullable private Integer qos = null;
+        @Nullable private FilteredAcknowledgementRequest acknowledgementRequests;
         private boolean replyTargetEnabled = DEFAULT_REPLY_TARGET_ENABLED;
-        @Nullable private String acknowledgementFilter;
         @Nullable private ReplyTarget replyTarget;
 
         // optional with default:
-        private Set<AcknowledgementRequest> acknowledgementRequests = Collections.emptySet();
         private PayloadMapping payloadMapping = ConnectivityModelFactory.emptyPayloadMapping();
         private int index = DEFAULT_INDEX;
         private int consumerCount = DEFAULT_CONSUMER_COUNT;
@@ -444,8 +385,7 @@ final class ImmutableSource implements Source {
                     .enforcement(source.getEnforcement().orElse(null))
                     .headerMapping(source.getHeaderMapping().orElse(null))
                     .qos(source.getQos().orElse(null))
-                    .acknowledgementRequests(source.getAcknowledgementRequests())
-                    .acknowledgementFilter(source.getAcknowledgementFilter().orElse(null))
+                    .acknowledgementRequests(source.getAcknowledgementRequests().orElse(null))
                     .replyTarget(source.getReplyTarget().orElse(null))
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
@@ -498,14 +438,8 @@ final class ImmutableSource implements Source {
         }
 
         @Override
-        public Builder acknowledgementRequests(final Set<AcknowledgementRequest> acknowledgementRequests) {
+        public Builder acknowledgementRequests(final @Nullable FilteredAcknowledgementRequest acknowledgementRequests) {
             this.acknowledgementRequests = acknowledgementRequests;
-            return this;
-        }
-
-        @Override
-        public Builder acknowledgementFilter(@Nullable final String acknowledgementFilter) {
-            this.acknowledgementFilter = acknowledgementFilter;
             return this;
         }
 

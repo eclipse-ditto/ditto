@@ -17,6 +17,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -83,22 +84,15 @@ public interface SourceBuilder<T extends SourceBuilder<?>> {
     T enforcement(@Nullable Enforcement enforcement);
 
     /**
-     * Sets the {@link AcknowledgementRequest}s that are requested from messages consumed in the built source.
+     * Sets the {@link AcknowledgementRequest}s that are requested from messages consumed
+     * in the built source with an optionally applied filter.
      *
-     * @param acknowledgementRequests the acknowledgement requests
+     * @param acknowledgementRequests the acknowledgement requests with an optional filter
      * @return this builder
      * @since 1.2.0
      */
-    T acknowledgementRequests(Set<AcknowledgementRequest> acknowledgementRequests);
+    T acknowledgementRequests(@Nullable FilteredAcknowledgementRequest acknowledgementRequests);
 
-    /**
-     * Sets a filter that is applied to the sources acknowledgementRequests.
-     *
-     * @param acknowledgementFilter the filter
-     * @return this builder
-     * @since 1.2.0
-     */
-    T acknowledgementFilter(@Nullable String acknowledgementFilter);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.

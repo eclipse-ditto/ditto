@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -68,20 +68,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<Enforcement> getEnforcement();
 
     /**
-     * Returns the acknowledgement requests which should be added to each by the source consumed message.
+     * Returns the acknowledgement requests which should be added to each by the source consumed message
+     * with an optional filter.
      *
      * @return the acknowledgements that are requested from messages consumed in this source
      * @since 1.2.0
      */
-    Set<AcknowledgementRequest> getAcknowledgementRequests();
-
-    /**
-     * Returns the filters applied to the sources acknowledgement requests.
-     *
-     * @return the acknowledgements that are requested from messages consumed in this source
-     * @since 1.2.0
-     */
-    Optional<String> getAcknowledgementFilter();
+    Optional<FilteredAcknowledgementRequest> getAcknowledgementRequests();
 
     /**
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
@@ -184,8 +177,8 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
          * source.
          */
-        public static final JsonFieldDefinition<JsonArray> ACKNOWLEDGEMENT_REQUESTS =
-                JsonFactory.newJsonArrayFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
+        public static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENT_REQUESTS =
+                JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**

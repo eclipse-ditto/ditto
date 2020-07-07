@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -59,7 +60,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
                 .headerMapping(TestConstants.HEADER_MAPPING)
-                .acknowledgementRequests(acknowledgementRequests)
+                .acknowledgementRequests(FilteredAcknowledgementRequest.of(acknowledgementRequests, null))
                 .replyTarget(ReplyTarget.newBuilder()
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)

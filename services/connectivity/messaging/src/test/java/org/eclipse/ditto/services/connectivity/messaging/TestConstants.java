@@ -54,8 +54,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -334,9 +334,9 @@ public final class TestConstants {
                                                 "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
                                         .build()))
                                 .build())
-                        .acknowledgementRequests(
+                        .acknowledgementRequests(FilteredAcknowledgementRequest.of(
                                 new HashSet<>(Arrays.asList(AcknowledgementRequest.parseAcknowledgementRequest("custom-ack"),
-                                        AcknowledgementRequest.parseAcknowledgementRequest("very-special-ack"))))
+                                        AcknowledgementRequest.parseAcknowledgementRequest("very-special-ack"))), null))
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()

@@ -23,15 +23,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -51,14 +52,11 @@ public final class ImmutableSourceTest {
 
     private static final Map<String, String> MAPPING;
 
-    private static final Set<AcknowledgementRequest> ACKNOWLEDGEMENT_REQUESTS = new HashSet<>(
-            Arrays.asList(AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
-                    AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack"))));
-
-    private static final Set<AcknowledgementRequest> SINGLE_ACKNOWLEDGEMENT_REQUESTS = new HashSet<>(
-            Collections.singletonList(AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack"))));
-
-    private static final String ACKNOWLEDGEMENT_FILTER = "fn:filter(header:qos-level,'ne',0)";
+    private static final FilteredAcknowledgementRequest FILTERED_ACKNOWLEDGEMENT_REQUEST =
+            FilteredAcknowledgementRequest.of(new HashSet<>(
+                            Arrays.asList(AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
+                                    AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack")))),
+                    "fn:filter(header:qos-level,'ne',0)");
 
     static {
         final Map<String, String> mapping = new HashMap<>();
@@ -77,8 +75,7 @@ public final class ImmutableSourceTest {
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
-                    .acknowledgementRequests(ACKNOWLEDGEMENT_REQUESTS)
-                    .acknowledgementFilter(ACKNOWLEDGEMENT_FILTER)
+                    .acknowledgementRequests(FILTERED_ACKNOWLEDGEMENT_REQUEST)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
@@ -89,10 +86,18 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
-                    JsonFactory.newArrayBuilder().add(JsonFactory.newObjectBuilder()
-                                    .set("include", JsonArray.of("custom-ack", "second-custom-ack")).build(),
-                            JsonFactory.newObjectBuilder()
-                                    .set("filter", "fn:filter(header:qos-level,'ne',0)").build()).build())
+                    JsonFactory.newObjectBuilder()
+                            .set(FilteredAcknowledgementRequest.JsonFields.INCLUDES,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getIncludes()
+                                            .stream()
+                                            .map(AcknowledgementRequest::getLabel)
+                                            .map(AcknowledgementLabel::toString)
+                                            .map(JsonFactory::newValue)
+                                            .collect(
+                                                    JsonCollectors.valuesToArray()))
+                            .set(FilteredAcknowledgementRequest.JsonFields.FILTER,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getFilter().orElse(null))
+                            .build())
             .set(Source.JsonFields.HEADER_MAPPING,
                     JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
                             .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
@@ -116,7 +121,7 @@ public final class ImmutableSourceTest {
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .address(MQTT_SOURCE1)
             .enforcement(ENFORCEMENT)
-            .acknowledgementRequests(SINGLE_ACKNOWLEDGEMENT_REQUESTS)
+            .acknowledgementRequests(FILTERED_ACKNOWLEDGEMENT_REQUEST)
             .consumerCount(2)
             .index(0)
             .qos(1)
@@ -133,9 +138,17 @@ public final class ImmutableSourceTest {
                     .set(Enforcement.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(MQTT_FILTER).build())
                     .build())
             .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
-                    JsonFactory.newArrayBuilder()
-                            .add(JsonFactory.newObjectBuilder()
-                                    .set("include", JsonArray.of(JsonValue.of("second-custom-ack"))).build())
+                    JsonFactory.newObjectBuilder()
+                            .set(FilteredAcknowledgementRequest.JsonFields.INCLUDES,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getIncludes()
+                                            .stream()
+                                            .map(AcknowledgementRequest::getLabel)
+                                            .map(AcknowledgementLabel::toString)
+                                            .map(JsonFactory::newValue)
+                                            .collect(
+                                                    JsonCollectors.valuesToArray()))
+                            .set(FilteredAcknowledgementRequest.JsonFields.FILTER,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getFilter().orElse(null))
                             .build())
             .build();
 
@@ -153,7 +166,7 @@ public final class ImmutableSourceTest {
                 areImmutable(),
                 provided(AuthorizationContext.class,
                         Enforcement.class,
-                        AcknowledgementRequest.class,
+                        FilteredAcknowledgementRequest.class,
                         HeaderMapping.class,
                         PayloadMapping.class,
                         ReplyTarget.class).areAlsoImmutable());
