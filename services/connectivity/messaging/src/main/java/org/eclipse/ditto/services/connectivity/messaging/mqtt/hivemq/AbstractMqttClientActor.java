@@ -216,9 +216,11 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
      * @return the client ID in
      */
     protected String resolvePublisherClientId(final Connection connection, final MqttSpecificConfig config) {
-        // default to connection ID + 'p'
-        // do not default to empty client ID - support for empty client ID is not guaranteed by the spec.
+        // default to configured client ID + 'p'
+        //  fall back to connection ID + 'p'
+        //  do not default to empty client ID - support for empty client ID is not guaranteed by the spec.
         final String publisherId = config.getMqttPublisherId()
+                .or(() -> config.getMqttClientId().map(cId -> cId + "p"))
                 .orElseGet(() -> connection.getId().toString() + "p");
         return appendInstanceIdForNonEmptyClientId(publisherId, connection);
     }

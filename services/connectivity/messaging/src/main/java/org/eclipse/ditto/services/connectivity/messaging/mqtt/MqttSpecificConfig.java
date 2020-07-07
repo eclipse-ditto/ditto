@@ -41,7 +41,7 @@ public final class MqttSpecificConfig {
     private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
 
     private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
-    private static final Duration DEFAULT_DURATION = Duration.ofSeconds(10L);
+    private static final Duration DEFAULT_RECONNECT_DURATION = Duration.ofSeconds(2L);
 
     private final Config specificConfig;
 
@@ -49,7 +49,7 @@ public final class MqttSpecificConfig {
         final HashMap<String, Object> defaultMap = new HashMap<>();
         defaultMap.put(RECONNECT_FOR_REDELIVERY, DEFAULT_RECONNECT_FOR_REDELIVERY);
         defaultMap.put(SEPARATE_PUBLISHER_CLIENT, DEFAULT_RECONNECT_FOR_REDELIVERY);
-        defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, DEFAULT_DURATION);
+        defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, DEFAULT_RECONNECT_DURATION);
         this.specificConfig = ConfigFactory.parseMap(specificConfig)
                 .withFallback(ConfigFactory.parseMap(defaultMap));
     }

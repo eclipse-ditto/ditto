@@ -55,7 +55,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
 
     private final String address;
     @Nullable private final HeaderMapping headerMapping;
-    private final Collection<ResponseType> expectedResponseTypes;
+    private final Set<ResponseType> expectedResponseTypes;
 
     private ImmutableReplyTarget(final Builder builder) {
         this.address = checkNotNull(builder.address);
@@ -74,7 +74,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
     }
 
     @Override
-    public Collection<ResponseType> getExpectedResponseTypes() {
+    public Set<ResponseType> getExpectedResponseTypes() {
         return expectedResponseTypes;
     }
 
@@ -123,8 +123,12 @@ final class ImmutableReplyTarget implements ReplyTarget {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ImmutableReplyTarget that = (ImmutableReplyTarget) o;
         return Objects.equals(address, that.address) &&
                 Objects.equals(headerMapping, that.headerMapping) &&

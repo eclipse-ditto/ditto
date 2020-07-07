@@ -522,7 +522,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 // assume exception message fits within quota
                 // TODO: check that common errors have reasonable error messages and status 500 do not cause problems.
                 final HttpStatusCode status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-                final String message = Optional.ofNullable(exception.getMessage()).orElse("Unknown error.");
+                String message = Optional.ofNullable(exception.getMessage()).orElse("Unknown error.");
+                if (null != exception.getCause()) {
+                    message += " - Cause: '" + exception.getCause().getClass().getSimpleName() + "'";
+                }
                 final JsonObject payload = JsonObject.newBuilder()
                         .set(DittoRuntimeException.JsonFields.MESSAGE, "Encountered '" + exception.getClass().getSimpleName() + "'")
                         .set(DittoRuntimeException.JsonFields.DESCRIPTION, message)

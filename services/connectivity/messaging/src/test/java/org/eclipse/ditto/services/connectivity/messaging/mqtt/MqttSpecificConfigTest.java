@@ -49,6 +49,6 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.separatePublisherClient()).isTrue();
         assertThat(specificConfig.getMqttClientId()).isEmpty();
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
-        assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(10L));
+        assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
     }
 }

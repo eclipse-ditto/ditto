@@ -241,8 +241,10 @@ final class ImmutableSource implements Source {
         final Enforcement readEnforcement =
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
-        final FilteredAcknowledgementRequest acknowledgementRequests =
-                jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS).map(FilteredAcknowledgementRequest::fromJson).orElse(null);
+        final FilteredAcknowledgementRequest readAcknowledgementRequests =
+                jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS)
+                        .map(FilteredAcknowledgementRequest::fromJson)
+                        .orElse(null);
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
@@ -267,7 +269,7 @@ final class ImmutableSource implements Source {
                 .consumerCount(readConsumerCount)
                 .index(index)
                 .enforcement(readEnforcement)
-                .acknowledgementRequests(acknowledgementRequests)
+                .acknowledgementRequests(readAcknowledgementRequests)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
                 .replyTargetEnabled(replyTargetEnabled)
@@ -309,7 +311,7 @@ final class ImmutableSource implements Source {
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
-                ", requestedAcknowledgementLabels=" + acknowledgementRequests +
+                ", acknowledgementRequests=" + acknowledgementRequests +
                 ", headerMapping=" + headerMapping +
                 ", replyTargetEnabled=" + replyTargetEnabled +
                 ", replyTarget=" + replyTarget +

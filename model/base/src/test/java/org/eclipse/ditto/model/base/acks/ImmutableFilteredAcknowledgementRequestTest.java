@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableFilteredAcknowledgementRequestTest {
 
-    static final String FILTER = "fn:filter(header:qos-level,'ne',0)";
+    static final String FILTER = "fn:filter(header:qos,'ne',0)";
     static final Set<AcknowledgementRequest> INCLUDES = new HashSet<>(Collections.singletonList(
             AcknowledgementRequest.parseAcknowledgementRequest(DittoAcknowledgementLabel.TWIN_PERSISTED)));
     static final FilteredAcknowledgementRequest FILTERED_ACKNOWLEDGEMENT_REQUEST =

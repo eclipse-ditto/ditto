@@ -25,10 +25,12 @@ public enum ResponseType {
      * Type of error responses.
      */
     ERROR("error"),
+
     /**
      * Type of negative acknowledgements responses.
      */
     NACK("nack"),
+
     /**
      * Type of normal responses. This includes positive acknowledgements.
      */

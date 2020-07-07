@@ -56,7 +56,7 @@ public final class ImmutableSourceTest {
             FilteredAcknowledgementRequest.of(new HashSet<>(
                             Arrays.asList(AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
                                     AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack")))),
-                    "fn:filter(header:qos-level,'ne',0)");
+                    "fn:filter(header:qos,'ne',0)");
 
     static {
         final Map<String, String> mapping = new HashMap<>();

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -52,8 +53,9 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
     /**
      * @return the list of response types that should be published to the reply target.
+     * @since 1.2.0
      */
-    Collection<ResponseType> getExpectedResponseTypes();
+    Set<ResponseType> getExpectedResponseTypes();
 
     /**
      * Create a builder with the content of this object.
@@ -161,6 +163,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
         /**
          * JSON field containing the expected response types of this reply target.
+         * @since 1.2.0
          */
         public static final JsonFieldDefinition<JsonArray> EXPECTED_RESPONSE_TYPES =
                 JsonFactory.newJsonArrayFieldDefinition("expectedResponseTypes", FieldType.REGULAR,
