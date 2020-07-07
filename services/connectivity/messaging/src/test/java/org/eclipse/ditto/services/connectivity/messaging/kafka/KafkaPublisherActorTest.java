@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.apache.kafka.clients.producer.Callback;
@@ -31,6 +32,8 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.DisconnectException;
+import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
@@ -46,6 +49,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -71,12 +75,14 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     private final Queue<ProducerRecord<String, String>> received = new ConcurrentLinkedQueue<>();
     private KafkaConnectionFactory connectionFactory;
+    private Producer<String, String> mockProducer;
 
     @Override
     @SuppressWarnings("unchecked")
     protected void setupMocks(final TestProbe probe) {
         connectionFactory = mock(KafkaConnectionFactory.class);
-        final Producer<String, String> mockProducer = mock(Producer.class);
+        mockProducer = mock(Producer.class);
+        when(connectionFactory.newProducer()).thenReturn(mockProducer);
         when(mockProducer.send(any(), any()))
                 .thenAnswer(invocationOnMock -> {
                     final ProducerRecord<String, String> record = invocationOnMock.getArgument(0);
@@ -86,7 +92,17 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                     received.add(record);
                     return null;
                 });
+    }
+
+    private void setUpMocksToFailWith(final Exception exception) {
+        connectionFactory = mock(KafkaConnectionFactory.class);
+        mockProducer = mock(Producer.class);
         when(connectionFactory.newProducer()).thenReturn(mockProducer);
+        when(mockProducer.send(any(), any()))
+                .thenAnswer(invocationOnMock -> {
+                    invocationOnMock.getArgument(1, Callback.class).onCompletion(null, exception);
+                    return null;
+                });
     }
 
     @Override
@@ -132,13 +148,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         final Acknowledgements acks = ackSupplier.get();
         assertThat(acks.getSize()).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
-        assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+        assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
         assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
-        assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
-                .set("timestamp", 0)
-                .set("serializedKeySize", 0)
-                .set("serializedValueSize", 0)
-                .build());
+        assertThat(ack.getEntity()).isEmpty();
     }
 
     @Test
@@ -148,7 +160,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 final TestProbe probe = new TestProbe(actorSystem);
                 setupMocks(probe);
                 final Props publisherProps = getPublisherActorPropsWithDebugEnabled();
-                final ActorRef publisherActor = childActorOf(publisherProps);;
+                final ActorRef publisherActor = childActorOf(publisherProps);
 
                 final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("please-verify");
                 final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -200,6 +212,25 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         };
     }
 
+    @Test
+    public void retriableExceptionBecomesInternalErrorAcknowledgement() {
+        testSendFailure(new DisconnectException(), (sender, parent) ->
+                assertThat(sender.expectMsgClass(Acknowledgements.class).getStatusCode())
+                        .isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR)
+        );
+    }
+
+    @Test
+    public void nonRetriableExceptionBecomesClientErrorAcknowledgement() {
+        testSendFailure(new InvalidTopicException(), (sender, parent) -> {
+            assertThat(sender.expectMsgClass(Acknowledgements.class).getStatusCode())
+                    .isEqualTo(HttpStatusCode.BAD_REQUEST);
+
+            // expect failure escalation
+            parent.expectMsgClass(ConnectionFailure.class);
+        });
+    }
+
     @Override
     protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
         kit.expectMsgClass(Status.Success.class);
@@ -218,6 +249,27 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private void shouldContainHeader(final List<Header> headers, final String key, final String value) {
         final RecordHeader expectedHeader = new RecordHeader(key, value.getBytes(StandardCharsets.US_ASCII));
         assertThat(headers).contains(expectedHeader);
+    }
+
+    private void testSendFailure(final Exception exception, final BiConsumer<TestProbe, TestKit> assertions) {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            setUpMocksToFailWith(exception);
+
+            final TestProbe senderProbe = TestProbe.apply("sender", actorSystem);
+            final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
+                    List.of(getMockOutboundSignalWithAutoAck(exception.getClass().getSimpleName())),
+                    senderProbe.ref()
+            );
+            final ActorRef publisherActor = childActorOf(getPublisherActorProps());
+            publisherCreated(this, publisherActor);
+
+            // WHEN
+            publisherActor.tell(multiMapped, senderProbe.ref());
+
+            // THEN
+            assertions.accept(senderProbe, this);
+        }};
     }
 
 }

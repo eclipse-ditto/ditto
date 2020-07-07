@@ -52,6 +52,14 @@ public interface AcknowledgementConfig {
     Duration getCollectorFallbackAskTimeout();
 
     /**
+     * Returns the max size of the payload of an automatically issued acknowledgement in bytes.
+     *
+     * @return the max size of an issued acknowledgement.
+     * @since 1.2.0
+     */
+    int getIssuedMaxBytes();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code AcknowledgementConfig}.
      */
@@ -70,7 +78,12 @@ public interface AcknowledgementConfig {
         /**
          * The fallback timeout to apply when waiting for {@code ResponseCollectorActor} output.
          */
-        COLLECTOR_FALLBACK_ASK_TIMEOUT("collector-fallback-ask-timeout", Duration.ofSeconds(120));
+        COLLECTOR_FALLBACK_ASK_TIMEOUT("collector-fallback-ask-timeout", Duration.ofSeconds(120)),
+
+        /**
+         * The maximum number of bytes for the payload of an automatically issued acknowledgement.
+         */
+        ISSUED_MAX_BYTES("issued-max-bytes", 100_000);
 
         private final String path;
         private final Object defaultValue;

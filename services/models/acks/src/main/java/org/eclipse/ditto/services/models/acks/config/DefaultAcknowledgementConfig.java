@@ -36,6 +36,7 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
     private final Duration forwarderFallbackTimeout;
     private final Duration collectorFallbackLifetime;
     private final Duration collectorFallbackAskTimeout;
+    private final int issuedMaxBytes;
 
     private DefaultAcknowledgementConfig(final ScopedConfig config) {
         forwarderFallbackTimeout =
@@ -44,6 +45,8 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
                 config.getDuration(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME.getConfigPath());
         collectorFallbackAskTimeout =
                 config.getDuration(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT.getConfigPath());
+        issuedMaxBytes =
+                config.getInt(AcknowledgementConfigValue.ISSUED_MAX_BYTES.getConfigPath());
     }
 
     /**
@@ -74,6 +77,11 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
     }
 
     @Override
+    public int getIssuedMaxBytes() {
+        return issuedMaxBytes;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -84,12 +92,14 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
         final DefaultAcknowledgementConfig that = (DefaultAcknowledgementConfig) o;
         return Objects.equals(forwarderFallbackTimeout, that.forwarderFallbackTimeout) &&
                 Objects.equals(collectorFallbackLifetime, that.collectorFallbackLifetime) &&
-                Objects.equals(collectorFallbackAskTimeout, that.collectorFallbackAskTimeout);
+                Objects.equals(collectorFallbackAskTimeout, that.collectorFallbackAskTimeout) &&
+                issuedMaxBytes == that.issuedMaxBytes;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(forwarderFallbackTimeout, collectorFallbackLifetime, collectorFallbackAskTimeout);
+        return Objects.hash(forwarderFallbackTimeout, collectorFallbackLifetime, collectorFallbackAskTimeout,
+                issuedMaxBytes);
     }
 
     @Override
@@ -98,6 +108,7 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
                 "forwarderFallbackTimeout=" + forwarderFallbackTimeout +
                 ", collectorFallbackLifetime=" + collectorFallbackLifetime +
                 ", collectorFallbackAskTimeout=" + collectorFallbackAskTimeout +
+                ", issuedMaxBytes=" + issuedMaxBytes +
                 "]";
     }
 

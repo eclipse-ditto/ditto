@@ -311,10 +311,18 @@ public final class MessageMappingProcessorActor
         } while (getContext().child(AcknowledgementAggregatorActor.determineActorName(dittoHeaders)).isDefined());
         final String newCorrelationId = dittoHeaders.getCorrelationId().orElse(null);
         logger.withCorrelationId(signal).info("SetCorrelationId {}", dittoHeaders.getCorrelationId().orElse(null));
-        // TODO: is responseMappedMonitor the correct one?
-        // TODO: check if log message give sufficient information about the source signal's identity
-        responseMappedMonitor.success(signal, "Due to a conflict, correlation ID is set to: {0}", newCorrelationId);
+        logReplacedCorrelationId(signal, newCorrelationId);
         return startAckregator(signal.setDittoHeaders(dittoHeaders), sender);
+    }
+
+    private void logReplacedCorrelationId(final Signal<?> signalWithOldCorrelationId,
+            @Nullable final String newCorrelationId) {
+        final ConnectionMonitor inboundMonitor =
+                connectionMonitorRegistry.getMonitor(connectionId, MAPPED, MetricDirection.INBOUND, LogType.MAPPED,
+                        LogCategory.SOURCE, "");
+        inboundMonitor.getLogger()
+                .success(InfoProviderFactory.forSignal(signalWithOldCorrelationId),
+                        "Due to a conflict, correlation ID is set to: {0}", newCorrelationId);
     }
 
     // NOT thread-safe

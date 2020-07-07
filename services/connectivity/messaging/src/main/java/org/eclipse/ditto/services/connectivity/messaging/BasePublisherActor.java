@@ -31,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -89,6 +91,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -115,6 +118,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final List<Optional<ReplyTarget>> replyTargets;
+    private final int acknowledgementSizeBudget;
 
     protected BasePublisherActor(final Connection connection) {
         checkNotNull(connection, "connection");
@@ -139,6 +143,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         connectionLogger =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(connectionId);
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
+        acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
     }
 
     @Override
@@ -158,31 +163,45 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return receiveBuilder.build();
     }
 
+    /**
+     * Get the  from publisher errors to Acknowledgements.
+     * Override to handle client-specific exceptions.
+     *
+     * @return the converter.
+     */
+    protected ErrorConverter getErrorConverter() {
+        return ErrorConverter.DEFAULT_INSTANCE;
+    }
+
     private void sendMultiMappedOutboundSignal(final OutboundSignal.MultiMapped multiMapped) {
         final int quota = computeMaxAckPayloadBytesForSignal(multiMapped);
-
+        final ErrorConverter errorConverter = getErrorConverter();
         final CompletableFuture<Acknowledgement>[] sendMonitorAndAckFutures =
                 multiMapped.getMappedOutboundSignals()
                         .stream()
                         // message sending step
                         .flatMap(outbound -> sendMappedOutboundSignal(outbound, quota))
                         // monitor and acknowledge step
-                        .flatMap(sendingOrDropped -> sendingOrDropped.monitorAndAcknowledge().stream())
+                        .flatMap(sendingOrDropped -> sendingOrDropped.monitorAndAcknowledge(errorConverter)
+                                .stream())
                         // convert to completable future array for aggregation
                         .map(CompletionStage::toCompletableFuture)
                         .<CompletableFuture<Acknowledgement>>toArray(CompletableFuture[]::new);
 
         aggregateNonNullFutures(sendMonitorAndAckFutures)
                 .thenAccept(ackList -> {
-                    final ActorRef sender = getContext().getParent();
+                    final ActorRef sender = multiMapped.getSender().orElse(null);
                     if (!ackList.isEmpty() && sender != null) {
                         final Acknowledgements aggregatedAcks =
                                 Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders());
-                        log().withCorrelationId(aggregatedAcks).debug("Message sent. Replying to <{}>: <{}>",
-                                sender, aggregatedAcks);
+                        logIfDebug(multiMapped, l ->
+                                l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks));
                         sender.tell(aggregatedAcks, getSelf());
+                    } else if (ackList.isEmpty()) {
+                        logIfDebug(multiMapped, l -> l.debug("Message sent: No acks requested."));
                     } else {
-                        log().withCorrelationId(multiMapped.getSource()).debug("Message sent: No acks requested.");
+                        log().withCorrelationId(multiMapped.getSource())
+                                .error("Message sent: Acks requested, but no sender: <{}>", multiMapped.getSource());
                     }
                 })
                 .exceptionally(e -> {
@@ -192,12 +211,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
-    private static int computeMaxAckPayloadBytesForSignal(final OutboundSignal.MultiMapped multiMapped) {
+    private void logIfDebug(final OutboundSignal.MultiMapped multiMapped, final Consumer<LoggingAdapter> whatToLog) {
+        if (log().isDebugEnabled()) {
+            whatToLog.accept(log().withCorrelationId(multiMapped.getSource()));
+        }
+    }
+
+    private int computeMaxAckPayloadBytesForSignal(final OutboundSignal.MultiMapped multiMapped) {
         final int numberOfSignals = multiMapped.getMappedOutboundSignals().size();
-        // TODO: move to AcknowledgementConfig
-        final int budget = 100000;
-        final int defaultBudget = 4000;
-        return numberOfSignals == 0 ? defaultBudget : budget / numberOfSignals;
+        return numberOfSignals == 0 ? acknowledgementSizeBudget : acknowledgementSizeBudget / numberOfSignals;
     }
 
     private Stream<SendingOrDropped> sendMappedOutboundSignal(final OutboundSignal.Mapped outbound,
@@ -500,7 +522,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     @Nullable
     private static Acknowledgement convertErrorToAcknowledgement(final SendingContext sendingContext,
-            final Exception exception) {
+            final Exception exception,
+            final ErrorConverter errorConverter) {
         final Optional<AcknowledgementLabel> label = getAcknowledgementLabel(sendingContext.autoAckTarget);
         if (label.isEmpty()) {
             // auto ack not requested
@@ -511,26 +534,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final DittoHeaders dittoHeaders = sendingContext.outboundSignal.getSource().getDittoHeaders();
             if (exception instanceof DittoRuntimeException) {
                 // assume DittoRuntimeException payload fits within quota
-                final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) exception;
-                final HttpStatusCode status = dittoRuntimeException.getStatusCode();
-                final JsonObject payload = dittoRuntimeException.toJson(
-                        field -> !DittoRuntimeException.JsonFields.STATUS.getPointer()
-                                .equals(JsonPointer.of(field.getKey()))
-                );
-                return Acknowledgement.of(label.orElseThrow(), entityId, status, dittoHeaders, payload);
+                return errorConverter.convertDittoRuntimeException((DittoRuntimeException) exception,
+                        label.orElseThrow(), entityId, dittoHeaders);
             } else {
                 // assume exception message fits within quota
-                // TODO: check that common errors have reasonable error messages and status 500 do not cause problems.
-                final HttpStatusCode status = HttpStatusCode.INTERNAL_SERVER_ERROR;
-                String message = Optional.ofNullable(exception.getMessage()).orElse("Unknown error.");
-                if (null != exception.getCause()) {
-                    message += " - Cause: '" + exception.getCause().getClass().getSimpleName() + "'";
-                }
-                final JsonObject payload = JsonObject.newBuilder()
-                        .set(DittoRuntimeException.JsonFields.MESSAGE, "Encountered '" + exception.getClass().getSimpleName() + "'")
-                        .set(DittoRuntimeException.JsonFields.DESCRIPTION, message)
-                        .build();
-                return Acknowledgement.of(label.orElseThrow(), entityId, status, dittoHeaders, payload);
+                return errorConverter.convertGenericException(exception, label.orElseThrow(), entityId, dittoHeaders);
             }
         }
     }
@@ -586,7 +594,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
          *
          * @return the send result optional.
          */
-        default Optional<CompletionStage<Acknowledgement>> monitorAndAcknowledge() {
+        default Optional<CompletionStage<Acknowledgement>> monitorAndAcknowledge(final ErrorConverter errorConverter) {
             return eval(
                     (context, sendFuture) -> Optional.of(sendFuture.thenApply(
                             ack -> {
@@ -602,17 +610,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                     // ack == null; report error.
                                     // This indicates a bug in the publisher actor because ack should never be null.
                                     context.publishedMonitor.failure(context.externalMessage, NULL_ACK_EXCEPTION);
-                                    return convertErrorToAcknowledgement(context, NULL_ACK_EXCEPTION);
+                                    return convertErrorToAcknowledgement(context, NULL_ACK_EXCEPTION, errorConverter);
                                 }
                             })
                             .exceptionally(error -> {
                                 final Exception rootCause = getRootCause(error);
                                 monitorSendFailure(context.externalMessage, rootCause, context.publishedMonitor);
-                                return convertErrorToAcknowledgement(context, rootCause);
+                                return convertErrorToAcknowledgement(context, rootCause, errorConverter);
                             })
                     ),
                     context -> {
-                        // TODO: this was logged at level failure. Check if anything breaks logging at "success".
                         context.droppedMonitor.success(context.outboundSignal.getSource(),
                                 "Signal dropped, target address unresolved: {0}",
                                 context.genericTarget.getAddress()
@@ -680,6 +687,87 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         public <T> T eval(final BiFunction<SendingContext, CompletionStage<Acknowledgement>, T> onSending,
                 final Function<SendingContext, T> onDropped) {
             return onDropped.apply(outboundSignal);
+        }
+    }
+
+    /**
+     * Fully customizable coverter from publisher errors to acknowledgements.
+     */
+    protected static class ErrorConverter {
+
+        private static final ErrorConverter DEFAULT_INSTANCE = new ErrorConverter();
+
+        /**
+         * Convert a DittoRuntimeException to an acknowledgement. By default, the payload is the JSON representation
+         * of the DittoRuntimeException excluding the field "status", which is used as the status code of
+         * the acknowledgement itself.
+         *
+         * @param dittoRuntimeException the DittoRuntimeException.
+         * @param label the desired acknowledgement label.
+         * @param entityId the entity ID.
+         * @param dittoHeaders the DittoHeaders of the sending context.
+         * @return acknowledgement for the DittoRuntimeException.
+         */
+        protected Acknowledgement convertDittoRuntimeException(final DittoRuntimeException dittoRuntimeException,
+                final AcknowledgementLabel label,
+                final EntityIdWithType entityId,
+                final DittoHeaders dittoHeaders) {
+            final HttpStatusCode status = dittoRuntimeException.getStatusCode();
+            final JsonObject payload = dittoRuntimeException.toJson(
+                    field -> !DittoRuntimeException.JsonFields.STATUS.getPointer()
+                            .equals(JsonPointer.of(field.getKey()))
+            );
+            return Acknowledgement.of(label, entityId, status, dittoHeaders, payload);
+        }
+
+        /**
+         * Convert a generic exception into an acknowledgement.
+         *
+         * @param exception the generic exception (non-DittoRuntimeException).
+         * @param label the desired acknowledgement label.
+         * @param entityId the entity ID.
+         * @param dittoHeaders the DittoHeaders of the sending context.
+         * @return acknowledgement for the generic exception.
+         */
+        protected Acknowledgement convertGenericException(
+                final Exception exception,
+                final AcknowledgementLabel label,
+                final EntityIdWithType entityId,
+                final DittoHeaders dittoHeaders) {
+
+            final HttpStatusCode status = getStatusCodeForGenericException(exception);
+            final String message = getDescriptionForGenericException(exception);
+            final JsonObject payload = JsonObject.newBuilder()
+                    .set(DittoRuntimeException.JsonFields.MESSAGE,
+                            "Encountered '" + exception.getClass().getSimpleName() + "'")
+                    .set(DittoRuntimeException.JsonFields.DESCRIPTION, message)
+                    .build();
+            return Acknowledgement.of(label, entityId, status, dittoHeaders, payload);
+        }
+
+        /**
+         * Get the acknowledgement status code of a generic exception.
+         *
+         * @param exception the generic exception (non-DittoRuntimeException).
+         * @return the status code of the converted acknowledgement.
+         */
+        protected HttpStatusCode getStatusCodeForGenericException(final Exception exception) {
+            return HttpStatusCode.INTERNAL_SERVER_ERROR;
+        }
+
+        /**
+         * Get the description of a generic exception.
+         *
+         * @param exception the generic exception (non-DittoRuntimeException).
+         * @return the description in the payload of the converted acknowledgement.
+         */
+        protected String getDescriptionForGenericException(final Exception exception) {
+            final String message = Optional.ofNullable(exception.getMessage()).orElse("Unknown error.");
+            if (null != exception.getCause()) {
+                return message + " - Cause: '" + exception.getCause().getClass().getSimpleName() + "'";
+            } else {
+                return message;
+            }
         }
     }
 

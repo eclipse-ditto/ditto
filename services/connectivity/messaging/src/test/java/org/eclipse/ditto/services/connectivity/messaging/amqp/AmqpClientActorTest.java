@@ -647,9 +647,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             getLastSender().tell(responseSupplier.apply(command.getEntityId(), command.getDittoHeaders()), getRef());
 
-            // TODO: test AMQP settlement.
-            // verify(incomingMessage, timeout(3000L)).acknowledge();
-
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             // verify that the message is published via the producer with the correct destination
             final MessageProducer messageProducer =

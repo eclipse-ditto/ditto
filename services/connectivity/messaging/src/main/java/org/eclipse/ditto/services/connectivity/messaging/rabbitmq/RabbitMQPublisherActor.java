@@ -84,6 +84,14 @@ import akka.japi.pf.ReceiveBuilder;
 public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTarget> {
 
     /**
+     * Lifetime of an entry in the cache 'outstandingAcks'.
+     * It is an upper bound for the timeout of any command requesting acknowledgements from this publisher.
+     * Ideally between the maximum timeout (60s) and the acknowledgement forwarder lifetime (100s).
+     * No other publisher actor requires a cache TTL config because their clients take care of message ID tracking.
+     */
+    private static final Duration ACK_CACHE_TTL = Duration.ofMinutes(1L);
+
+    /**
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "rmqPublisherActor";
@@ -210,9 +218,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             final CompletableFuture<Acknowledgement> resultFuture) {
 
         if (confirmMode == ConfirmMode.ACTIVE) {
-            // TODO: configure - also in other publisher actors?
-            final Duration timeoutDuration = Duration.ofSeconds(60L);
-            return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, autoAckTarget, publishTarget, timeoutDuration);
+            return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, autoAckTarget, publishTarget, ACK_CACHE_TTL);
         } else {
             final Acknowledgement unsupportedAck = getUnsupportedAck(signal, autoAckTarget);
             return seqNo -> resultFuture.complete(unsupportedAck);
@@ -232,11 +238,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         // index the outstanding ack by delivery tag
         outstandingAcks.put(seqNo, outstandingAck);
         resultFuture.completeOnTimeout(timeoutAck, timeoutDuration.toMillis(), TimeUnit.MILLISECONDS)
-                .handle((ack, error) -> {
-                    // Only remove future from cache. Actual logging/reporting done elsewhere.
-                    outstandingAcks.remove(seqNo);
-                    return null;
-                });
+                // Only remove future from cache. Actual logging/reporting done elsewhere.
+                .whenComplete((ack, error) -> outstandingAcks.remove(seqNo));
 
         // index the outstanding ack by publish target in order to generate negative acks on basic.return messages
         outstandingAcksByTarget.compute(publishTarget, (key, queue) -> {
@@ -274,12 +277,14 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     private static Acknowledgement getTimeoutAck(final Signal<?> signal, @Nullable final Target autoAckTarget) {
-        return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.REQUEST_TIMEOUT, "No publisher confirm arrived.");
+        return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.REQUEST_TIMEOUT,
+                "No publisher confirm arrived.");
     }
 
     private static Acknowledgement getUnsupportedAck(final Signal<?> signal, @Nullable final Target autoAckTarget) {
         if (autoAckTarget != null && autoAckTarget.getIssuedAcknowledgementLabel().isPresent()) {
-            return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.NOT_IMPLEMENTED,
+            // Not possible to recover without broker update. Use status 400 to prevent redelivery at the source.
+            return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.BAD_REQUEST,
                     "The external broker does not support RabbitMQ publisher confirms. " +
                             "Acknowledgement is not possible.");
         } else {

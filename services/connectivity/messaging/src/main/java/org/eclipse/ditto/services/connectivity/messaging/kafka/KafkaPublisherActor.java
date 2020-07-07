@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -27,6 +26,7 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.json.JsonField;
@@ -60,22 +60,6 @@ import akka.util.ByteString;
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-kafka-diagnostic");
-
-    /**
-     * List of retryable producer exceptions.
-     * Please keep up-to-date against {@link org.apache.kafka.clients.producer.Callback}.
-     * Cannot check for containment as set as these classes are not final.
-     * Keep the classes fully qualified to ensure they stay in the right package.
-     */
-    private static final List<Class<?>> RETRIABLE_EXCEPTIONS = List.of(
-            org.apache.kafka.common.errors.CorruptRecordException.class,
-            org.apache.kafka.common.errors.InvalidMetadataException.class,
-            org.apache.kafka.common.errors.NotEnoughReplicasAfterAppendException.class,
-            org.apache.kafka.common.errors.NotEnoughReplicasException.class,
-            org.apache.kafka.common.errors.OffsetOutOfRangeException.class,
-            org.apache.kafka.common.errors.TimeoutException.class,
-            org.apache.kafka.common.errors.UnknownTopicOrPartitionException.class
-    );
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
@@ -115,6 +99,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     public void postStop() throws Exception {
         closeProducer();
         super.postStop();
+    }
+
+    @Override
+    protected ErrorConverter getErrorConverter() {
+        return KafkaErrorConverter.INSTANCE;
     }
 
     @Override
@@ -166,8 +155,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param exception the exception.
      */
     private void escalateIfNotRetryable(final Exception exception) {
-        if (!isRetriable(exception)) {
-            escalate(exception, "Got non-retryable exception");
+        if (!(exception instanceof RetriableException)) {
+            escalate(exception, "Got non-retriable exception");
         }
     }
 
@@ -211,7 +200,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private void startInternalKafkaProducer(final Connection connection) {
         logWithConnectionId().info("Starting internal Kafka producer.");
         closeProducer();
-        // TODO: configure timeouts so that senders won't have to wait >1m for send failures.
         producer = connectionFactory.newProducer();
     }
 
@@ -246,10 +234,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         stopInternalKafkaProducer();
         logWithConnectionId().debug("Stopping myself.");
         getContext().stop(getSelf());
-    }
-
-    private static boolean isRetriable(final Exception exception) {
-        return RETRIABLE_EXCEPTIONS.stream().anyMatch(clazz -> clazz.isInstance(exception));
     }
 
     /**
@@ -342,6 +326,20 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             return Boolean.parseBoolean(specificConfig.getOrDefault("debug-enabled", Boolean.FALSE.toString()));
         }
 
+    }
+
+    private static final class KafkaErrorConverter extends ErrorConverter {
+
+        private static final ErrorConverter INSTANCE = new KafkaErrorConverter();
+
+        @Override
+        protected HttpStatusCode getStatusCodeForGenericException(final Exception exception) {
+            // return 500 for retriable exceptions -> sender will retry
+            // return 400 for non-retriable exceptions -> sender will give up
+            return exception instanceof RetriableException
+                    ? HttpStatusCode.INTERNAL_SERVER_ERROR
+                    : HttpStatusCode.BAD_REQUEST;
+        }
     }
 
 }
