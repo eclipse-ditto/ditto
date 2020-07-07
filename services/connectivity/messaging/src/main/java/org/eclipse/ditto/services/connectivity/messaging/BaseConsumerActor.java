@@ -99,7 +99,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
             final Reject reject) {
         forwardAndAwaitAck(addSourceAndReplyTarget(message))
-                .whenComplete((output, error) -> {
+                .handle((output, error) -> {
                     if (output != null) {
                         final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
@@ -127,6 +127,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             inboundFailure(dittoRuntimeException);
                         }
                     }
+                    return null;
                 })
                 .exceptionally(e -> {
                     log().error(e, "Unexpected error during manual acknowledgement.");
@@ -255,7 +256,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                     return false;
             }
         } else {
-            return true;
+            // success status codes do not require redelivery.
+            return status.isInternalError();
         }
     }
 
