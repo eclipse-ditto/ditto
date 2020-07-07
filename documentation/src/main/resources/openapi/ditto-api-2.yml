@@ -11,7 +11,12 @@
 openapi: 3.0.0
 info:
   title: Eclipse Ditto HTTP API
-  description: JSON-based, REST-like API for Eclipse Ditto
+  description: |-
+  JSON-based, REST-like API for Eclipse Ditto
+
+  The Eclipse Ditto HTTP API uses response status codes
+  (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
+  to indicate whether a specific request has been successfully completed, or not. However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
   version: "2"
 servers:
   - url: https://ditto.eclipse.org/api/2
@@ -48,23 +53,23 @@ paths:
 
         Tip: If you don't know the thing IDs, start with the search resource.
       tags:
-      - Things
+        - Things
       parameters:
-      - name: ids
-        in: query
-        description: |-
-          Contains a comma-separated list of `thingId`s to retrieve in one
-          single request.
-        required: true
-        schema:
+        - name: ids
+          in: query
+          description: |-
+            Contains a comma-separated list of `thingId`s to retrieve in one
+            single request.
+          required: true
+          schema:
             type: string
-      - $ref: '#/components/parameters/thingFieldsQueryParam'
-      - $ref: '#/components/parameters/timeoutParam'
+        - $ref: '#/components/parameters/thingFieldsQueryParam'
+        - $ref: '#/components/parameters/timeoutParam'
       responses:
         '200':
           description: |-
-            The successfully completed request contains as its result the first
-            200 things, for which the user has at least read permission. The list is sorted by the `thingId`.
+            The successfully completed request contains as its result the first 200 for the user available Things.
+            The Things are sorted in the same order as the Thing IDs were provided in the `ids` parameter.
           content:
             application/json:
               schema:
@@ -174,36 +179,36 @@ paths:
             schema:
               $ref: '#/components/schemas/NewThing'
             example: {
-                        "definition": "com.acme:coffeebrewer:0.1.0",
-                        "attributes": {
-                           "manufacturer": "ACME demo corp.",
-                           "location": "Berlin, main floor",
-                           "serialno": "42",
-                           "model": "Speaking coffee machine"
-                        },
-                        "features": {
-                           "coffee-brewer": {
-                             "definition": [ "com.acme:coffeebrewer:0.1.0" ],
-                             "properties": {
-                               "brewed-coffees": 0
-                             }
-                           },
-                           "water-tank": {
-                             "properties": {
-                               "configuration": {
-                                 "smartMode": true,
-                                 "brewingTemp": 87,
-                                 "tempToHold": 44,
-                                 "timeoutSeconds": 6000
-                               },
-                               "status": {
-                                 "waterAmount": 731,
-                                 "temperature": 44
-                               }
-                             }
-                           }
-                        }
-                     }
+              "definition": "com.acme:coffeebrewer:0.1.0",
+              "attributes": {
+                "manufacturer": "ACME demo corp.",
+                "location": "Berlin, main floor",
+                "serialno": "42",
+                "model": "Speaking coffee machine"
+              },
+              "features": {
+                "coffee-brewer": {
+                  "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+                  "properties": {
+                    "brewed-coffees": 0
+                  }
+                },
+                "water-tank": {
+                  "properties": {
+                    "configuration": {
+                      "smartMode": true,
+                      "brewingTemp": 87,
+                      "tempToHold": 44,
+                      "timeoutSeconds": 6000
+                    },
+                    "status": {
+                      "waterAmount": 731,
+                      "temperature": 44
+                    }
+                  }
+                }
+              }
+            }
         description: JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.
   '/things/{thingId}':
     get:
@@ -471,36 +476,36 @@ paths:
             schema:
               $ref: '#/components/schemas/NewThing'
             example: {
-                         "definition": "com.acme:coffeebrewer:0.1.0",
-                         "attributes": {
-                           "manufacturer": "ACME demo corp.",
-                           "location": "Berlin, main floor",
-                           "serialno": "42",
-                           "model": "Speaking coffee machine"
-                         },
-                         "features": {
-                           "coffee-brewer": {
-                             "definition": ["com.acme:coffeebrewer:0.1.0"],
-                             "properties": {
-                               "brewed-coffees": 0
-                             }
-                           },
-                           "water-tank": {
-                             "properties": {
-                               "configuration": {
-                                 "smartMode": true,
-                                 "brewingTemp": 87,
-                                 "tempToHold": 44,
-                                 "timeoutSeconds": 6000
-                               },
-                               "status": {
-                                 "waterAmount": 731,
-                                 "temperature": 44
-                               }
-                             }
-                           }
-                         }
-                        }
+              "definition": "com.acme:coffeebrewer:0.1.0",
+              "attributes": {
+                "manufacturer": "ACME demo corp.",
+                "location": "Berlin, main floor",
+                "serialno": "42",
+                "model": "Speaking coffee machine"
+              },
+              "features": {
+                "coffee-brewer": {
+                  "definition": ["com.acme:coffeebrewer:0.1.0"],
+                  "properties": {
+                    "brewed-coffees": 0
+                  }
+                },
+                "water-tank": {
+                  "properties": {
+                    "configuration": {
+                      "smartMode": true,
+                      "brewingTemp": 87,
+                      "tempToHold": 44,
+                      "timeoutSeconds": 6000
+                    },
+                    "status": {
+                      "waterAmount": 731,
+                      "temperature": 44
+                    }
+                  }
+                }
+              }
+            }
         description: JSON representation of the thing to be modified.
     delete:
       summary: Delete a specific thing
@@ -1476,27 +1481,27 @@ paths:
             schema:
               $ref: '#/components/schemas/Features'
             example: {
-                                  "coffee-brewer": {
-                                    "properties": {
-                                      "definition": [ "com.acme:coffeebrewer:0.1.0" ],
-                                      "brewed-coffees": 0
-                                      }
-                                    },
-                                    "water-tank": {
-                                     "properties": {
-                                       "configuration": {
-                                         "smartMode": true,
-                                         "brewingTemp": 87,
-                                         "tempToHold": 44,
-                                         "timeoutSeconds": 6000
-                                       },
-                                        "status": {
-                                          "waterAmount": 731,
-                                          "temperature": 44
-                                       }
-                                    }
-                                  }
-                   }
+              "coffee-brewer": {
+                "properties": {
+                  "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+                  "brewed-coffees": 0
+                }
+              },
+              "water-tank": {
+                "properties": {
+                  "configuration": {
+                    "smartMode": true,
+                    "brewingTemp": 87,
+                    "tempToHold": 44,
+                    "timeoutSeconds": 6000
+                  },
+                  "status": {
+                    "waterAmount": 731,
+                    "temperature": 44
+                  }
+                }
+              }
+            }
         description: |-
           JSON object of all features to be modified at once. Consider that the value has to be a JSON object or null.
 
@@ -1721,12 +1726,12 @@ paths:
             schema:
               $ref: '#/components/schemas/Feature'
             example:   {
-                          "definition": [ "com.acme:coffeemaker:0.1.0", "com.acme:coffeemaker:1.1.0" ],
-                          "properties": {
-                            "connected": true,
-                            "brewed-coffees": 0
-                            }
-                       }
+              "definition": [ "com.acme:coffeemaker:0.1.0", "com.acme:coffeemaker:1.1.0" ],
+              "properties": {
+                "connected": true,
+                "brewed-coffees": 0
+              }
+            }
         description: |-
           JSON representation of the feature to be created/modified.
           Consider that the value has to be a JSON object or null.
@@ -2133,17 +2138,17 @@ paths:
             schema:
               $ref: '#/components/schemas/FeatureProperties'
             example: {
-                               "configuration": {
-                                 "smartMode": true,
-                                 "brewingTemp": 87,
-                                 "tempToHold": 44,
-                                 "timeoutSeconds": 6000
-                               },
-                               "status": {
-                                 "waterAmount": 731,
-                                 "temperature": 44
-                               }
-                             }
+              "configuration": {
+                "smartMode": true,
+                "brewingTemp": 87,
+                "tempToHold": 44,
+                "timeoutSeconds": 6000
+              },
+              "status": {
+                "waterAmount": 731,
+                "temperature": 44
+              }
+            }
         description: |-
           JSON object of all properties to be updated at once.
 
@@ -2942,39 +2947,39 @@ paths:
             schema:
               $ref: '#/components/schemas/Policy'
             example: {
-                       "entries": {
-                         "DEFAULT": {
-                           "subjects": {
-                             "{{ request:subjectId }}": {
-                               "type": "the creator"
-                             }
-                           },
-                           "resources": {
-                             "policy:/": {
-                               "grant": [
-                                 "READ",
-                                 "WRITE"
-                               ],
-                               "revoke": []
-                             },
-                             "thing:/": {
-                               "grant": [
-                                 "READ",
-                                 "WRITE"
-                               ],
-                               "revoke": []
-                             },
-                             "message:/": {
-                               "grant": [
-                                 "READ",
-                                 "WRITE"
-                               ],
-                               "revoke": []
-                             }
-                           }
-                         }
-                       }
-                     }
+              "entries": {
+                "DEFAULT": {
+                  "subjects": {
+                    "{{ request:subjectId }}": {
+                      "type": "the creator"
+                    }
+                  },
+                  "resources": {
+                    "policy:/": {
+                      "grant": [
+                        "READ",
+                        "WRITE"
+                      ],
+                      "revoke": []
+                    },
+                    "thing:/": {
+                      "grant": [
+                        "READ",
+                        "WRITE"
+                      ],
+                      "revoke": []
+                    },
+                    "message:/": {
+                      "grant": [
+                        "READ",
+                        "WRITE"
+                      ],
+                      "revoke": []
+                    }
+                  }
+                }
+              }
+            }
         description: |-
           JSON representation of the policy.
           Use the placeholder `{{ request:subjectId }}` in order to let the
@@ -3166,37 +3171,37 @@ paths:
             schema:
               $ref: '#/components/schemas/PolicyEntries'
             example: {
-                       "DEFAULT": {
-                         "subjects": {
-                           "{{ request:subjectId }}": {
-                             "type": "the creator"
-                           }
-                         },
-                         "resources": {
-                           "policy:/": {
-                             "grant": [
-                               "READ",
-                               "WRITE"
-                             ],
-                             "revoke": []
-                           },
-                           "thing:/": {
-                             "grant": [
-                               "READ",
-                               "WRITE"
-                             ],
-                             "revoke": []
-                           },
-                           "message:/": {
-                             "grant": [
-                               "READ",
-                               "WRITE"
-                             ],
-                             "revoke": []
-                           }
-                         }
-                       }
-                     }
+              "DEFAULT": {
+                "subjects": {
+                  "{{ request:subjectId }}": {
+                    "type": "the creator"
+                  }
+                },
+                "resources": {
+                  "policy:/": {
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ],
+                    "revoke": []
+                  },
+                  "thing:/": {
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ],
+                    "revoke": []
+                  },
+                  "message:/": {
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ],
+                    "revoke": []
+                  }
+                }
+              }
+            }
         description: |-
           JSON representation of the policy entries.
           Use the placeholder `{{ request:subjectId }}` in order to let the
@@ -3352,35 +3357,35 @@ paths:
             schema:
               $ref: '#/components/schemas/PolicyEntry'
             example: {
-                      "subjects": {
-                        "{{ request:subjectId }}": {
-                          "type": "the creator"
-                        }
-                      },
-                      "resources": {
-                        "policy:/": {
-                          "grant": [
-                            "READ",
-                            "WRITE"
-                          ],
-                          "revoke": []
-                        },
-                        "thing:/": {
-                          "grant": [
-                            "READ",
-                            "WRITE"
-                          ],
-                          "revoke": []
-                        },
-                        "message:/": {
-                          "grant": [
-                            "READ",
-                            "WRITE"
-                          ],
-                          "revoke": []
-                        }
-                      }
-                     }
+              "subjects": {
+                "{{ request:subjectId }}": {
+                  "type": "the creator"
+                }
+              },
+              "resources": {
+                "policy:/": {
+                  "grant": [
+                    "READ",
+                    "WRITE"
+                  ],
+                  "revoke": []
+                },
+                "thing:/": {
+                  "grant": [
+                    "READ",
+                    "WRITE"
+                  ],
+                  "revoke": []
+                },
+                "message:/": {
+                  "grant": [
+                    "READ",
+                    "WRITE"
+                  ],
+                  "revoke": []
+                }
+              }
+            }
 
         description: |-
           JSON representation of the policy entry.
@@ -3505,9 +3510,9 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-           The request could not be completed. Possible reasons:
+            The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -3570,10 +3575,10 @@ paths:
                 type: string
         '400':
           description: |-
-           The request could not be completed. Possible reasons:
+            The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
-            * the JSON body of the policy subjects to be created/modified is invalid
+               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+             * the JSON body of the policy subjects to be created/modified is invalid
           content:
             application/json:
               schema:
@@ -4119,10 +4124,10 @@ paths:
           $ref: '#/components/responses/notModified'
         '400':
           description: |-
-             The request could not be completed. Possible reasons:
+            The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
-               * the JSON is invalid, or no valid Resource JSON object.
+             * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the JSON is invalid, or no valid Resource JSON object.
           content:
             application/json:
               schema:
@@ -5168,15 +5173,15 @@ components:
           schema:
             $ref: '#/components/schemas/Attributes'
           example: {
-                     "manufacturer": {
-                       "name": "ACME demo corp.",
-                       "location": "Berlin, main floor"
-                     },
-                     "coffeemaker": {
-                        "serialno": "42",
-                        "model": "Speaking coffee machine"
-                     }
-                   }
+            "manufacturer": {
+              "name": "ACME demo corp.",
+              "location": "Berlin, main floor"
+            },
+            "coffeemaker": {
+              "serialno": "42",
+              "model": "Speaking coffee machine"
+            }
+          }
       description: |-
         JSON object of all attributes to be modified at once. Consider that the
         value has to be a JSON object or `null`.
