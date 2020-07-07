@@ -165,6 +165,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for the internal header "ditto-expected-response-types". This header is evaluated to distinguish
      * if a response should published or not.
+     *
+     * @since 1.2.0
      */
     EXPECTED_RESPONSE_TYPES("ditto-expected-response-types", JsonArray.class, false, false,
             HeaderValueValidators.getJsonArrayValidator()),

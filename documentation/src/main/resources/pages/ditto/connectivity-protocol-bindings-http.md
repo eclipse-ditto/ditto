@@ -59,6 +59,19 @@ has READ permission on the Thing, that is associated with a message.
 }
 ```
 
+#### Target acknowledgement handling
+
+For HTTP targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
+
+The HTTP response for the HTTP target URL is consumed and following HTTP response information is mapped to the 
+automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: the HTTP response status code is used as acknowledgement status.
+* Acknowledgement.value: the HTTP response body is used as acknowledgement value - if the response body was of 
+  `content-type: application/json`, the JSON is inlined into the acknowledgment, otherwise the payload is added as JSON string.
+
+
 ### Specific configuration properties
 
 The specific configuration properties contain the following optional keys:

@@ -1,6 +1,6 @@
 ---
 title: Connections
-keywords: connection, connectivity, mapping, connection, integration, placeholder
+keywords: connection, connectivity, mapping, connection, integration, placeholder, qos, at least once, delivery, guarantee
 tags: [connectivity]
 permalink: basic-connections.html
 ---
@@ -62,6 +62,7 @@ Sources contain:
 * a consumer count defining how many consumers should be attached to each source address,
 * an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source,
 * enforcement information that allows filtering the messages that are consumed in this source,
+* [acknowledgement requests](basic-acknowledgements.html#requesting-acknowledgements) this source requires in order to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
 * [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers, and
 * a reply-target to configure publication of any responses of incoming commands.
 
@@ -121,6 +122,50 @@ Note: This example assumes that there is a valid user named `ditto:inbound-auth-
 If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefix `nginx:`, e.g. `nginx:ditto`.
 See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
 
+#### Source acknowledgement requests
+
+A source can be configured that for each incoming message additional 
+[acknowledgement requests](basic-acknowledgements.html#acknowledgement-requests) are added. 
+
+That is desirable whenever incoming messages should be processed with a higher "quality of service" than the default 
+which is "at most once" (or QoS 0).
+
+In order to process messages from sources with an "at least once" (or QoS 1) semantic, configure the source's 
+`"acknowledgementRequests/includes"` to e.g. add the 
+["twin-persisted"](basic-acknowledgements.html#built-in-acknowledgement-labels) acknowledgement request which will cause
+that a consumed message over this source will technically be acknowledged when the by Ditto managed twin was 
+successfully updated/persisted.
+
+How the technical acknowledgment is done is specific for the used [connection type](#connection-types) and documented 
+in scope of that connection type.
+
+In addition to the `"includes"` defining which acknowledgements to request for each incoming message, the optional 
+`"filter"` holds an [fn:filter()](basic-placeholders.html#function-library) function defining when to request 
+acknowledgements at all for an incoming message. This filter is applied on both, acknowledgements 
+[requested in the message](basic-acknowledgements.html#requesting-via-ditto-protocol-message) and the ones requested 
+via the configured `"includes"` array.
+
+The JSON for a source with acknowledgement requests could look like this. The `"filter"` in the example causes that 
+acknowledgements are only requested if the "qos" header was either not present or does not equal `0`:
+```json
+{
+  "addresses": [
+    "<source>"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "headerMapping": {
+    "qos": "{%raw%}{{ header:qos }}{%endraw%}"
+  },
+  "acknowledgementRequests": {
+    "includes": [
+      "twin-persisted",
+      "my-custom-ack"
+    ],
+    "filter": "fn:filter(header:qos,'ne',0)"
+  }
+}
+```
+
 #### Source header mapping
 
 For incoming messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
@@ -163,6 +208,35 @@ then its response is dropped.
   }
 }
 ```
+
+The reply target may contain its own header mapping (`"headerMapping"`) in order to map response headers.
+
+In addition, the reply target contains the expected response types (`"expectedResponseTypes"`) which should be 
+published to the reply target.<br/>
+The following reply targets are available to choose from:
+* **response**: Send back successful responses (e.g. responses after a Thing was successfully modified, 
+  but also responses for [query commands](basic-signals-command.html#query-commands)). Includes positive [acknowledgements](protocol-specification-acks.html#acknowledgements-aggregating).  
+* **error**: Send back error responses (e.g. thing not modifiable due to lacking permissions)
+* **nack**: Whether negative [acknowledgements](protocol-specification-acks.html#acknowledgements-aggregating) responses should be delivered.
+
+This is an example `"replyTarget"` containing both header mapping and expected response types:
+```json
+{
+  "replyTarget": {
+    "enabled": true,
+    "address": "{%raw%}{{ header:reply-to }}{%endraw%}",
+    "headerMapping": {
+      "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}"
+    },
+    "expectedResponseTypes": [
+      "response",
+      "error",
+      "nack"
+    ]
+  }
+}
+```
+
 
 ### Targets
 
@@ -235,6 +309,33 @@ Example:
     "_/_/things/live/messages?extraFields=features/ConnectionStatus"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+}
+```
+
+#### Target issue acknowledgement label
+
+A target can be configured that for each published/emitted message an automatic 
+[acknowledgement gets issued](basic-acknowledgements.html#issuing-acknowledgements) once the underlying channel confirmed 
+that the message was successfully received. 
+
+That is desirable whenever outgoing messages (e.g. [events](basic-signals-event.html)) are handled in scope of a command 
+sent with an "at least once" (QoS 1) semantic in order to only acknowledge that command when the event was successfully
+forwarded into another system.
+
+For more details on that topic, please refer to the [acknowledgements](basic-acknowledgements.html) section.
+
+Whether an outgoing message is treated as successfully sent or not is specific for the used 
+[connection type](#connection-types) and documented in scope of that connection type.
+
+The JSON for a target with issued acknowledgement labels could look like this:
+```json
+{
+  "address": "<target>",
+  "topics": [
+    "_/_/things/twin/events"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "issuedAcknowledgementLabel": "my-custom-ack"
 }
 ```
 

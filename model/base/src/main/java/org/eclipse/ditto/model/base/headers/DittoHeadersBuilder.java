@@ -222,6 +222,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      *
      * @param responseTypes the response types that should be delivered to a reply target.
      * @return this builder.
+     * @since 1.2.0
      */
     B expectedResponseTypes(ResponseType... responseTypes);
 
@@ -232,6 +233,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      *
      * @param responseTypes the response types that should be delivered to a reply target.
      * @return this builder.
+     * @since 1.2.0
      */
     B expectedResponseTypes(Collection<ResponseType> responseTypes);
 

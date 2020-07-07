@@ -262,6 +262,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
 
     /**
      * @return the list of response types that should be published to the reply target.
+     * @since 1.2.0
      */
     Collection<ResponseType> getExpectedResponseTypes();
 

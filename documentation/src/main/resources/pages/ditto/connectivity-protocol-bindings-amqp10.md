@@ -88,6 +88,21 @@ inbound messages are processed. These subjects may contain placeholders, see
 }
 ```
 
+#### Source acknowledgement handling
+
+For AMQP 1.0 sources, when configuring 
+[acknowledgement requests](basic-connections.html#source-acknowledgement-requests), consumed messages from the AMQP 1.0
+endpoint are treated in the following way:
+
+For Ditto acknowledgements with successful [status](protocol-specification-acks.html#combined-status-code):
+* Acknowledges the AMQP 1.0 message with `accepted` outcome (see [AMQP 1.0 spec: 3.4.2 Accepted](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-accepted))
+
+For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery (e.g. based on a timeout):
+   * Negatively acknowledges the AMQP 1.0 message with `modified[delivery-failed]` outcome (see [AMQP 1.0 spec: 3.4.5 Modified](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified))
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery:
+   * Negatively acknowledges the AMQP 1.0 message with `modified[undeliverable-here]` outcome (see [AMQP 1.0 spec: 3.4.5 Modified](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified)) preventing redelivery by the AMQP 1.0 endpoint
+
 ### Target format
 
 An AMQP 1.0 connection requires the protocol configuration target object to have an `address` property with a source
@@ -119,6 +134,21 @@ has READ permission on the Thing, that is associated with a message.
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
+
+#### Target acknowledgement handling
+
+For AMQP 1.0 targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
+
+Once the AMQP 1.0 client signals that the message was acknowledged by the AMQP 1.0 endpoint, the following information 
+is mapped to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: 
+   * will be `200` the message was successfully consumed by the AMQP 1.0 endpoint
+   * will be `5xx` when the AMQP 1.0 endpoint failed in consuming the message, retrying sending the message is feasible
+* Acknowledgement.value: 
+   * will be missing for status `200`
+   * will contain more information in case that an error `status` was set
 
 
 ### Specific configuration properties
