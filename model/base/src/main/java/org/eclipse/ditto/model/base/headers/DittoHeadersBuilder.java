@@ -203,10 +203,10 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     /**
      * Sets the inbound {@code MessageMapper} ID value.
      *
-     * @param inboundPayloadMapperId the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources.
+     * @param inboundPayloadMapperId the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources. If null, the header will be removed.
      * @return this builder for Method Chaining
      */
-    B inboundPayloadMapper(String inboundPayloadMapperId);
+    B inboundPayloadMapper(@Nullable String inboundPayloadMapperId);
 
     /**
      * Set the reply-target.

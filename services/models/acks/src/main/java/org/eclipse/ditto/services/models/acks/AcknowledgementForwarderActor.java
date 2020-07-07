@@ -110,16 +110,13 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
         log.withCorrelationId(acknowledgement)
                 .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
-        final DittoHeadersBuilder<?,?> enhancedHeadersBuilder = acknowledgement.getDittoHeaders()
+        final DittoHeaders enhancedHeaders = acknowledgement.getDittoHeaders()
                 .toBuilder()
-                .expectedResponseTypes(expectedResponseTypes);
-        if(inboundPayloadMapper != null) {
-            enhancedHeadersBuilder.inboundPayloadMapper(inboundPayloadMapper);
-        }
-        if(replyTarget != null) {
-            enhancedHeadersBuilder.replyTarget(replyTarget);
-        }
-        acknowledgementRequester.tell(acknowledgement.setDittoHeaders(enhancedHeadersBuilder.build()), getSender());
+                .expectedResponseTypes(expectedResponseTypes)
+                .inboundPayloadMapper(inboundPayloadMapper)
+                .replyTarget(replyTarget)
+                .build();
+        acknowledgementRequester.tell(acknowledgement.setDittoHeaders(enhancedHeaders), getSender());
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
