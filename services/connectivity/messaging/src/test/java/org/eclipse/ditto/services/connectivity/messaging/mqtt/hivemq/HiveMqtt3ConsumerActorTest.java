@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
-import org.junit.AssumptionViolatedException;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -92,12 +91,6 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
     }
 
     @Override
-    public void testInboundMessageWithHeaderMapping() {
-        throw new AssumptionViolatedException("TODO: fix this test");
-        // super.testInboundMessageWithHeaderMapping();
-    }
-
-    @Override
     public void testInboundMessageFails() {
     }
 
@@ -109,6 +102,9 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
     protected void testHeaderMapping() {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
             assertThat(msg.getDittoHeaders()).containsEntry("mqtt.qos", "0");
+            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.topic", "org.eclipse.ditto.test/testThing/things/twin/commands/modify");
+            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.retain", "false");
+
         }, response -> fail("not expected"));
     }
 }

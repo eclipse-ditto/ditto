@@ -71,6 +71,9 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     @Override
     protected void testHeaderMapping() {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
+            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.qos", "0");
+            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.topic", "org.eclipse.ditto.test/testThing/things/twin/commands/modify");
+            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.retain", "false");
             assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
             assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
             assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID.toString());

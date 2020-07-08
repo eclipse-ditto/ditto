@@ -86,7 +86,7 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     }
 
     @Override
-    String getQoS(final Mqtt3Publish message) { return message.getQos().toString(); }
+    String getQoS(final Mqtt3Publish message) { return String.valueOf(message.getQos().getCode()); }
 
     @Override
     String getRetain(final Mqtt3Publish message) { return String.valueOf(message.isRetain()); }
