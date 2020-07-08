@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
 import akka.actor.ActorRef;
@@ -60,39 +60,28 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     }
 
     @Override
-    Class<Mqtt3Publish> getPublishMessageClass() {
+    protected Class<Mqtt3Publish> getPublishMessageClass() {
         return Mqtt3Publish.class;
     }
 
     @Override
-    HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt3Publish message) {
-        final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
-
-        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, getTopic(message));
-        headersFromMqttMessage.put(MQTT_QOS_HEADER, getQoS(message));
-        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, getRetain(message));
-
-        return headersFromMqttMessage;
-    }
-
-    @Override
-    Optional<ByteBuffer> getPayload(final Mqtt3Publish message) {
+    protected Optional<ByteBuffer> getPayload(final Mqtt3Publish message) {
         return message.getPayload();
     }
 
     @Override
-    String getTopic(final Mqtt3Publish message) {
+    protected String getTopic(final Mqtt3Publish message) {
         return message.getTopic().toString();
     }
 
     @Override
-    String getQoS(final Mqtt3Publish message) { return String.valueOf(message.getQos().getCode()); }
+    protected MqttQos getQoS(final Mqtt3Publish message) { return message.getQos(); }
 
     @Override
-    String getRetain(final Mqtt3Publish message) { return String.valueOf(message.isRetain()); }
+    protected boolean isRetain(final Mqtt3Publish message) { return message.isRetain(); }
 
     @Override
-    void sendPubAck(final Mqtt3Publish message) {
+    protected void sendPubAck(final Mqtt3Publish message) {
         message.acknowledge();
     }
 

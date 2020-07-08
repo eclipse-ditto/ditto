@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
@@ -48,6 +50,18 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<Mqtt5Publish> {
 
+    private static final HeaderMapping MQTT5_HEADER_MAPPING;
+
+    static {
+        final HeaderMapping baseMapping = TestConstants.HEADER_MAPPING;
+        final HashMap<String, String> enhancedMapping = new HashMap<>(baseMapping.getMapping());
+        enhancedMapping.put("mqtt.topic", "{{ header:mqtt.topic }}");
+        enhancedMapping.put("mqtt.qos", "{{ header:mqtt.qos }}");
+        enhancedMapping.put("mqtt.retain", "{{ header:mqtt.retain }}");
+        MQTT5_HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(enhancedMapping);
+    }
+
+
     final CountDownLatch confirmLatch = new CountDownLatch(1);
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
@@ -60,7 +74,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
         return HiveMqtt5ConsumerActor.props(CONNECTION_ID, mappingActor, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
-                .headerMapping(TestConstants.HEADER_MAPPING)
+                .headerMapping(MQTT5_HEADER_MAPPING)
                 .acknowledgementRequests(FilteredAcknowledgementRequest.of(acknowledgementRequests, null))
                 .replyTarget(ReplyTarget.newBuilder()
                         .address("foo")
@@ -91,7 +105,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
         return HiveMqtt5ConsumerActor.props(CONNECTION_ID, mappingActor, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
-                .headerMapping(TestConstants.HEADER_MAPPING)
+                .headerMapping(MQTT5_HEADER_MAPPING)
                 .payloadMapping(payloadMapping)
                 .replyTarget(ReplyTarget.newBuilder()
                         .address("foo")

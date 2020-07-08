@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
@@ -80,18 +81,13 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     }
 
     @Override
-    Class<Mqtt5Publish> getPublishMessageClass() {
+    protected Class<Mqtt5Publish> getPublishMessageClass() {
         return Mqtt5Publish.class;
     }
 
     @Override
-    HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt5Publish message) {
-        final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
-
-        final String topic = message.getTopic().toString();
-        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, topic);
-        headersFromMqttMessage.put(MQTT_QOS_HEADER, getQoS(message));
-        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, getRetain(message));
+    protected HashMap<String, String> extractHeadersMapFromMqttMessage(final Mqtt5Publish message) {
+        final HashMap<String, String> headersFromMqttMessage = super.extractHeadersMapFromMqttMessage(message);
 
         message.getCorrelationData().ifPresent(correlationData -> {
             final String correlationId = ByteBufferUtils.toUtf8String(correlationData);
@@ -114,23 +110,23 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     }
 
     @Override
-    Optional<ByteBuffer> getPayload(final Mqtt5Publish message) {
+    protected Optional<ByteBuffer> getPayload(final Mqtt5Publish message) {
         return message.getPayload();
     }
 
     @Override
-    String getTopic(final Mqtt5Publish message) {
+    protected String getTopic(final Mqtt5Publish message) {
         return message.getTopic().toString();
     }
 
     @Override
-    String getQoS(final Mqtt5Publish message) { return String.valueOf(message.getQos().getCode()); }
+    protected MqttQos getQoS(final Mqtt5Publish message) { return message.getQos(); }
 
     @Override
-    String getRetain(final Mqtt5Publish message) { return String.valueOf(message.isRetain()); }
+    protected boolean isRetain(final Mqtt5Publish message) { return message.isRetain(); }
 
     @Override
-    void sendPubAck(final Mqtt5Publish message) {
+    protected void sendPubAck(final Mqtt5Publish message) {
         message.acknowledge();
     }
 

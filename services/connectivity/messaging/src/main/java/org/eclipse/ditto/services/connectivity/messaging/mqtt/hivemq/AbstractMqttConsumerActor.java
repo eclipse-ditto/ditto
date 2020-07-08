@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +38,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+
 import akka.actor.ActorRef;
 
 /**
@@ -52,7 +53,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected static final String MQTT_QOS_HEADER = "mqtt.qos";
     protected static final String MQTT_RETAIN_HEADER = "mqtt.retain";
 
-    protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    protected final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     protected final boolean dryRun;
     @Nullable protected final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
     protected final PayloadMapping payloadMapping;
@@ -71,31 +72,80 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
                 .orElse(null);
     }
 
-    abstract Class<P> getPublishMessageClass();
+    /**
+     * Returns the HiveMQ client specific publish message class to work with.
+     *
+     * @return the HiveMQ publish message class.
+     */
+    protected abstract Class<P> getPublishMessageClass();
 
-    abstract HashMap<String, String> extractHeadersMapFromMqttMessage(P message);
+    /**
+     * Extracts MQTT specific headers / user properties from the passed message as a new mutable HashMap.
+     *
+     * @param message the message to extract the headers from.
+     * @return the newly created HashMap of headers.
+     */
+    protected HashMap<String, String> extractHeadersMapFromMqttMessage(final P message) {
+        final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
 
-    abstract Optional<ByteBuffer> getPayload(P message);
+        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, getTopic(message));
+        headersFromMqttMessage.put(MQTT_QOS_HEADER, String.valueOf(getQoS(message).getCode()));
+        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, String.valueOf(isRetain(message)));
 
-    abstract String getTopic(P message);
+        return headersFromMqttMessage;
+    }
 
-    abstract String getQoS(P message);
+    /**
+     * Extracts the MQTT payload from the given message.
+     *
+     * @param message the message to extract the payload from.
+     * @return the MQTT payload.
+     */
+    protected abstract Optional<ByteBuffer> getPayload(P message);
 
-    abstract String getRetain(P message);
+    /**
+     * Extracts the MQTT topic from the given message.
+     *
+     * @param message the message to extract the topic from.
+     * @return the MQTT topic.
+     */
+    protected abstract String getTopic(P message);
 
-    abstract void sendPubAck(P message);
+    /**
+     * Extracts the MQTT qos from the given message.
+     *
+     * @param message the message to extract the qos from.
+     * @return the MQTT qos.
+     */
+    protected abstract MqttQos getQoS(P message);
+
+    /**
+     * Extracts the MQTT retain flag from the given message.
+     *
+     * @param message the message to extract the retain flag from.
+     * @return the MQTT retain flag.
+     */
+    protected abstract boolean isRetain(P message);
+
+    /**
+     * Acknowledges the passed message.
+     *
+     * @param message the message to acknowledge.
+     */
+    protected abstract void sendPubAck(P message);
 
     @Nullable
     abstract EnforcementFilter<CharSequence> getEnforcementFilter(Map<String, String> headers, String topic);
 
+    @Override
     public Receive createReceive() {
         return receiveBuilder()
                 .match(getPublishMessageClass(), this::isDryRun,
-                        message -> log.info("Dropping message in dryRun mode: {}", message))
+                        message -> logger.info("Dropping message in dryRun mode: {}", message))
                 .match(getPublishMessageClass(), this::handleMqttMessage)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .matchAny(unhandled -> {
-                    log.info("Unhandled message: {}", unhandled);
+                    logger.info("Unhandled message: {}", unhandled);
                     unhandled(unhandled);
                 })
                 .build();
@@ -103,11 +153,11 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
     @Override
     protected DittoDiagnosticLoggingAdapter log() {
-        return log;
+        return logger;
     }
 
     private void handleMqttMessage(final P message) {
-        log.debug("Received message: {}", message);
+        logger.debug("Received message: {}", message);
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
         final ActorRef parent = getContext().getParent();
         externalMessageOptional.ifPresent(externalMessage ->
@@ -120,23 +170,28 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     private Optional<ExternalMessage> hiveToExternalMessage(final P message, final ConnectionId connectionId) {
         HashMap<String, String> headers = null;
         try {
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(logger, connectionId);
             final ByteBuffer payload = getPayload(message)
                     .map(ByteBuffer::asReadOnlyBuffer)
                     .orElse(ByteBufferUtils.empty());
             final String textPayload = ByteBufferUtils.toUtf8String(payload);
             final String topic = getTopic(message);
-            log.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
+            logger.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
 
             headers = extractHeadersMapFromMqttMessage(message);
 
             final Map<String, String> headerMappingMap = new HashMap<>();
-            headerMappingMap.put(MQTT_TOPIC_HEADER, topic);
-            headerMappingMap.put(MQTT_QOS_HEADER, getQoS(message));
-            headerMappingMap.put(MQTT_RETAIN_HEADER, getRetain(message));
-            headerMappingMap.putAll(source.getHeaderMapping()
-                    .map(HeaderMapping::getMapping)
-                    .orElse(Collections.emptyMap()));
+
+            final Optional<HeaderMapping> sourceHeaderMapping = source.getHeaderMapping();
+            if (sourceHeaderMapping.isPresent()) {
+                headerMappingMap.putAll(sourceHeaderMapping.get().getMapping());
+            } else {
+                // apply fallback header mapping when headerMapping was "null"/not present in order to stay backwards
+                //  compatible:
+                headerMappingMap.put(MQTT_TOPIC_HEADER, getHeaderPlaceholder(MQTT_TOPIC_HEADER));
+                headerMappingMap.put(MQTT_QOS_HEADER, getHeaderPlaceholder(MQTT_QOS_HEADER));
+                headerMappingMap.put(MQTT_RETAIN_HEADER, getHeaderPlaceholder(MQTT_RETAIN_HEADER));
+            }
 
             final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);
             final ExternalMessage externalMessage = ExternalMessageFactory
@@ -152,7 +207,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
             return Optional.of(externalMessage);
         } catch (final DittoRuntimeException e) {
-            log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
+            logger.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
@@ -162,7 +217,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
                 inboundMonitor.failure(e);
             }
         } catch (final Exception e) {
-            log.info("Failed to handle MQTT message: {}", e.getMessage());
+            logger.info("Failed to handle MQTT message: {}", e.getMessage());
             if (null != headers) {
                 inboundMonitor.exception(headers, e);
             } else {
@@ -171,6 +226,10 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
         }
         return Optional.empty();
+    }
+
+    private static String getHeaderPlaceholder(final String headerName) {
+        return "{{ header:" + headerName + "}}";
     }
 
     private void acknowledge(final P message) {
