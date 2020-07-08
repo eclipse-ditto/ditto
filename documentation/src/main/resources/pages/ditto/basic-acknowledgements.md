@@ -191,7 +191,14 @@ This can be used in order to ensure that e.g. all messages consumed from a singl
 "at least once" mode (QoS 1). E.g. if configured that the [built-in](#built-in-acknowledgement-labels) `twin-persisted`
 acknowledgement is requested, a received message (e.g. a [Ditto command](basic-signals-command.html)) will only be 
 technically acknowledged to the connection channel if Ditto successfully applied and persisted the command.
+---
+**Note** These requested acknowledgements will be appended after payload mapping is applied. This means that in case you decided to split your message into multiple messages, all of these messages will request the same acknowledgements.
+If this is not what you want to achieve, have a look at [how to add acknowledgement requests during payload mapping](#requesting-via-ditto-protocol-message-in-payload-mapping).
+---
 
+#### Requesting via Ditto Protocol message in payload mapping
+
+During inbound payload mapping you create one ore more Ditto Protocol messages. If you configured your connection source to add requested acknowledgements to your commands, this will cause all produced messages to request the same acknowledges. If you however want to add requested acknowledges only to some of those created messages you need to set the `"requested-acks"` header, as described in [Requesting via Ditto Protocol message](#requesting-via-ditto-protocol-message) section, during payload mapping for those commands, you like to request an acknowledgement.
 
 ## Issuing acknowledgements
 
