@@ -11,13 +11,14 @@
 openapi: 3.0.0
 info:
   title: Eclipse Ditto HTTP API - Deprecated
-  description: |-
-  JSON-based, REST-like API for Eclipse Ditto
-
-  The Eclipse Ditto HTTP API uses response status codes
-  (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
-  to indicate whether a specific request has been successfully completed, or not. However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
   version: "1"
+  description: |-
+    JSON-based, REST-like API for Eclipse Ditto
+
+    The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
+    to indicate whether a specific request has been successfully completed, or not.
+
+    However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
 servers:
   - url: https://ditto.eclipse.org/api/1
     description: "online Ditto Sandbox"
