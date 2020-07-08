@@ -176,10 +176,12 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         /**
          * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
          * source.
+         *
+         * @since 1.2.0
          */
         public static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENT_REQUESTS =
                 JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} header mapping.

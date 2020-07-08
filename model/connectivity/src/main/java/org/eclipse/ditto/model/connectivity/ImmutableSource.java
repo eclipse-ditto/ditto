@@ -186,8 +186,10 @@ final class ImmutableSource implements Source {
             jsonObjectBuilder.set(JsonFields.ENFORCEMENT, enforcement.toJson(schemaVersion, thePredicate), predicate);
         }
 
-        if (acknowledgementRequests != null)
-            jsonObjectBuilder.set(JsonFields.ACKNOWLEDGEMENT_REQUESTS, acknowledgementRequests.toJson(), predicate);
+        if (acknowledgementRequests != null) {
+            jsonObjectBuilder.set(JsonFields.ACKNOWLEDGEMENT_REQUESTS,
+                    acknowledgementRequests.toJson(schemaVersion, thePredicate), predicate);
+        }
 
         if (headerMapping != null) {
             jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),

@@ -19,7 +19,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -138,6 +137,8 @@ public final class MessageMappingProcessorActor
      * The name of the dispatcher that runs all mapping tasks and all message handling of this actor and its children.
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
+
+    private static final int QOS_ONE = 1;
 
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
@@ -371,31 +372,39 @@ public final class MessageMappingProcessorActor
                 );
     }
 
-    private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, Signal<?> signal) {
-        final Set<AcknowledgementRequest> additionalRequestedAcks = message.getSource()
+    private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {
+        final Set<AcknowledgementRequest> additionalAcknowledgementRequests = message.getSource()
                 .flatMap(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
-                .map(FilteredAcknowledgementRequest::getIncludes).orElse(Collections.emptySet());
+                .map(FilteredAcknowledgementRequest::getIncludes)
+                .orElse(Collections.emptySet());
 
-        if (additionalRequestedAcks.isEmpty()) {
-            // do not change the signal's header if no additional requested-acks are defined
+        if (additionalAcknowledgementRequests.isEmpty()) {
+            // do not change the signal's header if no additional acknowledgementRequests are defined in the Source
             // to preserve the default behavior for signals without the header 'requested-acks'
             return handleAcknowledgementPlaceholders(signal);
         } else {
-            // The sources acknowledgements get appended to the requested-acks DittoHeader of the mapped signal
-            final Set<AcknowledgementRequest> requestedAcks =
-                    new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
-            requestedAcks.addAll(additionalRequestedAcks);
-
-            return handleAcknowledgementPlaceholders(signal.setDittoHeaders(
-                    signal.getDittoHeaders()
-                            .toBuilder()
-                            .acknowledgementRequests(requestedAcks)
-                            .build()));
+            // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
+            return handleAcknowledgementPlaceholders(
+                    mergeAcknowledgementRequests(signal, additionalAcknowledgementRequests));
         }
     }
 
-    private Signal<?> handleAcknowledgementPlaceholders(Signal<?> signal) {
-        if (!signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
+    private static Signal<?> mergeAcknowledgementRequests(final Signal<?> signal,
+            final Set<AcknowledgementRequest> additionalRequestedAcks) {
+
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final Set<AcknowledgementRequest> requestedAcks = new HashSet<>(dittoHeaders.getAcknowledgementRequests());
+        requestedAcks.addAll(additionalRequestedAcks);
+
+        final DittoHeaders newHeaders = dittoHeaders
+                .toBuilder()
+                .acknowledgementRequests(requestedAcks)
+                .build();
+        return signal.setDittoHeaders(newHeaders);
+    }
+
+    private Signal<?> handleAcknowledgementPlaceholders(final Signal<?> signal) {
+        if (containsAcknowledgementRequests(signal)) {
             final List<String> acksList = signal.getDittoHeaders().getAcknowledgementRequests().stream()
                     .map(AcknowledgementRequest::getLabel)
                     .map(AcknowledgementLabel::toString)
@@ -1021,16 +1030,22 @@ public final class MessageMappingProcessorActor
     /**
      * Test if a signal requires acknowledgements.
      *
-     * @param signalWithQoS the signal with it's sources QoS-setting.
+     * @param signalWithQoS the signal with its sources QoS-setting.
      * @return whether it requires acknowledgements.
      */
     private static boolean areAcknowledgementsRequested(final SignalWithQoS signalWithQoS) {
         return (signalWithQoS.signal instanceof ThingModifyCommand) &&
-                signalWithQoS.signal.getDittoHeaders()
-                        .getChannel()
-                        .filter(channel -> TopicPath.Channel.LIVE.getName().equals(channel)).isEmpty() &&
-                Arrays.asList(1, 2).contains(signalWithQoS.qos) &&
-                !signalWithQoS.signal.getDittoHeaders().getAcknowledgementRequests().isEmpty();
+                signalWithQoS.qos >= QOS_ONE &&
+                !isLiveSignal(signalWithQoS.signal) &&
+                containsAcknowledgementRequests(signalWithQoS.signal);
+    }
+
+    private static boolean isLiveSignal(final Signal<?> signal) {
+        return StreamingType.isLiveSignal(signal);
+    }
+
+    private static boolean containsAcknowledgementRequests(final Signal<?> signal) {
+        return !signal.getDittoHeaders().getAcknowledgementRequests().isEmpty();
     }
 
     private static final class AcksRequestingSignal {

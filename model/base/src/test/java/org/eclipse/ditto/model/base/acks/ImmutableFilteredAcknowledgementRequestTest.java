@@ -30,7 +30,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.model.base.acks.ImmutableFilteredAcknowledgementRequest}.
+ * Unit test for {@link ImmutableFilteredAcknowledgementRequest}.
  */
 public final class ImmutableFilteredAcknowledgementRequestTest {
 
@@ -43,18 +43,19 @@ public final class ImmutableFilteredAcknowledgementRequestTest {
     static final JsonObject FILTERED_ACKNOWLEDGEMENT_REQUEST_JSON = JsonObject
             .newBuilder()
             .set(FilteredAcknowledgementRequest.JsonFields.INCLUDES, INCLUDES.stream()
-                            .map(AcknowledgementRequest::getLabel)
-                            .map(AcknowledgementLabel::toString)
-                            .map(JsonFactory::newValue)
-                            .collect(
-                                    JsonCollectors.valuesToArray()))
+                    .map(AcknowledgementRequest::getLabel)
+                    .map(AcknowledgementLabel::toString)
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray()))
             .set(FilteredAcknowledgementRequest.JsonFields.FILTER, FILTER)
             .build();
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableFilteredAcknowledgementRequest.class,
-                areImmutable(), provided(AcknowledgementRequest.class).isAlsoImmutable());
+                areImmutable(),
+                provided(AcknowledgementRequest.class).isAlsoImmutable()
+        );
     }
 
     @Test

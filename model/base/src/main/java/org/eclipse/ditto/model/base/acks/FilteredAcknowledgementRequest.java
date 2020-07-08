@@ -20,7 +20,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -33,12 +35,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * @since 1.2.0
  */
 @Immutable
-public interface FilteredAcknowledgementRequest extends Jsonifiable<JsonObject> {
+public interface FilteredAcknowledgementRequest extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
      * Returns an instance of FilteredAcknowledgementRequest.
      *
-     * @param includes the requested acknowledgements of the returned FilteredAcknowledgementRequest.
+     * @param includes the to be included acknowledgement requests of the returned FilteredAcknowledgementRequest.
      * @param filter the filter to be applied to the FilteredAcknowledgementRequest
      * @return the instance.
      * @throws NullPointerException if {@code includes} is {@code null}.
@@ -49,12 +51,15 @@ public interface FilteredAcknowledgementRequest extends Jsonifiable<JsonObject> 
     }
 
     /**
-     * Serializes the FilteredAcknowledgementRequest from Json
+     * Deserializes the FilteredAcknowledgementRequest from Json
      *
+     * @param jsonObject the JsonObject from which to deserialize the FilteredAcknowledgementRequest
      * @return the serialized FilteredAcknowledgementRequest.
      */
-    static FilteredAcknowledgementRequest fromJson(
-            JsonObject jsonObject) {return AcknowledgementRequests.filteredAcknowledgementRequestFromJson(jsonObject);}
+    static FilteredAcknowledgementRequest fromJson(final JsonObject jsonObject) {
+        return AcknowledgementRequests.filteredAcknowledgementRequestFromJson(jsonObject);
+    }
+
     /**
      * Returns the requested acknowledgements.
      *
@@ -69,13 +74,15 @@ public interface FilteredAcknowledgementRequest extends Jsonifiable<JsonObject> 
      */
     Optional<String> getFilter();
 
-    /**
-     * Returns the parsable String representation of this FilteredAcknowledgementRequest.
-     *
-     * @return the parsable String representation of this FilteredAcknowledgementRequest.
-     */
     @Override
-    String toString();
+    default JsonObject toJson() {
+        return toJson(FieldType.notHidden());
+    }
+
+    @Override
+    default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
+        return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
+    }
 
     /**
      * An enumeration of the JSON fields of a FilteredAcknowledgementRequest.

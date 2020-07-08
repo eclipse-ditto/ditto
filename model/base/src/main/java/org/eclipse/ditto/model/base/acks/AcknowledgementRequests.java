@@ -51,26 +51,24 @@ final class AcknowledgementRequests {
     /**
      * Returns a new instance of AcknowledgementRequest.
      *
-     * @param acknowledgementRequests the AcknowledgementRequests of the new FilteredAcknowledgementRequest.
-     * @param filter the filter to be applied to the AcknowledgementRequests
+     * @param includes the to be included acknowledgement requests of the new FilteredAcknowledgementRequest.
+     * @param filter the filter to be applied to the FilteredAcknowledgementRequest
      * @return the instance.
-     * @throws NullPointerException if {@code acknowledgementLabel} is {@code null}.
+     * @throws NullPointerException if {@code includes} is {@code null}.
      */
     public static ImmutableFilteredAcknowledgementRequest newFilteredAcknowledgementRequest(
-            final Set<AcknowledgementRequest> acknowledgementRequests, @Nullable final String filter) {
+            final Set<AcknowledgementRequest> includes, @Nullable final String filter) {
 
-        return ImmutableFilteredAcknowledgementRequest.getInstance(acknowledgementRequests, filter);
+        return ImmutableFilteredAcknowledgementRequest.getInstance(includes, filter);
     }
 
     /**
-     * Serializes a JsonObject to a new FilteredAcknowledgementRequest instance.
+     * Deserializes a JsonObject to a new FilteredAcknowledgementRequest instance.
      *
-     * @param jsonObject the JsonObject from which to serialize the FilteredAcknowledgementRequest
+     * @param jsonObject the JsonObject from which to deserialize the FilteredAcknowledgementRequest
      * @return the instance.
      */
-    public static FilteredAcknowledgementRequest filteredAcknowledgementRequestFromJson(
-            final JsonObject jsonObject) {
-
+    public static FilteredAcknowledgementRequest filteredAcknowledgementRequestFromJson(final JsonObject jsonObject) {
         return ImmutableFilteredAcknowledgementRequest.fromJson(jsonObject);
     }
 

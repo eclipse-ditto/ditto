@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -27,9 +28,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link FilteredAcknowledgementRequest}.
@@ -56,7 +59,7 @@ final class ImmutableFilteredAcknowledgementRequest implements FilteredAcknowled
      * @return the instance.
      * @throws NullPointerException if {@code includes} is {@code null}.
      */
-    public static ImmutableFilteredAcknowledgementRequest getInstance(
+    static ImmutableFilteredAcknowledgementRequest getInstance(
             final Set<AcknowledgementRequest> includes, @Nullable final String filter) {
         return new ImmutableFilteredAcknowledgementRequest(checkNotNull(includes, "includes"), filter);
     }
@@ -89,16 +92,19 @@ final class ImmutableFilteredAcknowledgementRequest implements FilteredAcknowled
     }
 
     @Override
-    public JsonObject toJson() {
+    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.INCLUDES, includes.stream()
                 .map(AcknowledgementRequest::getLabel)
                 .map(AcknowledgementLabel::toString)
                 .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray()));
+                .collect(JsonCollectors.valuesToArray()), predicate);
 
         if (filter != null) {
-            jsonObjectBuilder.set(JsonFields.FILTER, filter);
+            jsonObjectBuilder.set(JsonFields.FILTER, filter, predicate);
         }
         return jsonObjectBuilder.build();
     }
