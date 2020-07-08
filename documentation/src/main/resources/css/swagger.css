@@ -15,8 +15,13 @@
 }
 
 #swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper a {
+    display: block;
+}
+
+#swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper img {
     display: none;
 }
+
 #swagger-ui .swagger-ui.swagger-container .topbar .topbar-wrapper select {
     background-color: #ffffff;
     border-color: black;
