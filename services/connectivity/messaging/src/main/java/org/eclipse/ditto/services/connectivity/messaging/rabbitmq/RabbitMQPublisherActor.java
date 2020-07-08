@@ -283,7 +283,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private static Acknowledgement getUnsupportedAck(final Signal<?> signal, @Nullable final Target autoAckTarget) {
         if (autoAckTarget != null && autoAckTarget.getIssuedAcknowledgementLabel().isPresent()) {
-            // Not possible to recover without broker update. Use status 400 to prevent redelivery at the source.
+            // Not possible to recover without broker upgrade. Use status 400 to prevent redelivery at the source.
             return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.BAD_REQUEST,
                     "The external broker does not support RabbitMQ publisher confirms. " +
                             "Acknowledgement is not possible.");

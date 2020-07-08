@@ -144,7 +144,7 @@ acknowledgements are produced in the following way:
 Once the AMQP 1.0 client signals that the message was acknowledged by the AMQP 1.0 endpoint, the following information 
 is mapped to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
 * Acknowledgement.status: 
-   * will be `200` the message was successfully consumed by the AMQP 1.0 endpoint
+   * will be `200` when the message was successfully consumed by the AMQP 1.0 endpoint
    * will be `5xx` when the AMQP 1.0 endpoint failed in consuming the message, retrying sending the message is feasible
 * Acknowledgement.value: 
    * will be missing for status `200`

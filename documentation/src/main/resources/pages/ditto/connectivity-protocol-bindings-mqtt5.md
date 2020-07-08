@@ -59,9 +59,8 @@ inbound messages are processed. These subjects may contain placeholders, see
 #### Source header mapping
 
 MQTT 5 supports so-called user defined properties, which are defined for every message type.
-The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to the user defined properties.
-
 In addition, Ditto extracts the following headers from each consumed message:
+
 * `mqtt.topic`: contains the MQTT topic on which a message was received 
 * `mqtt.qos`: contains the MQTT QoS value of a received message
 * `mqtt.retain`: contains the MQTT retain flag of a received message
@@ -69,13 +68,15 @@ In addition, Ditto extracts the following headers from each consumed message:
 * `reply-to`: contains the MQTT 5 "response topic" value
 * `content-type`: contains the MQTT 5 "content type" value
 
-These headers may be used in a source header mapping, e.g.:
+The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well
+as to the user defined properties, e. g.:
 ```json
 {
   "headerMapping": {
     "topic": "{%raw%}{{ header:mqtt.topic }}{%endraw%}",
     "the-qos": "{%raw%}{{ header:mqtt.qos }}{%endraw%}",
-    "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}"
+    "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
+    "device-id": "{%raw%}{{ header:device-id-user-defined-property }}{%endraw%}"
   }
 }
 ```
@@ -92,7 +93,7 @@ For Ditto acknowledgements with successful [status](protocol-specification-acks.
 For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
 * If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery (e.g. based on a timeout):
    * based on the [specificConfig](#specific-config) [reconnectForDelivery](#reconnectforredelivery) either 
-      * closes and reconnects the MQTT connection in order to receive unACKed QoS 1 mesages again 
+      * closes and reconnects the MQTT connection in order to receive unACKed QoS 1/2 messages again 
       * or simply acknowledges the received MQTT 5 message
 * If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery:
    * acknowledges the received MQTT 5 message as redelivery does not make sense
@@ -139,7 +140,7 @@ For MQTT 5 targets, when configuring
 acknowledgements are produced in the following way:
 
 Once the MQTT 5 client signals that the message was acknowledged by the MQTT 5 broker, the following information 
-is mapped to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
 * Acknowledgement.status: 
    * will be `200` the message was successfully ACKed by the MQTT 5 broker
    * will be `503` when the MQTT 5 broker ran into an error before an acknowledgement message was received
@@ -179,25 +180,31 @@ Overwrites the default MQTT client id.
 
 Default: not set - the ID of the Ditto [connection](basic-connections.html) is used as MQTT client ID. 
 
+If the connection's `clientCount` is 2 or more,
+the ID of each connectivity service instance is appended to the client ID to prevent clients from having the same
+ID. Otherwise the broker will disconnect the already-connected client every time another client with the same
+ID connects.
+
 #### reconnectForRedelivery
 
 Configures that the MQTT connection re-connects whenever a consumed message (via a connection source) with QoS 1 
-("at least once") is processed and cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
+("at least once") 2 ("exactly once") is processed and cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
 That causes that the MQTT broker will re-publish the message once the connection reconnected.   
-If configured to `false`, the MQTT message is simply acknowledged (`PUBACK`).
+If configured to `false`, the MQTT message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`).
 
 Default: `true`
 
 Handle with care: 
-* when set to `true` this will cause that a lot more QoS 0 sent message are lost (during the reconnection phase)
-* when set to `true` and there is also a MQTT target configured in order to publish messages, there will be message lost
-  of to-be-published messages with QoS 0 as well (during the reconnection phase)
-   * to fix that, configure `"separatePublisherClient"` also to `true` in order to start the publisher in another connection
-* when set to `false`, MQTT messages with QoS 1 and 2 could get lost (e.g. during downtimes or connection issues)
+* when set to `true`, incoming QoS 0 messages are lost during the reconnection phase
+* when set to `true` and there is also an MQTT target configured to publish messages,
+  the messages to be published during the reconnection phase are lost
+   * to fix that, configure `"separatePublisherClient"` also to `true` in order to publish via another MQTT connection
+* when set to `false`, MQTT messages with QoS 1 and 2 could get lost (e.g. during downtime or connection issues)
 
 #### cleanSession
 
-Configure the MQTT client's `cleanSession` flag.
+Configure the MQTT client's `cleanStart` flag. (The flag is called `cleanStart` but the option is `cleanSession` to
+be consistent with MQTT 3 specific config.)
 
 Default: the negation of `"reconnectForRedelivery"`
 
@@ -205,7 +212,7 @@ Default: the negation of `"reconnectForRedelivery"`
 
 Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages.
 As a result a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
-If configured to `false`, the same MQTT connection/session is used for both subscribing to message as well for 
+If configured to `false`, the same MQTT connection/session is used both for subscribing to message and for
 publishing messages.
 
 Default: `true`
@@ -220,12 +227,10 @@ Default:
 
 #### reconnectForRedeliveryDelay
 
-Configures how long to wait before reconnecting a consumer client for redelivery when `"reconnectForRedelivery"` was 
-enabled, at least `1s`.
+Configures how long to wait before reconnecting a consumer client for redelivery when `"reconnectForRedelivery"`
+and `separatePublisherClient` are both enabled. The minimum value is `1s`.
 
 Default: `2s`
-
-The longer the reconnect takes, the more QoS 0 messages probably are lost.
 
 
 ## Establishing a connection to an MQTT 5 endpoint

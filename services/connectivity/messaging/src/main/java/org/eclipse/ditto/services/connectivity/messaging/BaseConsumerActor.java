@@ -247,17 +247,12 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      * @return whether it requires redelivery.
      */
     private static boolean requiresRedelivery(final HttpStatusCode status) {
-        if (status.isClientError()) {
-            switch (status) {
-                case REQUEST_TIMEOUT:
-                case FAILED_DEPENDENCY:
-                    return true;
-                default:
-                    return false;
-            }
-        } else {
-            // success status codes do not require redelivery.
-            return status.isInternalError();
+        switch (status) {
+            case REQUEST_TIMEOUT:
+            case FAILED_DEPENDENCY:
+                return true;
+            default:
+                return status.isInternalError();
         }
     }
 

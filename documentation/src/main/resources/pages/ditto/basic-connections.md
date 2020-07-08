@@ -141,7 +141,7 @@ in scope of that connection type.
 
 In addition to the `"includes"` defining which acknowledgements to request for each incoming message, the optional 
 `"filter"` holds an [fn:filter()](basic-placeholders.html#function-library) function defining when to request 
-acknowledgements at all for an incoming message. This filter is applied on both, acknowledgements 
+acknowledgements at all for an incoming message. This filter is applied on both acknowledgements 
 [requested in the message](basic-acknowledgements.html#requesting-via-ditto-protocol-message) and the ones requested 
 via the configured `"includes"` array.
 
@@ -312,7 +312,7 @@ Example:
 }
 ```
 
-#### Target issue acknowledgement label
+#### Target issued acknowledgement label
 
 A target can be configured that for each published/emitted message an automatic 
 [acknowledgement gets issued](basic-acknowledgements.html#issuing-acknowledgements) once the underlying channel confirmed 

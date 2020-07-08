@@ -251,7 +251,7 @@ e.g. in order to guarantee that it was persisted in the digital twin or that an 
 connected to Ditto did successfully receive a [notification](basic-changenotifications.html) which resulted from a 
 [command](basic-signals-command.html) which Ditto received and processed.
 
-The "acknowledgements" concept documented on this page provides means that messages (e.g. commands) consumed and 
+The "acknowledgements" concept documented on this page provides means by which messages (e.g. commands) consumed and 
 processed by Ditto are treated with an "at least once" (or QoS 1) semantic.
 
 [Create/modify commands](protocol-specification-things-create-or-modify.html) will technically be acknowledged on the 

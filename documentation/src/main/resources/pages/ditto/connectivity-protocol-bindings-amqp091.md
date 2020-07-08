@@ -100,8 +100,8 @@ acknowledgements are produced in the following way:
 Once the AMQP 0.9.1 client signals that the message was acknowledged by the AMQP 0.9.1 broker, the following information 
 is mapped to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
 * Acknowledgement.status: 
-   * will be `200` the message was successfully ACKed by the AMQP 0.9.1 broker
-   * will be `501` when the AMQP 0.9.1 broker does not support publisher confirms
+   * will be `200` when the message was successfully ACKed by the AMQP 0.9.1 broker
+   * will be `400` when the AMQP 0.9.1 broker does not support publisher confirms
    * will be `503` when the AMQP 0.9.1 broker negatively confirmed receiving a message
 * Acknowledgement.value: 
    * will be missing for status `200`
