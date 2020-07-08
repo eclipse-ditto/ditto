@@ -129,7 +129,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     }
 
     @Override
-    protected void verifyMessageSettlement(final boolean isSuccessExpected, final boolean shouldRedeliver)
+    protected void verifyMessageSettlement(final TestKit testKit, final boolean isSuccessExpected,
+            final boolean shouldRedeliver)
             throws Exception {
         final Integer ackType = jmsAcks.poll(3, TimeUnit.SECONDS);
         if (isSuccessExpected) {

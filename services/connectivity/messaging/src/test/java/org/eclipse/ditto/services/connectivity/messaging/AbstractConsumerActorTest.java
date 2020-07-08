@@ -251,7 +251,7 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe clientActor = TestProbe.apply(actorSystem);
 
             final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
-            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, Collections.emptySet()));
+            final ActorRef underTest = childActorOf(getConsumerActorProps(mappingActor, Collections.emptySet()));
 
             underTest.tell(getInboundMessage(payload, header("device_id", TestConstants.Things.THING_ID)),
                     sender.ref());
@@ -261,7 +261,7 @@ public abstract class AbstractConsumerActorTest<M> {
             concierge.reply(responseCreator.apply(modifyThing));
 
             messageConsumer.accept(clientActor.expectMsgClass(PublishMappedMessage.class));
-            verifyMessageSettlement(isSuccessExpected, shouldRedeliver);
+            verifyMessageSettlement(this, isSuccessExpected, shouldRedeliver);
         }};
     }
 
@@ -331,7 +331,8 @@ public abstract class AbstractConsumerActorTest<M> {
 
     protected abstract M getInboundMessage(final String payload, final Map.Entry<String, Object> header);
 
-    protected abstract void verifyMessageSettlement(boolean isSuccessExpected, final boolean shouldRedeliver)
+    protected abstract void verifyMessageSettlement(final TestKit testKit,
+            boolean isSuccessExpected, final boolean shouldRedeliver)
             throws Exception;
 
     protected void testInboundMessage(final Map.Entry<String, Object> header,

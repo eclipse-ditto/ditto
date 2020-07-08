@@ -42,6 +42,7 @@ import com.rabbitmq.client.Envelope;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link RabbitMQConsumerActor}.
@@ -105,7 +106,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     }
 
     @Override
-    protected void verifyMessageSettlement(final boolean isSuccessExpected, final boolean shouldRedeliver)
+    protected void verifyMessageSettlement(final TestKit testKit, final boolean isSuccessExpected,
+            final boolean shouldRedeliver)
             throws Exception {
         if (isSuccessExpected) {
             Mockito.verify(channel, Mockito.timeout(3000L)).basicAck(anyLong(), eq(false));

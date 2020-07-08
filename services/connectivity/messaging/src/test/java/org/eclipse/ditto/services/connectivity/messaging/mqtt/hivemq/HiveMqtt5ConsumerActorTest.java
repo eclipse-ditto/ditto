@@ -41,13 +41,14 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link HiveMqtt5ConsumerActor}.
  */
 public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<Mqtt5Publish> {
 
-    private final CountDownLatch confirmLatch = new CountDownLatch(1);
+    final CountDownLatch confirmLatch = new CountDownLatch(1);
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final MqttSpecificConfig SPECIFIC_CONFIG =
@@ -72,7 +73,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     protected void testHeaderMapping() {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
             assertThat(msg.getDittoHeaders()).containsEntry("mqtt.qos", "0");
-            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.topic", "org.eclipse.ditto.test/testThing/things/twin/commands/modify");
+            assertThat(msg.getDittoHeaders()).containsEntry("mqtt.topic",
+                    "org.eclipse.ditto.test/testThing/things/twin/commands/modify");
             assertThat(msg.getDittoHeaders()).containsEntry("mqtt.retain", "false");
             assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
             assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
@@ -110,21 +112,32 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
                 .responseTopic(REPLY_TO_HEADER.getValue())
                 .build();
         final MqttPublish mqttPublish = (MqttPublish) mqtt5Publish;
-        return mqttPublish.withConfirmable(new MockConfirmable());
+        return mqttPublish.withConfirmable(new MockConfirmable(confirmLatch));
     }
 
     @Override
-    protected void verifyMessageSettlement(final boolean isSuccessExpected, final boolean shouldRedeliver)
+    protected void verifyMessageSettlement(final TestKit testKit, final boolean isSuccessExpected,
+            final boolean shouldRedeliver)
             throws Exception {
-        if (isSuccessExpected) {
+        if (isSuccessExpected || !shouldRedeliver) {
             assertThat(confirmLatch.await(3L, TimeUnit.SECONDS))
-                    .describedAs("Expect MQTT5 confirmation")
+                    .describedAs("Expect MQTT confirmation")
                     .isTrue();
+        } else {
+            testKit.expectMsg(AbstractMqttClientActor.Control.RECONNECT_CONSUMER_CLIENT);
+            assertThat(confirmLatch.getCount())
+                    .describedAs("Expect no confirmation to get a redelivery on reconnect")
+                    .isEqualTo(1L);
         }
-        // Negative MQTT5 acks not supported by Ditto
     }
 
-    private final class MockConfirmable implements Confirmable {
+    final static class MockConfirmable implements Confirmable {
+
+        private final CountDownLatch confirmLatch;
+
+        MockConfirmable(final CountDownLatch confirmLatch) {
+            this.confirmLatch = confirmLatch;
+        }
 
         @Override
         public long getId() {
