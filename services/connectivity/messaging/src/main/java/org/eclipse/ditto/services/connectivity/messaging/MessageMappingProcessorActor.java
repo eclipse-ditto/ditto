@@ -385,25 +385,25 @@ public final class MessageMappingProcessorActor
             return filterAcknowledgements(signal, filter);
         } else {
             // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
-            final Set<AcknowledgementRequest> requestedAcks =
+            final Set<AcknowledgementRequest> combinedRequestedAcks =
                     new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
-            requestedAcks.addAll(additionalAcknowledgementRequests);
+            combinedRequestedAcks.addAll(additionalAcknowledgementRequests);
 
             return filterAcknowledgements(signal.setDittoHeaders(
                     signal.getDittoHeaders()
                             .toBuilder()
-                            .acknowledgementRequests(requestedAcks)
-                            .build()), filter);
+                            .acknowledgementRequests(combinedRequestedAcks)
+                            .build()),
+                    filter);
         }
     }
 
-    private Signal<?> filterAcknowledgements(final Signal<?> signal,
-            @Nullable String filter) {
+    private Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter) {
         if (filter != null) {
-            filter = "{{ header:" + DittoHeaderDefinition.REQUESTED_ACKS.getKey() + " | " + filter + " }}";
-            final ExpressionResolver expressionResolver =
-                    Resolvers.forSignal(signal);
-            final Optional<String> resolvedFilter = PlaceholderFilter.applyOrElseDelete(filter, expressionResolver);
+            final String fullFilter =
+                    "{{ header:" + DittoHeaderDefinition.REQUESTED_ACKS.getKey() + " | " + filter + " }}";
+            final ExpressionResolver expressionResolver = Resolvers.forSignal(signal);
+            final Optional<String> resolvedFilter = PlaceholderFilter.applyOrElseDelete(fullFilter, expressionResolver);
             if (resolvedFilter.isPresent()) {
                 return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
                         .putHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), resolvedFilter.orElseThrow())
