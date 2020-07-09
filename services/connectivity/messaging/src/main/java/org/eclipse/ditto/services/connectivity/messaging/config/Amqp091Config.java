@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings of the MQTT protocol.
+ * Provides configuration settings of the AMQP 0.9.1 protocol.
  */
 @Immutable
 public interface Amqp091Config {
