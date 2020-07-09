@@ -132,6 +132,7 @@ public final class MessageMappingProcessorActorTest {
     private static final HeaderMapping SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("source", "{{ request:subjectId }}")
+                    .set("qos", "{{ header:qos }}")
                     .build());
 
     private ActorSystem actorSystem;
@@ -833,6 +834,43 @@ public final class MessageMappingProcessorActorTest {
 
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
+        }};
+    }
+
+    @Test
+    public void testFilteringOfAcknowledgements() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final AcknowledgementRequest signalAck =
+                    AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            headers.put("qos", "0");
+            final AuthorizationContext context =
+                    AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+            final ModifyAttribute modifyCommand =
+                    ModifyAttribute.of(TestConstants.Things.THING_ID, JsonPointer.of("/attribute1"),
+                            JsonValue.of("attributeValue"), DittoHeaders.newBuilder().acknowledgementRequest(
+                                    signalAck).build());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(
+                            DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand, TopicPath.Channel.TWIN));
+
+            final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .withSourceAddress(CONNECTION.getSources().get(0).getAddresses().iterator().next())
+                    .withSource(CONNECTION.getSources().get(0))
+                    .build();
+
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(message, collectorProbe.ref());
+
+            final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+            assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
         }};
     }
 

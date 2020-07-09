@@ -85,6 +85,24 @@ public final class Resolvers {
     }
 
     /**
+     * Create an expression resolver for an signal.
+     *
+     * @param signal the signal.
+     * @return the expression resolver.
+     *
+     * @since 1.2.0
+     */
+    public static ExpressionResolver forSignal(final Signal<?> signal) {
+        return PlaceholderFactory.newExpressionResolver(
+                RESOLVER_CREATORS.stream()
+                        .map(creator -> creator.create(signal.getDittoHeaders(), signal,
+                                null,
+                                signal.getDittoHeaders().getAuthorizationContext()))
+                        .toArray(PlaceholderResolver[]::new)
+        );
+    }
+
+    /**
      * Create an expression resolver for an inbound message.
      *
      * @param externalMessage the inbound external message.

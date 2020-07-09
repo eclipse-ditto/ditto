@@ -15,8 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_ACK;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_DISABLE_ACKS;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_EMPTY_ACK;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
@@ -116,7 +114,6 @@ public abstract class AbstractConsumerActorTest<M> {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, s -> {}, o -> {});
     }
 
-
     @Test
     public void testInboundMessageWitMultipleMappingsSucceeds() {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0, s -> {}, o -> {},
@@ -137,40 +134,6 @@ public abstract class AbstractConsumerActorTest<M> {
                                 .map(AcknowledgementRequest::getLabel)
                                 .collect(Collectors.toList())
                         ).containsExactly(TWIN_PERSISTED)
-        );
-    }
-
-    @Test
-    public void testSourceAcknowledgementDisableAcksPlaceholder() throws Exception {
-        testSourceAcknowledgementSettlement(true, true, modifyThing ->
-                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
-                MODIFY_THING_WITH_DISABLE_ACKS, publishMappedMessage ->
-                        assertThat(publishMappedMessage.getOutboundSignal()
-                                .first()
-                                .getExternalMessage()
-                                .getInternalHeaders()
-                                .getAcknowledgementRequests()
-                                .stream()
-                                .map(AcknowledgementRequest::getLabel)
-                                .collect(Collectors.toList())
-                        ).isEmpty()
-        );
-    }
-
-    @Test
-    public void testSourceAcknowledgementEmptyAcksPlaceholder() throws Exception {
-        testSourceAcknowledgementSettlement(true, true, modifyThing ->
-                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
-                MODIFY_THING_WITH_EMPTY_ACK, publishMappedMessage ->
-                        assertThat(publishMappedMessage.getOutboundSignal()
-                                .first()
-                                .getExternalMessage()
-                                .getInternalHeaders()
-                                .getAcknowledgementRequests()
-                                .stream()
-                                .map(AcknowledgementRequest::getLabel)
-                                .collect(Collectors.toList())
-                        ).containsOnly(TWIN_PERSISTED)
         );
     }
 

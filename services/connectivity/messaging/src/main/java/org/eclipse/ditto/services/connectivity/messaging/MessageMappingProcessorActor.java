@@ -38,7 +38,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -137,8 +136,6 @@ public final class MessageMappingProcessorActor
      * The name of the dispatcher that runs all mapping tasks and all message handling of this actor and its children.
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
-
-    private static final int QOS_ONE = 1;
 
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
@@ -342,27 +339,27 @@ public final class MessageMappingProcessorActor
                 });
     }
 
-    private void handleIncomingMappedSignal(final Pair<Source<SignalWithQoS, ?>, ActorRef> mappedSignalsWithSender) {
-        final Source<SignalWithQoS, ?> mappedSignals = mappedSignalsWithSender.first();
+    private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
+        final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
         mappedSignals.flatMapConcat(
-                signalWithQoS -> {
+                signal -> {
                     final ActorRef self = getSelf();
-                    if (signalWithQoS.signal instanceof Acknowledgement) {
+                    if (signal instanceof Acknowledgement) {
                         // Acknowledgements are directly sent to the ConnectionPersistenceActor as the ConnectionPersistenceActor
                         //  contains all the AcknowledgementForwarderActor instances for a connection
-                        clientActor.tell(signalWithQoS.signal, sender);
-                    } else if (signalWithQoS.signal instanceof ThingSearchCommand<?>) {
+                        clientActor.tell(signal, sender);
+                    } else if (signal instanceof ThingSearchCommand<?>) {
                         // Send to connection actor for dispatching to the same client actor for each session.
                         // See javadoc of
                         //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
                         // for the message path of the search protocol.
-                        connectionActor.tell(signalWithQoS.signal, ActorRef.noSender());
-                    } else if (areAcknowledgementsRequested(signalWithQoS)) {
-                        getSelf().tell(new AcksRequestingSignal(signalWithQoS.signal, sender), ActorRef.noSender());
-                        return Source.single(signalWithQoS.signal);
+                        connectionActor.tell(signal, ActorRef.noSender());
+                    } else if (areAcknowledgementsRequested(signal)) {
+                        getSelf().tell(new AcksRequestingSignal(signal, sender), ActorRef.noSender());
+                        return Source.single(signal);
                     } else {
-                        conciergeForwarder.tell(signalWithQoS.signal, self);
+                        conciergeForwarder.tell(signal, self);
                     }
                     return Source.empty();
                 })
@@ -377,51 +374,45 @@ public final class MessageMappingProcessorActor
                 .flatMap(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
                 .map(FilteredAcknowledgementRequest::getIncludes)
                 .orElse(Collections.emptySet());
+        final String filter = message.getSource()
+                .flatMap(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
+                .flatMap(FilteredAcknowledgementRequest::getFilter)
+                .orElse(null);
 
         if (additionalAcknowledgementRequests.isEmpty()) {
             // do not change the signal's header if no additional acknowledgementRequests are defined in the Source
             // to preserve the default behavior for signals without the header 'requested-acks'
-            return handleAcknowledgementPlaceholders(signal);
+            return filterAcknowledgements(signal, filter);
         } else {
             // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
-            return handleAcknowledgementPlaceholders(
-                    mergeAcknowledgementRequests(signal, additionalAcknowledgementRequests));
+            final Set<AcknowledgementRequest> requestedAcks =
+                    new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
+            requestedAcks.addAll(additionalAcknowledgementRequests);
+
+            return filterAcknowledgements(signal.setDittoHeaders(
+                    signal.getDittoHeaders()
+                            .toBuilder()
+                            .acknowledgementRequests(requestedAcks)
+                            .build()), filter);
         }
     }
 
-    private static Signal<?> mergeAcknowledgementRequests(final Signal<?> signal,
-            final Set<AcknowledgementRequest> additionalRequestedAcks) {
-
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        final Set<AcknowledgementRequest> requestedAcks = new HashSet<>(dittoHeaders.getAcknowledgementRequests());
-        requestedAcks.addAll(additionalRequestedAcks);
-
-        final DittoHeaders newHeaders = dittoHeaders
-                .toBuilder()
-                .acknowledgementRequests(requestedAcks)
-                .build();
-        return signal.setDittoHeaders(newHeaders);
-    }
-
-    private Signal<?> handleAcknowledgementPlaceholders(final Signal<?> signal) {
-        if (containsAcknowledgementRequests(signal)) {
-            final List<String> acksList = signal.getDittoHeaders().getAcknowledgementRequests().stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .map(AcknowledgementLabel::toString)
-                    .collect(Collectors.toList());
-            if (acksList.contains("DISABLE_ACKS")) {
-                acksList.clear();
+    private Signal<?> filterAcknowledgements(final Signal<?> signal,
+            @Nullable String filter) {
+        if (filter != null) {
+            filter = "{{ header:" + DittoHeaderDefinition.REQUESTED_ACKS.getKey() + " | " + filter + " }}";
+            final ExpressionResolver expressionResolver =
+                    Resolvers.forSignal(signal);
+            final Optional<String> resolvedFilter = PlaceholderFilter.applyOrElseDelete(filter, expressionResolver);
+            if (resolvedFilter.isPresent()) {
+                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                        .putHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), resolvedFilter.orElseThrow())
+                        .build());
+            } else {
+                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                        .acknowledgementRequests(Collections.emptySet())
+                        .build());
             }
-            acksList.remove("[]");
-
-            return signal.setDittoHeaders(
-                    signal.getDittoHeaders()
-                            .toBuilder()
-                            .acknowledgementRequests(acksList.stream()
-                                    .map(AcknowledgementLabel::of)
-                                    .map(AcknowledgementRequest::of)
-                                    .collect(Collectors.toSet()))
-                            .build());
         }
         return signal;
     }
@@ -585,7 +576,7 @@ public final class MessageMappingProcessorActor
         inboundSourceQueue.offer(new ExternalMessageWithSender(externalMessage, getSender()));
     }
 
-    private Pair<Source<SignalWithQoS, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
+    private Pair<Source<Signal<?>, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
         final ExternalMessage externalMessage = withSender.externalMessage;
         final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, correlationId, connectionId);
@@ -622,7 +613,7 @@ public final class MessageMappingProcessorActor
         }
     }
 
-    private Source<SignalWithQoS, ?> mapExternalMessageToSignal(final ExternalMessageWithSender withSender) {
+    private Source<Signal<?>, ?> mapExternalMessageToSignal(final ExternalMessageWithSender withSender) {
         return messageMappingProcessor.process(withSender.externalMessage,
                 handleMappingResult(withSender, getAuthorizationContextOrThrow(withSender.externalMessage)));
     }
@@ -642,28 +633,22 @@ public final class MessageMappingProcessorActor
                             applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
                                     mappedInboundMessage.getTopicPath(), incomingMessage.getInternalHeaders());
 
-                    // TODO: set requested-acks per incoming QoS? define standard QoS "header" for MQTT?
-                    final SignalWithQoS adjustedSignalWithQoS = new SignalWithQoS(
-                            appendConnectionAcknowledgementsToSignal(incomingMessage,
-                                    signal.setDittoHeaders(mappedHeaders)),
-                            incomingMessage.getSource()
-                                    .flatMap(org.eclipse.ditto.model.connectivity.Source::getQos)
-                                    .orElse(1)
-                    );
+                    final Signal<?> adjustedSignal = appendConnectionAcknowledgementsToSignal(incomingMessage,
+                            signal.setDittoHeaders(mappedHeaders));
 
-                    enhanceLogUtil(adjustedSignalWithQoS.signal);
+                    enhanceLogUtil(adjustedSignal);
                     // enforce signal ID after header mapping was done
                     connectionMonitorRegistry.forInboundEnforced(connectionId, source)
-                            .wrapExecution(adjustedSignalWithQoS.signal)
+                            .wrapExecution(adjustedSignal)
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
                     // the above throws an exception if signal id enforcement fails
 
                     // This message is important to check if a command is accepted for a specific connection, as this happens
                     // quite a lot this is going to the debug level. Use best with a connection-id filter.
-                    logger.withCorrelationId(adjustedSignalWithQoS.signal)
+                    logger.withCorrelationId(adjustedSignal)
                             .debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
-                                    adjustedSignalWithQoS.signal.getType());
-                    return Source.single(adjustedSignalWithQoS);
+                                    adjustedSignal.getType());
+                    return Source.single(adjustedSignal);
                 })
                 .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
                 // skip the inbound stream directly to outbound stream
@@ -1030,14 +1015,13 @@ public final class MessageMappingProcessorActor
     /**
      * Test if a signal requires acknowledgements.
      *
-     * @param signalWithQoS the signal with its sources QoS-setting.
+     * @param signal the signal.
      * @return whether it requires acknowledgements.
      */
-    private static boolean areAcknowledgementsRequested(final SignalWithQoS signalWithQoS) {
-        return (signalWithQoS.signal instanceof ThingModifyCommand) &&
-                signalWithQoS.qos >= QOS_ONE &&
-                !isLiveSignal(signalWithQoS.signal) &&
-                containsAcknowledgementRequests(signalWithQoS.signal);
+    private static boolean areAcknowledgementsRequested(final Signal signal) {
+        return (signal instanceof ThingModifyCommand) &&
+                !isLiveSignal(signal) &&
+                containsAcknowledgementRequests(signal);
     }
 
     private static boolean isLiveSignal(final Signal<?> signal) {
@@ -1056,17 +1040,6 @@ public final class MessageMappingProcessorActor
         private AcksRequestingSignal(final Signal<?> signal, final ActorRef sender) {
             this.signal = signal;
             this.sender = sender;
-        }
-    }
-
-    static final class SignalWithQoS {
-
-        private final Signal<?> signal;
-        private final Integer qos;
-
-        private SignalWithQoS(final Signal<?> signal, final Integer qos) {
-            this.signal = signal;
-            this.qos = qos;
         }
     }
 
