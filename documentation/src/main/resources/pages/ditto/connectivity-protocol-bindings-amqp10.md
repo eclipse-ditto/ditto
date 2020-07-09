@@ -17,7 +17,7 @@ the `content-type` of AMQP 1.0 messages must be set to:
 application/vnd.eclipse.ditto+json
 ```
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the AMQP 1.0 connection in order to transform the messages. 
 
 ## AMQP 1.0 properties and application properties
@@ -73,8 +73,8 @@ Following are some specifics for AMQP 1.0 connections:
 ### Source format
 
 Any `source` item defines an `addresses` array of source identifiers (e.g. Eclipse Hono's 
-Telemetry API) to consume messages from
-and `authorizationContext` array that contains the authorization subjects in whose context
+Telemetry API) to consume messages from,
+and `authorizationContext` array that contains the authorization subjects, in whose context
 inbound messages are processed. These subjects may contain placeholders, see 
 [placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.
 
@@ -111,7 +111,7 @@ identifier. The target address may contain placeholders; see
 information.
 
 Target addresses for AMQP 1.0 are by default handled as AMQP 1.0 "queues". There is however the possibility to also 
-configure AMQP 1.0 "topics" as well. In order to be more specific, the following formats for the `address` are 
+configure AMQP 1.0 "topics" as well. In fact, the following formats for the `address` are 
 supported:
 * `the-queue-name` (when configuring w/o prefix, the `address` is handled as "queue")
 * `queue://the-queue-name`
@@ -122,7 +122,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 ```json
 {
@@ -142,13 +142,14 @@ For AMQP 1.0 targets, when configuring
 acknowledgements are produced in the following way:
 
 Once the AMQP 1.0 client signals that the message was acknowledged by the AMQP 1.0 endpoint, the following information 
-is mapped to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+
 * Acknowledgement.status: 
-   * will be `200` when the message was successfully consumed by the AMQP 1.0 endpoint
-   * will be `5xx` when the AMQP 1.0 endpoint failed in consuming the message, retrying sending the message is feasible
+   * will be `200`, if the message was successfully consumed by the AMQP 1.0 endpoint
+   * will be `5xx`, if the AMQP 1.0 endpoint failed in consuming the message, retrying sending the message is feasible
 * Acknowledgement.value: 
-   * will be missing for status `200`
-   * will contain more information in case that an error `status` was set
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
 
 
 ### Specific configuration properties
