@@ -45,6 +45,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
     private final Amqp10Config amqp10Config;
+    private final Amqp091Config amqp091Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
     private final HttpPushConfig httpPushConfig;
@@ -59,6 +60,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
+        amqp091Config = DefaultAmqp091Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
@@ -108,6 +110,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public Amqp091Config getAmqp091Config() {
+        return amqp091Config;
+    }
+
+    @Override
     public MqttConfig getMqttConfig() {
         return mqttConfig;
     }
@@ -142,6 +149,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
+                Objects.equals(amqp091Config, that.amqp091Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(kafkaConfig, that.kafkaConfig) &&
@@ -151,7 +159,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig,
-                activityCheckConfig, acknowledgementConfig, amqp10Config, mqttConfig, kafkaConfig, httpPushConfig);
+                activityCheckConfig, acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
+                httpPushConfig);
     }
 
     @Override
@@ -163,6 +172,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", snapshotConfig=" + snapshotConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", amqp10Config=" + amqp10Config +
+                ", amqp091Config=" + amqp091Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
                 ", httpPushConfig=" + httpPushConfig +

@@ -49,9 +49,11 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
@@ -62,6 +64,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.ReturnListener;
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -84,19 +87,16 @@ import akka.japi.pf.ReceiveBuilder;
 public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTarget> {
 
     /**
-     * Lifetime of an entry in the cache 'outstandingAcks'.
-     * It is an upper bound for the timeout of any command requesting acknowledgements from this publisher.
-     * Ideally between the maximum timeout (60s) and the acknowledgement forwarder lifetime (100s).
-     * No other publisher actor requires a cache TTL config because their clients take care of message ID tracking.
-     */
-    private static final Duration ACK_CACHE_TTL = Duration.ofMinutes(1L);
-
-    /**
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "rmqPublisherActor";
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-rabbitmq-diagnostic");
+
+    /**
+     * Lifetime of an entry in the cache 'outstandingAcks'.
+     */
+    private final Duration pendingAckTTL;
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks = new ConcurrentSkipListMap<>();
@@ -108,6 +108,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @SuppressWarnings("unused")
     private RabbitMQPublisherActor(final Connection connection) {
         super(connection);
+        final Config config = getContext().getSystem().settings().config();
+        pendingAckTTL = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config))
+                .getConnectionConfig()
+                .getAmqp091Config()
+                .getPublisherPendingAckTTL();
     }
 
     /**
@@ -218,7 +223,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             final CompletableFuture<Acknowledgement> resultFuture) {
 
         if (confirmMode == ConfirmMode.ACTIVE) {
-            return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, autoAckTarget, publishTarget, ACK_CACHE_TTL);
+            return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, autoAckTarget, publishTarget, pendingAckTTL);
         } else {
             final Acknowledgement unsupportedAck = getUnsupportedAck(signal, autoAckTarget);
             return seqNo -> resultFuture.complete(unsupportedAck);

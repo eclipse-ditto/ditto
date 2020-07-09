@@ -67,6 +67,14 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Amqp10Config getAmqp10Config();
 
     /**
+     * Returns the config specific to the AMQP 0.9.1 protocol.
+     *
+     * @return the config.
+     * @since 1.2.0
+     */
+    Amqp091Config getAmqp091Config();
+
+    /**
      * Returns the config specific to the MQTT protocol.
      *
      * @return the config.
