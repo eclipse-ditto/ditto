@@ -12,7 +12,6 @@
   */
  package org.eclipse.ditto.services.gateway.endpoints.directives;
 
- import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
  import java.text.MessageFormat;
  import java.util.Optional;
@@ -23,8 +22,8 @@
  import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
  import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
- import org.slf4j.Logger;
- import org.slf4j.LoggerFactory;
+ import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
  import akka.http.javadsl.model.HttpHeader;
  import akka.http.javadsl.model.HttpRequest;
@@ -36,7 +35,7 @@
   */
  public final class ContentTypeValidationDirective {
 
-     private static final Logger LOGGER = LoggerFactory.getLogger(ContentTypeValidationDirective.class);
+     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ContentTypeValidationDirective.class);
 
      private ContentTypeValidationDirective() {
          throw new AssertionError();
@@ -55,22 +54,21 @@
      public static Route ensureValidContentType(final Set<String> supportedMediaTypes, final RequestContext ctx,
              final DittoHeaders dittoHeaders,
              final Supplier<Route> inner) {
-         return enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () -> {
-             final String requestsMediaType = extractMediaType(ctx.getRequest());
 
-             if (supportedMediaTypes.contains(requestsMediaType)) {
-                 return inner.get();
-             } else {
-                 if (LOGGER.isInfoEnabled()) {
-                     LOGGER.info("Request rejected: unsupported media-type: <{}>  request: <{}>",
-                             requestsMediaType, requestToLogString(ctx.getRequest()));
-                 }
-                 throw UnsupportedMediaTypeException
-                         .withDetailedInformationBuilder(requestsMediaType, supportedMediaTypes)
-                         .dittoHeaders(dittoHeaders)
-                         .build();
+         final String requestsMediaType = extractMediaType(ctx.getRequest());
+         if (supportedMediaTypes.contains(requestsMediaType)) {
+             return inner.get();
+         } else {
+             if (LOGGER.isInfoEnabled()) {
+                 LOGGER.withCorrelationId(dittoHeaders)
+                        .info("Request rejected: unsupported media-type: <{}>  request: <{}>", requestsMediaType,
+                                requestToLogString(ctx.getRequest()));
              }
-         });
+             throw UnsupportedMediaTypeException
+                     .withDetailedInformationBuilder(requestsMediaType, supportedMediaTypes)
+                     .dittoHeaders(dittoHeaders)
+                     .build();
+         }
      }
 
      /**

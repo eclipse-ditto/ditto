@@ -135,6 +135,9 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public AuthorizationContext getAuthorizationContext() {
+        /**
+         * TODO: remove this duplication when removing {@link JsonSchemaVersion#V_1}.
+         */
         return duplicateSubjectsByStrippingIssuerPrefix(AuthorizationModelFactory.newAuthContext(
                 getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)));
     }
@@ -290,7 +293,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACKS);
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
-                .filter(string -> !string.isEmpty())
                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }

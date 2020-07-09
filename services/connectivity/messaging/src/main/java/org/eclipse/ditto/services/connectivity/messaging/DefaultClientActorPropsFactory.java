@@ -48,26 +48,26 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
         final ConnectionType connectionType = connection.getConnectionType();
 
         final Props result;
         switch (connectionType) {
             case AMQP_091:
-                result = RabbitMQClientActor.props(connection, conciergeForwarder, connectionActor);
+                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, conciergeForwarder, connectionActor);
+                result = AmqpClientActor.props(connection, proxyActor, connectionActor);
                 break;
             case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, conciergeForwarder, connectionActor);
+                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor);
                 break;
             case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, conciergeForwarder, connectionActor);
+                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor);
                 break;
             case KAFKA:
-                result = KafkaClientActor.props(connection, conciergeForwarder, connectionActor,
+                result = KafkaClientActor.props(connection, proxyActor, connectionActor,
                         DefaultKafkaPublisherActorFactory.getInstance());
                 break;
             case HTTP_PUSH:

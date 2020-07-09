@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 
@@ -30,6 +30,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  */
 @Immutable
 final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
+
+    // Representation of the supposedly most often occurring ack request header value.
+    private static final String TWIN_PERSISTED_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.TWIN_PERSISTED + "\"]";
+
+    private static final JsonValue EMPTY_JSON_STRING = JsonValue.of("");
 
     private DittoAckRequestsFilter() {
         super();
@@ -51,23 +56,36 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
     public String filterValue(final String key, final String value) {
         String result = value;
         if (Objects.equals(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), key)) {
-            final JsonArray originalAckRequestsJsonArray = JsonArray.of(value);
-            final JsonArray filteredAckRequestsJsonArray = originalAckRequestsJsonArray.stream()
-                    .map(JsonValue::asString)
-                    .filter(string -> !string.isEmpty())
-                    .map(AcknowledgementRequest::parseAcknowledgementRequest)
-                    .filter(ackRequest -> !isDittoInternal(ackRequest))
-                    .map(AcknowledgementRequest::toString)
-                    .map(JsonValue::of)
-                    .collect(JsonCollectors.valuesToArray());
-
-            result = filteredAckRequestsJsonArray.toString();
+            if (isTwinPersistedOnly(value) || value.isEmpty()) {
+                result = null;
+            } else {
+                result = parseAsJsonArrayAndFilter(value);
+            }
         }
         return result;
     }
 
-    private static boolean isDittoInternal(final AcknowledgementRequest acknowledgementRequest) {
-        return DittoAcknowledgementLabel.contains(acknowledgementRequest.getLabel());
+    private static boolean isTwinPersistedOnly(final String value) {
+        return TWIN_PERSISTED_ONLY_VALUE.equals(value);
+    }
+
+    private static String parseAsJsonArrayAndFilter(final String value) {
+        final JsonArray originalAckRequestsJsonArray = JsonArray.of(value);
+        final JsonArray filteredAckRequestsJsonArray = originalAckRequestsJsonArray.stream()
+                .filter(jsonValue -> !jsonValue.equals(EMPTY_JSON_STRING))
+                .filter(jsonValue -> !isDittoInternal(jsonValue))
+                .collect(JsonCollectors.valuesToArray());
+
+        return filteredAckRequestsJsonArray.toString();
+    }
+
+    private static boolean isDittoInternal(final JsonValue ackRequestLabelJsonValue) {
+        for (final AcknowledgementLabel label : DittoAcknowledgementLabel.values()) {
+            if (Objects.equals(label.toString(), ackRequestLabelJsonValue.asString())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

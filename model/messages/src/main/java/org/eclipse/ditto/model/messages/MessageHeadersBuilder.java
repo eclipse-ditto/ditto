@@ -43,9 +43,14 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     private static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
+    private static final Set<MessageHeaderDefinition> DEFINITIONS = determineMessageHeaderDefinitions();
 
     private MessageHeadersBuilder(final Map<String, String> headers) {
-        super(headers, determineMessageHeaderDefinitions(), MessageHeadersBuilder.class);
+        super(headers, DEFINITIONS, MessageHeadersBuilder.class);
+    }
+
+    private MessageHeadersBuilder(final MessageHeaders dittoHeaders) {
+        super(dittoHeaders, DEFINITIONS, MessageHeadersBuilder.class);
     }
 
     private static Set<MessageHeaderDefinition> determineMessageHeaderDefinitions() {
@@ -115,6 +120,9 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * {@link MessageHeaderDefinition#SUBJECT}.
      */
     public static MessageHeadersBuilder of(final Map<String, String> headers) {
+        if (headers instanceof MessageHeaders) {
+            return new MessageHeadersBuilder((MessageHeaders) headers);
+        }
         validateMandatoryHeaders(headers);
         return new MessageHeadersBuilder(headers);
     }

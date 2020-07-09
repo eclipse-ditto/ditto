@@ -64,23 +64,23 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
-    private static ActorRef conciergeForwarder;
+    private static ActorRef proxyActor;
     private ConnectionId connectionId;
 
     private ConnectionCreated connectionCreated;
     private ConnectionDeleted connectionDeleted;
 
     private static final ConnectionMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ConnectionMongoSnapshotAdapter();
-    private static ConfigValue blacklistedHosts;
+    private static ConfigValue blockedHosts;
 
     @BeforeClass
     public static void setUp() {
-        blacklistedHosts = Mockito.spy(ConfigValueFactory.fromAnyRef(""));
+        blockedHosts = Mockito.spy(ConfigValueFactory.fromAnyRef(""));
         final Config config =
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames", blacklistedHosts);
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames", blockedHosts);
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+        proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
 
     @AfterClass
@@ -90,7 +90,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @Before
     public void init() {
-        when(blacklistedHosts.unwrapped()).thenCallRealMethod();
+        when(blockedHosts.unwrapped()).thenCallRealMethod();
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId);
         connectionCreated = ConnectionCreated.of(connection, INSTANT, DittoHeaders.empty());
@@ -113,7 +113,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             expectMsgEquals("persisted");
 
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, conciergeForwarder);
+                    pubSubMediator, proxyActor);
             watch(underTest);
 
             // expect termination because it was deleted (last event was ConnectionDeleted)
@@ -129,10 +129,10 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     }
 
     @Test
-    public void testRecoveryOfConnectionWithBlacklistedHost() {
+    public void testRecoveryOfConnectionWithBlockedHost() {
 
-        // enable blacklist for this test
-        when(blacklistedHosts.unwrapped()).thenReturn("127.0.0.1");
+        // enable blocklist for this test
+        when(blockedHosts.unwrapped()).thenReturn("127.0.0.1");
 
         new TestKit(actorSystem) {{
 
@@ -143,7 +143,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             expectMsgEquals("persisted");
 
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, conciergeForwarder);
+                    pubSubMediator, proxyActor);
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 

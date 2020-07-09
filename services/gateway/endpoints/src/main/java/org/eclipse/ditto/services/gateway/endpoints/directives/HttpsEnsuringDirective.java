@@ -17,7 +17,6 @@ import static akka.http.javadsl.server.Directives.extractActorSystem;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.redirect;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -27,8 +26,8 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.StatusCodes;
@@ -51,7 +50,7 @@ public final class HttpsEnsuringDirective {
 
     private static final AtomicBoolean FORCE_HTTPS_DISABLED_ALREADY_LOGGED = new AtomicBoolean(false);
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HttpsEnsuringDirective.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(HttpsEnsuringDirective.class);
 
     private final HttpConfig httpConfig;
 
@@ -83,10 +82,10 @@ public final class HttpsEnsuringDirective {
      */
     public Route ensureHttps(final String correlationId, final Supplier<Route> inner) {
         return extractActorSystem(actorSystem -> extractRequestContext(
-                requestContext -> enhanceLogWithCorrelationId(correlationId, () -> {
+                requestContext -> {
                     if (!httpConfig.isForceHttps()) {
                         if (FORCE_HTTPS_DISABLED_ALREADY_LOGGED.compareAndSet(false, true)) {
-                            LOGGER.warn("No HTTPS is enforced!");
+                            LOGGER.withCorrelationId(correlationId).warn("No HTTPS is enforced!");
                         }
                         return inner.get();
                     }
@@ -98,7 +97,7 @@ public final class HttpsEnsuringDirective {
                         return handleNonHttpsRequest(requestUri);
                     }
                     return inner.get();
-                })));
+                }));
     }
 
     @Nullable

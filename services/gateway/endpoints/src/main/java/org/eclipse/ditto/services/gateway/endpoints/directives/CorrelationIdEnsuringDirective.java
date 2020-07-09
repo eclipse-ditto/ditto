@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -61,7 +60,7 @@ public final class CorrelationIdEnsuringDirective {
                 LOGGER.withCorrelationId(correlationId).debug("Created new CorrelationId: {}", correlationId);
             }
 
-            return enhanceLogWithCorrelationId(correlationId, () -> inner.apply(correlationId));
+            return inner.apply(correlationId);
         });
     }
 

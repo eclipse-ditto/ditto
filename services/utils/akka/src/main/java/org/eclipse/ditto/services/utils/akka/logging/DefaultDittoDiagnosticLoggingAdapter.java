@@ -21,7 +21,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.event.DiagnosticLoggingAdapter;
 import scala.collection.Seq;
@@ -61,9 +60,9 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     }
 
     @Override
-    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(final CharSequence correlationId) {
+    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final CharSequence correlationId) {
         currentLogger = autoDiscardingLoggingAdapter;
-        setCorrelationId(null != correlationId ? correlationId.toString() : null);
+        currentLogger.setCorrelationId(correlationId);
         return this;
     }
 
@@ -75,20 +74,14 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     @Override
     public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        currentLogger = autoDiscardingLoggingAdapter;
-        setCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
-        return this;
+        return withCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
     }
 
     @Override
-    public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(final CharSequence correlationId) {
+    public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
         currentLogger = loggingAdapter;
-        setCorrelationId(null != correlationId ? correlationId.toString() : null);
+        currentLogger.setCorrelationId(correlationId);
         return this;
-    }
-
-    private void setCorrelationId(@Nullable final String correlationId) {
-        LogUtil.enhanceLogWithCustomField(currentLogger, LogUtil.X_CORRELATION_ID, correlationId);
     }
 
     @Override
@@ -99,9 +92,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     @Override
     public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        currentLogger = loggingAdapter;
-        setCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
-        return this;
+        return setCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
     }
 
     @Override

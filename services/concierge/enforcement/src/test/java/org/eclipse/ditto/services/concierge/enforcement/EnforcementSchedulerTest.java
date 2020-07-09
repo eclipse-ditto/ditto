@@ -12,17 +12,10 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import static org.mockito.Mockito.after;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -37,12 +30,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import static org.mockito.Mockito.*;
 
 public final class EnforcementSchedulerTest {
 
@@ -102,7 +98,7 @@ public final class EnforcementSchedulerTest {
                             TimeUnit.SECONDS.sleep(3);
 
                             return baseContextual.withMessage(retrieveThing1).withReceiver(receiverProbe.ref());
-                        } catch (InterruptedException e) {
+                        } catch (final InterruptedException e) {
                             throw new IllegalStateException("Sleep should not be interrupted.");
                         }
                     });
@@ -113,7 +109,7 @@ public final class EnforcementSchedulerTest {
                             TimeUnit.SECONDS.sleep(3);
 
                             return baseContextual.withMessage(modifyPolicyId1).withReceiver(receiverProbe.ref());
-                        } catch (InterruptedException e) {
+                        } catch (final InterruptedException e) {
                             throw new IllegalStateException("Sleep should not be interrupted.");
                         }
                     });
@@ -149,16 +145,16 @@ public final class EnforcementSchedulerTest {
             underTest.tell(retrieveThing2TaskSpy, getRef());
             underTest.tell(modifyPolicyId2TaskSpy, getRef());
 
-            inOrder.verify(retrieveThing1TaskSpy, timeout(500)).start();
+            inOrder.verify(retrieveThing1TaskSpy, timeout(1000)).start();
             // Ensures that modifyPolicyId1 is scheduled without waiting for retrieveThing1 being finished.
-            inOrder.verify(modifyPolicyId1TaskSpy, timeout(500)).start();
+            inOrder.verify(modifyPolicyId1TaskSpy, timeout(1000)).start();
             // Ensures that retrieveThing2 is blocked by modifyPolicyID1 which changes authorization and has a 3 second duration
-            verify(retrieveThing2TaskSpy, after(500).never()).start();
+            verify(retrieveThing2TaskSpy, after(1000).never()).start();
             receiverProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), retrieveThing1);
             receiverProbe.expectMsg(modifyPolicyId1);
 
-            inOrder.verify(retrieveThing2TaskSpy, timeout(500)).start();
-            inOrder.verify(modifyPolicyId2TaskSpy, timeout(500)).start();
+            inOrder.verify(retrieveThing2TaskSpy, timeout(1000)).start();
+            inOrder.verify(modifyPolicyId2TaskSpy, timeout(1000)).start();
             receiverProbe.expectMsg(retrieveThing2);
             receiverProbe.expectMsg(modifyPolicyId2);
         }};

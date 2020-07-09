@@ -39,11 +39,17 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Duration getClientActorAskTimeout();
 
     /**
-     * @return the list of blacklisted hostnames to which outgoing connections are prevented.
+     * @return the list of allowed hostnames to which outgoing connections are allowed. This list overrides the list
+     * of blocked hostnames.
+     */
+    Collection<String> getAllowedHostnames();
+
+    /**
+     * @return the list of blocked hostnames to which outgoing connections are prevented.
      * Outgoing connections to private, wildcard, loopback and multicast addresses are also prevented
      * when the list is nonempty.
      */
-    Collection<String> getBlacklistedHostnames();
+    Collection<String> getBlockedHostnames();
 
     /**
      * Returns the config of the connection snapshotting behaviour.
@@ -99,9 +105,14 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", Duration.ofSeconds(60L)),
 
         /**
-         * A comma separated list of blacklisted hostnames to which not http requests will be send out.
+         * A comma separated list of allowed hostnames to which http requests will be sent.
          */
-        BLACKLISTED_HOSTNAMES("blacklisted-hostnames", "");
+        ALLOWED_HOSTNAMES("allowed-hostnames", ""),
+
+        /**
+         * A comma separated list of blocked hostnames to which no http requests will be sent out.
+         */
+        BLOCKED_HOSTNAMES("blocked-hostnames", "");
 
         private final String path;
         private final Object defaultValue;

@@ -41,7 +41,7 @@ import akka.japi.Creator;
 public class MockClientActor extends AbstractActor {
 
     public static final ClientActorPropsFactory mockClientActorPropsFactory =
-            (connection, connectionActor, conciergeForwarder) -> MockClientActor.props();
+            (connection, connectionActor, proxyActor) -> MockClientActor.props();
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef delegate;

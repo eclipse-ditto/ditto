@@ -56,19 +56,19 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
 
     private final DittoProtocolSub dittoProtocolSub;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     @Nullable private final ConnectivityCommandInterceptor commandInterceptor;
     private final ActorRef pubSubMediator;
 
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(final DittoProtocolSub dittoProtocolSub,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandInterceptor,
             final ActorRef pubSubMediator) {
         this.dittoProtocolSub = dittoProtocolSub;
-        this.conciergeForwarder = conciergeForwarder;
+        this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.commandInterceptor = commandInterceptor;
         this.pubSubMediator = pubSubMediator;
@@ -82,19 +82,19 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      * </p>
      *
      * @param dittoProtocolSub Ditto protocol sub access.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ActorRef pubSubMediator) {
 
-        return Props.create(ConnectionSupervisorActor.class, dittoProtocolSub, conciergeForwarder, propsFactory,
+        return Props.create(ConnectionSupervisorActor.class, dittoProtocolSub, proxyActor, propsFactory,
                 commandValidator, pubSubMediator);
     }
 
@@ -105,7 +105,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, conciergeForwarder, propsFactory, commandInterceptor);
+        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, proxyActor, propsFactory, commandInterceptor);
     }
 
     @Override

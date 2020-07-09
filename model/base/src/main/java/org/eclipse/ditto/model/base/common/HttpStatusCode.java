@@ -12,7 +12,11 @@
  */
 package org.eclipse.ditto.model.base.common;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -385,6 +389,8 @@ public enum HttpStatusCode {
      */
     NETWORK_CONNECT_TIMEOUT(599);
 
+    private static final Map<Integer, HttpStatusCode> STATUS_CODE_INDEX = Collections.unmodifiableMap(
+            Stream.of(values()).collect(Collectors.toMap(HttpStatusCode::toInt, Function.identity())));
 
     private final int statusCodeValue;
 
@@ -400,9 +406,7 @@ public enum HttpStatusCode {
      * @return the HTTP status code which is associated with {@code statusCodeAsInt} or an empty optional.
      */
     public static Optional<HttpStatusCode> forInt(final int statusCodeAsInt) {
-        return Stream.of(values()) //
-                .filter(c -> c.toInt() == statusCodeAsInt) //
-                .findFirst();
+        return Optional.ofNullable(STATUS_CODE_INDEX.get(statusCodeAsInt));
     }
 
     /**
