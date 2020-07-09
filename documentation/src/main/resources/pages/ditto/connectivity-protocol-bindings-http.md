@@ -43,7 +43,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the Tthing, which is associated with a message.
 
 ```json
 {
@@ -75,7 +75,7 @@ automatically created [acknowledement](protocol-specification-acks.html#acknowle
 ### Specific configuration properties
 
 The specific configuration properties contain the following optional keys:
-* `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes up one outgoing 
+* `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes one outgoing 
 TCP connection. Default (if not provided): 1
 
 # Establishing connecting to an HTTP endpoint
