@@ -13,12 +13,12 @@ Consume messages from MQTT 5 brokers via [sources](#source-format) and send mess
 When MQTT messages are sent in [Ditto Protocol](protocol-overview.html),
 the payload should be `UTF-8` encoded strings.
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the connection in order to transform the messages.
 
 ## MQTT 5 properties
 
-Supported MQTT 5 properties which are interpreted in a specific way are:
+Supported MQTT 5 properties, which are interpreted in a specific way are:
 
 * `9 (0x09) Correlation Data`: For correlating request messages and events. Twin events have the correlation IDs of
   [Twin commands](protocol-twinlive.html#twin) that produced them. Stored in the ditto protocol header `correlation-id`.
@@ -30,6 +30,7 @@ Supported MQTT 5 properties which are interpreted in a specific way are:
 
 The common configuration for connections in [Connections > Sources](basic-connections.html#sources) and 
 [Connections > Targets](basic-connections.html#targets) applies here as well. 
+
 Following are some specifics for MQTT connections:
 
 ### Source format
@@ -109,7 +110,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 The additional field `"qos"` sets the Quality of Service with which messages are published.
 Its value can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
@@ -142,13 +143,13 @@ acknowledgements are produced in the following way:
 Once the MQTT 5 client signals that the message was acknowledged by the MQTT 5 broker, the following information 
 is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
 * Acknowledgement.status: 
-   * will be `200` the message was successfully ACKed by the MQTT 5 broker
-   * will be `503` when the MQTT 5 broker ran into an error before an acknowledgement message was received
+   * will be `200`, if the message was successfully ACKed by the MQTT 5 broker
+   * will be `503`, if the MQTT 5 broker ran into an error before an acknowledgement message was received
 * Acknowledgement.value: 
-   * will be missing for status `200`
-   * will contain more information in case that an error `status` was set
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
 
-### Specific Config
+### Specific Configuration
 
 The MQTT 5 binding offers additional [specific configurations](basic-connections.html#specific-config) 
 to apply for the used MQTT client.
@@ -188,7 +189,7 @@ ID connects.
 #### reconnectForRedelivery
 
 Configures that the MQTT connection re-connects whenever a consumed message (via a connection source) with QoS 1 
-("at least once") 2 ("exactly once") is processed and cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
+("at least once") 2 ("exactly once") is processed but cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
 That causes that the MQTT broker will re-publish the message once the connection reconnected.   
 If configured to `false`, the MQTT message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`).
 
@@ -210,16 +211,16 @@ Default: the negation of `"reconnectForRedelivery"`
 
 #### separatePublisherClient
 
-Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages.
-As a result a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
-If configured to `false`, the same MQTT connection/session is used both for subscribing to message and for
+Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not.
+By default (configured to `true`), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
+If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for
 publishing messages.
 
 Default: `true`
 
 #### publisherId
 
-Configures a specific MQTT client ID for when `"separatePublisherClient"` is enabled.
+Configures a specific MQTT client ID for the case that `"separatePublisherClient"` is enabled.
 
 Default: 
 * if client ID is configured, `clientId` + `"p"`
@@ -241,7 +242,7 @@ existing connections.
 This can be done dynamically at runtime without the need to restart any microservice using a
 [Ditto DevOps command](installation-operating.html#devops-commands).
 
-Example 
+Example: 
 
 Connection configuration to create a new MQTT connection:
 
@@ -281,7 +282,7 @@ Ditto supports certificate-based authentication for MQTT connections. Consult
 [Certificates for Transport Layer Security](connectivity-tls-certificates.html)
 for how to set it up.
 
-Here is an example MQTT connection that checks the broker certificate and authenticates by a client certificate.
+Here is an example MQTT connection, which checks the broker certificate and authenticates by a client certificate.
 
 ```json
 {
