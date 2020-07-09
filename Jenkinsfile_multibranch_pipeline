@@ -13,6 +13,12 @@ pipeline {
         disableConcurrentBuilds()
     }
     stages {
+        stage('Clean workspace') {
+            steps {
+                echo 'Clean workspace'
+                cleanWs()
+            }
+        }
         stage('Checkout scm') {
             agent {
                 label "$DITTO_BUILD_NODE"
