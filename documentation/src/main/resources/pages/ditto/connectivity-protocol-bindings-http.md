@@ -62,7 +62,7 @@ has READ permission on the Thing, that is associated with a message.
 #### Target acknowledgement handling
 
 For HTTP targets, when configuring 
-[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
 acknowledgements are produced in the following way:
 
 The HTTP response for the HTTP target URL is consumed and following HTTP response information is mapped to the 

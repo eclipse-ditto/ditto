@@ -138,7 +138,7 @@ has READ permission on the Thing, that is associated with a message.
 #### Target acknowledgement handling
 
 For AMQP 1.0 targets, when configuring 
-[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
 acknowledgements are produced in the following way:
 
 Once the AMQP 1.0 client signals that the message was acknowledged by the AMQP 1.0 endpoint, the following information 

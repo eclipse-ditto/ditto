@@ -220,7 +220,7 @@ ways:
 * specifically for each published message/event as a response to the event by sending a
   [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) back via a source of the connection
 * by configuring the managed connection target to automatically
-  [issue acknowledgements for all successfully published messages](basic-connections.html#target-issue-acknowledgement-label)
+  [issue acknowledgements for all successfully published messages](basic-connections.html#target-issued-acknowledgement-label)
 
 #### Issuing via sending Ditto Protocol acknowledgement message
 
@@ -230,7 +230,7 @@ source of the connection in response to an event which contained an `"requested-
 #### Issuing via connection target configuration
 
 [Connection targets](basic-connections.html#targets) can be configured to 
-[issue certain acknowledgements automatically](basic-connections.html#target-issue-acknowledgement-label)
+[issue certain acknowledgements automatically](basic-connections.html#target-issued-acknowledgement-label)
 for each published message of the underlying physical connection (e.g. to a message broker).
 
 This can be used in order to automatically issue technical acknowledgements once an [event](basic-signals-event.html)

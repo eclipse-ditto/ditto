@@ -94,7 +94,7 @@ has READ permission on the Thing, that is associated with a message.
 #### Target acknowledgement handling
 
 For AMQP 0.9.1 targets, when configuring 
-[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
 acknowledgements are produced in the following way:
 
 Once the AMQP 0.9.1 client signals that the message was acknowledged by the AMQP 0.9.1 broker, the following information 

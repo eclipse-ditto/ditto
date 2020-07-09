@@ -133,7 +133,7 @@ As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](conne
 #### Target acknowledgement handling
 
 For MQTT 3.1.1 targets, when configuring 
-[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
 acknowledgements are produced in the following way:
 
 Once the MQTT 3.1.1 client signals that the message was acknowledged by the MQTT 3.1.1 broker, the following information 

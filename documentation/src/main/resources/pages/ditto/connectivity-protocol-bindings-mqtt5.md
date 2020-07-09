@@ -136,7 +136,7 @@ The [header mapping](connectivity-header-mapping.html) applies to the supported 
 #### Target acknowledgement handling
 
 For MQTT 5 targets, when configuring 
-[automatically issued acknowledgement labels](basic-connections.html#target-issue-acknowledgement-label), requested 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
 acknowledgements are produced in the following way:
 
 Once the MQTT 5 client signals that the message was acknowledged by the MQTT 5 broker, the following information 
