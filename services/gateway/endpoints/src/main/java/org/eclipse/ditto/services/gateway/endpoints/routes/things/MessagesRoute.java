@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.exceptions.TimeoutInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageBuilder;
@@ -28,15 +29,14 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
-import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
-import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -380,7 +380,7 @@ final class MessagesRoute extends AbstractRoute {
     private Duration checkMessageTimeout(final Duration timeout) {
         // check if the timeout is smaller than the maximum possible message-timeout and > 0:
         if (timeout.isNegative() || timeout.getSeconds() > maxMessageTimeout.getSeconds()) {
-            throw new TimeoutInvalidException(timeout.getSeconds(), maxMessageTimeout.getSeconds());
+            throw  TimeoutInvalidException.newBuilder(timeout, maxMessageTimeout).build();
         }
         return timeout;
     }
@@ -388,7 +388,7 @@ final class MessagesRoute extends AbstractRoute {
     private Duration checkClaimTimeout(final Duration timeout) {
         // check if the timeout is smaller than the maximum possible claim-timeout and > 0:
         if (timeout.isNegative() || timeout.getSeconds() > maxClaimTimeout.getSeconds()) {
-            throw new TimeoutInvalidException(timeout.getSeconds(), maxClaimTimeout.getSeconds());
+            throw TimeoutInvalidException.newBuilder(timeout, maxClaimTimeout).build();
         }
         return timeout;
     }

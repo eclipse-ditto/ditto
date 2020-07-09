@@ -129,4 +129,14 @@ public final class HeaderValueValidators {
         return DittoDurationValueValidator.getInstance();
     }
 
+    /**
+     * Returns a validator for checking if a CharSequence represents a timeout in form of a {@link DittoDuration}.
+     *
+     * @return the validator.
+     * @since 1.2.0
+     */
+    static ValueValidator getTimeoutValueValidator() {
+        return TimeoutValueValidator.getInstance();
+    }
+
 }
