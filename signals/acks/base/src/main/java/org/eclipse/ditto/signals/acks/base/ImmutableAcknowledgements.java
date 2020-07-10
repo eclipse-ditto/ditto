@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -121,11 +120,10 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         final Iterator<? extends Acknowledgement> acknowledgementIterator = acknowledgements.iterator();
         Acknowledgement acknowledgement = acknowledgementIterator.next();
         final EntityIdWithType entityId = acknowledgement.getEntityId();
-        final Consumer<EntityIdWithType> equalityValidator = EntityIdWithType.createEqualityValidator(entityId);
         while (acknowledgementIterator.hasNext()) {
             acknowledgement = acknowledgementIterator.next();
             // will throw an IllegalArgumentException if they are not equal
-            equalityValidator.accept(acknowledgement.getEntityId());
+            entityId.isCompatibleOrThrow(acknowledgement.getEntityId());
         }
         return entityId;
     }

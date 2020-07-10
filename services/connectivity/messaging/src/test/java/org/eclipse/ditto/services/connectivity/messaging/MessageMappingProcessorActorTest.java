@@ -144,7 +144,7 @@ public final class MessageMappingProcessorActorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
-        MockConciergeForwarderActor.create(actorSystem);
+        MockProxyActor.create(actorSystem);
     }
 
     @After
@@ -206,8 +206,8 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testSignalEnrichment() {
         // GIVEN: test probe actor started with configured values
-        final TestProbe conciergeForwarderProbe = TestProbe.apply("mockConciergeForwarderProbe", actorSystem);
-        setUpConciergeForwarder(conciergeForwarderProbe.ref());
+        final TestProbe proxyActorProbe = TestProbe.apply("mockProxyActorProbe", actorSystem);
+        setUpProxyActor(proxyActorProbe.ref());
 
         new TestKit(actorSystem) {{
             // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
@@ -235,13 +235,13 @@ public final class MessageMappingProcessorActorTest {
             underTest.tell(outboundSignal, getRef());
 
             // THEN: Receive a RetrieveThing command from the facade.
-            final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
+            final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
             assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject,
                     targetAuthSubjectWithoutIssuer);
 
             final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
-            conciergeForwarderProbe.reply(
+            proxyActorProbe.reply(
                     RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
 
             // THEN: a mapped signal without enrichment arrives first
@@ -276,8 +276,8 @@ public final class MessageMappingProcessorActorTest {
     @Test
     public void testSignalEnrichmentWithPayloadMappedTargets() {
         resetActorSystemWithCachingSignalEnrichmentProvider();
-        final TestProbe conciergeForwarderProbe = TestProbe.apply("mockConciergeForwarder", actorSystem);
-        setUpConciergeForwarder(conciergeForwarderProbe.ref());
+        final TestProbe proxyActorProbe = TestProbe.apply("mockConciergeForwarder", actorSystem);
+        setUpProxyActor(proxyActorProbe.ref());
 
         new TestKit(actorSystem) {{
             // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
@@ -350,7 +350,7 @@ public final class MessageMappingProcessorActorTest {
             );
             underTest.tell(outboundSignal, getRef());
             // THEN: Receive a RetrieveThing command from the facade.
-            final RetrieveThing retrieveThing = conciergeForwarderProbe.expectMsgClass(RetrieveThing.class);
+            final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
             final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
                     .addPointers(extraFields)
                     .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
@@ -365,7 +365,7 @@ public final class MessageMappingProcessorActorTest {
                     .set("_revision", 8)
                     .setAll(extra)
                     .build();
-            conciergeForwarderProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
+            proxyActorProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
                     retrieveThing.getDittoHeaders()));
 
             // THEN: mapped messages arrive in a batch.
@@ -399,7 +399,6 @@ public final class MessageMappingProcessorActorTest {
                     targetWithoutEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
             );
-
 
             // THEN: Receive an outbound signal with extra fields.
             expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithEnrichment,
@@ -445,7 +444,7 @@ public final class MessageMappingProcessorActorTest {
                                         ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName())
                         )
         );
-        MockConciergeForwarderActor.create(actorSystem);
+        MockProxyActor.create(actorSystem);
     }
 
     private void testExternalMessageInDittoProtocolIsProcessed(
@@ -926,8 +925,9 @@ public final class MessageMappingProcessorActorTest {
                 protocolAdapterProvider, logger);
     }
 
-    private void setUpConciergeForwarder(final ActorRef recipient) {
-        final ActorSelection actorSelection = actorSystem.actorSelection("/user/connectivityRoot/conciergeForwarder");
+    private void setUpProxyActor(final ActorRef recipient) {
+        final ActorSelection actorSelection = actorSystem.actorSelection("/user/connectivityRoot" +
+                "/connectivityProxyActor");
         Patterns.ask(actorSelection, recipient, Duration.ofSeconds(10L))
                 .toCompletableFuture()
                 .join();

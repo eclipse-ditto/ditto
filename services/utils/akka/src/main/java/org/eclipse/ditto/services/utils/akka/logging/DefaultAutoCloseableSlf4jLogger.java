@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -28,9 +29,11 @@ import org.slf4j.Marker;
 final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger {
 
     private final Logger actualSlf4jLogger;
+    @Nullable private CharSequence correlationId;
 
     private DefaultAutoCloseableSlf4jLogger(final Logger actualSlf4jLogger) {
         this.actualSlf4jLogger = actualSlf4jLogger;
+        correlationId = null;
     }
 
     /**
@@ -56,27 +59,48 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void trace(final String msg) {
-        actualSlf4jLogger.trace(msg);
+        if (isTraceEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(msg);
+        }
+    }
+
+    private void putCorrelationIdToMdc() {
+        if (null != correlationId) {
+            LogUtil.enhanceLogWithCorrelationId(correlationId);
+        }
     }
 
     @Override
     public void trace(final String format, final Object arg) {
-        actualSlf4jLogger.trace(format, arg);
+        if (isTraceEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(format, arg);
+        }
     }
 
     @Override
     public void trace(final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.trace(format, arg1, arg2);
+        if (isTraceEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(format, arg1, arg2);
+        }
     }
 
     @Override
     public void trace(final String format, final Object... arguments) {
-        actualSlf4jLogger.trace(format, arguments);
+        if (isTraceEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(format, arguments);
+        }
     }
 
     @Override
     public void trace(final String msg, final Throwable t) {
-        actualSlf4jLogger.trace(msg, t);
+        if (isTraceEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(msg, t);
+        }
     }
 
     @Override
@@ -86,27 +110,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void trace(final Marker marker, final String msg) {
-        actualSlf4jLogger.trace(marker, msg);
+        if (isTraceEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(marker, msg);
+        }
     }
 
     @Override
     public void trace(final Marker marker, final String format, final Object arg) {
-        actualSlf4jLogger.trace(marker, format, arg);
+        if (isTraceEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(marker, format, arg);
+        }
     }
 
     @Override
     public void trace(final Marker marker, final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.trace(marker, format, arg1, arg2);
+        if (isTraceEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(marker, format, arg1, arg2);
+        }
     }
 
     @Override
     public void trace(final Marker marker, final String format, final Object... argArray) {
-        actualSlf4jLogger.trace(marker, format, argArray);
+        if (isTraceEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(marker, format, argArray);
+        }
     }
 
     @Override
     public void trace(final Marker marker, final String msg, final Throwable t) {
-        actualSlf4jLogger.trace(marker, msg, t);
+        if (isTraceEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.trace(marker, msg, t);
+        }
     }
 
     @Override
@@ -116,27 +155,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void debug(final String msg) {
-        actualSlf4jLogger.debug(msg);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(msg);
+        }
     }
 
     @Override
     public void debug(final String format, final Object arg) {
-        actualSlf4jLogger.debug(format, arg);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(format, arg);
+        }
     }
 
     @Override
     public void debug(final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.debug(format, arg1, arg2);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(format, arg1, arg2);
+        }
     }
 
     @Override
     public void debug(final String format, final Object... arguments) {
-        actualSlf4jLogger.debug(format, arguments);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(format, arguments);
+        }
     }
 
     @Override
     public void debug(final String msg, final Throwable t) {
-        actualSlf4jLogger.debug(msg, t);
+        if (isDebugEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(msg, t);
+        }
     }
 
     @Override
@@ -146,27 +200,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void debug(final Marker marker, final String msg) {
-        actualSlf4jLogger.debug(marker, msg);
+        if (isDebugEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(marker, msg);
+        }
     }
 
     @Override
     public void debug(final Marker marker, final String format, final Object arg) {
-        actualSlf4jLogger.debug(marker, format, arg);
+        if (isDebugEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(marker, format, arg);
+        }
     }
 
     @Override
     public void debug(final Marker marker, final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.debug(marker, format, arg1, arg2);
+        if (isDebugEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(marker, format, arg1, arg2);
+        }
     }
 
     @Override
     public void debug(final Marker marker, final String format, final Object... arguments) {
-        actualSlf4jLogger.debug(marker, format, arguments);
+        if (isDebugEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(marker, format, arguments);
+        }
     }
 
     @Override
     public void debug(final Marker marker, final String msg, final Throwable t) {
-        actualSlf4jLogger.debug(marker, msg, t);
+        if (isDebugEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.debug(marker, msg, t);
+        }
     }
 
     @Override
@@ -176,27 +245,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void info(final String msg) {
-        actualSlf4jLogger.info(msg);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(msg);
+        }
     }
 
     @Override
     public void info(final String format, final Object arg) {
-        actualSlf4jLogger.info(format, arg);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(format, arg);
+        }
     }
 
     @Override
     public void info(final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.info(format, arg1, arg2);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(format, arg1, arg2);
+        }
     }
 
     @Override
     public void info(final String format, final Object... arguments) {
-        actualSlf4jLogger.info(format, arguments);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(format, arguments);
+        }
     }
 
     @Override
     public void info(final String msg, final Throwable t) {
-        actualSlf4jLogger.info(msg, t);
+        if (isInfoEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(msg, t);
+        }
     }
 
     @Override
@@ -206,27 +290,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void info(final Marker marker, final String msg) {
-        actualSlf4jLogger.info(marker, msg);
+        if (isInfoEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(marker, msg);
+        }
     }
 
     @Override
     public void info(final Marker marker, final String format, final Object arg) {
-        actualSlf4jLogger.info(marker, format, arg);
+        if (isInfoEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(marker, format, arg);
+        }
     }
 
     @Override
     public void info(final Marker marker, final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.info(marker, format, arg1, arg2);
+        if (isInfoEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(marker, format, arg1, arg2);
+        }
     }
 
     @Override
     public void info(final Marker marker, final String format, final Object... arguments) {
-        actualSlf4jLogger.info(marker, format, arguments);
+        if (isInfoEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(marker, format, arguments);
+        }
     }
 
     @Override
     public void info(final Marker marker, final String msg, final Throwable t) {
-        actualSlf4jLogger.info(marker, msg, t);
+        if (isInfoEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.info(marker, msg, t);
+        }
     }
 
     @Override
@@ -236,27 +335,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void warn(final String msg) {
-        actualSlf4jLogger.warn(msg);
+        if (isWarnEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(msg);
+        }
     }
 
     @Override
     public void warn(final String format, final Object arg) {
-        actualSlf4jLogger.warn(format, arg);
+        if (isWarnEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(format, arg);
+        }
     }
 
     @Override
     public void warn(final String format, final Object... arguments) {
-        actualSlf4jLogger.warn(format, arguments);
+        if (isWarnEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(format, arguments);
+        }
     }
 
     @Override
     public void warn(final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.warn(format, arg1, arg2);
+        if (isWarnEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(format, arg1, arg2);
+        }
     }
 
     @Override
     public void warn(final String msg, final Throwable t) {
-        actualSlf4jLogger.warn(msg, t);
+        if (isWarnEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(msg, t);
+        }
     }
 
     @Override
@@ -266,27 +380,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void warn(final Marker marker, final String msg) {
-        actualSlf4jLogger.warn(marker, msg);
+        if (isWarnEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(marker, msg);
+        }
     }
 
     @Override
     public void warn(final Marker marker, final String format, final Object arg) {
-        actualSlf4jLogger.warn(marker, format, arg);
+        if (isWarnEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(marker, format, arg);
+        }
     }
 
     @Override
     public void warn(final Marker marker, final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.warn(marker, format, arg1, arg2);
+        if (isWarnEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(marker, format, arg1, arg2);
+        }
     }
 
     @Override
     public void warn(final Marker marker, final String format, final Object... arguments) {
-        actualSlf4jLogger.warn(marker, format, arguments);
+        if (isWarnEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(marker, format, arguments);
+        }
     }
 
     @Override
     public void warn(final Marker marker, final String msg, final Throwable t) {
-        actualSlf4jLogger.warn(marker, msg, t);
+        if (isWarnEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.warn(marker, msg, t);
+        }
     }
 
     @Override
@@ -296,27 +425,42 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void error(final String msg) {
-        actualSlf4jLogger.error(msg);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(msg);
+        }
     }
 
     @Override
     public void error(final String format, final Object arg) {
-        actualSlf4jLogger.error(format, arg);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(format, arg);
+        }
     }
 
     @Override
     public void error(final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.error(format, arg1, arg2);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(format, arg1, arg2);
+        }
     }
 
     @Override
     public void error(final String format, final Object... arguments) {
-        actualSlf4jLogger.error(format, arguments);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(format, arguments);
+        }
     }
 
     @Override
     public void error(final String msg, final Throwable t) {
-        actualSlf4jLogger.error(msg, t);
+        if (isErrorEnabled()) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(msg, t);
+        }
     }
 
     @Override
@@ -326,32 +470,59 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void error(final Marker marker, final String msg) {
-        actualSlf4jLogger.error(marker, msg);
+        if (isErrorEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(marker, msg);
+        }
     }
 
     @Override
     public void error(final Marker marker, final String format, final Object arg) {
-        actualSlf4jLogger.error(marker, format, arg);
+        if (isErrorEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(marker, format, arg);
+        }
     }
 
     @Override
     public void error(final Marker marker, final String format, final Object arg1, final Object arg2) {
-        actualSlf4jLogger.error(marker, format, arg1, arg2);
+        if (isErrorEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(marker, format, arg1, arg2);
+        }
     }
 
     @Override
     public void error(final Marker marker, final String format, final Object... arguments) {
-        actualSlf4jLogger.error(marker, format, arguments);
+        if (isErrorEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(marker, format, arguments);
+        }
     }
 
     @Override
     public void error(final Marker marker, final String msg, final Throwable t) {
-        actualSlf4jLogger.error(marker, msg, t);
+        if (isErrorEnabled(marker)) {
+            putCorrelationIdToMdc();
+            actualSlf4jLogger.error(marker, msg, t);
+        }
+    }
+
+    @Override
+    public DefaultAutoCloseableSlf4jLogger setCorrelationId(@Nullable final CharSequence correlationId) {
+        this.correlationId = correlationId;
+        return this;
+    }
+
+    @Override
+    public void discardCorrelationId() {
+        correlationId = null;
+        LogUtil.removeCorrelationId();
     }
 
     @Override
     public void close() {
-        LogUtil.removeCorrelationId();
+        discardCorrelationId();
     }
 
 }

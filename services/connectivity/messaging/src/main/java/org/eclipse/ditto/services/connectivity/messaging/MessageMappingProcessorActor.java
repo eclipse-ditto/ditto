@@ -140,7 +140,7 @@ public final class MessageMappingProcessorActor
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
     private final ConnectionId connectionId;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef proxyActor;
     private final ActorRef connectionActor;
     private final MappingConfig mappingConfig;
     private final AcknowledgementConfig acknowledgementConfig;
@@ -154,7 +154,7 @@ public final class MessageMappingProcessorActor
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
 
     @SuppressWarnings("unused")
-    private MessageMappingProcessorActor(final ActorRef conciergeForwarder,
+    private MessageMappingProcessorActor(final ActorRef proxyActor,
             final ActorRef clientActor,
             final MessageMappingProcessor messageMappingProcessor,
             final Connection connection,
@@ -163,7 +163,7 @@ public final class MessageMappingProcessorActor
 
         super(OutboundSignal.class);
 
-        this.conciergeForwarder = conciergeForwarder;
+        this.proxyActor = proxyActor;
         this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connection.getId();
@@ -192,7 +192,7 @@ public final class MessageMappingProcessorActor
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param clientActor the client actor that created this mapping actor
      * @param processor the MessageMappingProcessor to use.
      * @param connection the connection
@@ -200,14 +200,14 @@ public final class MessageMappingProcessorActor
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef conciergeForwarder,
+    public static Props props(final ActorRef proxyActor,
             final ActorRef clientActor,
             final MessageMappingProcessor processor,
             final Connection connection,
             final ActorRef connectionActor,
             final int processorPoolSize) {
 
-        return Props.create(MessageMappingProcessorActor.class, conciergeForwarder, clientActor, processor,
+        return Props.create(MessageMappingProcessorActor.class, proxyActor, clientActor, processor,
                 connection, connectionActor, processorPoolSize)
                 .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
@@ -294,7 +294,7 @@ public final class MessageMappingProcessorActor
             sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
         } else {
             // ackregator started
-            conciergeForwarder.tell(signal, ackregator.orElseThrow());
+            proxyActor.tell(signal, ackregator.orElseThrow());
         }
     }
 
@@ -359,7 +359,7 @@ public final class MessageMappingProcessorActor
                         getSelf().tell(new AcksRequestingSignal(signal, sender), ActorRef.noSender());
                         return Source.single(signal);
                     } else {
-                        conciergeForwarder.tell(signal, self);
+                        proxyActor.tell(signal, self);
                     }
                     return Source.empty();
                 })
@@ -643,11 +643,7 @@ public final class MessageMappingProcessorActor
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
                     // the above throws an exception if signal id enforcement fails
 
-                    // This message is important to check if a command is accepted for a specific connection, as this happens
-                    // quite a lot this is going to the debug level. Use best with a connection-id filter.
-                    logger.withCorrelationId(adjustedSignal)
-                            .debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
-                                    adjustedSignal.getType());
+
                     return Source.single(adjustedSignal);
                 })
                 .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
@@ -1018,7 +1014,7 @@ public final class MessageMappingProcessorActor
      * @param signal the signal.
      * @return whether it requires acknowledgements.
      */
-    private static boolean areAcknowledgementsRequested(final Signal signal) {
+    private static boolean areAcknowledgementsRequested(final Signal<?> signal) {
         return (signal instanceof ThingModifyCommand) &&
                 !isLiveSignal(signal) &&
                 containsAcknowledgementRequests(signal);

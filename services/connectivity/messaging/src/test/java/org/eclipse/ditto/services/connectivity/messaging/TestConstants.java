@@ -814,37 +814,37 @@ public final class TestConstants {
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final DittoProtocolSub dittoProtocolSub) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                 mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                 clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder) {
+            final ActorRef proxyActor) {
 
-        return createConnectionSupervisorActor(connectionId, actorSystem, conciergeForwarder,
+        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                 mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef pubSubMediator) {
-        final Props props = ConnectionSupervisorActor.props(dittoProtocolSub, conciergeForwarder,
+        final Props props = ConnectionSupervisorActor.props(dittoProtocolSub, proxyActor,
                 clientActorPropsFactory, null, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
@@ -935,15 +935,15 @@ public final class TestConstants {
         return new AbstractMap.SimpleImmutableEntry<>(key, value);
     }
 
-    public static final class ConciergeForwarderActorMock extends AbstractActor {
+    public static final class ProxyActorMock extends AbstractActor {
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-        private ConciergeForwarderActorMock() {
+        private ProxyActorMock() {
         }
 
         public static Props props() {
-            return Props.create(ConciergeForwarderActorMock.class);
+            return Props.create(ProxyActorMock.class);
         }
 
         @Override

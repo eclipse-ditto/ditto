@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - release-*
 
   # Run build for any PR
   pull_request:

@@ -306,7 +306,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACKS);
         return jsonValueArray.stream()
                 .map(JsonValue::asString)
-                .filter(string -> !string.isEmpty())
                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }

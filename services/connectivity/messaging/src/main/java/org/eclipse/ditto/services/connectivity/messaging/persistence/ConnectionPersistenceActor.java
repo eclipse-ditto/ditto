@@ -155,7 +155,7 @@ public final class ConnectionPersistenceActor
     private static final int CLIENT_ACTORS_PER_NODE = 1;
 
     private final DittoProtocolSub dittoProtocolSub;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     private final int clientActorsPerNode;
     private final ConnectivityCommandInterceptor commandValidator;
@@ -176,10 +176,11 @@ public final class ConnectionPersistenceActor
     private final MonitoringConfig monitoringConfig;
 
     private int subscriptionCounter = 0;
+    private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
             final int clientActorsPerNode) {
@@ -187,7 +188,7 @@ public final class ConnectionPersistenceActor
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
         this.dittoProtocolSub = dittoProtocolSub;
-        this.conciergeForwarder = conciergeForwarder;
+        this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
 
         final ActorSystem actorSystem = getContext().getSystem();
@@ -198,7 +199,8 @@ public final class ConnectionPersistenceActor
 
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
-                        connectivityConfig.getMappingConfig().getMapperLimitsConfig(),
+                        connectivityConfig,
+                        actorSystem.log(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(),
@@ -207,7 +209,7 @@ public final class ConnectionPersistenceActor
                         HttpPushValidator.newInstance());
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, getSelf(), connectionValidator,
+                new DittoConnectivityCommandValidator(propsFactory, proxyActor, getSelf(), connectionValidator,
                         actorSystem);
 
         if (customCommandValidator != null) {
@@ -238,18 +240,18 @@ public final class ConnectionPersistenceActor
      *
      * @param connectionId the connection ID.
      * @param dittoProtocolSub Ditto protocol sub access.
-     * @param conciergeForwarder proxy of concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, conciergeForwarder,
+        return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, proxyActor,
                 propsFactory, commandValidator, CLIENT_ACTORS_PER_NODE);
     }
 
@@ -617,13 +619,19 @@ public final class ConnectionPersistenceActor
 
         // remove previous subscriptions.
         // with high probability, unnecessary changes won't propagate to other cluster nodes.
+        log.debug("unsubscribe from ditto pubsub");
         dittoProtocolSub.removeSubscriber(getSelf());
+        pubSubStatus = ConnectivityStatus.CLOSED;
 
         if (isDesiredStateOpen()) {
             startEnabledLoggingChecker();
             updateLoggingIfEnabled();
             dittoProtocolSub.subscribe(toStreamingTypes(getUniqueTopics(entity)), getTargetAuthSubjects(), getSelf())
-                    .thenAccept(done -> getSelf().tell(command, ActorRef.noSender()));
+                    .thenAccept(done -> {
+                        log.debug("subscription to ditto pubsub succeeded");
+                        pubSubStatus = ConnectivityStatus.OPEN;
+                        getSelf().tell(command, ActorRef.noSender());
+                    });
         } else {
             interpretStagedCommand(command);
         }
@@ -837,7 +845,7 @@ public final class ConnectionPersistenceActor
         final Duration timeout =
                 Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
-                command.getDittoHeaders(), timeout);
+                command.getDittoHeaders(), timeout, pubSubStatus);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 
@@ -905,7 +913,7 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, conciergeForwarder, getSelf());
+            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode, true,
                             Collections.singleton(CLUSTER_ROLE));

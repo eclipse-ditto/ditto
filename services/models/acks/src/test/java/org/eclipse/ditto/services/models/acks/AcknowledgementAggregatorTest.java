@@ -25,22 +25,17 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -233,7 +228,7 @@ public final class AcknowledgementAggregatorTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The entity ID <%s> differs from the expected <%s>!",
+                .withMessage("The entity ID <%s> is not compatible with <%s>!",
                         unexpectedEntityId, ENTITY_ID)
                 .withNoCause();
     }
@@ -281,50 +276,6 @@ public final class AcknowledgementAggregatorTest {
             softly.assertThat(underTest.isSuccessful())
                     .as("is successful")
                     .isTrue();
-        }
-    }
-
-    @Test
-    public void addReceivedTwinPersistedAcknowledgementFromThingCommandResponse() {
-        final AcknowledgementAggregator underTest =
-                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
-
-        final Thing thing = Thing.newBuilder()
-                .setId(ENTITY_ID)
-                .setPolicyId(PolicyId.of(ENTITY_ID))
-                .setAttribute(JsonPointer.of("foo"), JsonValue.of(42))
-                .build();
-        final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, dittoHeaders);
-
-        underTest.addAcknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED));
-        underTest.addReceivedTwinPersistedAcknowledgment(createThingResponse);
-
-        final Acknowledgements acknowledgements = underTest.getAggregatedAcknowledgements(dittoHeaders);
-
-        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(acknowledgements.getMissingAcknowledgementLabels())
-                    .as("no missing requested ACK labels")
-                    .isEmpty();
-            softly.assertThat(acknowledgements.getFailedAcknowledgements())
-                    .as("no failed ACKs")
-                    .isEmpty();
-            softly.assertThat(underTest.isSuccessful())
-                    .as("is successful")
-                    .isTrue();
-            softly.assertThat(acknowledgements.getStatusCode())
-                    .as("is of status 201")
-                    .isEqualByComparingTo(HttpStatusCode.CREATED);
-            softly.assertThat(acknowledgements.getSuccessfulAcknowledgements().stream()
-                    .map(Acknowledgement::getStatusCode)
-            )
-                    .as("contains acknowlegement with status 201")
-                    .contains(HttpStatusCode.CREATED);
-            softly.assertThat(acknowledgements.getSuccessfulAcknowledgements().stream()
-                    .map(Acknowledgement::getEntity)
-                    .map(entity -> entity.get().asObject())
-            )
-                    .as("contains expected created Thing JSON")
-                    .contains(thing.toJson());
         }
     }
 

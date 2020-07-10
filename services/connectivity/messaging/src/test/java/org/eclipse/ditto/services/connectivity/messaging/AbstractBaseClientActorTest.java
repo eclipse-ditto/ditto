@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -85,14 +86,13 @@ public abstract class AbstractBaseClientActorTest {
             .topics(Topic.TWIN_EVENTS, Topic.values())
             .build();
 
-    protected static Connection getHttpConnectionToLocalBinding(final boolean isSecure, final int port) {
+    protected static ConnectionBuilder getHttpConnectionBuilderToLocalBinding(final boolean isSecure, final int port) {
         return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
                 ConnectionType.HTTP_PUSH,
                 ConnectivityStatus.CLOSED,
                 (isSecure ? "https" : "http") + "://127.0.0.1:" + port)
                 .targets(singletonList(HTTP_TARGET))
-                .validateCertificate(isSecure)
-                .build();
+                .validateCertificate(isSecure);
     }
 
     private static Throwable getEventualCause(final Throwable error) {
@@ -188,7 +188,7 @@ public abstract class AbstractBaseClientActorTest {
     @Test
     public void testTLSConnectionWithoutCertificateCheck() {
         // GIVEN: server has a self-signed certificate (bind port number is random; connection port number is ignored)
-        final Connection serverConnection = getHttpConnectionToLocalBinding(true, 443);
+        final Connection serverConnection = getHttpConnectionBuilderToLocalBinding(true, 443).build();
         final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
@@ -295,7 +295,7 @@ public abstract class AbstractBaseClientActorTest {
 
     protected abstract Connection getConnection(final boolean isSecure);
 
-    protected abstract Props createClientActor(final ActorRef conciergeForwarder, final Connection connection);
+    protected abstract Props createClientActor(final ActorRef proxyActor, final Connection connection);
 
     protected abstract ActorSystem getActorSystem();
 }

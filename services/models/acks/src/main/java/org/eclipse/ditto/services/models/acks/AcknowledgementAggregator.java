@@ -24,7 +24,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -33,13 +32,11 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -64,7 +61,6 @@ public final class AcknowledgementAggregator {
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
     private final EntityIdWithType entityId;
-    private final Consumer<EntityIdWithType> entityIdValidator;
     private final String correlationId;
     private final HeaderTranslator headerTranslator;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
@@ -72,13 +68,11 @@ public final class AcknowledgementAggregator {
     private final Set<AcknowledgementLabel> expectedLabels;
 
     private AcknowledgementAggregator(final EntityIdWithType entityId,
-            final Consumer<EntityIdWithType> entityIdValidator,
             final CharSequence correlationId,
             final Duration timeout,
             final HeaderTranslator headerTranslator) {
 
         this.entityId = checkNotNull(entityId, "entityId");
-        this.entityIdValidator = entityIdValidator;
         this.correlationId = argumentNotEmpty(correlationId).toString();
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
@@ -99,13 +93,11 @@ public final class AcknowledgementAggregator {
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final EntityIdWithType entityId,
-            final CharSequence correlationId, final Duration timeout, final HeaderTranslator headerTranslator) {
+            final CharSequence correlationId,
+            final Duration timeout,
+            final HeaderTranslator headerTranslator) {
 
-        return new AcknowledgementAggregator(entityId,
-                EntityIdWithType.createEqualityValidator(entityId),
-                correlationId,
-                timeout,
-                headerTranslator);
+        return new AcknowledgementAggregator(entityId, correlationId, timeout, headerTranslator);
     }
 
     /**
@@ -121,13 +113,11 @@ public final class AcknowledgementAggregator {
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
     public static AcknowledgementAggregator getInstance(final NamespacedEntityIdWithType entityId,
-            final CharSequence correlationId, final Duration timeout, final HeaderTranslator headerTranslator) {
+            final CharSequence correlationId,
+            final Duration timeout,
+            final HeaderTranslator headerTranslator) {
 
-        return new AcknowledgementAggregator(entityId,
-                EntityIdWithType.createEqualityValidator(entityId),
-                correlationId,
-                timeout,
-                headerTranslator);
+        return new AcknowledgementAggregator(entityId, correlationId, timeout, headerTranslator);
     }
 
     /**
@@ -156,10 +146,8 @@ public final class AcknowledgementAggregator {
 
         // This Acknowledgement was not actually received, thus it cannot have "real" DittoHeaders.
         final DittoRuntimeException timeoutException = AcknowledgementRequestTimeoutException.newBuilder(timeout)
-                .dittoHeaders(DittoHeaders.newBuilder()
-                        .correlationId(correlationId)
-                        .build()
-                ).build();
+                .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                .build();
         return Acknowledgement.of(acknowledgementLabel, entityId, timeoutException.getStatusCode(),
                 timeoutException.getDittoHeaders(), timeoutException.toJson());
     }
@@ -176,7 +164,7 @@ public final class AcknowledgementAggregator {
     }
 
     /**
-     * Creates an {@code Acknowledgement} with label {@link DittoAcknowledgementLabel#TWIN_PERSISTED} from the passed
+     * Creates an {@code Acknowledgement} with label {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED} from the passed
      * {@code thingCommandResponse} and adds it to the received acknowledgements.
      *
      * @param thingCommandResponse the thing command response to create the twin persisted acknowledgement from.
@@ -190,7 +178,7 @@ public final class AcknowledgementAggregator {
     public void addReceivedTwinPersistedAcknowledgment(final ThingCommandResponse<?> thingCommandResponse) {
 
         checkNotNull(thingCommandResponse, "thingCommandResponse");
-        final DittoHeaders acknowledgementHeaders = getFilteredAcknowledgementHeaders(thingCommandResponse);
+        final DittoHeaders acknowledgementHeaders = filterHeaders(thingCommandResponse.getDittoHeaders());
 
         @Nullable JsonValue payload = null;
         if (thingCommandResponse instanceof WithOptionalEntity) {
@@ -248,7 +236,7 @@ public final class AcknowledgementAggregator {
         validateCorrelationId(acknowledgement);
         validateEntityId(acknowledgement);
         if (isExpected(acknowledgement)) {
-            final DittoHeaders acknowledgementHeaders = getFilteredAcknowledgementHeaders(acknowledgement);
+            final DittoHeaders acknowledgementHeaders = filterHeaders(acknowledgement.getDittoHeaders());
             final Acknowledgement adjustedAck = acknowledgement.setDittoHeaders(acknowledgementHeaders);
             final AcknowledgementLabel label = adjustedAck.getLabel();
             acknowledgementMap.put(label, adjustedAck);
@@ -272,7 +260,7 @@ public final class AcknowledgementAggregator {
     }
 
     private void validateEntityId(final Acknowledgement acknowledgement) {
-        entityIdValidator.accept(acknowledgement.getEntityId());
+        entityId.isCompatibleOrThrow(acknowledgement.getEntityId());
     }
 
     private boolean isExpected(final Acknowledgement acknowledgement) {
@@ -280,11 +268,8 @@ public final class AcknowledgementAggregator {
         return expectedLabels.contains(ackLabel);
     }
 
-    private DittoHeaders getFilteredAcknowledgementHeaders(final WithDittoHeaders<?> withDittoHeaders) {
-        final DittoHeaders externalHeaders =
-                DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(withDittoHeaders.getDittoHeaders()));
-        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder(externalHeaders);
-        return headersBuilder.build();
+    private DittoHeaders filterHeaders(final DittoHeaders dittoHeaders) {
+        return DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders));
     }
 
     /**

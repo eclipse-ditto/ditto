@@ -13,9 +13,11 @@
 package org.eclipse.ditto.model.base.common;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An enumeration of HTTP status codes.
@@ -387,9 +389,8 @@ public enum HttpStatusCode {
      */
     NETWORK_CONNECT_TIMEOUT(599);
 
-
-    // Creation of map for inverted HttpStatusCode Enum to optimize iterating over enum with theStatusCodeValue
-    private static final Map<Integer, HttpStatusCode> STATUS_CODES_MAP = createStatusCodesMap();
+    private static final Map<Integer, HttpStatusCode> STATUS_CODE_INDEX = Collections.unmodifiableMap(
+            Stream.of(values()).collect(Collectors.toMap(HttpStatusCode::toInt, Function.identity())));
 
     private final int statusCodeValue;
 
@@ -405,8 +406,7 @@ public enum HttpStatusCode {
      * @return the HTTP status code which is associated with {@code statusCodeAsInt} or an empty optional.
      */
     public static Optional<HttpStatusCode> forInt(final int statusCodeAsInt) {
-        return Optional.ofNullable(STATUS_CODES_MAP.get(statusCodeAsInt));
-
+        return Optional.ofNullable(STATUS_CODE_INDEX.get(statusCodeAsInt));
     }
 
     /**
@@ -447,11 +447,4 @@ public enum HttpStatusCode {
                 statusCodeValue <= NETWORK_CONNECT_TIMEOUT.statusCodeValue;
     }
 
-    private static Map<Integer, HttpStatusCode> createStatusCodesMap() {
-        final HashMap<Integer, HttpStatusCode> map = new HashMap<>();
-        for (HttpStatusCode userType : values()) {
-            map.put(userType.toInt(), userType);
-        }
-        return Collections.unmodifiableMap(map);
-    }
 }

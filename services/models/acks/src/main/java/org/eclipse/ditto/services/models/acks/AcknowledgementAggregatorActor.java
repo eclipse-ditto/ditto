@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -32,6 +33,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
+import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -64,7 +67,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final ThingModifyCommand<?> thingModifyCommand,
-            final AcknowledgementConfig acknowledgementConfig, final HeaderTranslator headerTranslator,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
         this.responseSignalConsumer = responseSignalConsumer;
@@ -75,25 +79,13 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                         getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
                 );
 
-        ackregator = createAcknowledgementAggregator(acknowledgementConfig, headerTranslator, correlationId,
-                thingModifyCommand);
-        ackregator.addAcknowledgementRequests(requestCommandHeaders.getAcknowledgementRequests());
-
-        getContext().setReceiveTimeout(
-                requestCommandHeaders.getTimeout().orElse(acknowledgementConfig.getForwarderFallbackTimeout()));
-    }
-
-    private static AcknowledgementAggregator createAcknowledgementAggregator(
-            final AcknowledgementConfig acknowledgementConfig,
-            final HeaderTranslator headerTranslator,
-            final String correlationId,
-            final ThingModifyCommand<?> thingCommand) {
-
-        final DittoHeaders dittoHeaders = thingCommand.getDittoHeaders();
         final Duration timeout =
-                dittoHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
-        return AcknowledgementAggregator.getInstance(thingCommand.getEntityId(), correlationId, timeout,
+                requestCommandHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
+        getContext().setReceiveTimeout(timeout);
+
+        ackregator = AcknowledgementAggregator.getInstance(thingModifyCommand.getEntityId(), correlationId, timeout,
                 headerTranslator);
+        ackregator.addAcknowledgementRequests(requestCommandHeaders.getAcknowledgementRequests());
     }
 
     /**
@@ -183,16 +175,36 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(ThingCommandResponse.class, thingCommandResponse -> {
-                    ackregator.addReceivedTwinPersistedAcknowledgment(thingCommandResponse);
-                    potentiallyCompleteAcknowledgements(thingCommandResponse, thingCommandResponse.getDittoHeaders());
-                })
+                .match(ThingCommandResponse.class, this::handleThingCommandResponse)
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
+    }
+
+    private void handleThingCommandResponse(final ThingCommandResponse<?> thingCommandResponse) {
+        final DittoHeaders dittoHeaders = thingCommandResponse.getDittoHeaders();
+        ackregator.addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(
+                DittoAcknowledgementLabel.TWIN_PERSISTED,
+                thingCommandResponse.getEntityId(),
+                thingCommandResponse.getStatusCode(),
+                dittoHeaders,
+                getPayload(thingCommandResponse).orElse(null)
+        ));
+        potentiallyCompleteAcknowledgements(thingCommandResponse, dittoHeaders);
+    }
+
+    private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
+        final Optional<JsonValue> result;
+        if (thingCommandResponse instanceof WithOptionalEntity) {
+            result = ((WithOptionalEntity) thingCommandResponse).getEntity(
+                    thingCommandResponse.getImplementedSchemaVersion());
+        } else {
+            result = Optional.empty();
+        }
+        return result;
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {

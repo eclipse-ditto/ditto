@@ -116,3 +116,47 @@ Example connection configuration to create a new HTTP connection in order to mak
   }
 }
 ```
+
+## Client-certificate authentication
+
+Ditto supports certificate-based authentication for HTTP connections. Consult 
+[Certificates for Transport Layer Security](connectivity-tls-certificates.html)
+for how to set it up.
+
+Here is an example HTTP connection that checks the server certificate and authenticates by a client certificate.
+
+```json
+{
+  "connection": {
+    "id": "http-example-connection-123",
+    "connectionType": "http-push",
+    "connectionStatus": "open",
+    "failoverEnabled": true,
+    "uri": "https://localhost:80",
+    "validateCertificates": true,
+    "ca": "-----BEGIN CERTIFICATE-----\n<localhost certificate>\n-----END CERTIFICATE-----",
+    "credentials": {
+      "type": "client-cert",
+      "cert": "-----BEGIN CERTIFICATE-----\n<signed client certificate>\n-----END CERTIFICATE-----",
+      "key": "-----BEGIN PRIVATE KEY-----\n<client private key>\n-----END PRIVATE KEY-----"
+    },
+    "specificConfig": {
+      "parallelism": "2"
+    },
+    "sources": [],
+    "targets": [
+      {
+        "address": "PUT:/api/2/some-entity/{%raw%}{{ thing:id }}{%endraw%}",
+        "topics": [
+          "_/_/things/twin/events"
+        ],
+        "authorizationContext": ["ditto:outbound-auth-subject", "..."],
+        "headerMapping": {
+          "content-type": "{%raw%}{{ header:content-type }}{%endraw%}",
+          "api-key": "this-is-a-secret-api-key-to-send-along"
+         }
+      }
+    ]
+  }
+}
+```

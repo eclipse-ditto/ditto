@@ -316,10 +316,10 @@ public abstract class AbstractConsumerActorTest<M> {
 
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
-            final TestProbe concierge = TestProbe.apply(actorSystem);
+            final TestProbe proxyActor = TestProbe.apply(actorSystem);
             final TestProbe clientActor = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
+            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), proxyActor.ref());
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, payloadMapping));
 
@@ -327,12 +327,12 @@ public abstract class AbstractConsumerActorTest<M> {
 
             if (forwardedToConcierge >= 0) {
                 for (int i = 0; i < forwardedToConcierge; i++) {
-                    final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
+                    final ModifyThing modifyThing = proxyActor.expectMsgClass(ModifyThing.class);
                     assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                     verifySignal.accept(modifyThing);
                 }
             } else {
-                concierge.expectNoMessage(ONE_SECOND);
+                proxyActor.expectNoMessage(ONE_SECOND);
             }
 
             if (respondedToCaller >= 0) {
@@ -348,7 +348,7 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor,
-            final ActorRef conciergeForwarderActor) {
+            final ActorRef proxyActor) {
 
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
@@ -370,7 +370,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                         connectivityConfig, protocolAdapterProvider, logger);
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(conciergeForwarderActor, clientActor, mappingProcessor,
+                MessageMappingProcessorActor.props(proxyActor, clientActor, mappingProcessor,
                         CONNECTION, connectionActorProbe.ref(), 43);
 
         return actorSystem.actorOf(messageMappingProcessorProps,

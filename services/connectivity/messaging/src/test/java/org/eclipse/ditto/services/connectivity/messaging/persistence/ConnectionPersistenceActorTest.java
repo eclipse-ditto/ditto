@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
@@ -140,7 +142,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
     private ActorSystem actorSystem;
     private ActorRef pubSubMediator;
-    private ActorRef conciergeForwarder;
+    private ActorRef proxyActor;
     private ConnectionId connectionId;
     private CreateConnection createConnection;
     private CreateConnection createClosedConnectionWith2Clients;
@@ -181,7 +183,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void init() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+        proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId);
         final Connection closedConnectionWith2Clients =
@@ -244,7 +246,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            proxyActor);
 
             underTest.tell(testConnection, getRef());
 
@@ -259,7 +261,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            proxyActor);
 
             underTest.tell(testConnectionCausingFailure, getRef());
 
@@ -274,7 +276,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            proxyActor);
 
             underTest.tell(testConnectionCausingException, getRef());
 
@@ -289,7 +291,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            proxyActor);
 
             underTest.tell(deleteConnection, getRef());
 
@@ -304,7 +306,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
-                    connectionId, actorSystem, conciergeForwarder,
+                    connectionId, actorSystem, proxyActor,
                     (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
                     TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
                     pubSubMediator
@@ -337,7 +339,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
-                    connectionId, actorSystem, conciergeForwarder,
+                    connectionId, actorSystem, proxyActor,
                     (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
                     TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
                     pubSubMediator
@@ -368,7 +370,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -405,7 +407,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe clientActorMock = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(clientActorMock.ref()));
             watch(underTest);
 
@@ -431,7 +433,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe clientActorMock = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(clientActorMock.ref()));
             watch(underTest);
 
@@ -456,7 +458,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -475,7 +477,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://invalid:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 entry(createClosedConnectionWithUnknownHost,
                         ConnectionPersistenceActorTest::assertHostInvalid));
     }
@@ -486,7 +488,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 TestConnection.of(closedConnection.toBuilder().uri("amqp://invalid:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
     }
 
@@ -503,7 +505,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
                         .uri("amqp://invalid:1234").build(), DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
                 // modify fails because the new host is invalid
@@ -512,68 +514,67 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
-    public void createClosedConnectionWithBlacklistedHost() {
+    public void createClosedConnectionWithBlockedHost() {
 
-        final CreateConnection createClosedConnectionWithBlacklistedHost =
+        final CreateConnection createClosedConnectionWithBlockedHost =
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
-                entry(createClosedConnectionWithBlacklistedHost,
-                        ConnectionPersistenceActorTest::assertHostBlacklisted));
+        sendCommandWithEnabledBlocklist(
+                entry(createClosedConnectionWithBlockedHost,
+                        ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
     @Test
-    public void testConnectionWithBlacklistedHost() {
+    public void testConnectionWithBlockedHost() {
         final TestConnection testConnectionWithUnknownHost =
                 TestConnection.of(closedConnection.toBuilder().uri("amqp://localhost:1234").build(),
                         DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
-                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlacklisted));
+        sendCommandWithEnabledBlocklist(
+                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
     @Test
-    public void modifyClosedConnectionWithBlacklistedHost() {
+    public void modifyClosedConnectionWithBlockedHost() {
 
         // connection is created with a valid host/ip
         final CreateConnection createClosedConnectionWithValidHost =
                 CreateConnection.of(closedConnection.toBuilder().uri("amqp://8.8.8.8:1234").build(),
                         DittoHeaders.empty());
 
-        // later modified with a blacklisted host
-        final ModifyConnection modifyClosedConnectionWithBlacklistedHost =
+        // later modified with a blocked host
+        final ModifyConnection modifyClosedConnectionWithBlockedHost =
                 ModifyConnection.of(createClosedConnectionWithValidHost.getConnection().toBuilder()
                         .uri("amqp://localhost:1234").build(), DittoHeaders.empty());
 
-        sendCommandWithEnabledBlacklist(
+        sendCommandWithEnabledBlocklist(
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
                 // modify fails because the new host is invalid
-                entry(modifyClosedConnectionWithBlacklistedHost,
-                        ConnectionPersistenceActorTest::assertHostBlacklisted));
+                entry(modifyClosedConnectionWithBlockedHost,
+                        ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
     @SafeVarargs
-    private void sendCommandWithEnabledBlacklist(
+    private void sendCommandWithEnabledBlocklist(
             final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
-        final Config configWithBlacklist =
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blacklisted-hostnames",
+        final Config configWithBlocklist =
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
                         ConfigValueFactory.fromAnyRef("127.0.0.1"));
-        final ActorSystem systemWithBlacklist = ActorSystem.create(getClass().getSimpleName() + "WithBlacklist",
-                configWithBlacklist);
-        final ActorRef pubSubMediator = DistributedPubSub.get(systemWithBlacklist).mediator();
+        final ActorSystem systemWithBlocklist = ActorSystem.create(getClass().getSimpleName() + "WithBlocklist",
+                configWithBlocklist);
+        final ActorRef pubSubMediator = DistributedPubSub.get(systemWithBlocklist).mediator();
         final ActorRef conciergeForwarder =
-                systemWithBlacklist.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+                systemWithBlocklist.actorOf(TestConstants.ProxyActorMock.props());
 
         try {
-            new TestKit(systemWithBlacklist) {{
-                final TestProbe probe = TestProbe.apply(systemWithBlacklist);
+            new TestKit(systemWithBlocklist) {{
+                final TestProbe probe = TestProbe.apply(systemWithBlocklist);
                 final ActorRef underTest =
-                        TestConstants.createConnectionSupervisorActor(connectionId, systemWithBlacklist,
-                                pubSubMediator,
-                                conciergeForwarder,
-                                (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
+                        TestConstants.createConnectionSupervisorActor(connectionId, systemWithBlocklist,
+                                pubSubMediator, proxyActor,
+                                (connection, proxy, connectionActor) -> MockClientActor.props(probe.ref()));
                 watch(underTest);
 
                 for (final Map.Entry<ConnectivityCommand<?>, Consumer<Object>> command : commands) {
@@ -585,7 +586,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 probe.expectNoMessage();
             }};
         } finally {
-            TestKit.shutdownActorSystem(systemWithBlacklist);
+            TestKit.shutdownActorSystem(systemWithBlocklist);
         }
     }
 
@@ -595,7 +596,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         assertThat(exception).hasMessageContaining("The configured host 'invalid' is invalid");
     }
 
-    private static void assertHostBlacklisted(Object response) {
+    private static void assertHostBlocked(Object response) {
         assertThat(response).isInstanceOf(ConnectionConfigurationInvalidException.class);
         final ConnectionConfigurationInvalidException e = (ConnectionConfigurationInvalidException) response;
         assertThat(e).hasMessageContaining("The configured host 'localhost' may not be used for the connection");
@@ -611,7 +612,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -639,7 +640,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -671,7 +672,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId,
                             actorSystem,
-                            conciergeForwarder, (connection, conciergeForwarder, connectionActor) -> {
+                            proxyActor, (connection, proxyActor, connectionActor) -> {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
                             },
@@ -715,7 +716,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe mockClientProbe = TestProbe.apply(actorSystem);
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(mockClientProbe.ref()));
             watch(underTest);
 
@@ -723,21 +724,29 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
+            // wait for open connection of initial creation
+            mockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
+
             // stop actor
             getSystem().stop(underTest);
             expectTerminated(underTest);
 
             // recover actor
-            underTest = Retry.untilSuccess(() ->
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder));
+            final TestProbe recoveredMockClientProbe = TestProbe.apply(actorSystem);
+            underTest = Retry.untilSuccess(
+                    () -> TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            proxyActor, (connection, concierge, connectionActor) -> MockClientActor.props(
+                                    recoveredMockClientProbe.ref())));
 
-            // connection is opened after recovery -> client actor receives OpenConnection command
-            mockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
+            // connection is opened after recovery -> recovered client actor receives OpenConnection command
+            recoveredMockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
 
-            // retrieve connection status
-            underTest.tell(retrieveConnectionStatus, getRef());
-            expectMsg(retrieveConnectionStatusOpenResponse);
+            // poll connection status until status is OPEN
+            final ActorRef recoveredActor = underTest;
+            Awaitility.await().untilAsserted(() -> {
+                recoveredActor.tell(retrieveConnectionStatus, getRef());
+                expectMsg(retrieveConnectionStatusOpenResponse);
+            });
         }};
     }
 
@@ -746,7 +755,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
 
             ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    conciergeForwarder, TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock));
+                    proxyActor, TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock));
             watch(underTest);
 
             // create connection
@@ -768,7 +777,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // recover actor
             underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                    conciergeForwarder);
+                    proxyActor);
 
             expectSubscribe(TWIN_AND_LIVE_EVENTS_AND_MESSAGES, SUBJECTS);
 
@@ -783,7 +792,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            proxyActor);
             watch(underTest);
 
             // create connection
@@ -801,7 +810,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // recover actor
             underTest = Retry.untilSuccess(() ->
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder));
+                            proxyActor));
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -823,7 +832,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            proxyActor);
             watch(underTest);
 
             // create connection
@@ -838,7 +847,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // recover actor
             underTest = Retry.untilSuccess(() ->
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder));
+                            proxyActor));
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -851,8 +860,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
-                            (connection, conciergeForwarder, connectionActor) -> {
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator), proxyActor,
+                            (connection, proxyActor, connectionActor) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             }, null);
@@ -876,7 +885,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator), conciergeForwarder,
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator), proxyActor,
                             mockClientActorPropsFactory,
                             (command, connection) -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
@@ -939,7 +948,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -965,7 +974,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -996,7 +1005,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -1020,7 +1029,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -1056,7 +1065,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -1089,7 +1098,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -1115,15 +1124,18 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
-                            (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
+                            (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
+
+            // Wait until connection is established
+            expectAnySubscribe();
 
             // enable connection logs
             underTest.tell(enableConnectionLogs, getRef());
@@ -1149,7 +1161,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
+                            proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
@@ -1173,14 +1185,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, (connection, connectionActor, conciergeForwarder) ->
-                                    TestActor.props(probe));
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
+                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
-            expectMsgClass(Object.class);
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // Wait until connection is established
+            expectAnySubscribe();
 
             final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of("test-ack");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -1211,7 +1226,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final ConnectionId myConnectionId = ConnectionId.of(UUID.randomUUID().toString());
             final TestProbe clientActorsProbe = TestProbe.apply("clientActors", actorSystem);
-            final TestProbe conciergeForwarderProbe = TestProbe.apply("conciergeForwarder", actorSystem);
+            final TestProbe proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
             // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
             final ClientActorPropsFactory propsFactory = (a, b, c) -> Props.create(AbstractActor.class, () ->
                     new AbstractActor() {
@@ -1228,7 +1243,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final DittoProtocolSub dittoProtocolSub = Mockito.mock(DittoProtocolSub.class);
             when(dittoProtocolSub.subscribe(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
             final Props connectionActorProps = Props.create(ConnectionPersistenceActor.class, () ->
-                    new ConnectionPersistenceActor(myConnectionId, dittoProtocolSub, conciergeForwarderProbe.ref(),
+                    new ConnectionPersistenceActor(myConnectionId, dittoProtocolSub, proxyActorProbe.ref(),
                             propsFactory, null, 999
                     ));
 
@@ -1277,14 +1292,18 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder,
-                            (connection, conciergeForwarder, connectionActor) -> TestActor.props(probe));
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
+                            proxyActor,
+                            (connection, conciergeForwarder, connectionActor) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
-            expectMsgClass(Object.class);
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // wait until connection actor is subscribed otherwise the signal won't be forwarded
+            expectAnySubscribe();
 
             underTest.tell(signal, getRef());
 
@@ -1346,6 +1365,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .subscribe(argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
                         eq(subjects),
                         any(ActorRef.class));
+    }
+
+    // expect any call to subscribe, just to wait for the subscription
+    private void expectAnySubscribe() {
+        verify(dittoProtocolSubMock, timeout(500)).subscribe(anyCollection(), anySet(), any(ActorRef.class));
     }
 
     private void expectRemoveSubscriber(final int howManyTimes) {

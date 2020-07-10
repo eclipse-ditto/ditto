@@ -40,7 +40,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private static final String CONFIG_PATH = "connection";
 
     private final Duration clientActorAskTimeout;
-    private final Collection<String> blacklistedHostnames;
+    private final Collection<String> allowedHostnames;
+    private final Collection<String> blockedHostnames;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
@@ -53,9 +54,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
-        final String blacklistedHostnamesStr =
-                config.getString(ConnectionConfigValue.BLACKLISTED_HOSTNAMES.getConfigPath());
-        blacklistedHostnames = Collections.unmodifiableCollection(Arrays.asList(blacklistedHostnamesStr.split(",")));
+        allowedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.ALLOWED_HOSTNAMES);
+        blockedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_HOSTNAMES);
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
@@ -79,14 +79,25 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, ConnectionConfigValue.values()));
     }
 
+    private Collection<String> fromCommaSeparatedString(final ConfigWithFallback config,
+            final ConnectionConfigValue configValue) {
+        final String commaSeparated = config.getString(configValue.getConfigPath());
+        return Collections.unmodifiableCollection(Arrays.asList(commaSeparated.split(",")));
+    }
+
     @Override
     public Duration getClientActorAskTimeout() {
         return clientActorAskTimeout;
     }
 
     @Override
-    public Collection<String> getBlacklistedHostnames() {
-        return blacklistedHostnames;
+    public Collection<String> getAllowedHostnames() {
+        return allowedHostnames;
+    }
+
+    @Override
+    public Collection<String> getBlockedHostnames() {
+        return blockedHostnames;
     }
 
     @Override
@@ -144,7 +155,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         }
         final DefaultConnectionConfig that = (DefaultConnectionConfig) o;
         return Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
-                Objects.equals(blacklistedHostnames, that.blacklistedHostnames) &&
+                Objects.equals(allowedHostnames, that.allowedHostnames) &&
+                Objects.equals(blockedHostnames, that.blockedHostnames) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
@@ -158,7 +170,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientActorAskTimeout, blacklistedHostnames, supervisorConfig, snapshotConfig,
+        return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
                 activityCheckConfig, acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
                 httpPushConfig);
     }
@@ -167,7 +179,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "clientActorAskTimeout=" + clientActorAskTimeout +
-                ", blacklistedHostnames=" + blacklistedHostnames +
+                ", allowedHostnames=" + allowedHostnames +
+                ", blockedHostnames=" + blockedHostnames +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +

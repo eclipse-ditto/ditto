@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -48,6 +49,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -59,6 +61,7 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -227,20 +230,19 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     rememberResponseLocationUri(commandResponse);
 
                     ThingModifyCommandResponse<?> enhancedResponse = commandResponse;
+                    final DittoHeaders dittoHeaders = commandResponse.getDittoHeaders();
                     if (null != responseLocationUri) {
                         final Location location = Location.create(responseLocationUri);
-                        enhancedResponse = commandResponse.setDittoHeaders(
-                                commandResponse.getDittoHeaders().toBuilder()
-                                        .putHeader(location.lowercaseName(), location.value())
-                                        .build()
-                        );
+                        enhancedResponse = commandResponse.setDittoHeaders(dittoHeaders.toBuilder()
+                                .putHeader(location.lowercaseName(), location.value())
+                                .build());
                     }
-                    ackregator.addReceivedTwinPersistedAcknowledgment(enhancedResponse);
-                    potentiallyCompleteAcknowledgements(commandResponse.getDittoHeaders(), ackregator);
+                    ackregator.addReceivedAcknowledgment(getAcknowledgement(enhancedResponse));
+                    potentiallyCompleteAcknowledgements(dittoHeaders, ackregator);
                 })
                 .match(ThingErrorResponse.class, errorResponse -> {
                     logger.withCorrelationId(errorResponse).debug("Got error response <{}>.", errorResponse.getType());
-                    ackregator.addReceivedTwinPersistedAcknowledgment(errorResponse);
+                    ackregator.addReceivedAcknowledgment(getAcknowledgement(errorResponse));
                     potentiallyCompleteAcknowledgements(errorResponse.getDittoHeaders(), ackregator);
                 })
                 .match(Acknowledgement.class, ack -> {
@@ -266,6 +268,25 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
             responseLocationUri = getUriForLocationHeader(httpRequest, commandResponse);
         }
+    }
+
+    private static Acknowledgement getAcknowledgement(final ThingCommandResponse<?> thingCommandResponse) {
+        return ThingAcknowledgementFactory.newAcknowledgement(DittoAcknowledgementLabel.TWIN_PERSISTED,
+                thingCommandResponse.getEntityId(),
+                thingCommandResponse.getStatusCode(),
+                thingCommandResponse.getDittoHeaders(),
+                getPayload(thingCommandResponse).orElse(null));
+    }
+
+    private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
+        final Optional<JsonValue> result;
+        if (thingCommandResponse instanceof WithOptionalEntity) {
+            result = ((WithOptionalEntity) thingCommandResponse).getEntity(
+                    thingCommandResponse.getImplementedSchemaVersion());
+        } else {
+            result = Optional.empty();
+        }
+        return result;
     }
 
     private void potentiallyCompleteAcknowledgements(final DittoHeaders dittoHeaders,

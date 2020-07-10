@@ -68,11 +68,11 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     @Nullable private ActorRef publisherActor;
 
     AbstractMqttClientActor(final Connection connection,
-            @Nullable final ActorRef conciergeForwarder,
+            @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
             final HiveMqttClientFactory<Q, ?> clientFactory) {
 
-        super(connection, conciergeForwarder, connectionActor);
+        super(connection, proxyActor, connectionActor);
         this.connection = connection;
         this.clientFactory = clientFactory;
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);

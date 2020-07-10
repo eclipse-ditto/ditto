@@ -12,7 +12,7 @@
     <#return "## " + p.name + " (" + p.version + ")"
         + "\n\n * Maven coordinates: `" + p.groupId + ":" + p.artifactId + ":" + p.version + "`"
         + "\n * License: " + licenseFormat(licenses)
-        + "\n * Project: " + p.url
+        + "\n * Project: " + ((p.url)!"not declared")
         + "\n * Source: " + ((p.scm.url)!"not declared")
             ?replace('(git@|scm:git:git://|git://|http://)','https://','r')
             ?replace('.git','')

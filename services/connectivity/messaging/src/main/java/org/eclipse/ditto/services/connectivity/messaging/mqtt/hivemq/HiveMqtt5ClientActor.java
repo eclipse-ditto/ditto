@@ -39,44 +39,44 @@ public final class HiveMqtt5ClientActor
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection,
-            final ActorRef conciergeForwarder,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final HiveMqtt5ClientFactory clientFactory) {
 
-        super(connection, conciergeForwarder, connectionActor, clientFactory);
+        super(connection, proxyActor, connectionActor, clientFactory);
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    private HiveMqtt5ClientActor(final Connection connection, final ActorRef conciergeForwarder,
+    private HiveMqtt5ClientActor(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor) {
-        this(connection, conciergeForwarder, connectionActor, DefaultHiveMqtt5ClientFactory.getInstance());
+        this(connection, proxyActor, connectionActor, DefaultHiveMqtt5ClientFactory.getInstance());
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param clientFactory factory used to create required mqtt clients
      * @param connectionActor the parent connection actor
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final HiveMqtt5ClientFactory clientFactory, final ActorRef connectionActor) {
-        return Props.create(HiveMqtt5ClientActor.class, connection, conciergeForwarder, connectionActor, clientFactory);
+        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, clientFactory);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the parent connection actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
-        return Props.create(HiveMqtt5ClientActor.class, connection, conciergeForwarder, connectionActor);
+        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor);
     }
 
     @Override

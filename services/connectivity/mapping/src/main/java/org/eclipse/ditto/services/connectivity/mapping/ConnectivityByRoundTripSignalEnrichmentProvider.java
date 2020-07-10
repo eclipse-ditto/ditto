@@ -27,7 +27,7 @@ import akka.actor.ActorSystem;
  */
 public final class ConnectivityByRoundTripSignalEnrichmentProvider extends ConnectivitySignalEnrichmentProvider {
 
-    private static final String CONCIERGE_FORWARDER = "/user/connectivityRoot/conciergeForwarder";
+    private static final String PROXY_ACTOR_PATH = "/user/connectivityRoot/connectivityProxyActor";
 
     private final ByRoundTripSignalEnrichmentFacade byRoundTripSignalEnrichmentFacade;
 
@@ -40,7 +40,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProvider extends Conne
     @SuppressWarnings("unused")
     public ConnectivityByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
-        final ActorSelection commandHandler = actorSystem.actorSelection(CONCIERGE_FORWARDER);
+        final ActorSelection commandHandler = actorSystem.actorSelection(PROXY_ACTOR_PATH);
         final SignalEnrichmentFacadeByRoundTripConfig config =
                 DefaultSignalEnrichmentFacadeByRoundTripConfig.of(signalEnrichmentConfig.getProviderConfig());
         byRoundTripSignalEnrichmentFacade =

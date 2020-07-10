@@ -22,10 +22,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -55,9 +53,20 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder, R extends DittoHeaders>
         implements DittoHeadersBuilder<S, R> {
 
+    private static final Map<String, HeaderDefinition> BUILT_IN_DEFINITIONS;
+
+    static {
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> definitions = new HashMap<>(dittoHeaderDefinitions.length);
+        for (final DittoHeaderDefinition dittoHeaderDefinition : dittoHeaderDefinitions) {
+            definitions.put(dittoHeaderDefinition.getKey(), dittoHeaderDefinition);
+        }
+        BUILT_IN_DEFINITIONS = Collections.unmodifiableMap(definitions);
+    }
+
     protected final S myself;
     private final Map<String, String> headers;
-    private final Collection<HeaderDefinition> definitions;
+    private final Map<String, HeaderDefinition> definitions;
 
     /**
      * Constructs a new {@code AbstractDittoHeadersBuilder} object.
@@ -75,11 +84,46 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
-        validateValueTypes(initialHeaders, definitions);
+        validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
-        this.definitions = new HashSet<>(definitions);
-        Collections.addAll(this.definitions, DittoHeaderDefinition.values());
+        this.definitions = getHeaderDefinitionsAsMap(definitions);
+    }
+
+    private static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
+            final Collection<? extends HeaderDefinition> headerDefinitions) {
+
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> result =
+                new HashMap<>(headerDefinitions.size() + dittoHeaderDefinitions.length);
+        for (final HeaderDefinition definition : headerDefinitions) {
+            result.put(definition.getKey(), definition);
+        }
+        result.putAll(BUILT_IN_DEFINITIONS);
+        return result;
+    }
+
+    /**
+     * Constructs a new {@code AbstractDittoHeadersBuilder} object based on an existing {@code DittoHeaders} instance
+     * applying a performance optimization: skipping the validation of values types as we can be sure that they already
+     * are valid when being passed in as DittoHeaders.
+     *
+     * @param initialHeaders initial DittoHeaders.
+     * @param definitions a collection of all well known {@link HeaderDefinition}s of this builder. The definitions
+     * are used for header value validation.
+     * @param selfType this type is used to simulate the "self type" of the returned object for Method Chaining of
+     * the builder methods.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    @SuppressWarnings("unchecked")
+    protected AbstractDittoHeadersBuilder(final R initialHeaders,
+            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
+
+        checkNotNull(initialHeaders, "initialHeaders");
+        checkNotNull(definitions, "definitions");
+        myself = (S) selfType.cast(this);
+        headers = new HashMap<>(initialHeaders);
+        this.definitions = getHeaderDefinitionsAsMap(definitions);
     }
 
     /**
@@ -397,16 +441,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     protected void validateValueType(final CharSequence key, final CharSequence value) {
-        definitions.stream()
-                .filter(definition -> Objects.equals(definition.getKey(), key.toString()))
-                .findAny()
-                .ifPresent(definition -> definition.validateValue(value));
+        @Nullable final HeaderDefinition headerDefinition = definitions.get(key.toString());
+        if (null != headerDefinition) {
+            headerDefinition.validateValue(value);
+        }
     }
 
     @Override
     public S putHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
-        validateValueTypes(headers, definitions);
+        validateValueTypes(headers, definitions.values());
         this.headers.putAll(headers);
         return myself;
     }

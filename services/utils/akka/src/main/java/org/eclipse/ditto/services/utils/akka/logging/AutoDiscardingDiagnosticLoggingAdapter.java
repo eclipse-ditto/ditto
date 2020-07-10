@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import scala.collection.Seq;
@@ -406,6 +407,12 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
     @Override
     public void clearMDC() {
         loggingAdapter.clearMDC();
+    }
+
+    @Override
+    public AutoDiscardingDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
+        loggingAdapter.setCorrelationId(correlationId);
+        return this;
     }
 
     @Override

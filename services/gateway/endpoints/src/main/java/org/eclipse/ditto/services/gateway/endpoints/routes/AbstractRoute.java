@@ -44,12 +44,11 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValida
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayTimeoutInvalidException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -86,7 +85,7 @@ public abstract class AbstractRoute extends AllDirectives {
             .withoutUrlDecoding()
             .build();
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRoute.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);
 
     protected final ActorRef proxyActor;
     protected final ActorMaterializer materializer;
@@ -129,9 +128,9 @@ public abstract class AbstractRoute extends AllDirectives {
         materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
                             if (exc instanceof DittoRuntimeException) {
-                                LogUtil.logWithCorrelationId(LOGGER, (DittoRuntimeException) exc, logger ->
-                                        logger.debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
-                                                exc.getClass().getSimpleName(), exc.getMessage()));
+                                LOGGER.withCorrelationId((DittoRuntimeException) exc)
+                                        .debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
+                                                exc.getClass().getSimpleName(), exc.getMessage());
                             } else {
                                 LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
                             }

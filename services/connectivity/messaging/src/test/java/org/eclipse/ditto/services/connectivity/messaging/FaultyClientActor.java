@@ -30,7 +30,7 @@ import akka.event.DiagnosticLoggingAdapter;
 public class FaultyClientActor extends AbstractActor {
 
     static final ClientActorPropsFactory faultyClientActorPropsFactory =
-            (connection, connectionActor, conciergeForwarder) -> FaultyClientActor.props(true);
+            (connection, connectionActor, proxyActor) -> FaultyClientActor.props(true);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private boolean allowCreate;
