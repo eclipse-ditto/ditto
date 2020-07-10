@@ -63,11 +63,11 @@ Once the Kafka client signals that the message was acknowledged by the Kafka bro
 to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
 * Acknowledgement.status: 
    * will be `204`, if Kafka debug mode was disabled and the message was successfully consumed by Kafka
-   * will be `200`, if Kafka debug mode was enabled (see [specific config](#specific-configuration-properties) `"debug-enabled"`) and the message was successfully consumed by Kafka
+   * will be `200`, if Kafka debug mode was enabled (see [specific config](#specific-configuration-properties) `"debugEnabled"`) and the message was successfully consumed by Kafka
    * will be `4xx`, if Kafka failed to consume the message but retrying sending the message does not make sense
    * will be `5xx`, if Kafka failed to consume the message but retrying sending the message is feasible
 * Acknowledgement.value: 
-   * will be missing, if Kafka debug mode (see [specific config](#specific-configuration-properties) `"debug-enabled"`) was disabled
+   * will be missing, if Kafka debug mode (see [specific config](#specific-configuration-properties) `"debugEnabled"`) was disabled
    * will include the Kafka `RecordMetadata` as JsonObject:
       * `timestamp` (if present)
       * `serializedKeySize`
@@ -85,7 +85,7 @@ The specific configuration properties contain the following keys:
     * `plain`
     * `scram-sha-256`
     * `scram-sha-512`
-* `debug-enabled`: determines whether for acknowledgements 
+* `debugEnabled`: determines whether for acknowledgements 
   [automatically issued by Kafka targets](#target-acknowledgement-handling) additional debug information should be 
   included as payload or not - default: `false`
 
