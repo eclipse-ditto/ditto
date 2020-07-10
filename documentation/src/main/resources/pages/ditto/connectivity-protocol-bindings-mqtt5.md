@@ -93,7 +93,7 @@ For Ditto acknowledgements with successful [status](protocol-specification-acks.
 
 For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
 * If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery (e.g. based on a timeout):
-   * based on the [specificConfig](#specific-config) [reconnectForDelivery](#reconnectforredelivery) either 
+   * based on the [specificConfig](#specific-configuration) [reconnectForDelivery](#reconnectforredelivery) either 
       * closes and reconnects the MQTT connection in order to receive unACKed QoS 1/2 messages again 
       * or simply acknowledges the received MQTT 5 message
 * If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery:
@@ -151,7 +151,7 @@ is mapped to the automatically created [acknowledgement](protocol-specification-
 
 ### Specific Configuration
 
-The MQTT 5 binding offers additional [specific configurations](basic-connections.html#specific-config) 
+The MQTT 5 binding offers additional [specific configurations](basic-connections.html#specific-configuration) 
 to apply for the used MQTT client.
 
 Overall example JSON of the MQTT `"specificConfig"`:

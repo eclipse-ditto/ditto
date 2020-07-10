@@ -142,7 +142,7 @@ in scope of that connection type.
 In addition to the `"includes"` defining which acknowledgements to request for each incoming message, the optional 
 `"filter"` holds an [fn:filter()](basic-placeholders.html#function-library) function defining when to request 
 acknowledgements at all for an incoming message. This filter is applied on both acknowledgements: those 
-[requested in the message](basic-acknowledgements.html#requesting-via-ditto-protocol-message) and the ones requested 
+[requested in the message](basic-acknowledgements.html#requesting-acks-via-ditto-protocol-message) nd the ones requested 
 via the configured `"includes"` array.
 
 The JSON for a source with acknowledgement requests could look like this. The `"filter"` in the example causes that 
