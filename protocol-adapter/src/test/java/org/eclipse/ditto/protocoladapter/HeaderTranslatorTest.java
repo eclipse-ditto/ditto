@@ -98,7 +98,7 @@ public final class HeaderTranslatorTest {
     }
 
     @Test
-    public void testReadExternalWhitelistedHeader() {
+    public void testReadExternalAllowedHeader() {
         final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
 
         final Map<String, String> externalHeaders = new HashMap<>();

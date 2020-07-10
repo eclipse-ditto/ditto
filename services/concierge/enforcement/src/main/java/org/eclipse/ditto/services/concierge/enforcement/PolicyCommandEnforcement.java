@@ -65,7 +65,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     /**
      * Json fields that are always shown regardless of authorization.
      */
-    private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_WHITELIST =
+    private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
     private final ActorRef policiesShardRegion;
@@ -139,7 +139,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         final AuthorizationContext authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
         return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
-                POLICY_QUERY_COMMAND_RESPONSE_WHITELIST, Permissions.newInstance(Permission.READ));
+                POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
     }
 
     private static PolicyCommand transformModifyPolicyToCreatePolicy(final PolicyCommand receivedCommand) {

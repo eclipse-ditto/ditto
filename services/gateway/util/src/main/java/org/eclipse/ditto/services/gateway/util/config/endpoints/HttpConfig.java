@@ -96,7 +96,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     Set<HeaderDefinition> getQueryParametersAsHeaders();
 
     /**
-     * Whitelisted Media-Types, which should also be accepted by the endpoints besides the one they accept.
+     * Allowed Media-Types, which should also be accepted by the endpoints besides the one they accept.
      *
      * @return media-types.
      * @since 1.1.0
