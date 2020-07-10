@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
-import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -22,30 +21,21 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * This class can be used to aggregate the required and actually received acknowledgements for a single request which
@@ -161,59 +151,6 @@ public final class AcknowledgementAggregator {
     public void addAcknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests) {
         checkNotNull(acknowledgementRequests, "acknowledgementRequests");
         acknowledgementRequests.forEach(this::addAcknowledgementRequest);
-    }
-
-    /**
-     * Creates an {@code Acknowledgement} with label {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED} from the passed
-     * {@code thingCommandResponse} and adds it to the received acknowledgements.
-     *
-     * @param thingCommandResponse the thing command response to create the twin persisted acknowledgement from.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException <ul>
-     * <li>if {@code thingCommandResponse} did not provide a correlation ID at all,</li>
-     * <li>the provided correlation ID differs from the correlation ID of this aggregator instance or</li>
-     * <li>if acknowledgement provides an unexpected entity ID.</li>
-     * </ul>
-     */
-    public void addReceivedTwinPersistedAcknowledgment(final ThingCommandResponse<?> thingCommandResponse) {
-
-        checkNotNull(thingCommandResponse, "thingCommandResponse");
-        final DittoHeaders acknowledgementHeaders = filterHeaders(thingCommandResponse.getDittoHeaders());
-
-        @Nullable JsonValue payload = null;
-        if (thingCommandResponse instanceof WithOptionalEntity) {
-            payload = ((WithOptionalEntity) thingCommandResponse)
-                    .getEntity(thingCommandResponse.getImplementedSchemaVersion())
-                    .orElse(null);
-        }
-
-        addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(TWIN_PERSISTED,
-                thingCommandResponse.getEntityId(), thingCommandResponse.getStatusCode(), acknowledgementHeaders,
-                payload));
-    }
-
-    /**
-     * Add a DittoRuntimeException.
-     *
-     * @param dittoRuntimeException the DittoRuntimeException received for an requested acknowledgement.
-     */
-    public void addDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
-        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
-        final Set<AcknowledgementLabel> requestedAcks = dittoHeaders.getAcknowledgementRequests()
-                .stream()
-                .map(AcknowledgementRequest::getLabel)
-                .collect(Collectors.toSet());
-        final Optional<AcknowledgementLabel> labelOptional = requestedAcks.contains(TWIN_PERSISTED)
-                ? Optional.of(TWIN_PERSISTED)
-                : requestedAcks.stream().findAny();
-        labelOptional.ifPresent(label -> {
-            final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
-            final ThingId thingId = nullableEntityId != null ? ThingId.of(nullableEntityId) : ThingId.dummy();
-            final Acknowledgement acknowledgement =
-                    Acknowledgement.of(label, thingId, dittoRuntimeException.getStatusCode(), dittoHeaders,
-                            dittoRuntimeException.toJson());
-            addReceivedAcknowledgment(acknowledgement);
-        });
     }
 
     /**
