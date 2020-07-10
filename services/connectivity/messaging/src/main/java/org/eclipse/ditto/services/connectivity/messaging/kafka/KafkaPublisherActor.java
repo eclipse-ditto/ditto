@@ -323,7 +323,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private boolean isDebugEnabled() {
             final Map<String, String> specificConfig = connection.getSpecificConfig();
-            return Boolean.parseBoolean(specificConfig.getOrDefault("debug-enabled", Boolean.FALSE.toString()));
+            return Boolean.parseBoolean(specificConfig.getOrDefault("debugEnabled", Boolean.FALSE.toString()));
         }
 
     }

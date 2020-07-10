@@ -772,7 +772,7 @@ public final class TestConstants {
                 getUriOfNewMockServer())
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)
-                .specificConfig(Map.of("debug-enabled", String.valueOf(true)))
+                .specificConfig(Map.of("debugEnabled", String.valueOf(true)))
                 .build();
     }
 
