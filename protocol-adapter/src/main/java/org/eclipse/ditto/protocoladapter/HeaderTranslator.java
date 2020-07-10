@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 /**
  * Utility for translating Headers from external sources or to external sources.
  * <p>
- * Does so by applying blacklisting based on {@link HeaderDefinition}s.
+ * Does so by applying blocking based on {@link HeaderDefinition}s.
  * </p>
  */
 @Immutable

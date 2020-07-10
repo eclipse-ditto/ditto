@@ -43,7 +43,7 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlacklist() {
+    public Collection<String> getContentTypeBlocklist() {
         return Collections.emptyList();
     }
 

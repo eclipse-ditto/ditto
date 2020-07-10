@@ -27,9 +27,9 @@ public interface MessageMapperConfiguration {
 
     /**
      * The key of the mapper configuration which all mappers share:
-     * A comma separated blacklist of content-types which shall not be handled by the mapper which is configured.
+     * A comma separated blocklist of content-types which shall not be handled by the mapper which is configured.
      */
-    String CONTENT_TYPE_BLACKLIST = "content-type-blacklist";
+    String CONTENT_TYPE_BLOCKLIST = "content-type-blocklist";
 
     /**
      * @return the ID of the mapping
@@ -67,14 +67,14 @@ public interface MessageMapperConfiguration {
     }
 
     /**
-     * Determines the content-type blacklist for this mapper configuration.
-     * All content-types defined in the blacklist are not handled by the mapper configured by this configuration.
+     * Determines the content-type blocklist for this mapper configuration.
+     * All content-types defined in the blocklist are not handled by the mapper configured by this configuration.
      *
-     * @return the content-type blacklist.
+     * @return the content-type blocklist.
      */
-    default Collection<String> getContentTypeBlacklist() {
-        return findProperty(CONTENT_TYPE_BLACKLIST)
-                .map(blacklist -> blacklist.split(","))
+    default Collection<String> getContentTypeBlocklist() {
+        return findProperty(CONTENT_TYPE_BLOCKLIST)
+                .map(blocklist -> blocklist.split(","))
                 .map(Arrays::asList)
                 .orElse(Collections.emptyList());
     }
