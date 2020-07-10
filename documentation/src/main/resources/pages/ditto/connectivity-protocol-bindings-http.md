@@ -43,7 +43,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Tthing, which is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 ```json
 {
