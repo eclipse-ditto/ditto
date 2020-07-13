@@ -170,9 +170,18 @@ public abstract class ETagTestUtils {
     }
 
     public static RetrieveFeaturePropertiesResponse retrieveFeaturePropertiesResponse(final ThingId thingId,
-            final String featureId, final FeatureProperties expectedFeatureProperties,
+            final String featureId, final FeatureProperties featureProperties,
             final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeatureProperties, dittoHeaders);
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        return RetrieveFeaturePropertiesResponse.of(thingId, featureId, featureProperties,
+                dittoHeadersWithETag);
+    }
+
+    public static RetrieveFeaturePropertiesResponse retrieveFeaturePropertiesResponse(final ThingId thingId,
+            final String featureId, final FeatureProperties featureProperties,
+            final FeatureProperties expectedFeatureProperties,
+            final DittoHeaders dittoHeaders) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
         return RetrieveFeaturePropertiesResponse.of(thingId, featureId, expectedFeatureProperties,
                 dittoHeadersWithETag);
     }
