@@ -4706,7 +4706,7 @@ components:
             $ref: '#/components/schemas/AdvancedError'
     messageTimeout:
       description: |-
-        The request could not be completed because no consumer answered the message.
+        The request could not be completed as there is no consumer for this message connected.
       content:
         application/json:
           schema:
