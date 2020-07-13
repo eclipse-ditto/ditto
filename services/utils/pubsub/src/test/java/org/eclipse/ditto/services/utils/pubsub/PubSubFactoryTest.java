@@ -40,12 +40,16 @@ import akka.stream.Attributes;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.concurrent.duration.Duration;
 
 /**
  * Tests Ditto pub-sub as a whole.
  */
 public final class PubSubFactoryTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PubSubFactoryTest.class);
 
     private ActorSystem system1;
     private ActorSystem system2;
@@ -61,6 +65,7 @@ public final class PubSubFactoryTest {
     @Before
     public void setUpCluster() throws Exception {
         final CountDownLatch latch = new CountDownLatch(2);
+        LOGGER.info("Running PubSubFactoryTest with tets-config: {}", getTestConf());
         system1 = ActorSystem.create("actorSystem", getTestConf());
         system2 = ActorSystem.create("actorSystem", getTestConf());
         cluster1 = Cluster.get(system1);
