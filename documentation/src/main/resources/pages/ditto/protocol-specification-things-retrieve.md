@@ -40,7 +40,8 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 ## Retrieve multiple Things
 
 Retrieve the Things specified by the `<namespace>` in the `topic` and the `thingIds` specified
-in the value. Note that the `<thingName>` in this case contains the placeholder `_`.
+in the value. Note that the `<thingName>` in this case contains the placeholder `_`. You can also omit the
+`<namespace>` by using the placeholder `_`.
 The response includes all details about the requested Things. 
 Optionally you can use field selectors (see `fields`) to only get the specified fields.
 
