@@ -21,7 +21,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Mock actor that forwards all messages to the final ActorRef message.
  */
-final class MockConciergeForwarderActor extends AbstractActor {
+final class MockProxyActor extends AbstractActor {
 
     /**
      * Create a mock /connectivityRoot/conciergeForwarder actor that forwards everything to the last ActorRef message it
@@ -30,12 +30,12 @@ final class MockConciergeForwarderActor extends AbstractActor {
      * @param actorSystem the actor system where the mock concierge forwarder is to be created.
      */
     public static void create(final ActorSystem actorSystem) {
-        actorSystem.actorOf(Props.create(MockConciergeForwarderActor.class), "connectivityRoot");
+        actorSystem.actorOf(Props.create(MockProxyActor.class), "connectivityRoot");
     }
 
     @Override
     public void preStart() {
-        getContext().actorOf(Props.create(MockInnerActor.class), "conciergeForwarder");
+        getContext().actorOf(Props.create(MockInnerActor.class), "connectivityProxyActor");
     }
 
     @Override

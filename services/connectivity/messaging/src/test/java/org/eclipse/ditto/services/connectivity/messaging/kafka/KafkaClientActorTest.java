@@ -250,8 +250,8 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
-        return getKafkaClientActorProps(testProbe, connection);
+    protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
+        return getKafkaClientActorProps(proxyActor, connection);
     }
 
     @Override

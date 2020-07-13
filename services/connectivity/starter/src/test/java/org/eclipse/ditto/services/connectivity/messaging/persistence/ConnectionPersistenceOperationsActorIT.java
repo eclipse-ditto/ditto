@@ -124,11 +124,11 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator,
             final ConnectionId id) {
         // essentially never restart
-        final TestProbe conciergeForwarderProbe = new TestProbe(system, "conciergeForwarder");
+        final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
         final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
-                ConnectionSupervisorActor.props(nopSub(), conciergeForwarderProbe.ref(), entityActorFactory,
+                ConnectionSupervisorActor.props(nopSub(), proxyActorProbe.ref(), entityActorFactory,
                         dummyInterceptor, pubSubMediator);
 
         return system.actorOf(props, String.valueOf(id));

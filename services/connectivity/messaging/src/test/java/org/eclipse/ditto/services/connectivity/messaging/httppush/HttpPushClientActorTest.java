@@ -84,9 +84,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void createActorSystem() {
-        // create actor system with deactivated hostname blacklist to connect to localhost
+        // create actor system with deactivated hostname blocklist to connect to localhost
         actorSystem = ActorSystem.create(getClass().getSimpleName(),
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blacklisted-hostnames",
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blocked-hostnames",
                         ConfigValueFactory.fromAnyRef("")));
         mat = ActorMaterializer.create(actorSystem);
         requestQueue = new LinkedBlockingQueue<>();
@@ -99,7 +99,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
                 .toCompletableFuture()
                 .join();
-        connection = getHttpConnectionToLocalBinding(false, binding.localAddress().getPort());
+        connection = getHttpConnectionBuilderToLocalBinding(false, binding.localAddress().getPort()).build();
     }
 
     @After
@@ -115,8 +115,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Override
-    protected Props createClientActor(final ActorRef testProbe, final Connection connection) {
-        return HttpPushClientActor.props(connection, testProbe);
+    protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
+        return HttpPushClientActor.props(connection, proxyActor);
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTLSConnectionFails() {
         // GIVEN: server has a self-signed certificate
-        connection = getHttpConnectionToLocalBinding(true, binding.localAddress().getPort());
+        connection = getHttpConnectionBuilderToLocalBinding(true, binding.localAddress().getPort()).build();
         final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
@@ -191,6 +191,41 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             assertThat(failure.cause()).isInstanceOf(DittoRuntimeException.class);
             assertThat(((DittoRuntimeException) failure.cause()).getDescription().orElse(""))
                     .contains("unable to find valid certification path");
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void testTLSConnection() {
+        // GIVEN: server has a self-signed certificate
+        final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
+                .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
+                .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
+                .build();
+        connection = getHttpConnectionBuilderToLocalBinding(true, binding.localAddress().getPort())
+                .credentials(credentials)
+                .trustedCertificates(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
+                .build();
+        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
+                .clientCertificate(credentials);
+        final HttpsConnectionContext httpsContext = ConnectionContext.https(sslContext);
+
+        final int port = binding.localAddress().getPort();
+        binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
+        binding = Http.get(actorSystem)
+                .bindAndHandle(handler,
+                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(httpsContext),
+                        mat)
+                .toCompletableFuture()
+                .join();
+
+        new TestKit(actorSystem) {{
+            // WHEN: the connection is tested
+            final ActorRef underTest = watch(actorSystem.actorOf(createClientActor(getRef(), getConnection(false))));
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+
+            // THEN: the connection is connected successfully
+            expectMsg(new Status.Success("successfully connected + initialized mapper"));
             expectTerminated(underTest);
         }};
     }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.entity.id;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -38,7 +39,7 @@ public abstract class EntityIdWithType implements EntityId, WithEntityType {
     }
 
     /**
-     * Creates an equality validator as {@code Consumer} accepting {@link EntityIdWithType} instances comparing them to
+     * Creates an equality validator as {@code Consumer} accepting {@code EntityIdWithType} instances comparing them to
      * the passed in {@code expectedEntityId}.
      * <p>
      * When the entity IDs don't match, the an {@link IllegalArgumentException} will be thrown to the one providing the
@@ -53,15 +54,37 @@ public abstract class EntityIdWithType implements EntityId, WithEntityType {
      * the IDs are not equal, an {@link IllegalArgumentException} will be thrown, if they are equal, no other side
      * effect happens.
      * @throws NullPointerException if {@code expectedEntityId} is {@code null}.
+     * @deprecated as of 1.2.0 please use {@link #isCompatibleOrThrow(EntityIdWithType)} instead.
      */
-    @SuppressWarnings("unchecked")
+    @Deprecated
     public static <I extends EntityIdWithType> Consumer<I> createEqualityValidator(final I expectedEntityId) {
+        return expectedEntityId::isCompatibleOrThrow;
+    }
 
-        if (expectedEntityId instanceof NamespacedEntityIdWithType) {
-            return (EntityIdEqualityValidator<I>) NamespacedEntityIdWithTypeEqualityValidator.getInstance(
-                    ((NamespacedEntityIdWithType) expectedEntityId));
+    /**
+     * Checks if the passed entity ID is compatible with this entity ID.
+     * In the base implementation a given entity ID is compatible if a call of {@link #equals(Object)} with that ID
+     * would yield {@code true}.
+     * Subclasses may implement a different behavior.
+     * Please have a look at the documentation of the subclass for further information.
+     *
+     * @param otherEntityId the entity ID to be compared for equality with this entity ID.
+     * @throws IllegalArgumentException if {@code otherEntityId} is not compatible with this entity ID.
+     * @return {@code true} if {@code otherEntityId} is compatible with this entity ID.
+     * @since 1.2.0
+     */
+    public boolean isCompatibleOrThrow(@Nullable final EntityIdWithType otherEntityId) {
+        if (!equals(otherEntityId)) {
+            throw getIllegalArgumentExceptionForDifferentEntityIds(otherEntityId);
         }
-        return (EntityIdEqualityValidator<I>) EntityIdWithTypeEqualityValidator.getInstance(expectedEntityId);
+        return true;
+    }
+
+    protected IllegalArgumentException getIllegalArgumentExceptionForDifferentEntityIds(
+            @Nullable final EntityIdWithType actual) {
+
+        final String pattern = "The entity ID <{0}> is not compatible with <{1}>!";
+        return new IllegalArgumentException(MessageFormat.format(pattern, actual, this));
     }
 
     @Override
@@ -78,12 +101,12 @@ public abstract class EntityIdWithType implements EntityId, WithEntityType {
             return false;
         }
         final EntityIdWithType that = (EntityIdWithType) o;
-        return Objects.equals(entityId, that.entityId);
+        return Objects.equals(entityId, that.entityId) && Objects.equals(getEntityType(), that.getEntityType());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(entityId);
+        return Objects.hash(entityId, getEntityType());
     }
 
     @Override

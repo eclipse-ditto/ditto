@@ -21,8 +21,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -42,6 +44,7 @@ import com.typesafe.config.ConfigFactory;
  */
 public class WrappingMessageMapperTest {
 
+    private static final Map<String, String> DEFAULT_OPTIONS = Map.of("default", "option");
     private MessageMapper mockMapper;
     private MessageMapper underTest;
     private MessageMapperConfiguration mockConfiguration;
@@ -63,6 +66,7 @@ public class WrappingMessageMapperTest {
         when(mockMapper.map(any(ExternalMessage.class))).thenReturn(singletonList(mockAdaptable));
         when(mockMapper.map(mockAdaptable)).thenReturn(singletonList(mockMessage));
         when(mockMapper.getId()).thenReturn("mockMapper");
+        when(mockMapper.getDefaultOptions()).thenReturn(DEFAULT_OPTIONS);
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(DittoHeaders.empty()));
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
@@ -86,6 +90,7 @@ public class WrappingMessageMapperTest {
     public void mapMessage() {
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockMessage);
+        verify(mockMapper).map(any(ExternalMessage.class));
         verify(mockMapper).map(any(ExternalMessage.class));
     }
 
@@ -123,6 +128,11 @@ public class WrappingMessageMapperTest {
         underTest.map(mockAdaptable);
         verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
         verify(mockMapper).map(mockAdaptable);
+    }
+
+    @Test
+    public void getDefaultOptions() {
+        Assertions.assertThat(underTest.getDefaultOptions()).isEqualTo(DEFAULT_OPTIONS);
     }
 
     private <T> List<T> listOfElements(final T elementInList, final int numberOfElements) {

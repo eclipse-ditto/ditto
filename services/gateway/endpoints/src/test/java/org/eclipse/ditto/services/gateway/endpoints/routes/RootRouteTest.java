@@ -47,6 +47,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParamete
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -96,6 +97,8 @@ public final class RootRouteTest extends EndpointTestBase {
             JsonSchemaVersion.V_2.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THING_SEARCH_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + ThingSearchRoute.PATH_SEARCH + "/" + ThingSearchRoute.PATH_THINGS;
+    private static final String WHOAMI_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
+            JsonSchemaVersion.V_2.toInt() + "/" + WhoamiRoute.PATH_WHOAMI;
     private static final String UNKNOWN_SEARCH_PATH =
             ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" + JsonSchemaVersion.V_2.toInt() + "/" +
                     ThingSearchRoute.PATH_SEARCH + "/foo";
@@ -138,7 +141,6 @@ public final class RootRouteTest extends EndpointTestBase {
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
-
         final Route rootRoute = RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
                         headerTranslator))
@@ -154,6 +156,7 @@ public final class RootRouteTest extends EndpointTestBase {
                         claimMessageConfig, headerTranslator))
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
@@ -314,6 +317,15 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getThingSearchUrl() {
         final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THING_SEARCH_2_PATH)));
+
+        final TestRouteResult result = rootTestRoute.run(request);
+
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getWhoamiUrl() {
+        final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(WHOAMI_PATH)));
 
         final TestRouteResult result = rootTestRoute.run(request);
 

@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -37,6 +38,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.DefaultUserInformation;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.UserInformation;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregator;
@@ -44,6 +49,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -55,6 +61,7 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -145,6 +152,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                     }
                 })
+                .match(Whoami.class, this::handleWhoami)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
                         receiveTimeout -> handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
@@ -222,20 +230,19 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     rememberResponseLocationUri(commandResponse);
 
                     ThingModifyCommandResponse<?> enhancedResponse = commandResponse;
+                    final DittoHeaders dittoHeaders = commandResponse.getDittoHeaders();
                     if (null != responseLocationUri) {
                         final Location location = Location.create(responseLocationUri);
-                        enhancedResponse = commandResponse.setDittoHeaders(
-                                commandResponse.getDittoHeaders().toBuilder()
-                                        .putHeader(location.lowercaseName(), location.value())
-                                        .build()
-                        );
+                        enhancedResponse = commandResponse.setDittoHeaders(dittoHeaders.toBuilder()
+                                .putHeader(location.lowercaseName(), location.value())
+                                .build());
                     }
-                    ackregator.addReceivedTwinPersistedAcknowledgment(enhancedResponse);
-                    potentiallyCompleteAcknowledgements(commandResponse.getDittoHeaders(), ackregator);
+                    ackregator.addReceivedAcknowledgment(getAcknowledgement(enhancedResponse));
+                    potentiallyCompleteAcknowledgements(dittoHeaders, ackregator);
                 })
                 .match(ThingErrorResponse.class, errorResponse -> {
                     logger.withCorrelationId(errorResponse).debug("Got error response <{}>.", errorResponse.getType());
-                    ackregator.addReceivedTwinPersistedAcknowledgment(errorResponse);
+                    ackregator.addReceivedAcknowledgment(getAcknowledgement(errorResponse));
                     potentiallyCompleteAcknowledgements(errorResponse.getDittoHeaders(), ackregator);
                 })
                 .match(Acknowledgement.class, ack -> {
@@ -258,6 +265,25 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
+    private static Acknowledgement getAcknowledgement(final ThingCommandResponse<?> thingCommandResponse) {
+        return ThingAcknowledgementFactory.newAcknowledgement(DittoAcknowledgementLabel.TWIN_PERSISTED,
+                thingCommandResponse.getEntityId(),
+                thingCommandResponse.getStatusCode(),
+                thingCommandResponse.getDittoHeaders(),
+                getPayload(thingCommandResponse).orElse(null));
+    }
+
+    private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
+        final Optional<JsonValue> result;
+        if (thingCommandResponse instanceof WithOptionalEntity) {
+            result = ((WithOptionalEntity) thingCommandResponse).getEntity(
+                    thingCommandResponse.getImplementedSchemaVersion());
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
     private void potentiallyCompleteAcknowledgements(final DittoHeaders dittoHeaders,
             final AcknowledgementAggregator ackregator) {
 
@@ -274,6 +300,26 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private DittoHeaders getExternalHeaders(final DittoHeaders dittoHeaders) {
         return DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders));
+    }
+
+    private void handleWhoami(final Whoami command) {
+        logger.withCorrelationId(command).debug("Got Whoami.", command);
+        final ActorContext context = getContext();
+        final WhoamiResponse response = createWhoamiResponse(command);
+        context.become(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command)));
+        getSelf().tell(response, getSender());
+    }
+
+    /**
+     * Provide an adequate {@link WhoamiResponse} as answer for an {@link Whoami}.
+     * @param request the request which should be answered.
+     * @return the correct {@link WhoamiResponse} for the {@code request}.
+     */
+    // intentionally protected to allow overwriting this in extensions
+    protected WhoamiResponse createWhoamiResponse(final Whoami request) {
+        final DittoHeaders dittoHeaders = request.getDittoHeaders();
+        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(dittoHeaders.getAuthorizationContext());
+        return WhoamiResponse.of(userInformation, dittoHeaders);
     }
 
     private void handleCommandWithResponse(final Command<?> command, final Receive awaitCommandResponseBehavior) {

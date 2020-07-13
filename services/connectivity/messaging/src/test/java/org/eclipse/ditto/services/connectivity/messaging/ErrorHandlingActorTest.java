@@ -42,14 +42,14 @@ import akka.testkit.javadsl.TestKit;
 public class ErrorHandlingActorTest extends WithMockServers {
 
     private static ActorSystem actorSystem;
-    private static ActorRef conciergeForwarder;
+    private static ActorRef proxyActor;
     private static ActorRef pubSubMediator;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
+        proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
 
     @AfterClass
@@ -66,8 +66,8 @@ public class ErrorHandlingActorTest extends WithMockServers {
             final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, conciergeForwarder,
-                    (connection1, connectionActor, conciergeForwarder) ->
+                    pubSubMediator, proxyActor,
+                    (connection1, connectionActor, proxyActor) ->
                             FaultyClientActor.props(false));
             watch(underTest);
 
@@ -95,7 +95,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, faultyClientActorPropsFactory);
+                            proxyActor, faultyClientActorPropsFactory);
             watch(underTest);
 
             // create connection
@@ -118,7 +118,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, faultyClientActorPropsFactory);
+                            proxyActor, faultyClientActorPropsFactory);
             watch(underTest);
 
             // create connection

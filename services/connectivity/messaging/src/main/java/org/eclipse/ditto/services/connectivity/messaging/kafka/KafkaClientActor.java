@@ -50,11 +50,11 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
-            @Nullable final ActorRef conciergeForwarder,
+            @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory factory) {
 
-        super(connection, conciergeForwarder, connectionActor);
+        super(connection, proxyActor, connectionActor);
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
         connectionFactory = DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig);
@@ -66,15 +66,15 @@ public final class KafkaClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param factory factory for creating a kafka publisher actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final KafkaPublisherActorFactory factory) {
 
-        return Props.create(KafkaClientActor.class, validateConnection(connection), conciergeForwarder,
+        return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor,
                 connectionActor, factory);
     }
 

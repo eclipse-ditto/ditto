@@ -45,14 +45,17 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private final Duration timeout;
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
+    private final ConnectivityStatus pubSubStatus;
 
     private RetrieveConnectionStatusResponse.Builder theResponse;
 
     @SuppressWarnings("unused")
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout) {
+            final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout,
+            final ConnectivityStatus pubSubStatus) {
         this.timeout = timeout;
         this.sender = sender;
+        this.pubSubStatus = pubSubStatus;
         theResponse = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
                 .connectionStatus(connection.getConnectionStatus())
                 .liveStatus(ConnectivityStatus.UNKNOWN)
@@ -90,11 +93,13 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
+     * @param pubSubStatus the current status of the internal subscription
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders originalHeaders,
-            final Duration timeout) {
-        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, originalHeaders, timeout);
+            final Duration timeout, final ConnectivityStatus pubSubStatus) {
+        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, originalHeaders,
+                timeout, pubSubStatus);
     }
 
     @Override
@@ -148,7 +153,8 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
 
         final ConnectivityStatus liveStatus;
         if (anyClientOpen) {
-            liveStatus = ConnectivityStatus.OPEN;
+            // if any client is connected, the liveStatus only depends on the pubSubStatus
+            liveStatus = pubSubStatus;
         } else {
             if (anyClientFailed) {
                 liveStatus = ConnectivityStatus.FAILED;
