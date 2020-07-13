@@ -589,7 +589,7 @@ public final class ImmutableDittoHeadersTest {
 
     private static JsonArray expectedResponseTypesToJsonArray(final Collection<ResponseType> responseTypes) {
         return responseTypes.stream()
-                .map(ResponseType::name)
+                .map(ResponseType::getName)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
     }

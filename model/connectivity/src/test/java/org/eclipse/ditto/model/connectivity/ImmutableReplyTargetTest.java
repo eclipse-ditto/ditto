@@ -39,7 +39,7 @@ public class ImmutableReplyTargetTest {
             .build();
 
     private static final JsonArray EXPECTED_RESPONSE_TYPES = JsonArray.newBuilder()
-            .add(ResponseType.ERROR.name())
+            .add(ResponseType.ERROR.getName())
             .build();
 
     static final ReplyTarget REPLY_TARGET =

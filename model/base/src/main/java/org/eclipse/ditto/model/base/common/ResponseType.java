@@ -17,9 +17,10 @@ import java.util.Optional;
 
 /**
  * An enumeration of different response types for a request.
+ *
  * @since 1.2.0
  */
-public enum ResponseType {
+public enum ResponseType implements CharSequence {
 
     /**
      * Type of error responses.
@@ -42,11 +43,46 @@ public enum ResponseType {
         this.name = name;
     }
 
-    public static Optional<ResponseType> fromName(String name) {
+    /**
+     * Returns the {@code ResponseType} for the given {@code name} if it exists.
+     *
+     * @param name the name.
+     * @return the ResponseType or an empty optional.
+     */
+    public static Optional<ResponseType> fromName(final String name) {
         final String lowerCaseName = name.toLowerCase();
         return Arrays.stream(values())
                 .filter(responseType -> responseType.name.equals(lowerCaseName))
                 .findAny();
+    }
+
+    /**
+     * Returns the name of this {@code ResponseType}.
+     *
+     * @return the name.
+     */
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public int length() {
+        return name.length();
+    }
+
+    @Override
+    public char charAt(final int index) {
+        return name.charAt(index);
+    }
+
+    @Override
+    public CharSequence subSequence(final int start, final int end) {
+        return name.subSequence(start, end);
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 
 }

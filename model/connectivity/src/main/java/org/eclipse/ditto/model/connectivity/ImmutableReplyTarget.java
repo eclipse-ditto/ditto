@@ -93,7 +93,8 @@ final class ImmutableReplyTarget implements ReplyTarget {
             jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, predicate),
                     predicate);
         }
-        jsonObjectBuilder.set(JsonFields.EXPECTED_RESPONSE_TYPES, expectedResponseTypes.stream().map(Enum::name)
+        jsonObjectBuilder.set(JsonFields.EXPECTED_RESPONSE_TYPES, expectedResponseTypes.stream()
+                .map(ResponseType::getName)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()));
         return jsonObjectBuilder.build();

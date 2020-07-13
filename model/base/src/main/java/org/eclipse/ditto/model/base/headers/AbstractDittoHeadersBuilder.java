@@ -212,7 +212,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S expectedResponseTypes(final ResponseType... responseTypes) {
         checkNotNull(responseTypes, "responseTypes");
         final List<String> expectedResponseTypes = Arrays.stream(responseTypes)
-                .map(Enum::name)
+                .map(ResponseType::getName)
                 .collect(Collectors.toList());
         putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
         return myself;
@@ -223,7 +223,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         checkNotNull(responseTypes, "responseTypes");
         if(!responseTypes.isEmpty()) {
             final List<String> expectedResponseTypes = responseTypes.stream()
-                    .map(Enum::name)
+                    .map(ResponseType::getName)
                     .collect(Collectors.toList());
             putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
         }
