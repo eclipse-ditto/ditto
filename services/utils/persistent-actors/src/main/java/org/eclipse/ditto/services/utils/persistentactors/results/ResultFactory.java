@@ -68,11 +68,13 @@ public final class ResultFactory {
      * Create an error result.
      *
      * @param dittoRuntimeException the error.
+     * @param errorCausingCommand the command that caused the error.
      * @param <E> type of events (irrelevant).
      * @return the result.
      */
-    public static <E extends Event> Result<E> newErrorResult(final DittoRuntimeException dittoRuntimeException) {
-        return new ErrorResult<>(dittoRuntimeException);
+    public static <E extends Event> Result<E> newErrorResult(final DittoRuntimeException dittoRuntimeException,
+            final Command errorCausingCommand) {
+        return new ErrorResult<>(dittoRuntimeException, errorCausingCommand);
     }
 
     /**

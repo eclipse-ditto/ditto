@@ -83,7 +83,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
             context.getLog().debug("Validating conditional headers succeeded.");
         } catch (final DittoRuntimeException dre) {
             context.getLog().debug("Validating conditional headers failed with exception <{}>.", dre.getMessage());
-            return ResultFactory.newErrorResult(dre);
+            return ResultFactory.newErrorResult(dre, command);
         }
 
         return super.apply(context, entity, nextRevision, command);

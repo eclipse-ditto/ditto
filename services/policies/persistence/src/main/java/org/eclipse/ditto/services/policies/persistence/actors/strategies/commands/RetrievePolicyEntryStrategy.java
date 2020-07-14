@@ -51,7 +51,7 @@ final class RetrievePolicyEntryStrategy extends
             }
         }
         return ResultFactory.newErrorResult(
-                policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()));
+                policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()), command);
     }
 
     @Override

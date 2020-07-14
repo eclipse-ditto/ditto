@@ -62,7 +62,8 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
                             .newBuilder("ConnectionType <" + connection.getConnectionType().getName() +
                                     "> of existing connection <" + context.getState().id() + "> cannot be changed!")
                             .dittoHeaders(command.getDittoHeaders())
-                            .build()
+                            .build(),
+                    command
             );
         }
         final ConnectivityEvent event =
@@ -75,7 +76,7 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
         final boolean isNextConnectionOpen = connection.getConnectionStatus() == ConnectivityStatus.OPEN;
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else if (isNextConnectionOpen || isCurrentConnectionOpen) {
             final List<ConnectionAction> actions;
             if (isNextConnectionOpen) {
