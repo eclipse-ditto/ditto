@@ -49,8 +49,6 @@ import scala.concurrent.duration.Duration;
  */
 public final class PubSubFactoryTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PubSubFactoryTest.class);
-
     private ActorSystem system1;
     private ActorSystem system2;
     private Cluster cluster1;
@@ -65,7 +63,6 @@ public final class PubSubFactoryTest {
     @Before
     public void setUpCluster() throws Exception {
         final CountDownLatch latch = new CountDownLatch(2);
-        LOGGER.info("Running PubSubFactoryTest with test-config: {}", getTestConf());
         system1 = ActorSystem.create("actorSystem", getTestConf());
         system2 = ActorSystem.create("actorSystem", getTestConf());
         cluster1 = Cluster.get(system1);
