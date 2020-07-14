@@ -68,10 +68,11 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "timeout"}, Java type: {@code long}.
      * </p>
+     *
      * @deprecated since 1.1.0: replaced by {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#TIMEOUT}
      */
     @Deprecated
-    TIMEOUT("timeout", long.class, true, true, TimeoutValueValidator.getInstance()),
+    TIMEOUT("timeout", long.class, true, true, MessageHeaderTimeoutValueValidator.getInstance()),
 
     /**
      * Header containing the timestamp of the message as ISO 8601 string.

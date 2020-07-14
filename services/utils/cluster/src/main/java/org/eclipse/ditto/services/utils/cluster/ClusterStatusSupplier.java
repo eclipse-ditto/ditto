@@ -55,7 +55,7 @@ public final class ClusterStatusSupplier implements Supplier<ClusterStatus> {
 
         final Set<String> allRoles = cluster.state().getAllRoles()
                 .stream()
-                .filter(role -> !clusterConfig.getClusterStatusRolesBlacklist().contains(role))
+                .filter(role -> !clusterConfig.getClusterStatusRolesBlocklist().contains(role))
                 .collect(Collectors.toSet());
         final Set<Member> unreachable = cluster.state().getUnreachable();
         final Set<Member> all =

@@ -26,9 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link TimeoutValueValidator}.
+ * Unit test for {@link MessageHeaderTimeoutValueValidator}.
  */
-public final class TimeoutValueValidatorTest {
+public final class MessageHeaderTimeoutValueValidatorTest {
 
     private static final CharSequence VALID_TIMEOUT_STRING = "42";
 
@@ -36,12 +36,12 @@ public final class TimeoutValueValidatorTest {
 
     @Before
     public void setUp() {
-        underTest = TimeoutValueValidator.getInstance();
+        underTest = MessageHeaderTimeoutValueValidator.getInstance();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(TimeoutValueValidator.class, areImmutable());
+        assertInstancesOf(MessageHeaderTimeoutValueValidator.class, areImmutable());
     }
 
     @Test

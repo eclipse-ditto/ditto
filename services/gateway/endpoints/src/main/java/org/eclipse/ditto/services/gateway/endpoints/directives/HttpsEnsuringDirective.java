@@ -123,15 +123,15 @@ public final class HttpsEnsuringDirective {
     }
 
     private Route handleNonHttpsRequest(final Uri requestUri) {
-        if (httpConfig.isRedirectToHttps() && !isBlacklisted(requestUri.getPathString())) {
+        if (httpConfig.isRedirectToHttps() && !isBlocked(requestUri.getPathString())) {
             return redirectToHttps(requestUri);
         }
         return disallowRequest(requestUri);
     }
 
-    private boolean isBlacklisted(final CharSequence requestUriPath) {
-        final Pattern redirectToHttpsBlacklistPattern = httpConfig.getRedirectToHttpsBlacklistPattern();
-        final Matcher matcher = redirectToHttpsBlacklistPattern.matcher(requestUriPath);
+    private boolean isBlocked(final CharSequence requestUriPath) {
+        final Pattern redirectToHttpsBlocklistPattern = httpConfig.getRedirectToHttpsBlocklistPattern();
+        final Matcher matcher = redirectToHttpsBlocklistPattern.matcher(requestUriPath);
         return matcher.matches();
     }
 

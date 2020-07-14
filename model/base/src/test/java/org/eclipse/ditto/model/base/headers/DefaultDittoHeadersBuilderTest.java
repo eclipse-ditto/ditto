@@ -283,7 +283,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void tryToPutMapWithInvalidMessageHeader() {
-        final String key = DittoHeaderDefinition.TIMEOUT.getKey();
+        final String key = DittoHeaderDefinition.SCHEMA_VERSION.getKey();
         final String invalidValue = "bar";
 
         final Map<String, String> invalidHeaders = new HashMap<>();
@@ -292,7 +292,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("The value '%s' of the header '%s' is not a valid duration.", invalidValue, key)
+                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidValue, key)
                 .withNoCause();
     }
 

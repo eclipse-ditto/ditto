@@ -61,9 +61,9 @@ public final class DefaultProtocolConfigTest {
         softly.assertThat(underTest.getProviderClassName())
                 .as(ProtocolConfigValue.PROVIDER.getConfigPath())
                 .isEqualTo(ProtocolConfigValue.PROVIDER.getDefaultValue());
-        softly.assertThat(underTest.getBlacklistedHeaderKeys())
-                .as(ProtocolConfigValue.BLACKLIST.getConfigPath())
-                .containsOnlyElementsOf((Iterable) ProtocolConfigValue.BLACKLIST.getDefaultValue());
+        softly.assertThat(underTest.getBlockedHeaderKeys())
+                .as(ProtocolConfigValue.BLOCKLIST.getConfigPath())
+                .containsOnlyElementsOf((Iterable) ProtocolConfigValue.BLOCKLIST.getDefaultValue());
     }
 
     @Test
@@ -73,8 +73,8 @@ public final class DefaultProtocolConfigTest {
         softly.assertThat(underTest.getProviderClassName())
                 .as(ProtocolConfigValue.PROVIDER.getConfigPath())
                 .isEqualTo("org.example.ditto.MyProtocolAdapterProvider");
-        softly.assertThat(underTest.getBlacklistedHeaderKeys())
-                .as(ProtocolConfigValue.BLACKLIST.getConfigPath())
+        softly.assertThat(underTest.getBlockedHeaderKeys())
+                .as(ProtocolConfigValue.BLOCKLIST.getConfigPath())
                 .containsOnly("foo", "bar", "baz");
     }
 

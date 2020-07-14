@@ -35,9 +35,9 @@ public interface ClusterConfig {
     /**
      * Returns the cluster roles which should not be included when determining cluster status/health.
      *
-     * @return the cluster roles blacklist.
+     * @return the cluster roles blocklist.
      */
-    Collection<String> getClusterStatusRolesBlacklist();
+    Collection<String> getClusterStatusRolesBlocklist();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -53,7 +53,7 @@ public interface ClusterConfig {
         /**
          * The cluster roles which should not be included when determining cluster status/health.
          */
-        CLUSTER_STATUS_ROLES_BLACKLIST("cluster-status-roles-blacklist", Arrays.asList(
+        CLUSTER_STATUS_ROLES_BLOCKLIST("cluster-status-roles-blocklist", Arrays.asList(
                 "dc-default",
                 "blocked-namespaces-aware"
         ));

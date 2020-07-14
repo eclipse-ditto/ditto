@@ -80,7 +80,7 @@ public class WrappingMessageMapperTest {
 
     @Test
     public void configure() {
-        when(mockConfiguration.getContentTypeBlacklist()).thenReturn(Collections.singletonList("blacklistedContentType"));
+        when(mockConfiguration.getContentTypeBlocklist()).thenReturn(Collections.singletonList("blockedContentType"));
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         verify(mockMapper).configure(mapperLimitsConfig, mockConfiguration);
