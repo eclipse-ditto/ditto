@@ -90,7 +90,6 @@ public final class BackgroundSyncStream {
     public Source<Metadata, NotUsed> filterForInconsistencies(final Source<Metadata, ?> metadataFromSnapshots,
             final Source<Metadata, ?> metadataFromSearchIndex) {
 
-
         final Comparator<Metadata> comparator = BackgroundSyncStream::compareMetadata;
         return MergeSortedAsPair.merge(dummyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
                 .throttle(throttleThroughput, throttlePeriod)
@@ -121,7 +120,7 @@ public final class BackgroundSyncStream {
             // persisted thing is not in search index; trigger update if the snapshot is not too recent
             return isInsideToleranceWindow(persisted, toleranceCutOff)
                     ? Source.empty()
-                    : Source.single(persisted).log("PersistedAndNotIndexed");
+                    : confirmPersistedAndNotIndexed(persisted);
         } else if (comparison > 0) {
             // indexed thing is not persisted; trigger update if the index entry is not too recent
             return isInsideToleranceWindow(indexed, toleranceCutOff)
@@ -141,6 +140,12 @@ public final class BackgroundSyncStream {
         }
     }
 
+    private Source<Metadata, NotUsed> confirmPersistedAndNotIndexed(final Metadata persisted) {
+        return Source.single(persisted)
+                .flatMapConcat(this::retainUnlessPolicyNonexistent)
+                .log("PersistedAndNotIndexed");
+    }
+
     /**
      * Emit metadata to trigger index update if the persistence snapshot and the search index entry are inconsistent.
      * Precondition: the thing IDs are identical and the search index entry is outside the tolerance window.
@@ -155,15 +160,40 @@ public final class BackgroundSyncStream {
         } else {
             final Optional<PolicyId> persistedPolicyId = persisted.getPolicyId();
             final Optional<PolicyId> indexedPolicyId = indexed.getPolicyId();
+            // policy IDs are equal and nonempty; retrieve and compare policy revision
+            // policy IDs are empty - the entries are consistent.
             if (!persistedPolicyId.equals(indexedPolicyId)) {
                 return Source.single(indexed).log("PolicyIdMismatch");
-            } else if (persistedPolicyId.isPresent()) {
-                // policy IDs are equal and nonempty; retrieve and compare policy revision
-                return retrievePolicyRevisionAndEmitMismatch(persistedPolicyId.get(), indexed);
             } else {
-                // policy IDs are empty - the entries are consistent.
-                return Source.empty();
+                return persistedPolicyId.map(policyId -> retrievePolicyRevisionAndEmitMismatch(policyId, indexed))
+                        .orElseGet(Source::empty);
             }
+        }
+    }
+
+    /**
+     * Check a PersistedAndNotIndexed entry whether it should trigger an index update.
+     * Such an entry should trigger an update unless it has a nonexistent policy.
+     *
+     * @param persisted the persisted and not indexed entry.
+     * @return source of index updates.
+     */
+    private Source<Metadata, ?> retainUnlessPolicyNonexistent(final Metadata persisted) {
+        final Optional<PolicyId> optionalPolicyId = persisted.getPolicyId();
+        if (optionalPolicyId.isPresent()) {
+            // policy ID exists: entry should be updated if and only if the policy exists
+            final SudoRetrievePolicyRevision command =
+                    SudoRetrievePolicyRevision.of(optionalPolicyId.get(), DittoHeaders.empty());
+            final CompletionStage<Source<Metadata, NotUsed>> askFuture =
+                    Patterns.ask(policiesShardRegion, command, policiesAskTimeout)
+                            .handle((response, error) -> response instanceof SudoRetrievePolicyRevisionResponse
+                                    ? Source.single(persisted)
+                                    : Source.empty()
+                            );
+            return Source.fromSourceCompletionStage(askFuture);
+        } else {
+            // policy ID does not exist: entry should be updated in search index
+            return Source.single(persisted);
         }
     }
 
