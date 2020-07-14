@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
@@ -123,7 +124,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void broadcastMessageToManySubscribers() {
+    public void broadcastMessageToManySubscribers() throws InterruptedException {
         new TestKit(system2) {{
             final DistributedPub<String> pub = factory1.startDistributedPub();
             final DistributedSub sub1 = factory1.startDistributedSub();
@@ -148,6 +149,9 @@ public final class PubSubFactoryTest {
             // WHEN: many messages are published
             final int messages = 100;
             IntStream.range(0, messages).forEach(i -> pub.publish("hello" + i, publisher.ref()));
+
+            // Wit until messages are published
+            TimeUnit.SECONDS.sleep(5);
 
             // THEN: subscribers with relevant topics get the messages in the order they were published.
             IntStream.range(0, messages).forEach(i -> {
