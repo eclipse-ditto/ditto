@@ -193,7 +193,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                 dittoHeaders,
                 getPayload(thingCommandResponse).orElse(null)
         ));
-        potentiallyCompleteAcknowledgements(thingCommandResponse, dittoHeaders);
+        potentiallyCompleteAcknowledgements(thingCommandResponse);
     }
 
     private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
@@ -215,12 +215,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
         ackregator.addReceivedAcknowledgment(acknowledgement);
-        potentiallyCompleteAcknowledgements(null, acknowledgement.getDittoHeaders());
+        potentiallyCompleteAcknowledgements(null);
     }
 
     private void handleAcknowledgements(final Acknowledgements acknowledgements) {
         acknowledgements.stream().forEach(ackregator::addReceivedAcknowledgment);
-        potentiallyCompleteAcknowledgements(null, acknowledgements.getDittoHeaders());
+        potentiallyCompleteAcknowledgements(null);
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
@@ -229,11 +229,10 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
-    private void potentiallyCompleteAcknowledgements(@Nullable final ThingCommandResponse<?> response,
-            final DittoHeaders dittoHeaders) {
+    private void potentiallyCompleteAcknowledgements(@Nullable final ThingCommandResponse<?> response) {
 
         if (ackregator.receivedAllRequestedAcknowledgements()) {
-            completeAcknowledgements(response, dittoHeaders);
+            completeAcknowledgements(response, requestCommandHeaders);
         }
     }
 
