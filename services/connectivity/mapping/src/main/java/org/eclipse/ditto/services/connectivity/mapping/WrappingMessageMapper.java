@@ -58,8 +58,8 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlacklist() {
-        return delegate.getContentTypeBlacklist();
+    public Collection<String> getContentTypeBlocklist() {
+        return delegate.getContentTypeBlocklist();
     }
 
     @Override

@@ -777,7 +777,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final CreateThingResponse createThingResponse =
+                        expectMsgClass(java.time.Duration.ofSeconds(5), CreateThingResponse.class);
                 assertThingInResponseV2(createThingResponse.getThingCreated().orElse(null), thing);
 
                 // Retrieve attribute as authorized subject.

@@ -234,7 +234,7 @@ not(<query>)
 
 **Example - filter things whose ID do not start with a common prefix**
 ```
-not(like(thingId,"org.eclipse.ditto:blacklisted*"))
+not(like(thingId,"org.eclipse.ditto:blocked*"))
 ```
 
 ## RQL sorting

@@ -72,7 +72,7 @@ public final class MessageMappingProcessorTest {
 
     private static final String DITTO_MAPPER = "ditto";
     private static final String DITTO_MAPPER_BY_ALIAS = "ditto-by-alias";
-    private static final String DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST = "ditto-cust-header";
+    private static final String DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST = "ditto-cust-header";
     private static final String DROPPING_MAPPER = "dropping";
     private static final String FAILING_MAPPER = "faulty";
     private static final String DUPLICATING_MAPPER = "duplicating";
@@ -112,18 +112,18 @@ public final class MessageMappingProcessorTest {
 
         final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
         dittoCustomMapperHeaders.put(
-                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
+                MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
                 "foo/bar"
         );
         final MappingContext dittoCustomMappingContext =
                 ConnectivityModelFactory.newMappingContext("Ditto", dittoCustomMapperHeaders);
-        mappings.put(DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST, dittoCustomMappingContext);
+        mappings.put(DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST, dittoCustomMappingContext);
         mappings.put(FAILING_MAPPER, FaultyMessageMapper.CONTEXT);
         mappings.put(DROPPING_MAPPER, DroppingMessageMapper.CONTEXT);
 
         final Map<String, String> duplicatingMapperHeaders = new HashMap<>();
         duplicatingMapperHeaders.put(
-                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
+                MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
                 "text/custom-plain,application/custom-json"
         );
         final MappingContext duplicatingMappingContext =
@@ -268,7 +268,7 @@ public final class MessageMappingProcessorTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
         final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_CUSTOM_HEADER_BLACKLIST))
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST))
                 .build();
         // should fail because no payload was present:
         testInbound(message, 0, 0, 1);
