@@ -16,7 +16,7 @@ pipeline {
     stages {
         stage('Checkout scm') {
             agent {
-                label "$DITTO_BUILD_NODE"
+                label "ditto-slave"
             }
             steps {
                 echo 'Checkout scm'
@@ -38,21 +38,6 @@ pipeline {
             post {
                 always {
                     junit "**/**/target/surefire-reports/*.xml,**/**/**/target/surefire-reports/*.xml,**/**/**/target/failsafe-reports/*.xml,**/**/target/failsafe-reports/*.xml"
-                }
-            }
-        }
-        stage('SonarQube Scan') {
-            agent {
-                docker {
-                    args "$DITTO_DOCKER_ARGS"
-                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
-                }
-            }
-            steps {
-                configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    withSonarQubeEnv(installationName: "$SONAR_QUBE_ENV", credentialsId: 'sonarqube') {
-                        sh "mvn -s $MVN_SETTINGS --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} -Drevision=${theVersion}"
-                    }
                 }
             }
         }
