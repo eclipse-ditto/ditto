@@ -146,12 +146,12 @@ public final class PubSubFactoryTest {
                     sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()
             ).join();
 
+            // Wait until messages are published
+            TimeUnit.SECONDS.sleep(15);
+
             // WHEN: many messages are published
             final int messages = 100;
             IntStream.range(0, messages).forEach(i -> pub.publish("hello" + i, publisher.ref()));
-
-            // Wit until messages are published
-            TimeUnit.SECONDS.sleep(5);
 
             // THEN: subscribers with relevant topics get the messages in the order they were published.
             IntStream.range(0, messages).forEach(i -> {
