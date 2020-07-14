@@ -28,6 +28,7 @@ pipeline {
                 docker {
                     args "$DITTO_DOCKER_ARGS"
                     image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                    label "ditto-slave"
                 }
             }
             steps {
