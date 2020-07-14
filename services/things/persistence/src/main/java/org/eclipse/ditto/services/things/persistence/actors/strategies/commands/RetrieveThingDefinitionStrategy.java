@@ -56,7 +56,7 @@ final class RetrieveThingDefinitionStrategy extends AbstractThingCommandStrategy
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ThingDefinitionNotAccessibleException.newBuilder(context.getState())
                                 .dittoHeaders(command.getDittoHeaders())
-                                .build()));
+                                .build(), command));
     }
 
     private Optional<ThingDefinition> extractDefinition(final @Nullable Thing thing) {

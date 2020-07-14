@@ -62,7 +62,7 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
                 CreateConnectionResponse.of(connection, command.getDittoHeaders());
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
             context.getLog().debug("Connection <{}> has status <{}> and will therefore be opened.",
                     connection.getId(), connection.getConnectionStatus());

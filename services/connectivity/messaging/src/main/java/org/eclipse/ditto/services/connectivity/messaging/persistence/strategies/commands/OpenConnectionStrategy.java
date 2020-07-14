@@ -51,7 +51,7 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
             @Nullable final Connection connection, final long nextRevision, final OpenConnection command) {
         final Optional<DittoRuntimeException> validationError = validate(context, command, connection);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else {
             final ConnectivityEvent event = ConnectionOpened.of(context.getState().id(), command.getDittoHeaders());
             final WithDittoHeaders response =

@@ -39,8 +39,9 @@ final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreateP
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
             final long nextRevision, final CreatePolicy command) {
         return ResultFactory.newErrorResult(PolicyConflictException.newBuilder(command.getEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build(),
+                command);
     }
 
     @Override

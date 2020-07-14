@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
@@ -56,9 +57,10 @@ public final class ResultFactoryTest {
 
     @Test
     public void notifyException() {
-        final Result<ThingEvent> result = ResultFactory.newErrorResult(exception);
-        result.accept(mock);
-        verify(mock).onError(eq(exception));
+        final Command command = mock(Command.class);
+        final Result<ThingEvent> result = ResultFactory.newErrorResult(exception, command);
+        result.accept(this.mock);
+        verify(this.mock).onError(eq(exception), eq(command));
     }
 
     @Test

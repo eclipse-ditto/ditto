@@ -286,7 +286,8 @@ public final class MessageMappingProcessorActor
                                     e.getErrorCode(),
                                     e.getMessage());
                     final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
-                    handleErrorResponse(e, errorResponse.setDittoHeaders(signal.getDittoHeaders()), ActorRef.noSender());
+                    handleErrorResponse(e, errorResponse.setDittoHeaders(signal.getDittoHeaders()),
+                            ActorRef.noSender());
                     return;
                 }
             }
@@ -590,23 +591,13 @@ public final class MessageMappingProcessorActor
         enhanceLogUtil(response);
         recordResponse(response, exception);
 
-        if (response.getDittoHeaders().isResponseRequired()) {
-
-            if (isSuccessResponse(response)) {
-                logger.withCorrelationId(response).debug("Received response <{}>.", response);
-            } else {
-                logger.withCorrelationId(response).debug("Received error response <{}>", response.toJsonString());
-            }
-
-            handleSignal(response, sender);
+        if (isSuccessResponse(response)) {
+            logger.withCorrelationId(response).debug("Received response <{}>.", response);
         } else {
-            logger.withCorrelationId(response)
-                    .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
-                            + " ExternalMessage", DittoHeaderDefinition.RESPONSE_REQUIRED);
-            responseDroppedMonitor.success(response,
-                    "Dropped response since requester did not require response via Header {0}",
-                    DittoHeaderDefinition.RESPONSE_REQUIRED);
+            logger.withCorrelationId(response).debug("Received error response <{}>", response.toJsonString());
         }
+
+        handleSignal(response, sender);
     }
 
     private void recordResponse(final CommandResponse<?> response, @Nullable final DittoRuntimeException exception) {
