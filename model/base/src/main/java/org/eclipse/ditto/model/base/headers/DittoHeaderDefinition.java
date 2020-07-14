@@ -199,7 +199,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 1.1.0
      */
     TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
-            HeaderValueValidators.getDittoDurationValidator()),
+            HeaderValueValidators.getTimeoutValueValidator()),
 
     /**
      * Header definition for the entity id related to the command/event/response/error.
