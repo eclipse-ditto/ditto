@@ -146,7 +146,7 @@ public final class PubSubFactoryTest {
                     sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()
             ).join();
 
-            // Wait until messages are published
+            // Wait until distributed data is ready
             TimeUnit.SECONDS.sleep(15);
 
             // WHEN: many messages are published
