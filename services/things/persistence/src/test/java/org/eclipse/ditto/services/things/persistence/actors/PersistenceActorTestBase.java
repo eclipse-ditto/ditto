@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
@@ -65,7 +66,7 @@ import akka.testkit.javadsl.TestKit;
 public abstract class PersistenceActorTestBase {
 
     protected static final ThingId THING_ID = ThingId.of("org.eclipse.ditto", "thingId");
-    protected static final String POLICY_ID = "org.eclipse.ditto:policyId";
+    protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
             AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);

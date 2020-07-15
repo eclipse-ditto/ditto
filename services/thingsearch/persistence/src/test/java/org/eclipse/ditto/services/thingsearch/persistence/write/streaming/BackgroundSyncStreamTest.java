@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -67,7 +68,8 @@ public final class BackgroundSyncStreamTest {
                 Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyId.of("x:3"), 0L),
                 Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:4"), 0L),
                 Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 0L),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L)
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L),
+                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyId.of("x:7"), 0L)
         ));
 
         final Source<Metadata, NotUsed> indexed = Source.from(List.of(
@@ -93,6 +95,9 @@ public final class BackgroundSyncStreamTest {
 
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:6"), DittoHeaders.empty()));
             reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:6"), 6L, DittoHeaders.empty()));
+
+            expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:7"), DittoHeaders.empty()));
+            reply(PolicyNotAccessibleException.newBuilder(PolicyId.of("x:7")).build());
 
             assertThat(inconsistentThingIds.toCompletableFuture().join()).containsExactly(
                     "x:0-only-persisted",

@@ -14,6 +14,15 @@ pipeline {
         timeout(time: 1, unit: 'HOURS')
     }
     stages {
+        stage('Clean workspace') {
+            agent {
+                label "$DITTO_BUILD_NODE"
+            }
+            steps {
+                echo 'Clean workspace'
+                cleanWs()
+            }
+        }
         stage('Checkout scm') {
             agent {
                 label "ditto-slave"

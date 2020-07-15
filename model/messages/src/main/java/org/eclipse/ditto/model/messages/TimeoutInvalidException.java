@@ -28,9 +28,11 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the timeout of a message was invalid (too low or too high).
+ * @deprecated Since 1.2.0, will be removed. Use {@link org.eclipse.ditto.model.base.exceptions.TimeoutInvalidException} instead.
  */
 @Immutable
 @JsonParsableException(errorCode = TimeoutInvalidException.ERROR_CODE)
+@Deprecated
 public final class TimeoutInvalidException extends DittoRuntimeException implements MessageException {
 
     /**

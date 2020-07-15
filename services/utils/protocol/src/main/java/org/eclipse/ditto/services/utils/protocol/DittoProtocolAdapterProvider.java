@@ -46,12 +46,12 @@ public final class DittoProtocolAdapterProvider extends ProtocolAdapterProvider 
 
     @Override
     protected HeaderTranslator createHttpHeaderTranslatorInstance(final ProtocolConfig protocolConfig) {
-        final HeaderDefinition[] blacklist = protocolConfig.getBlacklistedHeaderKeys()
+        final HeaderDefinition[] blocklist = protocolConfig.getBlockedHeaderKeys()
                 .stream()
                 .map(Ignored::new)
                 .toArray(HeaderDefinition[]::new);
 
-        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values(), blacklist);
+        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values(), blocklist);
     }
 
 }

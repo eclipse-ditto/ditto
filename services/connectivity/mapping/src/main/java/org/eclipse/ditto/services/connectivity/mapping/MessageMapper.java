@@ -42,13 +42,13 @@ public interface MessageMapper {
     String getId();
 
     /**
-     * Returns a blacklist of content-types which shall not be handled by this message mapper.
+     * Returns a blocklist of content-types which shall not be handled by this message mapper.
      * Is determined from the passed in {@code MessageMapperConfiguration} in
      * {@link #configure(MappingConfig, MessageMapperConfiguration)}.
      *
-     * @return a blacklist of content-types which shall not be handled by this message mapper.
+     * @return a blocklist of content-types which shall not be handled by this message mapper.
      */
-    Collection<String> getContentTypeBlacklist();
+    Collection<String> getContentTypeBlocklist();
 
     /**
      * Applies configuration for this MessageMapper.

@@ -270,15 +270,15 @@ public interface Enforcer {
     /**
      * Builds a view of the passed {@code jsonFields} (e.g. a {@link JsonObject} or a {@link
      * org.eclipse.ditto.json.JsonObjectBuilder}) for {@code authorizationContext} and {@code permissions} with some
-     * fields white-listed. The resulting {@code JsonObject} only contains those {@code JsonFields} for which the {@code
-     * authorizationContext} has the required permissions or those that are present in the white list. Fields in the
-     * white list are not present in the output if the authorization subjects are not granted any rights at all.
+     * fields allowed. The resulting {@code JsonObject} only contains those {@code JsonFields} for which the {@code
+     * authorizationContext} has the required permissions or those that are present in the allowlist. Fields in the
+     * allow list are not present in the output if the authorization subjects are not granted any rights at all.
      *
      * @param resourceKey the ResourceKey (containing Resource type and path) to start from.
      * @param jsonFields the full JsonFields from which to build the view based on the permissions.
      * @param authorizationContext the AuthorizationContext containing the AuthorizationSubjects.
      * @param permissions the permissions.
-     * @param whiteList white-listed fields to be present in the output as long as the authorization subjects are
+     * @param allowlist allowed fields to be present in the output as long as the authorization subjects are
      * relevant, i. e., some of them are granted the required permissions on some resource.
      * @return a view of the passed {@code jsonFields} as JsonObject for which the required permissions are given.
      * @throws NullPointerException if any argument is {@code null}.
@@ -286,7 +286,7 @@ public interface Enforcer {
     default JsonObject buildJsonView(final ResourceKey resourceKey,
             final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext,
-            final JsonFieldSelector whiteList,
+            final JsonFieldSelector allowlist,
             final Permissions permissions) {
 
         final JsonObject enforcedJsonView =
@@ -298,8 +298,8 @@ public interface Enforcer {
                 hasPartialPermissions(rootResourceKey, authorizationContext, permissions);
         if (isAuthorizationSubjectRelevant) {
             final JsonObject inputJsonObject = JsonFactory.newObject(jsonFields);
-            final JsonObject whitelistedJsonView = inputJsonObject.get(whiteList);
-            return new JsonObjectMerger().apply(whitelistedJsonView, enforcedJsonView);
+            final JsonObject allowedJsonView = inputJsonObject.get(allowlist);
+            return new JsonObjectMerger().apply(allowedJsonView, enforcedJsonView);
         } else {
             return enforcedJsonView;
         }

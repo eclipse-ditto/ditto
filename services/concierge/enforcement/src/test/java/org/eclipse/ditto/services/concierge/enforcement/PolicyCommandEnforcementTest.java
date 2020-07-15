@@ -347,7 +347,7 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void retrievePolicyWhenAuthSubjectHasReadPermissionOnlyOnEntriesReturnsAlsoWhitelistFields() {
+    public void retrievePolicyWhenAuthSubjectHasReadPermissionOnlyOnEntriesReturnsAlsoAllowlistFields() {
         final RetrievePolicy retrievePolicy = RetrievePolicy.of(POLICY_ID, DITTO_HEADERS);
 
         enforcer.tell(retrievePolicy, testKit.getRef());
@@ -361,11 +361,10 @@ public final class PolicyCommandEnforcementTest {
                 RetrievePolicyResponse.of(POLICY_ID, POLICY_FULL_JSON, DITTO_HEADERS);
         policiesShardRegionProbe.lastSender().tell(mockResponse, policiesShardRegionProbe.ref());
 
-        final Collection<JsonPointer> whiteList =
-                Collections.singletonList(Policy.JsonFields.ID.getPointer());
+        final Collection<JsonPointer> allowlist = Collections.singletonList(Policy.JsonFields.ID.getPointer());
         final Collection<JsonPointer> expectedFields = new ArrayList<>();
         expectedFields.add(Policy.JsonFields.ENTRIES.getPointer());
-        expectedFields.addAll(whiteList);
+        expectedFields.addAll(allowlist);
 
         final JsonObject expectedJson = JsonObject.newBuilder()
                 .setAll(POLICY_FULL_JSON, jsonField -> expectedFields.contains(jsonField.getKey().asPointer()))

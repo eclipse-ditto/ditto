@@ -64,9 +64,9 @@ public final class DefaultClusterConfigTest {
         softly.assertThat(underTest.getNumberOfShards())
                 .as(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
-        softly.assertThat(underTest.getClusterStatusRolesBlacklist())
-                .as(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getConfigPath())
-                .isEqualTo(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getDefaultValue());
+        softly.assertThat(underTest.getClusterStatusRolesBlocklist())
+                .as(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLOCKLIST.getConfigPath())
+                .isEqualTo(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLOCKLIST.getDefaultValue());
     }
 
     @Test
@@ -76,8 +76,8 @@ public final class DefaultClusterConfigTest {
         softly.assertThat(underTest.getNumberOfShards())
                 .as(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(100);
-        softly.assertThat(underTest.getClusterStatusRolesBlacklist())
-                .as(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getConfigPath())
+        softly.assertThat(underTest.getClusterStatusRolesBlocklist())
+                .as(ClusterConfig.ClusterConfigValue.CLUSTER_STATUS_ROLES_BLOCKLIST.getConfigPath())
                 .isEqualTo(Arrays.asList("barney", "fred", "wilma"));
     }
 
@@ -90,7 +90,7 @@ public final class DefaultClusterConfigTest {
                 .contains("numberOfShards");
         softly.assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
-                .contains("clusterStatusRolesBlacklist");
+                .contains("clusterStatusRolesBlocklist");
     }
 
 }

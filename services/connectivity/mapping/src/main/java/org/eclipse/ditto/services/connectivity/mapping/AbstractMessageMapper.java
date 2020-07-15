@@ -21,7 +21,7 @@ import java.util.Collection;
 public abstract class AbstractMessageMapper implements MessageMapper {
 
     private String id;
-    private Collection<String> contentTypeBlacklist;
+    private Collection<String> contentTypeBlocklist;
 
     @Override
     public String getId() {
@@ -29,14 +29,14 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlacklist() {
-        return contentTypeBlacklist;
+    public Collection<String> getContentTypeBlocklist() {
+        return contentTypeBlocklist;
     }
 
     @Override
     public final void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         this.id = configuration.getId();
-        this.contentTypeBlacklist = configuration.getContentTypeBlacklist();
+        this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
         doConfigure(mappingConfig, configuration);
     }
 

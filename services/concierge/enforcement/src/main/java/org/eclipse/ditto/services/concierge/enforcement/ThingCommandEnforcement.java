@@ -130,7 +130,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     /**
      * Json fields that are always shown regardless of authorization.
      */
-    private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_WHITELIST =
+    private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
     private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
@@ -633,7 +633,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final AuthorizationContext authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
         return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
-                THING_QUERY_COMMAND_RESPONSE_WHITELIST, Permissions.newInstance(Permission.READ));
+                THING_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
     }
 
     /**
