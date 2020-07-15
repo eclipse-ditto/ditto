@@ -1,6 +1,8 @@
 #!groovy
 pipeline {
-    agent none
+    agent {
+        label "$DITTO_BUILD_NODE"
+    }
     environment {
         // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
         theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
@@ -15,18 +17,12 @@ pipeline {
     }
     stages {
         stage('Clean workspace') {
-            agent {
-                label "$DITTO_BUILD_NODE"
-            }
             steps {
                 echo 'Clean workspace'
                 cleanWs()
             }
         }
         stage('Checkout scm') {
-            agent {
-                label "ditto-slave"
-            }
             steps {
                 echo 'Checkout scm'
                 checkout scm
@@ -37,7 +33,6 @@ pipeline {
                 docker {
                     args "$DITTO_DOCKER_ARGS"
                     image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
-                    label "ditto-slave"
                 }
             }
             steps {
