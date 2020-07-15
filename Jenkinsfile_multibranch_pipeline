@@ -1,6 +1,8 @@
 #!groovy
 pipeline {
-    agent none
+    agent {
+        label "$DITTO_BUILD_NODE"
+    }
     environment {
         // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
         theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
@@ -11,21 +13,16 @@ pipeline {
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
+        timeout(time: 1, unit: 'HOURS')
     }
     stages {
         stage('Clean workspace') {
-            agent {
-                label "$DITTO_BUILD_NODE"
-            }
             steps {
                 echo 'Clean workspace'
                 cleanWs()
             }
         }
         stage('Checkout scm') {
-            agent {
-                label "$DITTO_BUILD_NODE"
-            }
             steps {
                 echo 'Checkout scm'
                 checkout scm
@@ -46,21 +43,6 @@ pipeline {
             post {
                 always {
                     junit "**/**/target/surefire-reports/*.xml,**/**/**/target/surefire-reports/*.xml,**/**/**/target/failsafe-reports/*.xml,**/**/target/failsafe-reports/*.xml"
-                }
-            }
-        }
-        stage('SonarQube Scan') {
-            agent {
-                docker {
-                    args "$DITTO_DOCKER_ARGS"
-                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
-                }
-            }
-            steps {
-                configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    withSonarQubeEnv(installationName: "$SONAR_QUBE_ENV", credentialsId: 'sonarqube') {
-                        sh "mvn -s $MVN_SETTINGS --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} -Drevision=${theVersion}"
-                    }
                 }
             }
         }

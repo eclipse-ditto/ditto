@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
@@ -40,6 +41,8 @@ import akka.stream.Attributes;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -121,7 +124,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void broadcastMessageToManySubscribers() {
+    public void broadcastMessageToManySubscribers() throws InterruptedException {
         new TestKit(system2) {{
             final DistributedPub<String> pub = factory1.startDistributedPub();
             final DistributedSub sub1 = factory1.startDistributedSub();
@@ -142,6 +145,9 @@ public final class PubSubFactoryTest {
                             .toCompletableFuture(),
                     sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()
             ).join();
+
+            // Wait until distributed data is ready
+            TimeUnit.SECONDS.sleep(15);
 
             // WHEN: many messages are published
             final int messages = 100;
