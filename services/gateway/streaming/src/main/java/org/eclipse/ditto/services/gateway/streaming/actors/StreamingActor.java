@@ -58,6 +58,7 @@ import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
@@ -144,8 +145,8 @@ public final class StreamingActor extends AbstractActorWithTimers
         return ReceiveBuilder.create()
                 // Handle internal connect/streaming commands
                 .match(Connect.class, connect -> {
-                    final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
-                    eventAndResponsePublisher.forward(connect, getContext());
+                    final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher =
+                            connect.getEventAndResponsePublisher();
                     final String connectionCorrelationId = connect.getConnectionCorrelationId();
                     getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,

@@ -133,6 +133,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <!-- Always exclude the 'internal' package -->
+                            <exclude>org.eclipse.ditto.model.thingsearchparser.internal</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>

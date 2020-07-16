@@ -67,9 +67,9 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
-import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
+import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
@@ -272,8 +272,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
                             websocketConfig);
             final Flow<DittoRuntimeException, Message, NotUsed> outgoing =
-                    createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
-                            websocketConfig, signalEnrichmentFacade);
+                    createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request, websocketConfig,
+                            signalEnrichmentFacade);
 
             return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing));
         });
@@ -394,54 +394,56 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final ProtocolMessageExtractor protocolMessageExtractor =
                 new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
-        return Filter.<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>multiplexByEither(cmdString -> {
-            final Optional<StreamControlMessage> streamControlMessage = protocolMessageExtractor.apply(cmdString);
-            Either<DittoRuntimeException, Either<StreamControlMessage, Signal>> result;
-            if (streamControlMessage.isPresent()) {
-                 result = Right.apply(Left.apply(streamControlMessage.get()));
-            } else {
-                try {
-                    final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
-                            connectionAuthContext, additionalHeaders, adapter, headerTranslator);
-                    result = Right.apply(Right.apply(signal));
-                } catch (final DittoRuntimeException dre) {
-                    // This is a client error usually; log at level DEBUG without stack trace.
-                    LOGGER.withCorrelationId(dre)
-                            .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
-                    result = Left.apply(dre);
-                } catch (final Exception throwable) {
-                    LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
-                            throwable.getClass().getSimpleName(), throwable.getMessage());
-                    final DittoRuntimeException dittoRuntimeException = GatewayInternalErrorException.newBuilder()
-                            .cause(throwable)
-                            .build();
-                    result = Left.apply(dittoRuntimeException);
-                }
-            }
-            return result;
-        });
+        return Filter.<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>multiplexByEither(
+                cmdString -> {
+                    final Optional<StreamControlMessage> streamControlMessage =
+                            protocolMessageExtractor.apply(cmdString);
+                    Either<DittoRuntimeException, Either<StreamControlMessage, Signal>> result;
+                    if (streamControlMessage.isPresent()) {
+                        result = Right.apply(Left.apply(streamControlMessage.get()));
+                    } else {
+                        try {
+                            final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
+                                    connectionAuthContext, additionalHeaders, adapter, headerTranslator);
+                            result = Right.apply(Right.apply(signal));
+                        } catch (final DittoRuntimeException dre) {
+                            // This is a client error usually; log at level DEBUG without stack trace.
+                            LOGGER.withCorrelationId(dre)
+                                    .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
+                            result = Left.apply(dre);
+                        } catch (final Exception throwable) {
+                            LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
+                                    throwable.getClass().getSimpleName(), throwable.getMessage());
+                            final DittoRuntimeException dittoRuntimeException =
+                                    GatewayInternalErrorException.newBuilder()
+                                            .cause(throwable)
+                                            .build();
+                            result = Left.apply(dittoRuntimeException);
+                        }
+                    }
+                    return result;
+                });
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
-            final DittoHeaders additionalHeaders,
-            final ProtocolAdapter adapter,
+            final DittoHeaders additionalHeaders, final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig,
             @Nullable final SignalEnrichmentFacade signalEnrichmentFacade) {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
-        final Source<SessionedJsonifiable, ActorRef> publisherSource = null;
-//                Source.actorPublisher(EventAndResponsePublisher.props(
-//                        websocketConfig.getPublisherBackpressureBufferSize()));
+        final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
+                SupervisedStream.sourceQueue(websocketConfig.getPublisherBackpressureBufferSize());
 
         final Source<SessionedJsonifiable, NotUsed> eventAndResponseSource = publisherSource.mapMaterializedValue(
-                publisherActor -> {
-                    webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
+                withQueue -> {
+                    webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
+                            additionalHeaders);
                     streamingActor.tell(
-                            new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS, version,
+                            new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
                                     optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null)),
                             ActorRef.noSender());
                     return NotUsed.getInstance();
@@ -744,12 +746,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
 
         @Override
-        public void supervise(final ActorRef webSocketActor, final CharSequence connectionCorrelationId,
+        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
                 final DittoHeaders dittoHeaders) {
 
             // Does nothing.
         }
-
     }
 
 }

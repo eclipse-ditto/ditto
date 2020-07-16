@@ -21,16 +21,18 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 
 import akka.actor.ActorRef;
+import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Message to be sent in order to establish a new "streaming" connection via {@link StreamingActor}.
  */
 public final class Connect {
 
-    private final ActorRef eventAndResponsePublisher;
+    private final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher;
     private final String connectionCorrelationId;
     private final String type;
     private final JsonSchemaVersion jsonSchemaVersion;
@@ -39,13 +41,13 @@ public final class Connect {
     /**
      * Constructs a new {@link Connect} instance.
      *
-     * @param eventAndResponsePublisher the ActorRef to the correlating {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher}.
+     * @param eventAndResponsePublisher a source queue to push events and responses into.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param type the type of the "streaming" connection to establish.
      * @param jsonSchemaVersion schema version of the request for the streaming session.
      * @param sessionExpirationTime how long to keep the session alive when idling.
      */
-    public Connect(final ActorRef eventAndResponsePublisher,
+    public Connect(final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher,
             final CharSequence connectionCorrelationId,
             final String type,
             final JsonSchemaVersion jsonSchemaVersion,
@@ -58,7 +60,7 @@ public final class Connect {
         this.sessionExpirationTime = sessionExpirationTime;
     }
 
-    public ActorRef getEventAndResponsePublisher() {
+    public SourceQueueWithComplete<SessionedJsonifiable> getEventAndResponsePublisher() {
         return eventAndResponsePublisher;
     }
 

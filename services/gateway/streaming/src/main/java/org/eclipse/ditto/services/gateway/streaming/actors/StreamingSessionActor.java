@@ -39,7 +39,6 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
@@ -74,8 +73,8 @@ import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -87,7 +86,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final String connectionCorrelationId;
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
-    private final ActorRef eventAndResponsePublisher;
+    private final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher;
     private final AcknowledgementConfig acknowledgementConfig;
     private final HeaderTranslator headerTranslator;
     private final ActorRef subscriptionManager;
@@ -101,7 +100,7 @@ final class StreamingSessionActor extends AbstractActor {
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher,
+            final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps) {
@@ -124,7 +123,8 @@ final class StreamingSessionActor extends AbstractActor {
         this.subscriptionManager =
                 getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
 
-        getContext().watch(eventAndResponsePublisher);
+        eventAndResponsePublisher.watchCompletion()
+                .whenComplete((done, error) -> getSelf().tell(Control.TERMINATED, getSelf()));
     }
 
     /**
@@ -132,7 +132,7 @@ final class StreamingSessionActor extends AbstractActor {
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
-     * @param eventAndResponsePublisher the {@link EventAndResponsePublisher} actor.
+     * @param eventAndResponsePublisher the source queue to push events and responses into.
      * @param acknowledgementConfig the config to apply for Acknowledgements.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param subscriptionManagerProps Props of the subscription manager for search protocol.
@@ -140,7 +140,7 @@ final class StreamingSessionActor extends AbstractActor {
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher,
+            final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps) {
@@ -177,7 +177,7 @@ final class StreamingSessionActor extends AbstractActor {
                         logger.withCorrelationId(thingModifyCommand)
                                 .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
                                         " {}: <{}>", type, e.getClass().getSimpleName(), e.getMessage());
-                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+                        eventAndResponsePublisher.offer(SessionedJsonifiable.error(e));
                         return;
                     }
                     handleSignal(thingModifyCommand);
@@ -187,7 +187,7 @@ final class StreamingSessionActor extends AbstractActor {
                     logger.withCorrelationId(cre)
                             .info("Got 'DittoRuntimeException' message in <{}> session, telling" +
                                     " EventAndResponsePublisher about it: {}", type, cre);
-                    eventAndResponsePublisher.forward(SessionedJsonifiable.error(cre), getContext());
+                    eventAndResponsePublisher.offer(SessionedJsonifiable.error(cre));
                 })
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationContext = startStreaming.getAuthorizationContext();
@@ -202,7 +202,7 @@ final class StreamingSessionActor extends AbstractActor {
                     } catch (final DittoRuntimeException e) {
                         logger.info("Got 'DittoRuntimeException' <{}> session during 'StartStreaming' processing:" +
                                 " {}: <{}>", type, e.getClass().getSimpleName(), e.getMessage());
-                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+                        eventAndResponsePublisher.offer(SessionedJsonifiable.error(e));
                         return;
                     }
                     final StreamingSession session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
@@ -246,11 +246,9 @@ final class StreamingSessionActor extends AbstractActor {
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
                 .match(InvalidJwt.class, invalidJwtToken -> cancelSessionTimeout())
-                .match(AcknowledgeSubscription.class, msg ->
-                        acknowledgeSubscription(msg.getStreamingType(), getSelf()))
-                .match(AcknowledgeUnsubscription.class, msg ->
-                        acknowledgeUnsubscription(msg.getStreamingType(), getSelf()))
-                .match(Terminated.class, terminated -> {
+                .match(AcknowledgeSubscription.class, msg -> acknowledgeSubscription(msg.getStreamingType()))
+                .match(AcknowledgeUnsubscription.class, msg -> acknowledgeUnsubscription(msg.getStreamingType()))
+                .matchEquals(Control.TERMINATED, terminated -> {
                     logger.setCorrelationId(connectionCorrelationId);
                     logger.debug("EventAndResponsePublisher was terminated.");
                     // In Cluster: Unsubscribe from ThingEvents:
@@ -282,7 +280,7 @@ final class StreamingSessionActor extends AbstractActor {
         logger.withCorrelationId(response)
                 .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
                         " about it: {}", type, response);
-        eventAndResponsePublisher.forward(SessionedJsonifiable.response(response), getContext());
+        eventAndResponsePublisher.offer(SessionedJsonifiable.response(response));
     }
 
     private void forwardAcknowledgement(final Acknowledgement acknowledgement) {
@@ -313,11 +311,11 @@ final class StreamingSessionActor extends AbstractActor {
         } else if (signal instanceof SubscriptionEvent) {
             logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                     signal.getType(), type, signal);
-            eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent<?>) signal), getSelf());
+            eventAndResponsePublisher.offer(SessionedJsonifiable.subscription((SubscriptionEvent<?>) signal));
         } else if (signal instanceof CommandResponse) {
             logger.debug("Got CommandResponse <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
                     signal.getType(), type, signal);
-            eventAndResponsePublisher.forward(SessionedJsonifiable.response((CommandResponse<?>) signal), getContext());
+            eventAndResponsePublisher.offer(SessionedJsonifiable.response((CommandResponse<?>) signal));
         } else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
             logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
                     " EventAndResponsePublisher about it", signal.getType(), type);
@@ -334,7 +332,7 @@ final class StreamingSessionActor extends AbstractActor {
                         .build();
                 final SessionedJsonifiable sessionedJsonifiable =
                         SessionedJsonifiable.signal(signal, sessionHeaders, session);
-                eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
+                eventAndResponsePublisher.offer(sessionedJsonifiable);
             }
         }
         logger.setCorrelationId(connectionCorrelationId);
@@ -365,9 +363,7 @@ final class StreamingSessionActor extends AbstractActor {
                                 .correlationId(connectionCorrelationId)
                                 .build())
                         .build();
-        eventAndResponsePublisher.tell(
-                CloseStreamExceptionally.getInstance(gatewayWebsocketSessionExpiredException, connectionCorrelationId),
-                getSelf());
+        eventAndResponsePublisher.fail(gatewayWebsocketSessionExpiredException);
     }
 
     private void cancelSessionTimeout() {
@@ -387,8 +383,7 @@ final class StreamingSessionActor extends AbstractActor {
                                     .correlationId(connectionCorrelationId)
                                     .build())
                             .build();
-            eventAndResponsePublisher.tell(CloseStreamExceptionally.getInstance(gatewayWebsocketSessionClosedException,
-                    connectionCorrelationId), getSelf());
+            eventAndResponsePublisher.fail(gatewayWebsocketSessionClosedException);
         } else {
             sessionTerminationCancellable = startSessionTimeout(refreshSession.getSessionTimeout());
         }
@@ -433,19 +428,18 @@ final class StreamingSessionActor extends AbstractActor {
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
-    private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {
+    private void acknowledgeSubscription(final StreamingType streamingType) {
         if (outstandingSubscriptionAcks.contains(streamingType)) {
             outstandingSubscriptionAcks.remove(streamingType);
-            eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, true, connectionCorrelationId),
-                    self);
+            eventAndResponsePublisher.offer(SessionedJsonifiable.ack(streamingType, true, connectionCorrelationId));
             logger.debug("Subscribed to Cluster <{}> in <{}> session.", streamingType, type);
         } else {
             logger.debug("Subscription already acked for type <{}> in <{}> session.", streamingType, type);
         }
     }
 
-    private void acknowledgeUnsubscription(final StreamingType streamingType, final ActorRef self) {
-        eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, false, connectionCorrelationId), self);
+    private void acknowledgeUnsubscription(final StreamingType streamingType) {
+        eventAndResponsePublisher.offer(SessionedJsonifiable.ack(streamingType, false, connectionCorrelationId));
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session.", streamingType, type);
     }
 
@@ -480,6 +474,10 @@ final class StreamingSessionActor extends AbstractActor {
             super(streamingType);
         }
 
+    }
+
+    private enum Control {
+        TERMINATED
     }
 
 }

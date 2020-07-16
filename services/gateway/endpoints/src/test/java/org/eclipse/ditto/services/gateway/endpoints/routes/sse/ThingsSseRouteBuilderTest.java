@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.assertj.core.util.Lists;
@@ -33,9 +32,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
-import org.eclipse.ditto.services.gateway.streaming.CloseStreamExceptionally;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
+import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -48,7 +47,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -57,9 +55,9 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -77,8 +75,6 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @Rule
     public final TestName testName = new TestName();
-
-    private final AtomicReference<ActorRef> publisherActorReference = new AtomicReference<>();
 
     private String connectionCorrelationId;
     private TestProbe streamingActor;
@@ -101,9 +97,6 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         streamingActor = TestProbe.apply("streaming", actorSystem);
         proxyActor = TestProbe.apply("proxy", actorSystem);
 
-        final SseConnectionSupervisor sseConnectionSupervisor =
-                (sseActor, correlationId, headers) -> publisherActorReference.set(sseActor);
-
         connectionCorrelationId = testName.getMethodName();
 
         final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier = () -> {
@@ -116,7 +109,6 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final ThingsSseRouteBuilder sseRouteBuilder =
                 ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig, proxyActor.ref());
         sseRouteBuilder.withProxyActor(proxyActor.ref());
-        sseRouteBuilder.withSseConnectionSupervisor(sseConnectionSupervisor);
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);
     }
@@ -277,8 +269,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
             final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
 
-            final ActorRef publisherActor = publisherActorReference.get();
-            publisherActor.tell(receivedConnect, ActorRef.noSender());
+            final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
+                    receivedConnect.getEventAndResponsePublisher();
 
             final StartStreaming receivedStartStreaming = streamingActor.expectMsgClass(StartStreaming.class);
 
@@ -294,9 +286,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
             assertThat(receivedStartStreaming.getStreamingType())
                     .isEqualTo(expectedStartStreaming.getStreamingType());
 
-            publisherActor.tell(
-                    CloseStreamExceptionally.getInstance(GatewayServiceUnavailableException.newBuilder().build(),
-                            connectionCorrelationId), ActorRef.noSender());
+            publisherQueue.fail(GatewayServiceUnavailableException.newBuilder().build());
 
             try {
                 routeTestAssertions.join();
@@ -307,11 +297,6 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     private static void replySourceRef(final TestProbe testProbe, final Source<?, ?> source) {
-        testProbe.reply(
-                source.toMat(StreamRefs.sourceRef(), Keep.right())
-                        .run(ActorMaterializer.create(actorSystem))
-                        .toCompletableFuture()
-                        .join()
-        );
+        testProbe.reply(source.toMat(StreamRefs.sourceRef(), Keep.right()).run(actorSystem));
     }
 }

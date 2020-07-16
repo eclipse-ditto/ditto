@@ -105,10 +105,6 @@ public final class RootRouteTest extends EndpointTestBase {
             THINGS_1_PATH + "?" + ThingsParameter.IDS + "=namespace:bumlux";
     private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
 
-    private static final String PATH_WITH_INVALID_ENCODING = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
-            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS +
-            "/:bumlux/features?fields=feature-1%2properties";
-
     private static final String HTTPS = "https";
 
     private final Executor messageDispatcher;
@@ -364,12 +360,6 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(UNKNOWN_PATH));
         result.assertStatusCode(StatusCodes.MOVED_PERMANENTLY);
         result.assertHeaderExists(Location.create(HTTPS + "://" + KNOWN_DOMAIN + UNKNOWN_PATH));
-    }
-
-    @Test
-    public void getWithInvalidEncoding() {
-        final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(PATH_WITH_INVALID_ENCODING));
-        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test
