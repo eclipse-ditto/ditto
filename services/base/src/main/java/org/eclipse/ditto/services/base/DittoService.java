@@ -72,7 +72,6 @@ import akka.management.javadsl.AkkaManagement;
 import akka.stream.ActorMaterializer;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
-import kamon.system.SystemMetrics;
 
 /**
  * Abstract base implementation of a Ditto service which takes care of the complete startup procedure.
@@ -255,7 +254,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
         if (metricsConfig.isSystemMetricsEnabled()) {
             // start system metrics collection
-            SystemMetrics.startCollecting();
+            Kamon.init();
         }
         if (metricsConfig.isPrometheusEnabled()) {
             // start prometheus reporter
@@ -265,8 +264,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     private void startPrometheusReporter() {
         try {
-            prometheusReporter = new PrometheusReporter();
-            Kamon.addReporter(prometheusReporter);
+            prometheusReporter = PrometheusReporter.create();
+            Kamon.registerModule("prometheus reporter", prometheusReporter);
             logger.info("Successfully added Prometheus reporter to Kamon.");
         } catch (final Exception ex) {
             logger.error("Error while adding Prometheus reporter to Kamon.", ex);

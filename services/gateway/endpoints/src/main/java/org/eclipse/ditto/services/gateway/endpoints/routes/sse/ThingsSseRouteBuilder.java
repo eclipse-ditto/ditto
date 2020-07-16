@@ -245,8 +245,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                     }
 
-                    final Source<SessionedJsonifiable, ActorRef> publisherSource =
-                            Source.actorPublisher(EventAndResponsePublisher.props(10));
+                    final Source<SessionedJsonifiable, ActorRef> publisherSource = null;
+//                            Source.actorPublisher(EventAndResponsePublisher.props(10));
 
                     return publisherSource.mapMaterializedValue(
                             publisherActor -> {

@@ -394,29 +394,31 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final ProtocolMessageExtractor protocolMessageExtractor =
                 new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
-        return Filter.multiplexByEither(cmdString -> {
+        return Filter.<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>multiplexByEither(cmdString -> {
             final Optional<StreamControlMessage> streamControlMessage = protocolMessageExtractor.apply(cmdString);
+            Either<DittoRuntimeException, Either<StreamControlMessage, Signal>> result;
             if (streamControlMessage.isPresent()) {
-                return Right.apply(Left.apply(streamControlMessage.get()));
+                 result = Right.apply(Left.apply(streamControlMessage.get()));
             } else {
                 try {
                     final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
                             connectionAuthContext, additionalHeaders, adapter, headerTranslator);
-                    return Right.apply(Right.apply(signal));
+                    result = Right.apply(Right.apply(signal));
                 } catch (final DittoRuntimeException dre) {
                     // This is a client error usually; log at level DEBUG without stack trace.
                     LOGGER.withCorrelationId(dre)
                             .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
-                    return Left.apply(dre);
+                    result = Left.apply(dre);
                 } catch (final Exception throwable) {
                     LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
                             throwable.getClass().getSimpleName(), throwable.getMessage());
                     final DittoRuntimeException dittoRuntimeException = GatewayInternalErrorException.newBuilder()
                             .cause(throwable)
                             .build();
-                    return Left.apply(dittoRuntimeException);
+                    result = Left.apply(dittoRuntimeException);
                 }
             }
+            return result;
         });
     }
 
@@ -431,9 +433,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
-        final Source<SessionedJsonifiable, ActorRef> publisherSource =
-                Source.actorPublisher(EventAndResponsePublisher.props(
-                        websocketConfig.getPublisherBackpressureBufferSize()));
+        final Source<SessionedJsonifiable, ActorRef> publisherSource = null;
+//                Source.actorPublisher(EventAndResponsePublisher.props(
+//                        websocketConfig.getPublisherBackpressureBufferSize()));
 
         final Source<SessionedJsonifiable, NotUsed> eventAndResponseSource = publisherSource.mapMaterializedValue(
                 publisherActor -> {

@@ -20,8 +20,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.event.DiagnosticLoggingAdapter;
-import scala.collection.Seq;
 import scala.collection.immutable.Map;
+import scala.collection.immutable.Seq;
 
 /**
  * Wraps and delegates to a {@link DiagnosticLoggingAdapter}.

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import java.time.Duration;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.bson.Document;
@@ -36,7 +35,6 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
@@ -147,10 +145,10 @@ public final class SnapshotStreamingActor extends AbstractActor {
 
     private void startStreaming(final SudoStreamSnapshots command) {
         final Duration timeout = Duration.ofMillis(command.getTimeoutMillis());
-        final CompletionStage<SourceRef<StreamedSnapshot>> sourceRef = createSource(command)
+        final SourceRef<StreamedSnapshot> sourceRef = createSource(command)
                 .initialTimeout(timeout)
                 .idleTimeout(timeout)
                 .runWith(StreamRefs.sourceRef(), materializer);
-        Patterns.pipe(sourceRef, getContext().getDispatcher()).to(getSender());
+        getSender().tell(sourceRef, getSelf());
     }
 }

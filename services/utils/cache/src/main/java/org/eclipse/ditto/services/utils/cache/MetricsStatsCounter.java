@@ -217,7 +217,7 @@ public final class MetricsStatsCounter implements StatsCounter {
                 missCount.getCount(),
                 loadSuccessCount.getCount(),
                 loadFailureCount.getCount(),
-                Arrays.stream(totalLoadTime.getRecords()).mapToLong(Long::longValue).sum(),
+                totalLoadTime.getTotalTime(),
                 evictionCount.getCount(),
                 evictionWeight.getCount());
     }

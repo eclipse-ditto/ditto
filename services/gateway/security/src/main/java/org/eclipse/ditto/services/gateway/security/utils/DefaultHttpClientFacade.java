@@ -75,11 +75,10 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
 
     @Override
     public CompletionStage<HttpResponse> createSingleHttpRequest(final HttpRequest request) {
-        return Http.get(actorSystem).singleRequest(request,
-                Http.get(actorSystem).defaultClientHttpsContext(),
+        return Http.get(actorSystem)
+                .singleRequest(request, Http.get(actorSystem).defaultClientHttpsContext(),
                 connectionPoolSettings,
-                actorSystem.log(),
-                actorMaterializer
+                actorSystem.log()
         );
     }
 

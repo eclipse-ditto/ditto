@@ -366,7 +366,7 @@ final class MessagesRoute extends AbstractRoute {
             final Function<ByteBuffer, MessageCommand<?, ?>> requestPayloadToCommandFunction) {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
-        payloadSource.fold(ByteString.empty(), ByteString::concat)
+        payloadSource.fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::toArray)
                 .map(ByteBuffer::wrap)
                 .map(requestPayloadToCommandFunction)

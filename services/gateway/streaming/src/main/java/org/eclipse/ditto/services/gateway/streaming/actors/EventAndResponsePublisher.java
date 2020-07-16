@@ -25,17 +25,16 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 
+import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.actor.AbstractActorPublisherWithStash;
-import akka.stream.actor.ActorPublisherMessage;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Actor publishing {@link Event}s and {@link CommandResponse}s which were sent to him applying backpressure if
  * necessary.
  */
-public final class EventAndResponsePublisher extends AbstractActorPublisherWithStash<SessionedJsonifiable> {
+public final class EventAndResponsePublisher extends AbstractActor {
 
     private static final int MESSAGE_CONSUMPTION_CHECK_SECONDS = 2;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
@@ -71,38 +70,35 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
                 })
                 .matchAny(any -> {
                     logger.info("Got unknown message during init phase '{}' - stashing..", any);
-                    stash();
                 }).build();
     }
 
     private Receive connected(final CharSequence connectionCorrelationId) {
-        unstashAll();
 
         return ReceiveBuilder.create()
                 .match(SessionedJsonifiable.class, j -> buffer.size() >= backpressureBufferSize,
                         this::handleBackpressureFor)
                 .match(SessionedJsonifiable.class, jsonifiable -> {
-                    if (buffer.isEmpty() && totalDemand() > 0) {
-                        onNext(jsonifiable);
-                    } else {
-                        buffer.add(jsonifiable);
-                        deliverBuf();
-                    }
+//                    if (buffer.isEmpty() && totalDemand() > 0) {
+//                        onNext(jsonifiable);
+//                    } else {
+//                        buffer.add(jsonifiable);
+//                        deliverBuf();
+//                    }
                 })
                 .match(CloseStreamExceptionally.class, closeStreamExceptionally -> {
-                    final DittoRuntimeException reason = closeStreamExceptionally.getReason();
-                    logger.withCorrelationId(closeStreamExceptionally.getConnectionCorrelationId())
-                            .info("Closing stream exceptionally because of <{}>.", reason);
-                    if (0 < totalDemand()) {
-                        onNext(SessionedJsonifiable.error(reason));
-                    }
-                    onErrorThenStop(reason);
+//                    final DittoRuntimeException reason = closeStreamExceptionally.getReason();
+//                    logger.withCorrelationId(closeStreamExceptionally.getConnectionCorrelationId())
+//                            .info("Closing stream exceptionally because of <{}>.", reason);
+//                    if (0 < totalDemand()) {
+//                        onNext(SessionedJsonifiable.error(reason));
+//                    }
                 })
-                .match(ActorPublisherMessage.Request.class, request -> {
-                    logger.withCorrelationId(connectionCorrelationId).debug("Got new demand: {}", request);
-                    deliverBuf();
-                })
-                .match(ActorPublisherMessage.Cancel.class, cancel -> getContext().stop(getSelf()))
+//                .match(ActorPublisherMessage.Request.class, request -> {
+//                    logger.withCorrelationId(connectionCorrelationId).debug("Got new demand: {}", request);
+//                    deliverBuf();
+//                })
+//                .match(ActorPublisherMessage.Cancel.class, cancel -> getContext().stop(getSelf()))
                 .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
                         .warning("Got unknown message during connected phase: '{}'", any))
                 .build();
@@ -134,22 +130,22 @@ public final class EventAndResponsePublisher extends AbstractActorPublisherWithS
     }
 
     private void deliverBuf() {
-        while (totalDemand() > 0) {
-            /*
-             * totalDemand is a Long and could be larger than
-             * what buffer.splitAt can accept
-             */
-            if (totalDemand() <= Integer.MAX_VALUE) {
-                final List<SessionedJsonifiable> took = buffer.subList(0, Math.min(buffer.size(), (int) totalDemand()));
-                took.forEach(this::onNext);
-                buffer.removeAll(took);
-                break;
-            } else {
-                final List<SessionedJsonifiable> took = buffer.subList(0, Math.min(buffer.size(), Integer.MAX_VALUE));
-                took.forEach(this::onNext);
-                buffer.removeAll(took);
-            }
-        }
+//        while (totalDemand() > 0) {
+//            /*
+//             * totalDemand is a Long and could be larger than
+//             * what buffer.splitAt can accept
+//             */
+//            if (totalDemand() <= Integer.MAX_VALUE) {
+//                final List<SessionedJsonifiable> took = buffer.subList(0, Math.min(buffer.size(), (int) totalDemand()));
+//                took.forEach(this::onNext);
+//                buffer.removeAll(took);
+//                break;
+//            } else {
+//                final List<SessionedJsonifiable> took = buffer.subList(0, Math.min(buffer.size(), Integer.MAX_VALUE));
+//                took.forEach(this::onNext);
+//                buffer.removeAll(took);
+//            }
+//        }
     }
 
 }

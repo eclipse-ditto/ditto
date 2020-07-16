@@ -210,18 +210,18 @@ public final class SearchActor extends AbstractActor {
         final Set<String> namespaces = streamThings.getNamespaces().orElse(null);
         final Source<Optional<ThingsSearchCursor>, NotUsed> cursorSource =
                 ThingsSearchCursor.extractCursor(streamThings);
-        final Source<SourceRef<String>, NotUsed> sourceRefSource = cursorSource.flatMapConcat(cursor -> {
+        final Source<String, NotUsed> sourceRefSource = cursorSource.flatMapConcat(cursor -> {
             cursor.ifPresent(c -> c.logCursorCorrelationId(log, streamThings));
             return createQuerySource(queryParser::parse, streamThings).flatMapConcat(parsedQuery -> {
                 final Query query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                 stopTimer(queryParsingTimer);
                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                 final List<String> subjectIds = streamThings.getDittoHeaders().getAuthorizationSubjects();
-                final CompletionStage<SourceRef<String>> sourceRefFuture =
+                final SourceRef<String> sourceRef =
                         searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
                                 .map(ThingId::toString) // for serialization???
                                 .runWith(StreamRefs.sourceRef(), materializer);
-                return Source.fromCompletionStage(sourceRefFuture);
+                return sourceRef.getSource();
             });
         });
         final Source<Object, NotUsed> replySourceWithErrorHandling =

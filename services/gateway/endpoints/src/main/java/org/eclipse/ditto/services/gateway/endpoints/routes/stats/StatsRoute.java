@@ -142,7 +142,7 @@ public final class StatsRoute extends AbstractRoute {
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
         payloadSource
-                .fold(ByteString.empty(), ByteString::concat)
+                .fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(requestJsonToCommandFunction)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
@@ -162,7 +162,7 @@ public final class StatsRoute extends AbstractRoute {
 
         final CompletionStage<HttpResponse> allThingsCountHttpResponse = Source.fromCompletionStage(httpResponseFuture)
                 .flatMapConcat(httpResponse -> httpResponse.entity().getDataBytes())
-                .fold(ByteString.empty(), ByteString::concat)
+                .fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(Integer::valueOf)
                 .map(count -> JsonObject.newBuilder().set("allThingsCount", count).build())

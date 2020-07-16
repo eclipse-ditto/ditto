@@ -197,10 +197,10 @@ public final class SearchSourceTest {
     }
 
     private SourceRef<Object> materializeSourceProbe() {
-        final Pair<TestPublisher.Probe<Object>, CompletionStage<SourceRef<Object>>> materializedValues =
+        final Pair<TestPublisher.Probe<Object>, SourceRef<Object>> materializedValues =
                 TestSource.probe(actorSystem).toMat(StreamRefs.sourceRef(), Keep.both()).run(materializer);
         sourceProbe = materializedValues.first();
-        return materializedValues.second().toCompletableFuture().join();
+        return materializedValues.second();
     }
 
     private StreamThings streamThings(@Nullable final JsonArray sortValues) {

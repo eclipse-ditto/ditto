@@ -43,6 +43,7 @@ import akka.actor.Props;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestProbe;
@@ -150,8 +151,8 @@ public final class SubscriptionManagerTest {
             final ActorRef sender = conciergeForwarderProbe.sender();
             final Object source = sources.get(getTag(streamThings) - 1);
             if (source instanceof Source) {
-                ((Source<?, ?>) source).runWith(StreamRefs.sourceRef(), materializer)
-                        .thenAccept(sourceRef -> sender.tell(sourceRef, ActorRef.noSender()));
+                final SourceRef<?> sourceRef = ((Source<?, ?>) source).runWith(StreamRefs.sourceRef(), materializer);
+                sender.tell(sourceRef, ActorRef.noSender());
             } else {
                 sender.tell(source, ActorRef.noSender());
             }

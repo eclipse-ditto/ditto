@@ -204,7 +204,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         if (!response.status().isSuccess()) {
             handleNonSuccessResponse(response);
         }
-        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+        return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
@@ -223,7 +223,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     private CompletionStage<String> getBodyAsString(final HttpResponse response) {
-        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+        return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .runWith(Sink.head(), httpClient.getActorMaterializer());
     }

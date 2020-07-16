@@ -42,6 +42,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
@@ -137,7 +138,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<?> commandResponseSource = Source.from(thingIds)
+        final SourceRef<Jsonifiable> commandResponseSource = Source.from(thingIds)
                 .filter(Objects::nonNull)
                 .map(thingId -> {
                     final Command<?> toBeWrapped;
@@ -159,8 +160,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .log("command-response", log)
                 .runWith(StreamRefs.sourceRef(), actorMaterializer);
 
-        Patterns.pipe(commandResponseSource, aggregatorDispatcher)
-                .to(resultReceiver);
+        resultReceiver.tell(commandResponseSource, getSelf());
     }
 
     private int calculateParallelism(final Collection<ThingId> thingIds) {

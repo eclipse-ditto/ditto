@@ -25,9 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.metric.AtomicHdrHistogram;
-import kamon.metric.Bucket;
-import kamon.metric.MetricDistribution;
+import kamon.metric.Distribution;
+import kamon.tag.TagSet;
 import scala.collection.Seq;
 
 /**
@@ -97,30 +96,30 @@ public class KamonHistogram implements Histogram {
     @Override
     public Long[] getRecordedValues() {
         final List<Long> values = new ArrayList<>();
-        final Seq<Bucket> buckets = getSnapshot(false).distribution().buckets();
+        final Seq<Distribution.Bucket> buckets = getSnapshot(false).buckets();
         buckets.foreach(bucket -> addBucketValuesToList(bucket, values));
         return values.toArray(new Long[0]);
     }
 
-    private List<Long> addBucketValuesToList(Bucket bucket, List<Long> values) {
+    private List<Long> addBucketValuesToList(Distribution.Bucket bucket, List<Long> values) {
         for (int i = 0; i < bucket.frequency(); i++) {
             values.add(bucket.value());
         }
         return values;
     }
 
-    private MetricDistribution getSnapshot(final boolean reset) {
+    private Distribution getSnapshot(final boolean reset) {
         final kamon.metric.Histogram histogram = getKamonInternalHistogram();
 
-        if (histogram instanceof AtomicHdrHistogram) {
-            return ((AtomicHdrHistogram) histogram).snapshot(reset);
+        if (histogram instanceof kamon.metric.Histogram.Atomic) {
+            return ((kamon.metric.Histogram.Atomic) histogram).snapshot(reset);
         }
 
         throw new IllegalStateException("Could not get snapshot of kamon internal histogram");
     }
 
     private kamon.metric.Histogram getKamonInternalHistogram() {
-        return Kamon.histogram(name).refine(tags);
+        return Kamon.histogram(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
 

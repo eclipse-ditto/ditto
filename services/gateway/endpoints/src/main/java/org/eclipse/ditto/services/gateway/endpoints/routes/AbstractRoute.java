@@ -224,7 +224,7 @@ public abstract class AbstractRoute extends AllDirectives {
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
         payloadSource
-                .fold(ByteString.empty(), ByteString::concat)
+                .fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(requestJsonToCommandFunction)
                 .map(command -> {
@@ -249,7 +249,7 @@ public abstract class AbstractRoute extends AllDirectives {
                 if (isSuccessfulResponse && !isEmptyResponse) {
                     final InputStream inputStream = response.entity()
                             .getDataBytes()
-                            .fold(ByteString.empty(), ByteString::concat)
+                            .fold(ByteString.emptyByteString(), ByteString::concat)
                             .runWith(StreamConverters.asInputStream(), materializer);
                     final JsonValue jsonValue = JsonFactory.readFrom(new InputStreamReader(inputStream));
                     try {

@@ -110,14 +110,13 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
         final Duration initialTimeout = getInitialTimeout(command);
         final Duration idleTimeout = getIdleTimeout(command);
 
-        final CompletionStage<SourceRef<Object>> sourceRef =
-                createSource(command)
-                        .grouped(burst)
-                        .map(this::batchMessages)
-                        .initialTimeout(initialTimeout)
-                        .idleTimeout(idleTimeout)
-                        .runWith(StreamRefs.sourceRef(), materializer);
+        final SourceRef<Object> sourceRef = createSource(command)
+                .grouped(burst)
+                .map(this::batchMessages)
+                .initialTimeout(initialTimeout)
+                .idleTimeout(idleTimeout)
+                .runWith(StreamRefs.sourceRef(), materializer);
 
-        Patterns.pipe(sourceRef, getContext().getDispatcher()).to(getSender());
+        getSender().tell(sourceRef, getSelf());
     }
 }

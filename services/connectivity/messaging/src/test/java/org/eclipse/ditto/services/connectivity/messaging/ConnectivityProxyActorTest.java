@@ -36,6 +36,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.javadsl.TestKit;
@@ -92,11 +93,14 @@ public class ConnectivityProxyActorTest {
             expectMsg(retrieveThings);
 
             // WHEN: concierge responds with SourceRef of things
-            Source.from(retrieveThings.getThingEntityIds())
-                    .map(thingId -> Thing.newBuilder().setId(thingId).build())
-                    .map(thing -> RetrieveThingResponse.of(thing.getEntityId().orElseThrow(), thing,
-                            DittoHeaders.empty())).runWith(StreamRefs.sourceRef(), actorMaterializer)
-                    .thenAccept(sr -> getLastSender().tell(sr, ActorRef.noSender()));
+            final SourceRef<RetrieveThingResponse> retrieveThingResponseSourceRef =
+                    Source.from(retrieveThings.getThingEntityIds())
+                            .map(thingId -> Thing.newBuilder().setId(thingId).build())
+                            .map(thing -> RetrieveThingResponse.
+                                    of(thing.getEntityId().orElseThrow(), thing, DittoHeaders.empty()))
+                            .runWith(StreamRefs.sourceRef(), actorMaterializer);
+
+            getLastSender().tell(retrieveThingResponseSourceRef, ActorRef.noSender());
 
             // THEN: original sender receives
             final RetrieveThingsResponse retrieveThingsResponse = expectMsgClass(RetrieveThingsResponse.class);
