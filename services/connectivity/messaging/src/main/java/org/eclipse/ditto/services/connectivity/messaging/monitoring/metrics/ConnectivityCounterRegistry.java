@@ -214,6 +214,18 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     }
 
     /**
+     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#ACKNOWLEDGED} messages.
+     *
+     * @param connectionId connection id
+     * @param source the source
+     * @return the inbound counter
+     */
+    @Override
+    public ConnectionMetricsCounter forInboundAcknowledged(final ConnectionId connectionId, final String source) {
+        return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.INBOUND, source);
+    }
+
+    /**
      * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#MAPPED} messages.
      *
      * @param connectionId connection id

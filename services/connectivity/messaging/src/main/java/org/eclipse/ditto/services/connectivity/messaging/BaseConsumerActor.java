@@ -59,6 +59,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final String sourceAddress;
     protected final Source source;
     protected final ConnectionMonitor inboundMonitor;
+    protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
 
     private final ActorRef messageMappingProcessor;
@@ -81,6 +82,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
                 .forInboundConsumed(connectionId, sourceAddress);
+
+        inboundAcknowledgedMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
+                .forInboundAcknowledged(connectionId, sourceAddress);
     }
 
     /**

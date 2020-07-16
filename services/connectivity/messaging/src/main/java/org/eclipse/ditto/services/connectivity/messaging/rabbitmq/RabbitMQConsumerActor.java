@@ -152,22 +152,22 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                         try {
                             final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
                             channel.basicAck(deliveryTag, false);
-                            inboundMonitor.getLogger().success("Sending basic.ack: deliveryTag={0}", deliveryTag);
+                            inboundAcknowledgedMonitor.getLogger().success("Sending basic.ack: deliveryTag={0}", deliveryTag);
                         } catch (IOException e) {
                             log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
-                            inboundMonitor.exception(e);
+                            inboundAcknowledgedMonitor.exception(e);
                         }
                     },
                     requeue -> {
                         try {
                             channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
-                            inboundMonitor.exception("Sending basic.nack: deliveryTag={0}, requeue={0}",
+                            inboundAcknowledgedMonitor.exception("Sending basic.nack: deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (IOException e) {
                             log.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
-                            inboundMonitor.exception(e);
+                            inboundAcknowledgedMonitor.exception(e);
                         }
                     });
         } catch (final DittoRuntimeException e) {

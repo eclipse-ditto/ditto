@@ -349,9 +349,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             if (isSuccess) {
-                inboundMonitor.getLogger().success("Sending acknowledgement {0}", ackTypeName);
+                inboundAcknowledgedMonitor.getLogger().success("Sending acknowledgement {0}", ackTypeName);
             } else {
-                inboundMonitor.exception("Sending negative acknowledgement {0}.", ackTypeName);
+                inboundAcknowledgedMonitor.exception("Sending negative acknowledgement {0}.", ackTypeName);
             }
         } catch (final JMSException e) {
             log.error(e, "Failed to ack an AMQP message");

@@ -300,6 +300,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forInboundAcknowledged(final ConnectionId connectionId, final String source) {
+        return getLogger(connectionId, LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
+    }
+
+    @Override
     public ConnectionLogger forInboundMapped(final ConnectionId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.MAPPED, source);
     }

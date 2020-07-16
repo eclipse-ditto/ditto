@@ -103,6 +103,14 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
+    public ConnectionMonitor forInboundAcknowledged(final ConnectionId connectionId, final String source) {
+        return DefaultConnectionMonitor.builder(
+                connectionCounterRegistry.forInboundAcknowledged(connectionId, source),
+                connectionLoggerRegistry.forInboundAcknowledged(connectionId, source))
+                .build();
+    }
+
+    @Override
     public ConnectionMonitor forInboundMapped(final ConnectionId connectionId, final String source) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundMapped(connectionId, source),

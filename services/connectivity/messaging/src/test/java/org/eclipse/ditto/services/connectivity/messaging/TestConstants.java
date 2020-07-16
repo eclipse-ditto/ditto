@@ -503,6 +503,8 @@ public final class TestConstants {
         static {
             when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundAcknowledged(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(ConnectionId.class), anyString()))

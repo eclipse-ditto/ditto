@@ -237,7 +237,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             sendPubAck(message);
         } catch (final IllegalStateException e) {
             // this message was acknowledged by another consumer actor due to overlapping topic
-            inboundMonitor.exception("Acknowledgement of incoming message at topic <{0}> failed " +
+            inboundAcknowledgedMonitor.exception("Acknowledgement of incoming message at topic <{0}> failed " +
                             "because it was acknowledged already by another source.",
                     getTopic(message));
         }
@@ -246,11 +246,11 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     private void reject(final P publish, final boolean redeliver, final ActorRef parent) {
         if (redeliver && reconnectForRedelivery) {
             final String message = "Restarting connection for redeliveries due to unfulfilled acknowledgements.";
-            inboundMonitor.exception(message);
+            inboundAcknowledgedMonitor.exception(message);
             parent.tell(AbstractMqttClientActor.Control.RECONNECT_CONSUMER_CLIENT, getSelf());
         } else {
             final String message = "Unfulfilled acknowledgements are present, but redelivery is not possible.";
-            inboundMonitor.exception(message);
+            inboundAcknowledgedMonitor.exception(message);
             acknowledge(publish);
         }
     }
