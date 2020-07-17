@@ -285,6 +285,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
+        return getLogger(connectionId, LogCategory.TARGET, LogType.ACKNOWLEDGED, target);
+    }
+
+    @Override
     public ConnectionLogger forOutboundFiltered(final ConnectionId connectionId, final String target) {
         return getLogger(connectionId, LogCategory.TARGET, LogType.FILTERED, target);
     }

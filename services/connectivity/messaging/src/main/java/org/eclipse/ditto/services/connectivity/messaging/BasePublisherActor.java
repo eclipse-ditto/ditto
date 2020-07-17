@@ -517,16 +517,18 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private SendingContext sendingContextForReplyTarget(final OutboundSignal.Mapped outboundSignal,
             final ReplyTarget replyTarget) {
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
-        return new SendingContext(outboundSignal, externalMessage, replyTarget, responsePublishedMonitor,
+        return new SendingContext(outboundSignal, externalMessage, replyTarget, responsePublishedMonitor, null,
                 responseDroppedMonitor, null);
     }
 
     private SendingContext sendingContextForTarget(final OutboundSignal.Mapped outboundSignal, final Target target) {
-        final ConnectionMonitor monitor =
+        final ConnectionMonitor publishedMonitor =
                 connectionMonitorRegistry.forOutboundPublished(connectionId, target.getOriginalAddress());
+        @Nullable final ConnectionMonitor acknowledgedMonitor =
+                isTargetAckRequested(outboundSignal, target) ? connectionMonitorRegistry.forInboundAcknowledged(connectionId, target.getOriginalAddress()) : null;
         @Nullable final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
-        return new SendingContext(outboundSignal, externalMessage, target, monitor, monitor, autoAckTarget);
+        return new SendingContext(outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor, publishedMonitor, autoAckTarget);
     }
 
     @Nullable
@@ -558,6 +560,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         private final ExternalMessage externalMessage;
         private final GenericTarget genericTarget;
         private final ConnectionMonitor publishedMonitor;
+        @Nullable private final ConnectionMonitor acknowledgedMonitor;
         private final ConnectionMonitor droppedMonitor;
         @Nullable private final Target autoAckTarget;
 
@@ -566,22 +569,24 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 final ExternalMessage externalMessage,
                 final GenericTarget genericTarget,
                 final ConnectionMonitor publishedMonitor,
+                @Nullable ConnectionMonitor acknowledgedMonitor,
                 final ConnectionMonitor droppedMonitor,
                 @Nullable final Target autoAckTarget) {
             this.outboundSignal = outboundSignal;
             this.externalMessage = externalMessage;
             this.genericTarget = genericTarget;
             this.publishedMonitor = publishedMonitor;
+            this.acknowledgedMonitor = acknowledgedMonitor;
             this.droppedMonitor = droppedMonitor;
             this.autoAckTarget = autoAckTarget;
         }
 
         private boolean shouldAcknowledge() {
-            return autoAckTarget != null;
+            return autoAckTarget != null && acknowledgedMonitor != null;
         }
 
         private SendingContext setExternalMessage(final ExternalMessage externalMessage) {
-            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor, droppedMonitor,
+            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor, acknowledgedMonitor, droppedMonitor,
                     autoAckTarget);
         }
     }
@@ -613,7 +618,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                     context.publishedMonitor.success(context.externalMessage);
                                     return context.shouldAcknowledge() ? ack : null;
                                 } else if (ack != null) {
-                                    context.publishedMonitor.failure(context.externalMessage, ackToException(ack));
+                                   if (context.acknowledgedMonitor != null) {
+                                       context.acknowledgedMonitor.failure(context.externalMessage,
+                                               ackToException(ack));
+                                   }
                                     return ack;
                                 } else {
                                     // ack == null; report error.

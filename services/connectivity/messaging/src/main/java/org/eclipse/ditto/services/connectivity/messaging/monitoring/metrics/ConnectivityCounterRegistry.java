@@ -178,6 +178,18 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     }
 
     /**
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#ACKNOWLEDGED} messages.
+     *
+     * @param connectionId connection id
+     * @param target the target address
+     * @return the counter
+     */
+    @Override
+    public ConnectionMetricsCounter forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
+        return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, target);
+    }
+
+    /**
      * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#FILTERED} messages.
      *
      * @param connectionId connection id

@@ -79,6 +79,14 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
+    public ConnectionMonitor forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
+        return DefaultConnectionMonitor.builder(
+                connectionCounterRegistry.forOutboundAcknowledged(connectionId, target),
+                connectionLoggerRegistry.forOutboundAcknowledged(connectionId, target))
+                .build();
+    }
+
+    @Override
     public ConnectionMonitor forOutboundFiltered(final ConnectionId connectionId, final String target) {
         return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundFiltered(connectionId, target),

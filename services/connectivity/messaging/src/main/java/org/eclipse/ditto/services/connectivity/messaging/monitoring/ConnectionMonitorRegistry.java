@@ -36,6 +36,16 @@ public interface ConnectionMonitorRegistry<T> {
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
+     * org.eclipse.ditto.model.connectivity.MetricType#ACKNOWLEDGED} messages.
+     *
+     * @param connectionId connection id
+     * @param target the target address
+     * @return the counter
+     */
+    T forOutboundAcknowledged(final ConnectionId connectionId, final String target);
+
+    /**
+     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
      * org.eclipse.ditto.model.connectivity.MetricType#DISPATCHED} messages.
      *
      * @param connectionId connection id
