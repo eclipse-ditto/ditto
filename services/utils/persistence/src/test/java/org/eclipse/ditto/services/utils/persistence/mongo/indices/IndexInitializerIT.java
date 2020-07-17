@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
@@ -41,7 +40,8 @@ import com.mongodb.MongoCommandException;
 
 import akka.Done;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -90,11 +90,11 @@ public final class IndexInitializerIT {
 
     @Nullable private static MongoDbResource mongoResource;
 
-    @Nullable private ActorSystem system;
-    @Nullable private ActorMaterializer materializer;
-    @Nullable private DittoMongoClient mongoClient;
-    @Nullable private IndexInitializer indexInitializerUnderTest;
-    @Nullable private IndexOperations indexOperations;
+    private ActorSystem system;
+    private Materializer materializer;
+    private DittoMongoClient mongoClient;
+    private IndexInitializer indexInitializerUnderTest;
+    private IndexOperations indexOperations;
 
     @BeforeClass
     public static void startMongoResource() {
@@ -102,7 +102,6 @@ public final class IndexInitializerIT {
         mongoResource.start();
     }
 
-    @SuppressWarnings("ConstantConditions")
     @AfterClass
     public static void stopMongoResource() {
         if (mongoResource != null) {
@@ -113,7 +112,7 @@ public final class IndexInitializerIT {
     @Before
     public void before() {
         system = ActorSystem.create("AkkaTestSystem");
-        materializer = ActorMaterializer.create(system);
+        materializer = SystemMaterializer.get(system).materializer();
 
         requireNonNull(mongoResource);
         requireNonNull(materializer);
@@ -289,18 +288,8 @@ public final class IndexInitializerIT {
                 expectedIndices, true);
     }
 
-    private static <T> T runBlocking(final CompletionStage<T> completionStage) {
-        try {
-            return completionStage.toCompletableFuture().get();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw mapToRuntimeException(e);
-        } catch (final ExecutionException e) {
-            if (e.getCause() != null) {
-                throw mapToRuntimeException(e.getCause());
-            }
-            throw mapToRuntimeException(e);
-        }
+    private static <T> void runBlocking(final CompletionStage<T> completionStage) {
+        completionStage.toCompletableFuture().join();
     }
 
     private static RuntimeException mapToRuntimeException(final Throwable t) {

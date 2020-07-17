@@ -47,7 +47,7 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.javadsl.Keep;
@@ -74,7 +74,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final HttpPushFactory factory;
     private final HttpPushConfig config;
 
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
 
     @SuppressWarnings("unused")
@@ -88,7 +88,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .getConnectionConfig();
         config = connectionConfig.getHttpPushConfig();
 
-        materializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
         sourceQueue =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
                         .viaMat(factory.createFlow(system, log), Keep.left())
@@ -120,7 +120,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
         final HttpRequest request = createRequest(publishTarget, message);
         sourceQueue.offer(Pair.create(request, new HttpPushContext(message, request.getUri())))
-                    .handle(handleQueueOfferResult(message));
+                .handle(handleQueueOfferResult(message));
     }
 
     @Override
@@ -240,7 +240,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private static CompletionStage<String> getResponseBody(final HttpResponse response,
-            final ActorMaterializer materializer) {
+            final Materializer materializer) {
         return response.entity()
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
                 .thenApply(HttpEntity.Strict::getData)

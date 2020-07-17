@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -22,8 +21,7 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
@@ -44,7 +42,7 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     /**
      * Actor materializer of this actor's system.
      */
-    protected final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+    protected final Materializer materializer = Materializer.createMaterializer(this::getContext);
 
     /**
      * @return Class of the commands.

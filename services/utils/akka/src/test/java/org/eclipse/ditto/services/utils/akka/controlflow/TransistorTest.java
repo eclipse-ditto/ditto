@@ -28,8 +28,6 @@ import org.junit.runners.Parameterized;
 
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
-import akka.stream.Attributes;
 import akka.stream.Graph;
 import akka.stream.SourceShape;
 import akka.stream.javadsl.GraphDSL$;
@@ -103,7 +101,7 @@ public final class TransistorTest {
         final Pair<Pair<TestPublisher.Probe<Integer>, TestPublisher.Probe<Integer>>, TestSubscriber.Probe<Integer>> m =
                 Source.fromGraph(collectorGateTransistor)
                         .toMat(emitterSink, Keep.both())
-                        .run(ActorMaterializer.create(system));
+                        .run(system);
 
         collector = m.first().first();
         base = m.first().second();

@@ -84,7 +84,6 @@ import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.
@@ -103,8 +102,7 @@ final class GatewayRootActor extends DittoRootActor {
     private final CompletionStage<ServerBinding> httpBinding;
 
     @SuppressWarnings("unused")
-    private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -163,8 +161,8 @@ final class GatewayRootActor extends DittoRootActor {
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
-                .bindAndHandle(routeWithLogging.flow(actorSystem, materializer),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+                .bindAndHandle(routeWithLogging.flow(actorSystem),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
 
         httpBinding.thenAccept(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
@@ -187,13 +185,11 @@ final class GatewayRootActor extends DittoRootActor {
      *
      * @param gatewayConfig the configuration settings of this service.
      * @param pubSubMediator the pub-sub mediator.
-     * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
-        return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator, materializer);
+        return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator);
     }
 
     @Override

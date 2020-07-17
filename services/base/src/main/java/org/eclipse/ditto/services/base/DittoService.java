@@ -56,7 +56,6 @@ import com.typesafe.config.ConfigValueFactory;
 
 import akka.Done;
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
@@ -69,7 +68,6 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.Route;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.management.javadsl.AkkaManagement;
-import akka.stream.ActorMaterializer;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
 
@@ -85,9 +83,9 @@ import kamon.prometheus.PrometheusReporter;
  * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
  * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.services.base.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)} and</li>
+ * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
  * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
@@ -306,12 +304,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         if (metricsConfig.isPrometheusEnabled() && null != prometheusReporter) {
             final String prometheusHostname = metricsConfig.getPrometheusHostname();
             final int prometheusPort = metricsConfig.getPrometheusPort();
-            final ActorMaterializer materializer = createActorMaterializer(actorSystem);
             final Route prometheusReporterRoute = PrometheusReporterRoute
                     .buildPrometheusReporterRoute(prometheusReporter);
             final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem, materializer),
-                            ConnectHttp.toHost(prometheusHostname, prometheusPort), materializer);
+                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem),
+                            ConnectHttp.toHost(prometheusHostname, prometheusPort), actorSystem);
 
             binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                     CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_prometheus_http_endpoint", () -> {
@@ -395,9 +392,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)} and</li>
+     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
      * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
      * </ul>
      *
@@ -410,13 +407,12 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
 
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
-            final ActorMaterializer materializer = createActorMaterializer(actorSystem);
 
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
-            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator, materializer));
+            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(serviceSpecificConfig,
-                    pubSubMediator, materializer));
+                    pubSubMediator));
         });
     }
 
@@ -443,20 +439,14 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return DistributedPubSub.get(actorSystem).mediator();
     }
 
-    private static ActorMaterializer createActorMaterializer(final ActorRefFactory actorSystem) {
-        return ActorMaterializer.create(actorSystem);
-    }
-
     /**
      * Returns the Props of this service's main root actor.
      *
      * @param serviceSpecificConfig the configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
-     * @param materializer the materializer for the Akka actor system.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator,
-            ActorMaterializer materializer);
+    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root
@@ -475,11 +465,10 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the specific configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
-     * @param materializer the materializer for the Akka actor system.
      * @return the additional root actors information.
      */
     protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C serviceSpecificConfig,
-            final ActorRef pubSubMediator, final ActorMaterializer materializer) {
+            final ActorRef pubSubMediator) {
 
         return Collections.emptyList();
     }

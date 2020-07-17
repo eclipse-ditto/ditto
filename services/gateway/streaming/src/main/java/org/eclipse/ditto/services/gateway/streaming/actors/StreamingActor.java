@@ -57,7 +57,7 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
@@ -110,7 +110,7 @@ public final class StreamingActor extends AbstractActorWithTimers
         jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
         subscriptionManagerProps =
                 SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator, conciergeForwarder,
-                        ActorMaterializer.create(getContext()));
+                        Materializer.createMaterializer(this::getContext));
         scheduleScrapeStreamSessionsCounter();
     }
 

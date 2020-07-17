@@ -71,7 +71,6 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
-import akka.stream.ActorMaterializer;
 import scala.PartialFunction;
 
 /**
@@ -91,7 +90,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
     @SuppressWarnings("unused")
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
@@ -124,7 +122,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
         final CompletionStage<ServerBinding> binding =
-                getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
+                getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem,
                         getHealthCheckingActor(connectivityConfig, pubSubMediator));
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
@@ -144,7 +142,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
      *
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the akka actor system.
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
      * @param commandValidator custom command validator for connectivity commands
@@ -152,11 +149,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
      */
     public static Props props(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             final ConnectivityCommandInterceptor commandValidator) {
 
-        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
                 conciergeForwarderSignalTransformer, commandValidator);
     }
 
@@ -165,17 +161,14 @@ public final class ConnectivityRootActor extends DittoRootActor {
      *
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the akka actor system.
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ConnectivityConfig connectivityConfig,
-            final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
+    public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
-        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
                 conciergeForwarderSignalTransformer, null);
     }
 
@@ -263,7 +256,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private CompletionStage<ServerBinding> getHttpBinding(final HttpConfig httpConfig,
             final ActorSystem actorSystem,
-            final ActorMaterializer materializer,
             final ActorRef healthCheckingActor) {
 
         String hostname = httpConfig.getHostname();
@@ -273,8 +265,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
         }
 
         return Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem, materializer),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
     }
 
 }

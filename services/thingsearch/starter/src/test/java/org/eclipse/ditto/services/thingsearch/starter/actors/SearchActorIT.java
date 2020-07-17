@@ -58,7 +58,6 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
@@ -81,7 +80,6 @@ public final class SearchActorIT {
     private TestSearchUpdaterStream writePersistence;
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
 
     @BeforeClass
     public static void startMongoResource() {
@@ -98,7 +96,6 @@ public final class SearchActorIT {
                         "  type = PinnedDispatcher\n" +
                         "  executor = \"thread-pool-executor\"\n" +
                         "}"));
-        materializer = ActorMaterializer.create(actorSystem);
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
@@ -131,7 +128,6 @@ public final class SearchActorIT {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
-        materializer = null;
     }
 
     @AfterClass
@@ -174,7 +170,7 @@ public final class SearchActorIT {
 
             final SourceRef<?> response = expectMsgClass(SourceRef.class);
             final JsonArray searchResult = response.getSource()
-                    .runWith(Sink.seq(), materializer)
+                    .runWith(Sink.seq(), actorSystem)
                     .toCompletableFuture()
                     .join()
                     .stream()
@@ -258,7 +254,7 @@ public final class SearchActorIT {
                 .concat(writePersistence.writeThingWithAcl(template(baseThing, 3, "b")))
                 .concat(writePersistence.writeThingWithAcl(template(baseThing, 4, "c")))
                 .concat(writePersistence.writeThingWithAcl(template(irrelevantThing, 5, "c")))
-                .runWith(Sink.ignore(), materializer)
+                .runWith(Sink.ignore(), actorSystem)
                 .toCompletableFuture()
                 .join();
     }

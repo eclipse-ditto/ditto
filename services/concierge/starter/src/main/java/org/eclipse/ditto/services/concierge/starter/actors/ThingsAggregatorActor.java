@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -40,13 +39,11 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
-import scala.concurrent.ExecutionContext;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -62,21 +59,19 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
-    private final ExecutionContext aggregatorDispatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
-    private final ActorMaterializer actorMaterializer;
+    private final Materializer materializer;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
-        aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
         final ThingsAggregatorConfig aggregatorConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getThingsAggregatorConfig();
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
-        actorMaterializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
@@ -158,7 +153,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
                 .log("command-response", log)
-                .runWith(StreamRefs.sourceRef(), actorMaterializer);
+                .runWith(StreamRefs.sourceRef(), materializer);
 
         resultReceiver.tell(commandResponseSource, getSelf());
     }

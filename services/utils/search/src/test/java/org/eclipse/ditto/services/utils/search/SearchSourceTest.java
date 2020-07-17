@@ -12,9 +12,10 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -36,10 +37,10 @@ import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.pattern.AskTimeoutException;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.StreamRefs;
 import akka.stream.testkit.TestPublisher;
@@ -58,7 +59,7 @@ public final class SearchSourceTest {
     private static final JsonFieldSelector SORT_FIELDS = JsonFieldSelector.newInstance("attributes/counter", "thingId");
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
+    private Materializer materializer;
     private TestProbe pubSubMediatorProbe;
     private TestProbe conciergeForwarderProbe;
     private DittoHeaders dittoHeaders;
@@ -68,7 +69,7 @@ public final class SearchSourceTest {
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create();
-        materializer = ActorMaterializer.create(actorSystem);
+        materializer = SystemMaterializer.get(actorSystem).materializer();
         pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
         conciergeForwarderProbe = TestProbe.apply("conciergeForwarder", actorSystem);
         dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
@@ -99,7 +100,7 @@ public final class SearchSourceTest {
         sinkProbe.request(1L);
         conciergeForwarderProbe.expectMsg(streamThings(null));
         conciergeForwarderProbe.reply(InvalidRqlExpressionException.newBuilder().build());
-        sinkProbe.expectError();
+        assertThat(sinkProbe.expectError()).isInstanceOf(InvalidRqlExpressionException.class);
     }
 
     @Test

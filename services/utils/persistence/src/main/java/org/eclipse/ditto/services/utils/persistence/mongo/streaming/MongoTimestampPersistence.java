@@ -35,8 +35,8 @@ import akka.Done;
 import akka.NotUsed;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.Materializer;
 import akka.stream.javadsl.BroadcastHub;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Source;
@@ -90,7 +90,7 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      * @return a new initialized instance.
      */
     public static MongoTimestampPersistence initializedInstance(final String collectionName,
-            final DittoMongoClient mongoClient, final ActorMaterializer materializer) {
+            final DittoMongoClient mongoClient, final Materializer materializer) {
         final Source<MongoCollection, NotUsed> collectionSource =
                 createOrGetCappedCollection(mongoClient.getDefaultDatabase(), collectionName,
                         MIN_CAPPED_COLLECTION_SIZE_IN_BYTES, materializer);
@@ -161,7 +161,7 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
             final MongoDatabase database,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
-            final ActorMaterializer materializer) {
+            final Materializer materializer) {
 
         final Source<Success, NotUsed> createCollectionSource =
                 repeatableCreateCappedCollectionSource(database, collectionName, cappedCollectionSizeInBytes);

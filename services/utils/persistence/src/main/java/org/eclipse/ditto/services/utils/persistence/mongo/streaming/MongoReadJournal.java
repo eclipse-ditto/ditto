@@ -16,9 +16,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -39,7 +37,6 @@ import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.NotUsed;
@@ -47,8 +44,8 @@ import akka.actor.ActorSystem;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 import akka.contrib.persistence.mongodb.SnapshottingFieldNames$;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.Materializer;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -90,10 +87,6 @@ public class MongoReadJournal {
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
     private static final String SERIALIZED_SNAPSHOT = "s2";
     private static final String LIFECYCLE = "__lifecycle";
-
-    private static final Integer SORT_DESCENDING = -1;
-
-    private static final Document ID_DESC = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
 
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
@@ -164,7 +157,7 @@ public class MongoReadJournal {
      * events that do not occur in prior buckets.
      */
     public Source<String, NotUsed> getJournalPids(final int batchSize, final Duration maxIdleTime,
-            final ActorMaterializer mat) {
+            final Materializer mat) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
@@ -183,7 +176,7 @@ public class MongoReadJournal {
      * @return all unique PIDs in journals above a lower bound.
      */
     public Source<String, NotUsed> getJournalPidsAbove(final String lowerBoundPid, final int batchSize,
-            final ActorMaterializer mat) {
+            final Materializer mat) {
 
         return getJournal()
                 .withAttributes(Attributes.inputBuffer(1, 1))
@@ -205,7 +198,7 @@ public class MongoReadJournal {
      */
     public Source<Document, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
             final int batchSize,
-            final ActorMaterializer mat,
+            final Materializer mat,
             final String... snapshotFields) {
 
         return getSnapshotStore()
@@ -218,7 +211,7 @@ public class MongoReadJournal {
     }
 
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
-            final String lowerBound, final int batchSize, final ActorMaterializer mat, final Duration maxBackOff,
+            final String lowerBound, final int batchSize, final Materializer mat, final Duration maxBackOff,
             final int maxRestarts) {
 
         return unfoldBatchedSource(lowerBound, mat, Function.identity(), actualStart ->
@@ -229,7 +222,7 @@ public class MongoReadJournal {
     private Source<List<Document>, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
             final String lowerBound,
             final int batchSize,
-            final ActorMaterializer mat,
+            final Materializer mat,
             final String... snapshotFields) {
 
         return this.unfoldBatchedSource(lowerBound,
@@ -242,7 +235,7 @@ public class MongoReadJournal {
 
     private <T> Source<List<T>, NotUsed> unfoldBatchedSource(
             final String lowerBound,
-            final ActorMaterializer mat,
+            final Materializer mat,
             final Function<T, String> seedCreator,
             final Function<String, Source<T, ?>> sourceCreator) {
 
@@ -376,28 +369,12 @@ public class MongoReadJournal {
                 .collect(Collectors.toList());
     }
 
-    private Source<Document, NotUsed> find(final MongoDatabase db, final String collection, final Document filter,
-            final Document project) {
-
-        return Source.fromPublisher(
-                db.getCollection(collection).find(filter).projection(project).sort(ID_DESC)
-        );
-    }
-
     private Source<MongoCollection<Document>, NotUsed> getJournal() {
         return Source.single(mongoClient.getDefaultDatabase().getCollection(journalCollection));
     }
 
     private Source<MongoCollection<Document>, NotUsed> getSnapshotStore() {
         return Source.single(mongoClient.getDefaultDatabase().getCollection(snapsCollection));
-    }
-
-    private static Document toDocument(final Object[][] keyValuePairs) {
-        final Map<String, Object> map = new HashMap<>(keyValuePairs.length);
-        for (final Object[] keyValuePair : keyValuePairs) {
-            map.put(keyValuePair[0].toString(), keyValuePair[1]);
-        }
-        return new Document(map);
     }
 
     /**

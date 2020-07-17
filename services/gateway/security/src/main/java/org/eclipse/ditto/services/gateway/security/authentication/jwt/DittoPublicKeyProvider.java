@@ -208,7 +208,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .map(ByteString::utf8String)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
-                .runWith(Sink.head(), httpClient.getActorMaterializer());
+                .runWith(Sink.head(), httpClient.getActorSystem());
     }
 
     private void handleNonSuccessResponse(final HttpResponse response) {
@@ -225,7 +225,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     private CompletionStage<String> getBodyAsString(final HttpResponse response) {
         return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .runWith(Sink.head(), httpClient.getActorMaterializer());
+                .runWith(Sink.head(), httpClient.getActorSystem());
     }
 
     private static PublicKeyProviderUnavailableException handleUnexpectedException(final Throwable e,

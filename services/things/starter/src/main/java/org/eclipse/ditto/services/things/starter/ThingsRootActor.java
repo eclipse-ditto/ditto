@@ -62,7 +62,6 @@ import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -81,7 +80,6 @@ public final class ThingsRootActor extends DittoRootActor {
     @SuppressWarnings("unused")
     private ThingsRootActor(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
         final ActorSystem actorSystem = getContext().system();
@@ -144,11 +142,10 @@ public final class ThingsRootActor extends DittoRootActor {
         }
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
                 .bindAndHandle(
-                        createRoute(actorSystem, healthCheckingActor).flow(actorSystem,
-                                materializer),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+                        createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
 
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint ...");
                     return theBinding.terminate(Duration.ofSeconds(1))
@@ -168,17 +165,15 @@ public final class ThingsRootActor extends DittoRootActor {
      *
      * @param thingsConfig the configuration settings of the Things service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the Akka actor system.
      * @param propsFactory factory of Props of thing-persistence-actor.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
         // Beware: ThingPersistenceActorPropsFactory is not serializable.
-        return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, materializer, propsFactory);
+        return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

@@ -35,7 +35,6 @@ import org.mockito.Mockito;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
@@ -48,12 +47,10 @@ public class ConnectivityProxyActorTest {
 
     private static final ThingId KNOWN_THING_ID = ThingId.of("ditto", "myThing");
     private static ActorSystem actorSystem;
-    private static ActorMaterializer actorMaterializer;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem");
-        actorMaterializer = ActorMaterializer.create(actorSystem);
     }
 
     @AfterClass
@@ -74,11 +71,7 @@ public class ConnectivityProxyActorTest {
                     .map(id -> Thing.newBuilder().setId(id).build())
                     .collect(Collectors.toList());
             final ThingId[] thingIdsArray =
-                    thingList.stream()
-                            .map(Thing::getEntityId)
-                            .map(Optional::get)
-                            .collect(Collectors.toList())
-                            .toArray(new ThingId[0]);
+                    thingList.stream().map(Thing::getEntityId).map(Optional::get).toArray(ThingId[]::new);
 
             final String correlationId = UUID.randomUUID().toString();
             final DittoHeaders headers =
@@ -98,7 +91,7 @@ public class ConnectivityProxyActorTest {
                             .map(thingId -> Thing.newBuilder().setId(thingId).build())
                             .map(thing -> RetrieveThingResponse.
                                     of(thing.getEntityId().orElseThrow(), thing, DittoHeaders.empty()))
-                            .runWith(StreamRefs.sourceRef(), actorMaterializer);
+                            .runWith(StreamRefs.sourceRef(), actorSystem);
 
             getLastSender().tell(retrieveThingResponseSourceRef, ActorRef.noSender());
 
@@ -112,7 +105,7 @@ public class ConnectivityProxyActorTest {
     @Test
     public void testForwardOtherSignal() {
         new TestKit(actorSystem) {{
-            final Signal signal = Mockito.mock(Signal.class);
+            final Signal<?> signal = Mockito.mock(Signal.class);
             Mockito.when(signal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
 
             final Props props = ConnectivityProxyActor.props(getRef());
@@ -125,7 +118,7 @@ public class ConnectivityProxyActorTest {
             expectMsg(signal);
 
             // WHEN: concierge responds
-            final Signal response = Mockito.mock(Signal.class);
+            final Signal<?> response = Mockito.mock(Signal.class);
             Mockito.when(response.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             getLastSender().tell(response, ActorRef.noSender());
 

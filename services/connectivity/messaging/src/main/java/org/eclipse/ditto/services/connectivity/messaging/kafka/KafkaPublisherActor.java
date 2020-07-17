@@ -30,6 +30,8 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -37,18 +39,19 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.Done;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.kafka.ProducerMessage;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
+import akka.stream.QueueOfferResult;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import akka.util.ByteString;
 
 /**
@@ -63,9 +66,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
+    private final Materializer materializer;
 
     private boolean shuttingDown = false;
-    private ActorRef sourceActor;
+    private SourceQueueWithComplete<ProducerMessage.Envelope<String, String, PassThrough>> sourceQueue;
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection, final KafkaConnectionFactory factory,
@@ -74,6 +78,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         super(connection);
         this.dryRun = dryRun;
         connectionFactory = factory;
+        materializer = Materializer.createMaterializer(this::getContext);
 
         startInternalKafkaProducer();
         reportInitialConnectionState();
@@ -133,7 +138,28 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         final ProducerMessage.Envelope<String, String, PassThrough> kafkaMessage =
                 mapExternalMessageToKafkaMessage(publishTarget, message, passThrough);
-        sourceActor.tell(kafkaMessage, getSelf());
+        sourceQueue.offer(kafkaMessage).whenComplete(this::handleQueueOfferResult);
+    }
+
+    private void handleQueueOfferResult(@Nullable final QueueOfferResult result,
+            @Nullable final Throwable error) {
+
+        if (result != QueueOfferResult.enqueued()) {
+            final Throwable cause;
+            if (error != null) {
+                cause = error;
+            } else if (result instanceof QueueOfferResult.Failure) {
+                cause = ((QueueOfferResult.Failure) result).cause();
+            } else {
+                // queue full; drop.
+                cause = null;
+            }
+            final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), cause,
+                    "Outgoing buffer overflow. Most likely the Kafka broker or the network in between " +
+                            "cannot keep up with the rate of published messages. " +
+                            "Restarting the connection.");
+            getContext().getParent().tell(failure, getSelf());
+        }
     }
 
     private boolean isDryRun() {
@@ -225,31 +251,34 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private void startInternalKafkaProducer() {
         logWithConnectionId().info("Starting internal Kafka producer.");
-        sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
+        sourceQueue = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
     }
 
     private void restartInternalKafkaProducer() {
         logWithConnectionId().info("Restarting internal Kafka producer");
-        sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
+        sourceQueue = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
     }
 
-    private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory,
+    private SourceQueueWithComplete<ProducerMessage.Envelope<String, String, PassThrough>> createInternalKafkaProducer(
+            final KafkaConnectionFactory factory,
             final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
 
-        final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
-                Source.<ProducerMessage.Envelope<String, String, PassThrough>>actorRef(100,
+        final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, PassThrough>>,
+                CompletionStage<Done>> materializedFlowedValues =
+                Source.<ProducerMessage.Envelope<String, String, PassThrough>>queue(100,
                         OverflowStrategy.dropHead())
                         .via(factory.newFlow())
                         .toMat(KafkaPublisherActor.publishSuccessSink(), Keep.both())
-                        .run(ActorMaterializer.create(getContext()));
+                        .run(materializer);
         materializedFlowedValues.second().handleAsync(completionOrFailureHandler);
         return materializedFlowedValues.first();
     }
 
     private void stopInternalKafkaProducer() {
         logWithConnectionId().info("Stopping internal Kafka producer.");
-        if (null != sourceActor) {
-            sourceActor.tell(new Status.Success("stopped"), ActorRef.noSender());
+        if (null != sourceQueue) {
+            sourceQueue.complete();
+            sourceQueue = null;
         }
     }
 

@@ -42,6 +42,7 @@ import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
@@ -141,13 +142,13 @@ public final class StatsRoute extends AbstractRoute {
             final Function<String, DevOpsCommand<?>> requestJsonToCommandFunction) {
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
-        payloadSource
+        runWithSupervisionStrategy(payloadSource
                 .fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(requestJsonToCommandFunction)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
                         AbstractHttpRequestActor.COMPLETE_MESSAGE))
-                .run(materializer);
+        );
 
         return completeWithFuture(httpResponseFuture);
     }
@@ -155,21 +156,23 @@ public final class StatsRoute extends AbstractRoute {
     private Route handleSudoCountThingsPerRequest(final RequestContext ctx, final SudoCountThings command) {
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
-        Source.single(command)
+        runWithSupervisionStrategy(Source.single(command)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
                         AbstractHttpRequestActor.COMPLETE_MESSAGE))
-                .run(materializer);
+        );
 
-        final CompletionStage<HttpResponse> allThingsCountHttpResponse = Source.fromCompletionStage(httpResponseFuture)
-                .flatMapConcat(httpResponse -> httpResponse.entity().getDataBytes())
-                .fold(ByteString.emptyByteString(), ByteString::concat)
-                .map(ByteString::utf8String)
-                .map(Integer::valueOf)
-                .map(count -> JsonObject.newBuilder().set("allThingsCount", count).build())
-                .map(jsonObject -> HttpResponse.create()
-                        .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(jsonObject.toString()))
-                        .withStatus(HttpStatusCode.OK.toInt()))
-                .runWith(Sink.head(), materializer);
+        final CompletionStage<HttpResponse> allThingsCountHttpResponse = runWithSupervisionStrategy(
+                Source.fromCompletionStage(httpResponseFuture)
+                        .flatMapConcat(httpResponse -> httpResponse.entity().getDataBytes())
+                        .fold(ByteString.emptyByteString(), ByteString::concat)
+                        .map(ByteString::utf8String)
+                        .map(Integer::valueOf)
+                        .map(count -> JsonObject.newBuilder().set("allThingsCount", count).build())
+                        .map(jsonObject -> HttpResponse.create()
+                                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(jsonObject.toString()))
+                                .withStatus(HttpStatusCode.OK.toInt()))
+                        .toMat(Sink.head(), Keep.right())
+        );
 
         return completeWithFuture(allThingsCountHttpResponse);
     }

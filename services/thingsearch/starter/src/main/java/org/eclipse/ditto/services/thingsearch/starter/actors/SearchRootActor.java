@@ -70,7 +70,7 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.stream.ActorMaterializer;
+import akka.stream.SystemMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -87,8 +87,7 @@ public final class SearchRootActor extends DittoRootActor {
     private final LoggingAdapter log;
 
     @SuppressWarnings("unused")
-    private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
         log = Logging.getLogger(getContext().system(), this);
 
@@ -104,16 +103,17 @@ public final class SearchRootActor extends DittoRootActor {
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
         pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
+        final ActorSystem actorSystem = getContext().getSystem();
         final TimestampPersistence backgroundSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
-                        materializer);
+                        SystemMaterializer.get(actorSystem).materializer());
 
         final ActorRef searchUpdaterRootActor = startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
-                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSearchPersistence,
+                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, thingsSearchPersistence,
                         backgroundSyncPersistence));
         final ActorRef healthCheckingActor = initializeHealthCheckActor(searchConfig, searchUpdaterRootActor);
 
-        createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor, materializer);
+        createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor);
     }
 
     @Nullable
@@ -175,7 +175,7 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private void createHealthCheckingActorHttpBinding(final HttpConfig httpConfig,
-            final ActorRef healthCheckingActor, final ActorMaterializer materializer) {
+            final ActorRef healthCheckingActor) {
 
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
@@ -186,11 +186,10 @@ public final class SearchRootActor extends DittoRootActor {
         final ActorSystem actorSystem = getContext().system();
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem) //
                 .bindAndHandle(
-                        createRoute(actorSystem, healthCheckingActor).flow(actorSystem,
-                                materializer),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+                        createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
 
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint ...");
                     return theBinding.terminate(Duration.ofSeconds(1))
@@ -208,13 +207,11 @@ public final class SearchRootActor extends DittoRootActor {
      *
      * @param searchConfig the configuration settings of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
-        return Props.create(SearchRootActor.class, searchConfig, pubSubMediator, materializer);
+        return Props.create(SearchRootActor.class, searchConfig, pubSubMediator);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

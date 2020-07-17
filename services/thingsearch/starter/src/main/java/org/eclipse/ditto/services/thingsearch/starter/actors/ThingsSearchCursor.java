@@ -85,7 +85,7 @@ import scala.PartialFunction;
  * The meaning of a cursor should be invisible to all users.
  * This class provides the following services to other classes of this package:
  * <ul>
- * <li>{@code extractCursor(QueryThings, ActorMaterializer)}:
+ * <li>{@code extractCursor(QueryThings, ActorSystem)}:
  * Read any cursor given by a {@code QueryThings} command.
  * </li>
  * <li>{@code adjust(Optional<ThingsSearchCursor>, QueryThings)}:

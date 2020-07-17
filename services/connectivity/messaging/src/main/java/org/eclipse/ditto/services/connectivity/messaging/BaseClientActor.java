@@ -107,7 +107,7 @@ import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -1185,7 +1185,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     private ActorRef startSubscriptionManager(final ActorRef proxyActor) {
         final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
-        final ActorMaterializer mat = ActorMaterializer.create(getContext());
+        final Materializer mat = Materializer.createMaterializer(this::getContext);
         final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
                 proxyActor, mat);
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);

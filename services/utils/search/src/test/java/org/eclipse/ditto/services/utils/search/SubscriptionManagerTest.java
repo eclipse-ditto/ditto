@@ -41,9 +41,10 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.AskTimeoutException;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestProbe;
@@ -56,14 +57,14 @@ import scala.concurrent.duration.FiniteDuration;
 public final class SubscriptionManagerTest {
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
+    private Materializer materializer;
     private TestProbe pubSubMediatorProbe;
     private TestProbe conciergeForwarderProbe;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create();
-        materializer = ActorMaterializer.create(actorSystem);
+        materializer = SystemMaterializer.get(actorSystem).materializer();
         pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
         conciergeForwarderProbe = TestProbe.apply("conciergeForwarder", actorSystem);
     }

@@ -48,8 +48,8 @@ import com.typesafe.config.ConfigFactory;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -74,8 +74,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     protected MongoThingsSearchPersistence readPersistence;
     protected TestSearchUpdaterStream writePersistence;
 
-    private ActorSystem actorSystem;
-    protected ActorMaterializer actorMaterializer;
+    protected ActorSystem actorSystem;
     protected LoggingAdapter log;
 
     @BeforeClass
@@ -94,7 +93,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         log = actorSystem.log();
-        actorMaterializer = ActorMaterializer.create(actorSystem);
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
         thingsCollection = mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
@@ -131,7 +129,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
             log = null;
-            actorMaterializer = null;
+            actorSystem = null;
         }
     }
 
@@ -175,7 +173,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected Long count(final Query query, @Nullable final List<String> subjectIds) {
         return readPersistence.count(query, subjectIds)
-                .runWith(Sink.head(), actorMaterializer)
+                .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
                 .join();
     }
@@ -186,13 +184,13 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected ResultList<ThingId> findAll(final Query query, final List<String> subjectIds) {
         return readPersistence.findAll(query, subjectIds)
-                .runWith(Sink.head(), actorMaterializer)
+                .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
                 .join();
     }
 
     protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {
-        final CompletionStage<T> done = publisher.runWith(Sink.last(), actorMaterializer);
+        final CompletionStage<T> done = publisher.runWith(Sink.last(), actorSystem);
         return done.toCompletableFuture().join();
     }
 
@@ -201,11 +199,11 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     final Materializer getMaterializer() {
-        return actorMaterializer;
+        return SystemMaterializer.get(actorSystem).materializer();
     }
 
     protected <T> List<T> waitFor(final Source<T, ?> source) {
-        return source.runWith(Sink.seq(), actorMaterializer)
+        return source.runWith(Sink.seq(), actorSystem)
                 .toCompletableFuture()
                 .join();
     }

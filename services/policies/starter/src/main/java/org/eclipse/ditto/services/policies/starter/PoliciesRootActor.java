@@ -61,7 +61,6 @@ import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -80,8 +79,7 @@ public final class PoliciesRootActor extends DittoRootActor {
     @SuppressWarnings("unused")
     private PoliciesRootActor(final PoliciesConfig policiesConfig,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+            final ActorRef pubSubMediator) {
 
         final ActorSystem actorSystem = getContext().system();
         final ClusterShardingSettings shardingSettings =
@@ -137,8 +135,8 @@ public final class PoliciesRootActor extends DittoRootActor {
         }
 
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem,
-                        materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
 
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
@@ -161,15 +159,13 @@ public final class PoliciesRootActor extends DittoRootActor {
      * @param policiesConfig the configuration reader of this service.
      * @param snapshotAdapter serializer and deserializer of the Policies snapshot store.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
     public static Props props(final PoliciesConfig policiesConfig,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+            final ActorRef pubSubMediator) {
 
-        return Props.create(PoliciesRootActor.class, policiesConfig, snapshotAdapter, pubSubMediator, materializer);
+        return Props.create(PoliciesRootActor.class, policiesConfig, snapshotAdapter, pubSubMediator);
     }
 
     @Override

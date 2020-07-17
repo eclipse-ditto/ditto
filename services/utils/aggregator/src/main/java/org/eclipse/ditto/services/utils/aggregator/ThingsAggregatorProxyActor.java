@@ -54,7 +54,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -79,12 +79,12 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef targetActor;
-    private final ActorMaterializer actorMaterializer;
+    private final Materializer materializer;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorProxyActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
-        actorMaterializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
@@ -149,7 +149,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final Object msgToAsk, final ActorRef sender) {
         PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
-                    if (response instanceof SourceRef){
+                    if (response instanceof SourceRef) {
                         handleSourceRef((SourceRef) response, thingIds, command, sender);
                     } else if (response instanceof DittoRuntimeException) {
                         sender.tell(response, getSelf());
@@ -197,7 +197,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                                         nsee -> overallResponseSupplier.apply(Collections.emptyList()))
                                 .build()
                         )
-                        .runWith(Sink.seq(), actorMaterializer);
+                        .runWith(Sink.seq(), materializer);
 
         final CompletionStage<? extends CommandResponse<?>> commandResponseCompletionStage = o
                 .thenApply(plainJsonSorter)

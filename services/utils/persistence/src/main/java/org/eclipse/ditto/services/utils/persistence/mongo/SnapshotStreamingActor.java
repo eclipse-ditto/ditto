@@ -35,7 +35,7 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
@@ -47,7 +47,7 @@ import akka.stream.javadsl.StreamRefs;
 public final class SnapshotStreamingActor extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    private final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+    private final Materializer materializer = Materializer.createMaterializer(this::getContext);
 
     private final Function<String, EntityId> pid2EntityId;
     private final Function<EntityId, String> entityId2Pid;

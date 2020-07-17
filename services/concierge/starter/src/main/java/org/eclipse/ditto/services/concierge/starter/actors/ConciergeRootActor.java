@@ -51,7 +51,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.stream.ActorMaterializer;
 
 /**
  * The root actor of the concierge service.
@@ -68,8 +67,7 @@ public final class ConciergeRootActor extends DittoRootActor {
     @SuppressWarnings("unused")
     private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final EnforcerActorFactory<C> enforcerActorFactory,
-            final ActorMaterializer materializer) {
+            final EnforcerActorFactory<C> enforcerActorFactory) {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
@@ -88,7 +86,7 @@ public final class ConciergeRootActor extends DittoRootActor {
 
         final ActorRef healthCheckingActor = startHealthCheckingActor(conciergeConfig, cleanupCoordinator);
 
-        bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig(), materializer);
+        bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig());
     }
 
     /**
@@ -97,22 +95,18 @@ public final class ConciergeRootActor extends DittoRootActor {
      * @param conciergeConfig the config of Concierge.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param enforcerActorFactory factory for creating sharded enforcer actors.
-     * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final EnforcerActorFactory<C> enforcerActorFactory,
-            final ActorMaterializer materializer) {
+            final EnforcerActorFactory<C> enforcerActorFactory) {
 
         checkNotNull(conciergeConfig, "config of Concierge");
         checkNotNull(pubSubMediator, "pub-sub mediator");
         checkNotNull(enforcerActorFactory, "EnforcerActor factory");
-        checkNotNull(materializer, "ActorMaterializer");
 
-        return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory,
-                materializer);
+        return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory);
     }
 
 
@@ -154,8 +148,7 @@ public final class ConciergeRootActor extends DittoRootActor {
                 logResult("http-response", statusRoute::buildStatusRoute));
     }
 
-    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfig httpConfig,
-            final ActorMaterializer materializer) {
+    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfig httpConfig) {
 
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
@@ -163,11 +156,13 @@ public final class ConciergeRootActor extends DittoRootActor {
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
-                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
-                        materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+        final ActorSystem system = getContext().getSystem();
 
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+        final CompletionStage<ServerBinding> binding = Http.get(system)
+                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(system),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), system);
+
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(system).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint..");
                     return theBinding.terminate(Duration.ofSeconds(1))

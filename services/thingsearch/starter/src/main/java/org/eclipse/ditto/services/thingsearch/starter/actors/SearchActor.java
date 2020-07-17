@@ -60,6 +60,7 @@ import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Graph;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
@@ -193,6 +194,7 @@ public final class SearchActor extends AbstractActor {
                 })
                 .via(stopTimerAndHandleError(countTimer, countCommand));
 
+        Materializer.createMaterializer(this::getContext);
         Patterns.pipe(replySource.runWith(Sink.head(), getSystem()), getContext().dispatcher()).to(sender);
     }
 

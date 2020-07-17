@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +41,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.testkit.javadsl.TestSink;
@@ -79,7 +78,7 @@ public final class DefaultPersistenceStreamingActorTest {
             final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
 
             sourceRef.getSource()
-                    .runWith(TestSink.probe(actorSystem), materializer())
+                    .runWith(TestSink.probe(actorSystem), actorSystem)
                     .request(1000L)
                     .expectComplete();
         }};
@@ -102,15 +101,11 @@ public final class DefaultPersistenceStreamingActorTest {
                             Collections.singletonList(new SimpleEntityIdWithRevision(ID, 0L)));
 
             sourceRef.getSource()
-                    .runWith(TestSink.probe(actorSystem), materializer())
+                    .runWith(TestSink.probe(actorSystem), actorSystem)
                     .request(1000L)
                     .expectNext(expectedMessage)
                     .expectComplete();
         }};
-    }
-
-    private ActorMaterializer materializer() {
-        return ActorMaterializer.create(actorSystem);
     }
 
     private static Command<?> createStreamingRequest() {
@@ -136,7 +131,7 @@ public final class DefaultPersistenceStreamingActorTest {
                 pidWithSeqNr.getSequenceNr());
     }
 
-    private static PidWithSeqNr unmapEntity(final EntityIdWithRevision entityIdWithRevision) {
+    private static PidWithSeqNr unmapEntity(final EntityIdWithRevision<?> entityIdWithRevision) {
         return new PidWithSeqNr(entityIdWithRevision.getEntityId().toString(), entityIdWithRevision.getRevision());
     }
 
