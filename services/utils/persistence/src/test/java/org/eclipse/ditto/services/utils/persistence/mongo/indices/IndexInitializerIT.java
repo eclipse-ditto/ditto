@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -224,8 +225,10 @@ public final class IndexInitializerIT {
         // WHEN / THEN
         final List<Index> newIndices = Arrays.asList(INDEX_BAR,
                 INDEX_FOO_CONFLICTING_NAME_OPTION, INDEX_BAZ);
-        assertThatExceptionOfType(MongoCommandException.class).isThrownBy(() -> initialize(collectionName, newIndices))
-                .satisfies(e -> assertThat(e.getErrorCode()).isEqualTo(MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE));
+        assertThatExceptionOfType(CompletionException.class).isThrownBy(() -> initialize(collectionName, newIndices))
+                .withCauseInstanceOf(MongoCommandException.class)
+                .satisfies(e -> assertThat(((MongoCommandException) e.getCause()).getErrorCode())
+                        .isEqualTo(MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE));
         // verify that bar has been created nevertheless (cause it has been initialized before the error), in
         // contrast to baz
         assertIndices(collectionName, Arrays.asList(INDEX_BAR, INDEX_FOO));
