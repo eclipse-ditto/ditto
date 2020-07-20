@@ -68,10 +68,10 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
                 return ResultFactory.newMutationResult(command, subjectsModified, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
     }
 

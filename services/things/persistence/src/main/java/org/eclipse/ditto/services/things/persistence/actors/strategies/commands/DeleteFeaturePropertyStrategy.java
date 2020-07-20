@@ -53,7 +53,7 @@ final class DeleteFeaturePropertyStrategy extends
                 .map(feature -> getDeleteFeaturePropertyResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureProperty command, final @Nullable Thing thing) {
@@ -80,7 +80,8 @@ final class DeleteFeaturePropertyStrategy extends
                     return ResultFactory.newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders)));
+                        ExceptionFactory.featurePropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders),
+                        command));
     }
 
     @Override

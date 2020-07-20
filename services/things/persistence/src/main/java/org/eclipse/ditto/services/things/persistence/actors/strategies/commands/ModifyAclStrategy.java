@@ -56,7 +56,7 @@ final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
                 Thing.MIN_REQUIRED_PERMISSIONS);
         if (!aclValidator.isValid()) {
             return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
-                    dittoHeaders));
+                    dittoHeaders), command);
         }
 
         final ThingEvent event =

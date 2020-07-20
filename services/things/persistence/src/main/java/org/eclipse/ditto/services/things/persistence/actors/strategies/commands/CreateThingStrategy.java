@@ -92,12 +92,12 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                     handleCommandVersion(context, command.getImplementedSchemaVersion(), command.getThing(),
                             commandHeaders);
         } catch (final DittoRuntimeException e) {
-            return newErrorResult(e);
+            return newErrorResult(e, command);
         }
 
         // before persisting, check if the Thing is valid and reject if not:
         final Result validateThingError =
-                validateThing(context, command.getImplementedSchemaVersion(), newThing, commandHeaders);
+                validateThing(context, command.getImplementedSchemaVersion(), newThing, command);
         if (validateThingError != null) {
             return validateThingError;
         }
@@ -182,7 +182,8 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
 
     @Nullable
     private Result validateThing(final Context<ThingId> context, final JsonSchemaVersion version, final Thing thing,
-            final DittoHeaders headers) {
+            final CreateThing command) {
+        final DittoHeaders headers = command.getDittoHeaders();
         final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
         if (JsonSchemaVersion.V_1.equals(version)) {
             if (accessControlList.isPresent()) {
@@ -194,14 +195,14 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                             AclInvalidException.newBuilder(context.getState())
                                     .dittoHeaders(headers)
                                     .build();
-                    return newErrorResult(aclInvalidException);
+                    return newErrorResult(aclInvalidException, command);
                 }
             } else {
                 final AclInvalidException aclInvalidException =
                         AclInvalidException.newBuilder(context.getState())
                                 .dittoHeaders(headers)
                                 .build();
-                return newErrorResult(aclInvalidException);
+                return newErrorResult(aclInvalidException, command);
             }
         }
         return null;

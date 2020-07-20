@@ -50,7 +50,7 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
         return extractFeature(command, thing)
                 .map(feature -> getFeatureDefinition(feature, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
-                        featureId, command.getDittoHeaders())));
+                        featureId, command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final RetrieveFeatureDefinition command, final @Nullable Thing thing) {
@@ -70,7 +70,7 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders), command));
     }
 
 

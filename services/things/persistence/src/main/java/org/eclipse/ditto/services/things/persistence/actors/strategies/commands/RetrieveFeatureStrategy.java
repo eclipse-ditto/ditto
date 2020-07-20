@@ -51,7 +51,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
         return extractFeatures(thing)
                 .map(features -> getFeatureResult(features, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
-                        command.getFeatureId(), command.getDittoHeaders())));
+                        command.getFeatureId(), command.getDittoHeaders()), command));
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {
@@ -70,7 +70,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders), command));
     }
 
     private static JsonObject getFeatureJson(final Feature feature, final RetrieveFeature command) {

@@ -73,7 +73,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
             return ResultFactory.newMutationResult(command, policyCreated, response, true, false);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders));
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders), command);
         }
     }
 

@@ -16,13 +16,16 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
@@ -46,11 +49,16 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
             @Nullable final Connection connection, final long nextRevision, final OpenConnection command) {
-        final ConnectivityEvent event = ConnectionOpened.of(context.getState().id(), command.getDittoHeaders());
-        final WithDittoHeaders response =
-                OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
-        final List<ConnectionAction> actions =
-                Arrays.asList(PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
-        return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
+        final Optional<DittoRuntimeException> validationError = validate(context, command, connection);
+        if (validationError.isPresent()) {
+            return newErrorResult(validationError.get(), command);
+        } else {
+            final ConnectivityEvent event = ConnectionOpened.of(context.getState().id(), command.getDittoHeaders());
+            final WithDittoHeaders response =
+                    OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
+            final List<ConnectionAction> actions =
+                    Arrays.asList(PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
+            return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
+        }
     }
 }
