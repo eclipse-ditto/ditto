@@ -66,22 +66,6 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <!-- Type of argument 'entityType' changed from String to EntityType. -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.purge.PurgeEntities#getTopic(java.lang.String)</exclude>
-
-                            <!-- Type of argument 'entityType' changed from CharSequence to EntityType. -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.purge.PurgeEntities#of(java.lang.CharSequence,java.lang.Iterable,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-
-                            <!-- Type of return value changed from String to EntityType. -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.purge.PurgeEntities#getEntityType()</exclude>
-
-                            <!-- Type of argument 'entityType' changed from CharSequence to EntityType. -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse#failed(java.lang.CharSequence,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse#successful(java.lang.CharSequence,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-
-                            <!-- Type of return value changed from String to EntityType. -->
-                            <exclude>org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse#getEntityType()</exclude>
-
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>
