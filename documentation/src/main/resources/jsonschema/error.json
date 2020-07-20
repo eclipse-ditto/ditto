@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "title": "Error",
+  "description": "An *error* contains information about the status code (in HTTP semantics), error identifier and message.\nOptionally a description and a link how to solve the error may be provided.",
+  "properties": {
+    "status": {
+      "type": "integer",
+      "title": "Error status",
+      "description": "The HTTP status code of the error (e.g.: 4xx for user errors, 5xx for server errors)."
+    },
+    "error": {
+      "type": "string",
+      "title": "Error code",
+      "description": "The error code or identifier of the occurred error."
+    },
+    "message": {
+      "title": "Error message",
+      "type": "string",
+      "description": "The message of the error - what went wrong."
+    },
+    "description": {
+      "title": "Error description",
+      "type": "string",
+      "description": "A description how to fix the error or more details."
+    },
+    "href": {
+      "title": "Error link",
+      "type": "string",
+      "description": "A link to further information about the error and how to fix it."
+    }
+  },
+  "required": [
+    "status", "error", "message"
+  ]
+}
