@@ -68,7 +68,8 @@ public final class AttributesModelFactory {
             final AttributePatternValidator validator = AttributePatternValidator.getInstance();
             for (JsonKey key: jsonObject.getKeys()) {
                 if (!validator.isValid(key)) {
-                    throw JsonPointerInvalidException.newBuilderForNoSlashesAndControlChars(key).build();
+                    throw JsonPointerInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
+                            .build();
                 }
             }
             return ImmutableAttributes.of(jsonObject);

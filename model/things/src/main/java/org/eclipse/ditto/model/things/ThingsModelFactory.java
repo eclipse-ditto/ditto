@@ -26,13 +26,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.entity.validation.FeaturePatternValidator;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -265,12 +262,6 @@ public final class ThingsModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            final FeaturePatternValidator validator = FeaturePatternValidator.getInstance();
-            for (JsonKey key: jsonObject.getKeys()) {
-                if (!validator.isValid(key)) {
-                    throw JsonPointerInvalidException.newBuilderForNoSlashesAndControlChars(key).build();
-                }
-            }
             return ImmutableFeatureProperties.of(jsonObject);
         } else {
             return nullFeatureProperties();

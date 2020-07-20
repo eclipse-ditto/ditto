@@ -36,9 +36,6 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
     private static final String OUTER_SLASHES_DESCRIPTION =
             "Leading or trailing slashes in JSON pointers are not supported.";
 
-    private static final String NO_SLASHES_NO_CONTROL_CHARACTERS_DESCRIPTION =
-            "Neither slashes nor any control characters are allowed at any place in your JSON Pointer. Please check!";
-
     private static final long serialVersionUID = -6773700329225961931L;
 
     private JsonPointerInvalidException(@Nullable final String message,
@@ -86,19 +83,6 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
                 .description(OUTER_SLASHES_DESCRIPTION);
     }
 
-    /**
-     * Returns a new builder already containing a generic message that slashes and control characters are not supported for JSON
-     * pointers.
-     *
-     * @param jsonPointer The JSON pointer containing the slashes or control characters.
-     * @return a builder for {@code JsonPointerInvalidException} objects.
-     */
-    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForNoSlashesAndControlChars(
-            final CharSequence jsonPointer) {
-        return new Builder()
-                .jsonPointer(jsonPointer)
-                .description(NO_SLASHES_NO_CONTROL_CHARACTERS_DESCRIPTION);
-    }
 
     /**
      * Returns a new builder containing the given message for the given JSON pointers.
@@ -108,7 +92,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
      * @return a builder for {@code JsonPointerInvalidException} objects.
      */
     public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithDescription(
-            final CharSequence jsonPointer, final String description) {
+            final CharSequence jsonPointer, @Nullable final String description) {
         return new Builder()
                 .jsonPointer(jsonPointer)
                 .description(description);

@@ -35,9 +35,15 @@ public abstract class AbstractPatternValidator implements PatternValidator {
     public boolean isValid(final CharSequence toBeValidated) {
         requireNonNull(getPattern(), "The pattern to be validated against must not be null!");
         if (toBeValidated.length() > MAX_LENGTH) {
-            reason = "Entity properties are not allowed to exceed length of 256.";
+            reason = "Not allowed to exceed length of 256.";
+            return false;
         }
-        return getPattern().matcher(toBeValidated).matches();
+        if (!getPattern().matcher(toBeValidated).matches()) {
+            reason = "Neither slashes nor any control characters are allowed at any place in your JSON Pointer. " +
+                    "Please check!";
+            return false;
+        }
+        return true;
     }
 
     @Override

@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.model.base.entity.validation.SubjectPatternValidator;
 
 /**
  * An immutable implementation of {@link SubjectId}.
@@ -56,6 +57,15 @@ final class ImmutableSubjectId implements SubjectId {
     public static SubjectId of(final SubjectIssuer issuer, final CharSequence subject) {
         checkNotNull(issuer, "issuer");
         argumentNotEmpty(subject, "subject");
+
+        final SubjectPatternValidator validator = SubjectPatternValidator.getInstance();
+        final String subjectIdAsString = issuer.toString() + ":" + subject.toString();
+        if (!validator.isValid(subjectIdAsString)) {
+            throw SubjectIdInvalidException.newBuilder(subjectIdAsString)
+                    .description(validator.getReason().orElse(null))
+                    .build();
+        }
+
         return new ImmutableSubjectId(issuer, subject.toString());
     }
 

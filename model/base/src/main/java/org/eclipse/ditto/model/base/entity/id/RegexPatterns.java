@@ -99,6 +99,9 @@ public final class RegexPatterns {
     public final static Pattern FEATURE_PATTERN = Pattern.compile("^" + NO_CONTROL_CHARS_NO_SLASHES + "+$");
 
     public final static Pattern ATTRIBUTE_PATTERN = FEATURE_PATTERN;
+
+    public final static Pattern LABEL_PATTERN = FEATURE_PATTERN;
+
     /**
      * The compiled regex pattern for namespaces.
      */
@@ -118,4 +121,6 @@ public final class RegexPatterns {
      * The regex pattern a Subject has to conform to.
      */
     public  static final Pattern SUBJECT_REGEX = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
+
+    public static final Pattern RESOURCE_REGEX = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
 }

@@ -33,9 +33,11 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.entity.validation.FeaturePatternValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -69,6 +71,14 @@ final class ImmutableFeatureProperties implements FeatureProperties {
      */
     public static FeatureProperties of(final JsonObject jsonObject) {
         ConditionChecker.checkNotNull(jsonObject, "JSON object");
+
+        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance();
+        for (JsonKey key : jsonObject.getKeys()) {
+            if (!validator.isValid(key)) {
+                throw JsonPointerInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
+                        .build();
+            }
+        }
 
         if (jsonObject instanceof ImmutableFeatureProperties) {
             return (FeatureProperties) jsonObject;

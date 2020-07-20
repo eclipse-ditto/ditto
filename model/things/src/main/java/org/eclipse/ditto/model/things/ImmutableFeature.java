@@ -88,7 +88,8 @@ final class ImmutableFeature implements Feature {
 
         final FeaturePatternValidator validator = FeaturePatternValidator.getInstance();
         if (!validator.isValid(featureId)) {
-            throw JsonPointerInvalidException.newBuilderForNoSlashesAndControlChars(featureId).build();
+            throw JsonPointerInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
+                    .build();
         }
 
         return new ImmutableFeature(featureId, definition, properties);

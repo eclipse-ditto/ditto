@@ -42,7 +42,7 @@ public final class EntityIdPatternValidator extends AbstractPatternValidator {
         if (matcher.matches()) {
             this.tuple =
                     new RepresentationTuple(matcher.group(NAMESPACE_GROUP_NAME), matcher.group(ENTITY_NAME_GROUP_NAME));
-            return this.tuple.name.length() <= MAX_LENGTH;
+            return this.tuple.stringRepresentation.length() <= MAX_LENGTH;
         }
 
         return false;
@@ -55,7 +55,7 @@ public final class EntityIdPatternValidator extends AbstractPatternValidator {
             throw NamespacedEntityIdInvalidException.newBuilder(sp).build();
         }
 
-        if (name.length() > MAX_LENGTH) {
+        if (sp.length() > MAX_LENGTH) {
             throw NamespacedEntityIdInvalidException.newBuilder(sp).build();
         }
 
