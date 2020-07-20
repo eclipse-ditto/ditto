@@ -323,6 +323,9 @@ entries:
         - title: Acknowledgements
           url: /protocol-specification-acks.html
           output: web
+        - title: Errors
+          url: /protocol-specification-errors.html
+          output: web
 
       - title: → search/messages
         output: web

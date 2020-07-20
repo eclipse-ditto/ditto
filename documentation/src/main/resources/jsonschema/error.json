@@ -7,26 +7,26 @@
     "status": {
       "type": "integer",
       "title": "Error status",
-      "description": "The HTTP status code of the error (e.g.: 4xx for user errors, 5xx for server errors)."
+      "description": "The status code of the error with HTTP status code semantics (e.g.: 4xx for user errors, 5xx for server errors)."
     },
     "error": {
       "type": "string",
       "title": "Error code",
-      "description": "The error code or identifier of the occurred error."
+      "description": "The error code or identifier that uniquely identifies the error e.g. `things:features.notfound`."
     },
     "message": {
-      "title": "Error message",
       "type": "string",
-      "description": "The message of the error - what went wrong."
+      "title": "Error message",
+      "description": "The human readable message that explains what went wrong during the execution of a command/message."
     },
     "description": {
-      "title": "Error description",
       "type": "string",
-      "description": "A description how to fix the error or more details."
+      "title": "Error description",
+      "description": "Contains further information about the error e.g. a hint what caused the problem and how to solve it."
     },
     "href": {
-      "title": "Error link",
       "type": "string",
+      "title": "Error link",
       "description": "A link to further information about the error and how to fix it."
     }
   },

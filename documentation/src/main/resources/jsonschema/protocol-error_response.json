@@ -29,21 +29,33 @@
       "properties": {
         "status": {
           "type": "integer",
-          "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
+          "title": "Error status",
+          "description": "The status code of the error with HTTP status code semantics (e.g.: 4xx for user errors, 5xx for server errors)."
         },
         "error": {
           "type": "string",
-          "description": "The error code that uniquely identifies the error e.g. `things:features.notfound`."
+          "title": "Error code",
+          "description": "The error code or identifier that uniquely identifies the error e.g. `things:features.notfound`."
         },
         "message": {
           "type": "string",
-          "description": "A human readable message that explains in detail what went wrong during the execution of a command."
+          "title": "Error message",
+          "description": "The human readable message that explains what went wrong during the execution of a command/message."
         },
         "description": {
           "type": "string",
+          "title": "Error description",
           "description": "Contains further information about the error e.g. a hint what caused the problem and how to solve it."
+        },
+        "href": {
+          "type": "string",
+          "title": "Error link",
+          "description": "A link to further information about the error and how to fix it."
         }
-      }
+      },
+      "required": [
+        "status", "error", "message"
+      ]
     },
     "status": {
       "type": "integer",
