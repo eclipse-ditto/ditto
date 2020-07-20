@@ -1,6 +1,6 @@
 ---
 title: Errors
-keywords: error, failure, exception, smodel
+keywords: error, failure, exception, model
 tags: [model]
 permalink: basic-errors.html
 ---
