@@ -41,6 +41,6 @@ final class ConnectionConflictStrategy extends AbstractConnectivityCommandStrate
                 ConnectionConflictException.newBuilder(context.getState().id())
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
-        return newErrorResult(conflictException);
+        return newErrorResult(conflictException, command);
     }
 }

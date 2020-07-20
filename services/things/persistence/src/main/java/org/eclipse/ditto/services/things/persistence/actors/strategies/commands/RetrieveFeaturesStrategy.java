@@ -53,8 +53,8 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
                 .map(featuresJson -> RetrieveFeaturesResponse.of(thingId, featuresJson, dittoHeaders))
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
-                .orElseGet(() ->
-                        ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(thingId, dittoHeaders)));
+                .orElseGet(() -> ResultFactory
+                        .newErrorResult(ExceptionFactory.featuresNotFound(thingId, dittoHeaders), command));
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {

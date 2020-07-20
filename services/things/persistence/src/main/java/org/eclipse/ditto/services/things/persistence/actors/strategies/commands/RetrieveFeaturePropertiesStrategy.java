@@ -52,7 +52,7 @@ final class RetrieveFeaturePropertiesStrategy extends AbstractThingCommandStrate
         return extractFeature(command, thing)
                 .map(feature -> getFeatureProperties(feature, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(thingId, featureId, command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(thingId, featureId, command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final RetrieveFeatureProperties command, final @Nullable Thing thing) {
@@ -73,7 +73,7 @@ final class RetrieveFeaturePropertiesStrategy extends AbstractThingCommandStrate
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders), command));
     }
 
     private static JsonObject getFeaturePropertiesJson(final FeatureProperties featureProperties,

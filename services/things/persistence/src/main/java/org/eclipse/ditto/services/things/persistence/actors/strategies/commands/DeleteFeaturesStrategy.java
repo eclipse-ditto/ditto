@@ -55,7 +55,7 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
                 )
                 .orElseGet(() ->
                         ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getState(),
-                                dittoHeaders)));
+                                dittoHeaders), command));
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {

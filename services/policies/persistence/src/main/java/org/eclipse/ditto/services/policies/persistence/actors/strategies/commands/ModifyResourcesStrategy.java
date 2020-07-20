@@ -83,7 +83,7 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
                     },
                     command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         if (nonNullPolicy.getEntryFor(label).isPresent()) {
@@ -99,10 +99,10 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
                 return ResultFactory.newMutationResult(command, event, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
     }
 

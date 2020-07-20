@@ -68,13 +68,13 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
                     return ResultFactory.newMutationResult(command, subjectDeleted, response);
                 } else {
                     return ResultFactory.newErrorResult(
-                            policyEntryInvalid(policyId, label, validator.getReason().orElse(null), headers));
+                            policyEntryInvalid(policyId, label, validator.getReason().orElse(null), headers), command);
                 }
             } else {
-                return ResultFactory.newErrorResult(subjectNotFound(policyId, label, subjectId, headers));
+                return ResultFactory.newErrorResult(subjectNotFound(policyId, label, subjectId, headers), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headers));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headers), command);
         }
     }
 

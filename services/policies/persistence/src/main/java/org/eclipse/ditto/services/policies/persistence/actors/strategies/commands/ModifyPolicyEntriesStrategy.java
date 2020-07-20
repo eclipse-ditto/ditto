@@ -59,7 +59,7 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
                     () -> policyEntriesJsonArray.toString().length(),
                     command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         final PolicyId policyId = context.getState();

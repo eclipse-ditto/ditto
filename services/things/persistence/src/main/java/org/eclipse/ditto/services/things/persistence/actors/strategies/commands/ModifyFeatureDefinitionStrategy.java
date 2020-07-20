@@ -53,7 +53,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), featureId,
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final ModifyFeatureDefinition command, final @Nullable Thing thing) {
