@@ -33,3 +33,11 @@ The WrappingMessageMapper didn't delegate the default options to the message map
 #### [Improved error message for unknown/invalid host names in a connection configuration](https://github.com/eclipse/ditto/pull/676)
 
 An unknown/invalid host in a connection configuration caused an exception with an error message that did not indicate the actual cause.
+
+#### [Reworked reconnect behaviour of java client](https://github.com/eclipse/ditto-clients/pull/64)
+
+There were reported issues with the reconnecting behaviour of the java client. We improved the reconnecting behaviour, so it should be more reliable.
+
+#### [Added org.reactivestreams to osgi imports](https://github.com/eclipse/ditto-clients/pull/73)
+
+The package `org.reactivestreams` was missing in the OSGI imports of our java client.
