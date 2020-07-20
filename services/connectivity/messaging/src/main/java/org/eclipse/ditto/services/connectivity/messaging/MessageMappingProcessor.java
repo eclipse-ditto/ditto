@@ -245,7 +245,7 @@ public final class MessageMappingProcessor {
         R result = handler.emptyResult();
         try {
             final boolean shouldMapMessage = message.findContentType()
-                    .map(filterByContentTypeBlacklist(mapper))
+                    .map(filterByContentTypeBlocklist(mapper))
                     .orElse(true); // if no content-type was present, map the message!
 
             if (shouldMapMessage) {
@@ -288,8 +288,8 @@ public final class MessageMappingProcessor {
         return result;
     }
 
-    private static Function<String, Boolean> filterByContentTypeBlacklist(final MessageMapper mapper) {
-        return contentType -> !mapper.getContentTypeBlacklist().contains(contentType);
+    private static Function<String, Boolean> filterByContentTypeBlocklist(final MessageMapper mapper) {
+        return contentType -> !mapper.getContentTypeBlocklist().contains(contentType);
     }
 
     private <R> R convertOutboundMessage(final OutboundSignal.Mappable outboundSignal,

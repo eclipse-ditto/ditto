@@ -58,7 +58,7 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlacklist() {
+    public Collection<String> getContentTypeBlocklist() {
         return Collections.emptyList();
     }
 

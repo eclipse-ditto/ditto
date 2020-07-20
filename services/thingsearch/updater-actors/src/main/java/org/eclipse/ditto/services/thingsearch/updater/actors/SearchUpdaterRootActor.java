@@ -102,7 +102,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final ActorRef changeQueueActor = getContext().actorOf(ChangeQueueActor.props(), ChangeQueueActor.ACTOR_NAME);
+        final ActorRef changeQueueActor = startChildActor(ChangeQueueActor.ACTOR_NAME, ChangeQueueActor.props());
 
         final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
 
@@ -128,15 +128,15 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces,
                         pubSubMediator);
 
-        thingsUpdaterActor = getContext().actorOf(thingsUpdaterProps, ThingsUpdater.ACTOR_NAME);
+        thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, thingsUpdaterProps);
         startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
                 NewEventForwarder.props(thingEventSub, updaterShardRegion, blockedNamespaces));
 
-        // start policy event forwarder as cluster singleton
+        // start policy event forwarder
         final Props policyEventForwarderProps =
                 PolicyEventForwarder.props(pubSubMediator, thingsUpdaterActor, blockedNamespaces,
                         searchUpdaterPersistence);
-        startClusterSingletonActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
+        startChildActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
 
         // start background sync actor as cluster singleton
         final Props backgroundSyncActorProps = BackgroundSyncActor.props(

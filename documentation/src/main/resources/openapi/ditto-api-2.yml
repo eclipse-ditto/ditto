@@ -2439,6 +2439,10 @@ paths:
         available or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
 
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
+        will never return a body, even if the client responded with a body).
+
         ### Who
         No special permission is required to issue a claim message.
 
@@ -2492,6 +2496,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '503':
+          $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/inbox/messages/{messageSubject}':
@@ -2514,6 +2520,10 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
+        will never return a body, even if the client responded with a body).
 
         ### Who
         You will need `WRITE` permission on the root "message:/" resource, or at least
@@ -2565,6 +2575,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
+        '503':
+          $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
@@ -2581,6 +2593,10 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
+        will never return a body, even if the client responded with a body).
 
         ### Who
         You will need `WRITE` permission on the root "message:/" resource, or at least
@@ -2622,6 +2638,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
+        '503':
+          $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
@@ -2640,6 +2658,10 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
+        will never return a body, even if the client responded with a body).
 
         ### Who
         You will need `WRITE` permission on the root "message:/" resource, or at least
@@ -2684,6 +2706,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
+        '503':
+          $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
@@ -2701,6 +2725,10 @@ paths:
 
         In order to handle the message in a fire and forget manner, add
         a query-parameter `timeout=0` to the request.
+
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
+        will never return a body, even if the client responded with a body).
 
         ### Who
         You will need `WRITE` permission on the root "message:/" resource, or at least
@@ -2743,6 +2771,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
+        '503':
+          $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   ###
@@ -4670,6 +4700,13 @@ components:
     messageTooLarge:
       description: |-
         The size of the send message is larger than the accepted limit of 250 kB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    messageTimeout:
+      description: |-
+        The request could not be completed as there is no consumer for this message connected.
       content:
         application/json:
           schema:

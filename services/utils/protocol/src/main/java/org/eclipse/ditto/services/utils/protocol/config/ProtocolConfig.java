@@ -35,9 +35,9 @@ public interface ProtocolConfig {
     /**
      * Returns the keys of headers that should be ignored by Ditto.
      *
-     * @return an unmodifiable unsorted Set containing the blacklisted header keys.
+     * @return an unmodifiable unsorted Set containing the blocked header keys.
      */
-    Set<String> getBlacklistedHeaderKeys();
+    Set<String> getBlockedHeaderKeys();
 
     enum ProtocolConfigValue implements KnownConfigValue {
 
@@ -49,7 +49,7 @@ public interface ProtocolConfig {
         /**
          * The keys of headers that should be ignored by Ditto.
          */
-        BLACKLIST("blacklist", Arrays.asList("raw-request-uri", "cache-control", "connection", "timeout-access"));
+        BLOCKLIST("blocklist", Arrays.asList("raw-request-uri", "cache-control", "connection", "timeout-access"));
 
         private final String path;
         private final Object defaultValue;

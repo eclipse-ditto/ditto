@@ -56,12 +56,9 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
 
     static {
         DEFAULT_OPTIONS = new HashMap<>();
-        DEFAULT_OPTIONS.put(
-                MessageMapperConfiguration.CONTENT_TYPE_BLACKLIST,
-                "application/vnd.eclipse-hono-empty-notification" +
-                        "," +
-                        "application/vnd.eclipse-hono-dc-notification+json"
-        );
+        DEFAULT_OPTIONS.put(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
+                String.join(",", "application/vnd.eclipse-hono-empty-notification",
+                        "application/vnd.eclipse-hono-dc-notification+json"));
         CONTEXT = ConnectivityModelFactory.newMappingContext(
                 DittoMessageMapper.class.getCanonicalName(),
                 DEFAULT_OPTIONS

@@ -29,9 +29,9 @@ import org.eclipse.ditto.model.base.headers.ValueValidator;
  * If validation fails, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable
-final class TimeoutValueValidator extends AbstractHeaderValueValidator {
+final class MessageHeaderTimeoutValueValidator extends AbstractHeaderValueValidator {
 
-    private TimeoutValueValidator() {
+    private MessageHeaderTimeoutValueValidator() {
         super(valueType -> long.class.equals(valueType) || Long.class.equals(valueType));
     }
 
@@ -41,7 +41,7 @@ final class TimeoutValueValidator extends AbstractHeaderValueValidator {
      * @return the instance.
      */
     static ValueValidator getInstance() {
-        return HeaderValueValidators.getLongValidator().andThen(new TimeoutValueValidator());
+        return HeaderValueValidators.getLongValidator().andThen(new MessageHeaderTimeoutValueValidator());
     }
 
     @SuppressWarnings("squid:S2201")
