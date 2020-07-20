@@ -16,6 +16,7 @@ The namespace must conform to the following notation:
 * a dot must be followed by a lower- or uppercase character from a-z
 * numbers may be used
 * underscore may be used
+* have a maximum length of 256 characters
 	
 When writing a Java application, you can use the following regex to validate your namespaces: <br/>
     ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+))``
@@ -48,6 +49,7 @@ Examples for valid names:
 
 A namespaced ID must conform to the following expectations:
 * namespace and name separated by a `:` (colon)
+* have a maximum length of 256 characters
 
 When writing a Java application, you can use the following regex to validate your namespaced IDs: <br/>
 	``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+)):(!"$%&()=?`*+~'#_-:.;,|<>\{}[]^)`` 
