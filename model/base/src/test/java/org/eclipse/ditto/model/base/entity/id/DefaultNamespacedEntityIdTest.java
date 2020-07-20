@@ -95,25 +95,25 @@ public class DefaultNamespacedEntityIdTest {
     }
 
     @Test
-    public void nameCanHaveMaximumLengthOf256Characters() {
-        final StringBuilder nameWithMaximumLength = generateNameWithMaximumLength();
+    public void canHaveMaximumLengthOf256Characters() {
+        final int maximumAllowedCharactersForName = 255 - VALID_NAMESPACE.length();
+        final StringBuilder nameWithMaximumLength = new StringBuilder();
+        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
+            nameWithMaximumLength.append("a");
+        }
         assertValidId(VALID_NAMESPACE, nameWithMaximumLength.toString());
     }
 
     @Test
-    public void nameCannotHaveMoreThan256Characters() {
-        final StringBuilder nameWithMaximumLength = generateNameWithMaximumLength();
+    public void cannotHaveMoreThan256Characters() {
+        final int maximumAllowedCharactersForName = 256 - VALID_NAMESPACE.length();
+        final StringBuilder nameWithMaximumLength = new StringBuilder();
+        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
+            nameWithMaximumLength.append("a");
+        }
         assertInValidId(VALID_NAMESPACE, nameWithMaximumLength.append("a").toString());
     }
 
-    private StringBuilder generateNameWithMaximumLength() {
-        final int charactersForName = 256;
-        final StringBuilder name = new StringBuilder();
-        for (int i = 0; i < charactersForName; i++) {
-            name.append("a");
-        }
-        return name;
-    }
 
     @Test
     public void nullId() {
@@ -181,16 +181,6 @@ public class DefaultNamespacedEntityIdTest {
             assertValidName("x" + specialCharacter);
         });
     }
-
-//    @Test
-//    public void dollarSymbolNotAllowedAtBeginningOfName() {
-//        assertValidName("$foo");
-//    }
-//
-//    @Test
-//    public void percentSymbolNotAllowedIfNotURLEscaping() {
-//        assertValidName("fo%o");
-//    }
 
     @Test
     public void paragraphSymbolNotAllowed() {

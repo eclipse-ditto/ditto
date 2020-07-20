@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -65,6 +66,38 @@ public final class ImmutableSubjectIdTest {
 
         assertThat(underTest.getIssuer().toString()).isEqualTo("://abc");
         assertThat(underTest.getSubject()).isEqualTo("def");
+    }
+
+    @Test
+    public void subjectIdCanHaveMaximumLengthOf256Characters() {
+        final StringBuilder subjectIdWithMaximumLength = generateSubjectIdWithMaximumLength();
+        final SubjectId subjectId = ImmutableSubjectId.of(subjectIdWithMaximumLength);
+        assertThat(subjectId.toString()).isEqualTo(subjectIdWithMaximumLength.toString());
+    }
+
+    @Test
+    public void subjectIdCannotHaveMoreThan256Characters() {
+        final StringBuilder invalidSubjectId = generateSubjectIdWithMaximumLength();
+        assertThatExceptionOfType(SubjectIdInvalidException.class)
+                .isThrownBy(() -> ImmutableSubjectId.of(invalidSubjectId.append("a").toString()));
+    }
+
+    private StringBuilder generateSubjectIdWithMaximumLength() {
+        final int charactersForSubjectId = 256;
+        final String issuerWithSeperator = SubjectIssuer.GOOGLE.toString() + ":";
+        final StringBuilder subjectId = new StringBuilder();
+        subjectId.append(issuerWithSeperator);
+        for (int i = 0; i < (charactersForSubjectId - issuerWithSeperator.length()); i++) {
+            subjectId.append("a");
+        }
+        return subjectId;
+    }
+
+    @Test
+    public void createInvalidAttribute() {
+        final String invalidSubjectId = "invalidSubjectID\u0001";
+        assertThatExceptionOfType(SubjectIdInvalidException.class)
+                .isThrownBy(() -> ImmutableSubjectId.of(invalidSubjectId));
     }
 
     @Test

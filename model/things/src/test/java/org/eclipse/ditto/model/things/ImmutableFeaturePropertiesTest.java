@@ -22,6 +22,7 @@ import java.io.IOException;
 import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -64,5 +65,30 @@ public final class ImmutableFeaturePropertiesTest {
     public void writeValueWritesExpected() throws IOException {
         assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(ImmutableFeatureProperties.of(TestConstants.Thing.ATTRIBUTES))))
                 .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(TestConstants.Thing.ATTRIBUTES)));
+    }
+
+    @Test(expected = JsonPointerInvalidException.class)
+    public void createInvalidPropertieKey() {
+        final String invalidPropertieKey = "invalid/";
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(invalidPropertieKey, "invalidPropertieKey")
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonPointerInvalidException.class)
+    public void createTooLargePropertieKey() {
+        final String tooLargePropertieKey = generateMaximumLength().append("a").toString();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertieKey, "tooLargePropertieKey")
+                .toBuilder()
+                .build();
+    }
+
+    private StringBuilder generateMaximumLength() {
+        final int maxLength = 256;
+        final StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < maxLength; i++) {
+            stringBuilder.append("a");
+        }
+        return stringBuilder;
     }
 }

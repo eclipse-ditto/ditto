@@ -35,4 +35,26 @@ public final class PoliciesModelFactoryTest {
         assertThat(key1).isEqualTo(key4);
     }
 
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void createInvalidAttribute() {
+        final String invalidRessourceKey = "thing:/foo/bar\u0001";
+        PoliciesModelFactory.newResourceKey(invalidRessourceKey);
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void createTooLargeAttribute() {
+        final String invalidRessourceKey = generateMaximumLength().append("a").toString();
+        PoliciesModelFactory.newResourceKey(invalidRessourceKey);
+    }
+
+    private StringBuilder generateMaximumLength() {
+        final int maxLength = 256;
+        final StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < maxLength; i++) {
+            stringBuilder.append("a");
+        }
+        return stringBuilder;
+    }
+
 }

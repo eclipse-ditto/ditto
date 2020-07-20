@@ -36,4 +36,24 @@ public final class ImmutableLabelTest {
                 .verify();
     }
 
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void createInvalidAttribute() {
+        final String invalidLabel = "invalidLabel/";
+        ImmutableLabel.of(invalidLabel);
+    }
+
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void createTooLargeAttribute() {
+        final String tooLongLabel = generateMaximumLength().append("a").toString();
+        ImmutableLabel.of(tooLongLabel);
+    }
+
+    private StringBuilder generateMaximumLength() {
+        final int maxLength = 256;
+        final StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < maxLength; i++) {
+            stringBuilder.append("a");
+        }
+        return stringBuilder;
+    }
 }
