@@ -53,7 +53,7 @@ final class DeleteFeatureDefinitionStrategy extends
                 .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Result<ThingEvent> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
@@ -73,7 +73,7 @@ final class DeleteFeatureDefinitionStrategy extends
                     return ResultFactory.newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders), command));
     }
 
     @Override

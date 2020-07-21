@@ -60,7 +60,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
         if (!validator.isValid()) {
             return ResultFactory.newErrorResult(
                     ExceptionFactory.aclInvalid(context.getState(), validator.getReason(),
-                            command.getDittoHeaders()));
+                            command.getDittoHeaders()), command);
         }
 
         return getModifyOrCreateResult(acl, context, nextRevision, command, thing);

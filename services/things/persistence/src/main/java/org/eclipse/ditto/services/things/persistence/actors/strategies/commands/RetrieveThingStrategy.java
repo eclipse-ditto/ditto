@@ -86,7 +86,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()), command);
     }
 
     @Override

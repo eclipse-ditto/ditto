@@ -58,11 +58,11 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
             } else {
                 return ResultFactory.newErrorResult(
                         resourceNotFound(policyId, command.getLabel(), command.getResourceKey(),
-                                command.getDittoHeaders()));
+                                command.getDittoHeaders()), command);
             }
         } else {
             return ResultFactory.newErrorResult(
-                    policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()));
+                    policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()), command);
         }
     }
 

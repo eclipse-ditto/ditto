@@ -20,8 +20,11 @@ import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
@@ -81,6 +84,25 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command,
                 expectedException);
+    }
+
+    @Test
+    public void retrievePropertiesWithSelectedFields() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("target_year_1");
+        final RetrieveFeatureProperties command =
+                RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, selectedFields,
+                        DittoHeaders.empty());
+        final RetrieveFeaturePropertiesResponse expectedResponse =
+                retrieveFeaturePropertiesResponse(command.getThingEntityId(), command.getFeatureId(),
+                        FLUX_CAPACITOR_PROPERTIES,
+                        FeatureProperties.newBuilder()
+                                .set("target_year_1",
+                                        FLUX_CAPACITOR_PROPERTIES.toJson(command.getImplementedSchemaVersion(),
+                                                selectedFields).getValue("target_year_1").get()).build(),
+                        DittoHeaders.empty());
+
+        assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
 }

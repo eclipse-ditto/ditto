@@ -52,7 +52,7 @@ final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFea
                 .map(feature -> getDeleteFeatureResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), featureId,
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeature command, @Nullable final Thing thing) {

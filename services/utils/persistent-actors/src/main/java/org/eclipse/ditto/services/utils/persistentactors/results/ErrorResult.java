@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -20,21 +21,24 @@ import org.eclipse.ditto.signals.events.base.Event;
  */
 public final class ErrorResult<E extends Event> implements Result<E> {
 
+    private final Command errorCausingCommand;
     private final DittoRuntimeException dittoRuntimeException;
 
-    ErrorResult(final DittoRuntimeException dittoRuntimeException) {
+    ErrorResult(final DittoRuntimeException dittoRuntimeException, final Command errorCausingCommand) {
         this.dittoRuntimeException = dittoRuntimeException;
+        this.errorCausingCommand = errorCausingCommand;
     }
 
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + " [" +
                 "dittoRuntimeException=" + dittoRuntimeException +
+                ", errorCausingCommand=" + errorCausingCommand +
                 ']';
     }
 
     @Override
     public void accept(final ResultVisitor<E> visitor) {
-        visitor.onError(dittoRuntimeException);
+        visitor.onError(dittoRuntimeException, errorCausingCommand);
     }
 }
