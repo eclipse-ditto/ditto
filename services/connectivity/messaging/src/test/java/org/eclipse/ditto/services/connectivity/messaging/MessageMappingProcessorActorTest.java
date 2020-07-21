@@ -781,23 +781,6 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
-    public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
-        new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
-
-            final ModifyAttributeResponse commandResponse =
-                    ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
-                            DittoHeaders.newBuilder()
-                                    .responseRequired(false)
-                                    .build());
-
-            messageMappingProcessorActor.tell(commandResponse, getRef());
-
-            expectNoMessage();
-        }};
-    }
-
-    @Test
     public void testAggregationOfAcknowledgements() {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
