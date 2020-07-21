@@ -12,6 +12,21 @@ cause by the user or appeared in the server.
 
 {% include docson.html schema="jsonschema/error.json" %}
 
+### Error codes
+
+A Ditto error defines an "error code" which is a string identifier that uniquely identifies the error.
+
+Ditto itself uses the following prefixes for its error codes:
+
+* `things:` - for errors related to [things](basic-thing.html)
+* `policies:` - for errors related to [policies](basic-policy.html)
+* `things-search:` - for errors related to the [things search](basic-search.html)
+* `acknowledgement:` - for errors related to [acknowledgements](basic-acknowledgements.html)
+* `messages:` - for errors related to [messages](basic-messages.html)
+* `placeholder:` - for errors related to [placeholders](basic-placeholders.html)
+* `jwt:` - for errors related to <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> based [authentication](basic-auth.html)
+* `gateway:` - for errors produced by the (HTTP/WS) [gateway](architecture-services-gateway.html) service
+* `connectivity:` - for errors produced by the [connectivity](architecture-services-connectivity.html) service
 
 ## Examples
 
