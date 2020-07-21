@@ -14,19 +14,19 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import akka.kafka.ProducerSettings;
 
 /**
  * Handles all bootstrap server related configuration.
@@ -80,9 +80,7 @@ final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
     }
 
     @Override
-    public ProducerSettings<String, String> apply(final ProducerSettings<String, String> producerSettings,
-            final Connection connection) {
-
+    public void apply(final HashMap<String, Object> producerProperties, final Connection connection) {
         final String mergedBootstrapServers;
         if (isValid(connection)) {
             final String bootstrapServerFromUri = getBootstrapServerFromUri(connection);
@@ -98,7 +96,7 @@ final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
                             " not have been stored with the invalid pattern.", connection.getId());
             mergedBootstrapServers = getBootstrapServerFromUri(connection);
         }
-        return producerSettings.withBootstrapServers(mergedBootstrapServers);
+        producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, mergedBootstrapServers);
     }
 
     private String getBootstrapServersFromSpecificConfig(final Connection connection) {

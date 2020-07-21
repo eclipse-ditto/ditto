@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.headers;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -260,6 +262,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the reply target of a command-response.
      */
     Optional<Integer> getReplyTarget();
+
+    /**
+     * @return the list of response types that should be published to the reply target.
+     * @since 1.2.0
+     */
+    Collection<ResponseType> getExpectedResponseTypes();
 
     /**
      * Indicates whether the size of the headers entries is greater than the specified size.

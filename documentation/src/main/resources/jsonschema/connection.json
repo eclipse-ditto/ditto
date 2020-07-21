@@ -173,6 +173,35 @@
               }
             }
           },
+          "acknowledgementRequests": {
+            "$id": "/properties/sources/items/properties/acknowledgementRequests",
+            "type": "object",
+            "title": "Acknowledgement requests configuration",
+            "description": "Contains requests to acknowledgements which must be fulfilled before a message consumed from this source is technically settled/ACKed at the e.g. message broker.",
+            "additionalProperties": false,
+            "properties": {
+              "includes": {
+                "$id": "/properties/sources/items/properties/acknowledgementRequests/includes",
+                "type": "array",
+                "title": "Included acknowledgement requests",
+                "description": "Acknowledgement requests to be included for each message consumed by this source.",
+                "items": {
+                  "title": "String representation of a single acknowledgement request",
+                  "type": "string"
+                }
+              },
+              "filter": {
+                "$id": "/properties/sources/items/properties/acknowledgementRequests/filter",
+                "type": "string",
+                "title": "Filter expression whether to include acknowledgements at all",
+                "description": "Optional filter to be applied to the requested acknowledgements - takes an `fn:filter()` function expression",
+                "examples": [
+                  "fn:filter(header:qos,'ne',0)"
+                ]
+              }
+            },
+            "required": [ "includes" ]
+          },
           "payloadMapping": {
             "$id": "/properties/sources/items/properties/payloadMapping",
             "type": "array",
@@ -228,8 +257,21 @@
                     "type": "string"
                   }
                 }
+              },
+              "expectedResponseTypes": {
+                "$id": "/properties/sources/items/properties/replyTarget/expectedResponseTypes",
+                "type": "array",
+                "title": "Expected response types",
+                "description": "Contains a list of response types that should be published to the reply target.",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "title": "Response types",
+                  "enum": [ "response", "error", "nack" ]
+                }
               }
-            }
+            },
+            "required": [ "address" ]
           }
         }
       }
@@ -293,6 +335,12 @@
                 "ditto:myAuthorizationSubject"
               ]
             }
+          },
+          "issuedAcknowledgementLabel": {
+            "$id": "/properties/targets/items/properties/issuedAcknowledgementLabel",
+            "type": "string",
+            "title": "Issued acknowledgement label for this target",
+            "description": "the optional label of an acknowledgement which should automatically be issued by this target based on the technical settlement/ACK the connection channel provides."
           },
           "payloadMapping": {
             "$id": "/properties/targets/items/properties/payloadMapping",

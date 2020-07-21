@@ -28,7 +28,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -39,21 +38,14 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
-
-import akka.kafka.ProducerSettings;
-
 /**
- * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaBootstrapServerSpecificConfig}.
+ * Unit test for {@link KafkaBootstrapServerSpecificConfig}.
  */
 public final class KafkaBootstrapServerSpecificConfigTest {
 
     private static final String FAIL_MESSAGE_TEMPLATE = "bootstrapServers: %s";
 
     private static final DittoHeaders HEADERS = DittoHeaders.empty();
-    private static final Config CONFIG = TestConstants.CONNECTION_CONFIG.getKafkaConfig().getInternalProducerConfig();
-    private static final ProducerSettings<String, String>
-            DEFAULT_PRODUCER_SETTINGS = ProducerSettings.create(CONFIG, new StringSerializer(), new StringSerializer());
 
     private static final String DEFAULT_SERVER = "s1.org.apache.kafka:9092";
     private static final String DEFAULT_SERVER_2 = "s2.org.apache.kafka:9092";
@@ -178,21 +170,21 @@ public final class KafkaBootstrapServerSpecificConfigTest {
     }
 
     private void shouldOnlyContainDefaultBootstrapServer(final Connection connection) {
-        final ProducerSettings<String, String> settings =
-                bootstrapServerSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
-        final List<String> servers = getBootstrapServers(settings);
+        final HashMap<String, Object> properties = new HashMap<>();
+        bootstrapServerSpecificConfig.apply(properties, connection);
+        final List<String> servers = getBootstrapServers(properties);
         assertThat(servers).isEqualTo(Collections.singletonList(DEFAULT_SERVER));
     }
 
     private void shouldContainBootstrapServers(final Connection connection) {
-        final ProducerSettings<String, String> settings =
-                bootstrapServerSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
-        final List<String> servers = getBootstrapServers(settings);
+        final HashMap<String, Object> properties = new HashMap<>();
+        bootstrapServerSpecificConfig.apply(properties, connection);
+        final List<String> servers = getBootstrapServers(properties);
         assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS_ARRAY);
     }
 
-    private static List<String> getBootstrapServers(final ProducerSettings<String, String> settings) {
-        return Arrays.asList(settings.properties().get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).get().split(","));
+    private static List<String> getBootstrapServers(final HashMap<String, Object> properties) {
+        return Arrays.asList(properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).toString().split(","));
     }
 
     private static Connection connectionWithBootstrapServers(@Nullable final String bootstrapServers) {

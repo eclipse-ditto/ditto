@@ -250,6 +250,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     ackregator.addReceivedAcknowledgment(adjustedAck);
                     potentiallyCompleteAcknowledgements(requestDittoHeaders, ackregator);
                 })
+                .match(Acknowledgements.class, acks -> {
+                    acks.forEach(ack -> ackregator.addReceivedAcknowledgment(
+                            ack.setDittoHeaders(getExternalHeaders(ack.getDittoHeaders()))));
+                    potentiallyCompleteAcknowledgements(requestDittoHeaders, ackregator);
+                })
                 .match(ReceiveTimeout.class, receiveTimeout -> {
                     final DittoHeaders externalHeaders = getExternalHeaders(requestDittoHeaders);
                     completeAcknowledgements(externalHeaders, ackregator);
@@ -333,7 +338,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             //  for DevOps commands, so only set the receiveTimeout for non-DevOps commands:
             context.setReceiveTimeout(
                     dittoHeaders.getTimeout()
-                            .orElse(commandConfig.getDefaultTimeout()) // if no specific timeout was configured, use the default command timeout
+                            // if no specific timeout was configured, use the default command timeout
+                            .orElse(commandConfig.getDefaultTimeout())
             );
         }
 

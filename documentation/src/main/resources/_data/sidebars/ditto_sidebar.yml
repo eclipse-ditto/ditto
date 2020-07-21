@@ -179,7 +179,7 @@ entries:
     - title: Search
       url: /basic-search.html
       output: web
-    - title: Acknowledgements
+    - title: Acknowledgements / QoS
       url: /basic-acknowledgements.html
       output: web
 

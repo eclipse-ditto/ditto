@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
@@ -44,6 +45,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private HeaderMapping headerMapping;
     @Nullable private PayloadMapping payloadMapping;
     @Nullable private String sourceAddress;
+    @Nullable private Source source;
     private DittoHeaders internalHeaders = DittoHeaders.empty();
 
     /**
@@ -92,12 +94,6 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     public ExternalMessageBuilder withHeaders(final Map<String, String> headers) {
         ConditionChecker.checkNotNull(headers);
         this.headers = new HashMap<>(headers);
-        return this;
-    }
-
-    @Override
-    public ExternalMessageBuilder clearHeaders() {
-        this.headers.clear();
         return this;
     }
 
@@ -184,6 +180,12 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withSource(@Nullable final Source source) {
+        this.source = source;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
         return this;
@@ -205,7 +207,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
                 authorizationContext, topicPath, enforcementFilter, headerMapping,
-                payloadMapping, sourceAddress, internalHeaders);
+                payloadMapping, sourceAddress, source, internalHeaders);
     }
 
 }

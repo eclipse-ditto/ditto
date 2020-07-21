@@ -56,13 +56,11 @@ import com.rabbitmq.client.impl.DefaultExceptionHandler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.Scheduler;
 import akka.actor.Status;
 import akka.japi.pf.FI;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import scala.Option;
-import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -263,7 +261,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                rmqPublisherActor = startRmqPublisherActor();
+                final ActorRef currentPublisherActor = startRmqPublisherActor();
+                rmqPublisherActor = currentPublisherActor;
 
                 // create publisher channel
                 final CreateChannel createChannel = CreateChannel.apply(
@@ -271,17 +270,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
                                     channel);
                             // provide the new channel to the publisher after the channel was connected (also includes reconnects)
-                            if (rmqPublisherActor != null) {
-                                final ChannelCreated channelCreated = new ChannelCreated(channelActor);
-                                rmqPublisherActor.tell(channelCreated, channelActor);
-                            }
+                            final ChannelCreated channelCreated = new ChannelCreated(channelActor);
+                            currentPublisherActor.tell(channelCreated, channelActor);
                             return null;
                         }),
                         Option.apply(PUBLISHER_CHANNEL));
 
-
-                final Scheduler scheduler = getContext().system().scheduler();
-                final ExecutionContext dispatcher = getContext().dispatcher();
                 Patterns.ask(rmqConnectionActor, createChannel, createChannelTimeout).handle((reply, throwable) -> {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
@@ -289,10 +283,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         // waiting for "final RabbitMQExceptionHandler rabbitMQExceptionHandler" to get its chance to
                         // complete the future with an Exception before we report Status.Success right now
                         // so delay this by 1 second --
-                        // with Java 9 this could be done more elegant with "orTimeout" or "completeOnTimeout" methods:
-                        scheduler.scheduleOnce(Duration.ofSeconds(1L),
-                                () -> future.complete(new Status.Success("channel created")),
-                                dispatcher);
+                        future.completeOnTimeout(new Status.Success("channel created"), 1, TimeUnit.SECONDS);
                     }
                     return null;
                 });
@@ -353,7 +344,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source,
-                                        connectionId()));
+                                        channel, connectionId()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,
@@ -493,22 +484,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
 
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-            try {
-                consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
-            } catch (final Exception e) {
-                connectionLogger.failure("Failed to process delivery {0}: {1}", envelope.getDeliveryTag(),
-                        e.getMessage());
-                log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
-            } finally {
-                try {
-                    getChannel().basicAck(envelope.getDeliveryTag(), false);
-                } catch (final IOException e) {
-                    connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(),
-                            e.getMessage());
-                    log.info("Failed to ack delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
-                }
-            }
+            consumerActor.tell(new Delivery(envelope, properties, body), getSelf());
         }
 
         @Override

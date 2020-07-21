@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -67,6 +68,15 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<Enforcement> getEnforcement();
 
     /**
+     * Returns the acknowledgement requests which should be added to each by the source consumed message
+     * with an optional filter.
+     *
+     * @return the acknowledgements that are requested from messages consumed in this source
+     * @since 1.2.0
+     */
+    Optional<FilteredAcknowledgementRequest> getAcknowledgementRequests();
+
+    /**
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
      * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
      * placeholders.
@@ -74,6 +84,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return the optional header mappings
      */
     Optional<HeaderMapping> getHeaderMapping();
+
 
     /**
      * The payload mappings that should be applied for messages received on this source. Each
@@ -160,6 +171,16 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonObject> ENFORCEMENT =
                 JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
+         * source.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENT_REQUESTS =
+                JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**

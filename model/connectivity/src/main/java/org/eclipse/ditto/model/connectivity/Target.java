@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -32,11 +33,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * A {@link Connection} target contains one address to publish to and several topics of Ditto signals for which to
  * subscribe in the Ditto cluster.
  */
-public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>, GenericTarget {
 
     /**
      * @return the address for the configured type of signals of this target
      */
+    @Override
     String getAddress();
 
 
@@ -72,12 +74,22 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     AuthorizationContext getAuthorizationContext();
 
     /**
+     * Defines the optional label of an acknowledgement which should automatically be issued by this target
+     * based on the technical settlement/ACK the connection channel provides.
+     *
+     * @return the optional label of an automatically issued acknowledgement
+     * @since 1.2.0
+     */
+    Optional<AcknowledgementLabel> getIssuedAcknowledgementLabel();
+
+    /**
      * Defines an optional header mapping e.g. to rename, combine etc. headers for outbound message. Mapping is
      * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
      * placeholders.
      *
      * @return the optional header mapping
      */
+    @Override
     Optional<HeaderMapping> getHeaderMapping();
 
     /**
@@ -143,6 +155,13 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Target} acknowledgement label of an automatically issued acknowledgement.
+         */
+        public static final JsonFieldDefinition<String> ISSUED_ACKNOWLEDGEMENT_LABEL =
+                JsonFactory.newStringFieldDefinition("issuedAcknowledgementLabel", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} header mapping.

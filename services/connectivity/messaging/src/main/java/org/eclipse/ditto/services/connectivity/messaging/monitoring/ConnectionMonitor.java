@@ -37,18 +37,21 @@ public interface ConnectionMonitor {
 
     /**
      * Get the logger that is used by the monitor.
+     *
      * @return the logger.
      */
     ConnectionLogger getLogger();
 
     /**
      * Get the counter that is used by the monitor.
+     *
      * @return the counter.
      */
     ConnectionMetricsCounter getCounter();
 
     /**
      * Record a success event.
+     *
      * @param signal that was processed during the success event.
      */
     default void success(final Signal<?> signal) {
@@ -57,6 +60,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a success event.
+     *
      * @param externalMessage that was processed during the success event.
      */
     default void success(final ExternalMessage externalMessage) {
@@ -65,6 +69,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a success event.
+     *
      * @param infoProvider that provides useful information for the success event.
      */
     default void success(final InfoProvider infoProvider) {
@@ -74,6 +79,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a success event.
+     *
      * @param signal that was processed during the success event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
@@ -86,18 +92,21 @@ public interface ConnectionMonitor {
 
     /**
      * Record a success event.
+     *
      * @param externalMessage that was processed during the success event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    default void success(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
+    default void success(final ExternalMessage externalMessage, final String message,
+            final Object... messageArguments) {
         getLogger().success(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordSuccess();
     }
 
     /**
      * Record a failure event.
+     *
      * @param signal that was processed during the failure.
      */
     default void failure(final Signal<?> signal) {
@@ -107,6 +116,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param signal that was processed during the failure.
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
@@ -116,6 +126,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param infoProvider that provides useful information for the failure.
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
@@ -126,6 +137,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
     default void failure(final DittoRuntimeException dittoRuntimeException) {
@@ -134,6 +146,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param signal that was processed during the failure.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
@@ -146,6 +159,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param headers that were processed during the failure.
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
@@ -155,6 +169,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param externalMessage that was processed during the failure.
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
@@ -164,18 +179,21 @@ public interface ConnectionMonitor {
 
     /**
      * Record a failure event.
+     *
      * @param externalMessage that was processed during the failure.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    default void failure(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
+    default void failure(final ExternalMessage externalMessage, final String message,
+            final Object... messageArguments) {
         getLogger().failure(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }
 
     /**
      * Record an exception event.
+     *
      * @param signal that was processed during the exception.
      * @param exception the exception.
      */
@@ -185,6 +203,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     *
      * @param exception the exception.
      */
     default void exception(final Exception exception) {
@@ -193,6 +212,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     *
      * @param headers that were processed during the exception.
      * @param exception the exception.
      */
@@ -202,6 +222,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     *
      * @param externalMessage that was processed during the success event.
      * @param exception the exception that caused the failure.
      */
@@ -211,6 +232,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     *
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      */
@@ -221,6 +243,7 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     *
      * @param infoProvider that provides useful information for the success event.
      * @param exception the exception that caused the failure.
      */
@@ -231,12 +254,14 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     *
      * @param externalMessage that was processed during the exception event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    default void exception(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
+    default void exception(final ExternalMessage externalMessage, final String message,
+            final Object... messageArguments) {
         getLogger().exception(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }
@@ -414,6 +439,7 @@ public interface ConnectionMonitor {
 
         /**
          * Build the {@code ConnectionMonitor}.
+         *
          * @return a new {@code ConnectionMonitor} instance.
          */
         ConnectionMonitor build();
@@ -451,6 +477,11 @@ public interface ConnectionMonitor {
          */
         @Nullable
         String getPayload();
+
+        /**
+         * @return whether this info provider has any data.
+         */
+        boolean isEmpty();
 
     }
 

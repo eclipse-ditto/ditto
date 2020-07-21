@@ -20,9 +20,11 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -36,13 +38,17 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -64,6 +70,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -102,7 +109,8 @@ public final class MessageMappingProcessorActorTest {
 
     private static final ThingId KNOWN_THING_ID = ThingId.of("my:thing");
 
-    private static final ConnectionId CONNECTION_ID = ConnectionId.of("testConnection");
+    private static final Connection CONNECTION = TestConstants.createConnectionWithAcknowledgements();
+    private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
@@ -110,6 +118,10 @@ public final class MessageMappingProcessorActorTest {
     private static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
     private static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES =
             TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
+    private static final DittoHeaders headersWithReplyInformation = DittoHeaders.newBuilder()
+            .replyTarget(0)
+            .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
+            .build();
 
     private static final HeaderMapping CORRELATION_ID_AND_SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -120,6 +132,7 @@ public final class MessageMappingProcessorActorTest {
     private static final HeaderMapping SOURCE_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("source", "{{ request:subjectId }}")
+                    .set("qos", "{{ header:qos }}")
                     .build());
 
     private ActorSystem actorSystem;
@@ -221,9 +234,6 @@ public final class MessageMappingProcessorActorTest {
                     Arrays.asList(targetWithEnrichment, targetWithoutEnrichment));
             underTest.tell(outboundSignal, getRef());
 
-            // THEN: a mapped signal without enrichment arrives first
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment);
-
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
@@ -234,26 +244,33 @@ public final class MessageMappingProcessorActorTest {
             proxyActorProbe.reply(
                     RetrieveThingResponse.of(retrieveThing.getEntityId(), extra, retrieveThing.getDittoHeaders()));
 
+            // THEN: a mapped signal without enrichment arrives first
+            final PublishMappedMessage publishMappedMessage = expectMsgClass(PublishMappedMessage.class);
+            int i = 0;
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithoutEnrichment);
+
             // THEN: Receive an outbound signal with extra fields.
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
+            expectPublishedMappedMessage(publishMappedMessage, i, signal, targetWithEnrichment,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra));
         }};
     }
 
     @SafeVarargs
     private static void expectPublishedMappedMessage(final PublishMappedMessage publishMappedMessage,
+            final int index,
             final Signal<?> signal,
             final Target target,
             final Consumer<OutboundSignal.Mapped>... otherAssertionConsumers) {
 
+        final OutboundSignal.Mapped mapped =
+                publishMappedMessage.getOutboundSignal().getMappedOutboundSignals().get(index);
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(publishMappedMessage.getOutboundSignal()).satisfies(outboundSignal -> {
+            softly.assertThat(mapped).satisfies(outboundSignal -> {
                 softly.assertThat(outboundSignal.getSource()).as("source is expected").isEqualTo(signal);
                 softly.assertThat(outboundSignal.getTargets()).as("targets are expected").containsExactly(target);
             });
         }
-        Arrays.asList(otherAssertionConsumers)
-                .forEach(con -> con.accept(publishMappedMessage.getOutboundSignal()));
+        Arrays.asList(otherAssertionConsumers).forEach(con -> con.accept(mapped));
     }
 
     @Test
@@ -332,35 +349,6 @@ public final class MessageMappingProcessorActorTest {
                     targetWithoutEnrichmentAnd2PayloadMappers)
             );
             underTest.tell(outboundSignal, getRef());
-
-            // THEN: a mapped signal without enrichment arrives first
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithoutEnrichment,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
-            );
-
-            // THEN: a mapped signal without enrichment and applied 1 payload mapper arrives
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
-                    targetWithoutEnrichmentAnd1PayloadMapper,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
-                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
-            );
-
-            // THEN: a mapped signal without enrichment and applied 2 payload mappers arrives causing 3 messages
-            //  as 1 mapper duplicates the message
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
-                    targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
-                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
-            );
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
-                    targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
-            );
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
-                    targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
-            );
-
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
             final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
@@ -380,14 +368,46 @@ public final class MessageMappingProcessorActorTest {
             proxyActorProbe.reply(RetrieveThingResponse.of(retrieveThing.getEntityId(), extraForCachingFacade,
                     retrieveThing.getDittoHeaders()));
 
+            // THEN: mapped messages arrive in a batch.
+            final PublishMappedMessage publishMappedMessage = expectMsgClass(PublishMappedMessage.class);
+            int i = 0;
+
+            // THEN: the first mapped signal is without enrichment
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithoutEnrichment,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
+            // THEN: the second mapped signal is without enrichment and applied 1 payload mapper arrives
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd1PayloadMapper,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+
+            // THEN: a mapped signal without enrichment and applied 2 payload mappers arrives causing 3 messages
+            //  as 1 mapper duplicates the message
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders())
+                            .contains(AddHeaderMessageMapper.OUTBOUND_HEADER)
+            );
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
+                    targetWithoutEnrichmentAnd2PayloadMappers,
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+            );
+
             // THEN: Receive an outbound signal with extra fields.
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal, targetWithEnrichment,
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithEnrichment,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
             );
 
             // THEN: Receive an outbound signal with extra fields and with mapped payload.
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd1PayloadMapper,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders())
@@ -396,17 +416,17 @@ public final class MessageMappingProcessorActorTest {
 
             // THEN: a mapped signal with enrichment and applied 2 payload mappers arrives causing 3 messages
             //  as 1 mapper duplicates the message
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
             );
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+            expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
             );
-            expectPublishedMappedMessage(expectMsgClass(PublishMappedMessage.class), signal,
+            expectPublishedMappedMessage(publishMappedMessage, i, signal,
                     targetWithEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
                     mapped -> assertThat(mapped.getExternalMessage().getHeaders())
@@ -453,12 +473,11 @@ public final class MessageMappingProcessorActorTest {
                             .withAuthorizationContext(AUTHORIZATION_CONTEXT)
                             .withEnforcement(enforcement)
                             .withPayloadMapping(mappings)
-                            .withInternalHeaders(DittoHeaders.newBuilder()
-                                    .replyTarget(0)
-                                    .build())
+                            .withInternalHeaders(headersWithReplyInformation)
                             .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             if (expectSuccess) {
                 final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
@@ -487,7 +506,7 @@ public final class MessageMappingProcessorActorTest {
 
                 messageMappingProcessorActor.tell(commandResponse, getRef());
                 final OutboundSignal.Mapped responseMessage =
-                        expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
+                        expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
 
                 if (ADD_HEADER_MAPPER.equals(mapping)) {
                     final Map<String, String> headers = responseMessage.getExternalMessage().getHeaders();
@@ -553,11 +572,13 @@ public final class MessageMappingProcessorActorTest {
                     "}";
             final ExternalMessage inboundMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withInternalHeaders(headersWithReplyInformation)
                             .withText(messageContent)
                             .withAuthorizationContext(authorizationContext)
                             .build();
 
-            messageMappingProcessorActor.tell(inboundMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
 
             // THEN: resulting error response retains the correlation ID
             final OutboundSignal outboundSignal =
@@ -608,7 +629,8 @@ public final class MessageMappingProcessorActorTest {
                     .withHeaderMapping(SOURCE_HEADER_MAPPING)
                     .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -637,15 +659,17 @@ public final class MessageMappingProcessorActorTest {
                     "}";
             final ExternalMessage inboundMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withInternalHeaders(headersWithReplyInformation)
                             .withText(messageContent)
                             .withAuthorizationContext(authorizationContext)
                             .build();
 
-            messageMappingProcessorActor.tell(inboundMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
 
             // THEN: resulting error response retains the topic including thing ID and channel
             final ExternalMessage outboundMessage =
-                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().getExternalMessage();
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first().getExternalMessage();
             assertThat(outboundMessage)
                     .extracting(e -> JsonFactory.newObject(e.getTextPayload().orElse("{}"))
                             .getValue("topic"))
@@ -665,7 +689,7 @@ public final class MessageMappingProcessorActorTest {
 
         testMessageMapping(UUID.randomUUID().toString(), contextWithUnknownPlaceholder,
                 PublishMappedMessage.class, error -> {
-                    final OutboundSignal.Mapped outboundSignal = error.getOutboundSignal();
+                    final OutboundSignal.Mapped outboundSignal = error.getOutboundSignal().first();
                     final UnresolvedPlaceholderException exception = UnresolvedPlaceholderException.fromMessage(
                             outboundSignal.getExternalMessage()
                                     .getTextPayload()
@@ -690,13 +714,15 @@ public final class MessageMappingProcessorActorTest {
             final JsonifiableAdaptable adaptable = ProtocolFactory
                     .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand));
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withInternalHeaders(headersWithReplyInformation)
                     .withTopicPath(adaptable.getTopicPath())
                     .withText(adaptable.toJsonString())
                     .withAuthorizationContext(context)
                     .withHeaderMapping(CORRELATION_ID_AND_SOURCE_HEADER_MAPPING)
                     .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -711,14 +737,12 @@ public final class MessageMappingProcessorActorTest {
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
                     ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
-                            DittoHeaders.newBuilder()
-                                    .correlationId(correlationId)
-                                    .build());
+                            headersWithReplyInformation.toBuilder().correlationId(correlationId).build());
 
             messageMappingProcessorActor.tell(commandResponse, getRef());
 
             final OutboundSignal.Mapped outboundSignal =
-                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
             assertThat(outboundSignal.getSource().getDittoHeaders().getCorrelationId())
                     .contains(correlationId);
         }};
@@ -734,7 +758,7 @@ public final class MessageMappingProcessorActorTest {
             final String correlationId = UUID.randomUUID().toString();
             final ThingNotAccessibleException thingNotAccessibleException =
                     ThingNotAccessibleException.newBuilder(KNOWN_THING_ID)
-                            .dittoHeaders(DittoHeaders.newBuilder()
+                            .dittoHeaders(headersWithReplyInformation.toBuilder()
                                     .correlationId(correlationId)
                                     .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_THING_ID)
                                     .build())
@@ -743,7 +767,7 @@ public final class MessageMappingProcessorActorTest {
             messageMappingProcessorActor.tell(thingNotAccessibleException, getRef());
 
             final OutboundSignal.Mapped outboundSignal =
-                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal();
+                    expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
 
             // THEN: correlation ID is preserved
             assertThat(outboundSignal.getSource().getDittoHeaders().getCorrelationId())
@@ -757,19 +781,78 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
-    public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
+    public void testAggregationOfAcknowledgements() {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final AcknowledgementRequest signalAck =
+                    AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
+            Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
+            validationSet.addAll(CONNECTION.getSources().get(0).getAcknowledgementRequests().map(
+                    FilteredAcknowledgementRequest::getIncludes).orElse(Collections.emptySet()));
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            final AuthorizationContext context =
+                    AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+            final ModifyAttribute modifyCommand =
+                    ModifyAttribute.of(TestConstants.Things.THING_ID, JsonPointer.of("/attribute1"),
+                            JsonValue.of("attributeValue"), DittoHeaders.newBuilder().acknowledgementRequest(
+                                    signalAck).build());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(
+                            DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand, TopicPath.Channel.TWIN));
 
-            final ModifyAttributeResponse commandResponse =
-                    ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
-                            DittoHeaders.newBuilder()
-                                    .responseRequired(false)
-                                    .build());
+            final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .withSourceAddress(CONNECTION.getSources().get(0).getAddresses().iterator().next())
+                    .withSource(CONNECTION.getSources().get(0))
+                    .build();
 
-            messageMappingProcessorActor.tell(commandResponse, getRef());
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(message, collectorProbe.ref());
 
-            expectNoMessage();
+            final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+            assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
+        }};
+    }
+
+    @Test
+    public void testFilteringOfAcknowledgements() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final AcknowledgementRequest signalAck =
+                    AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", "application/json");
+            headers.put("qos", "0");
+            final AuthorizationContext context =
+                    AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+            final ModifyAttribute modifyCommand =
+                    ModifyAttribute.of(TestConstants.Things.THING_ID, JsonPointer.of("/attribute1"),
+                            JsonValue.of("attributeValue"), DittoHeaders.newBuilder().acknowledgementRequest(
+                                    signalAck).build());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(
+                            DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand, TopicPath.Channel.TWIN));
+
+            final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
+                    .withAuthorizationContext(context)
+                    .withHeaderMapping(SOURCE_HEADER_MAPPING)
+                    .withSourceAddress(CONNECTION.getSources().get(0).getAddresses().iterator().next())
+                    .withSource(CONNECTION.getSources().get(0))
+                    .build();
+
+            final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
+            messageMappingProcessorActor.tell(message, collectorProbe.ref());
+
+            final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+            assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
         }};
     }
 
@@ -802,7 +885,7 @@ public final class MessageMappingProcessorActorTest {
     private ActorRef createMessageMappingProcessorActor(final TestKit kit) {
         final Props props =
                 MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION_ID, connectionActorProbe.ref(), 99);
+                        CONNECTION, connectionActorProbe.ref(), 99);
         return actorSystem.actorOf(props);
     }
 
