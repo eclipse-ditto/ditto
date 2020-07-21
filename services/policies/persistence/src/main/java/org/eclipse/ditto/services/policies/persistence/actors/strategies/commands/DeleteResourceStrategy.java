@@ -69,13 +69,13 @@ final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteR
                     return ResultFactory.newMutationResult(command, resourceDeleted, response);
                 } else {
                     return ResultFactory.newErrorResult(
-                            policyEntryInvalid(policyId, label, validator.getReason().orElse(null), headers));
+                            policyEntryInvalid(policyId, label, validator.getReason().orElse(null), headers), command);
                 }
             } else {
-                return ResultFactory.newErrorResult(resourceNotFound(policyId, label, resourceKey, headers));
+                return ResultFactory.newErrorResult(resourceNotFound(policyId, label, resourceKey, headers), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headers));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, headers), command);
         }
     }
 

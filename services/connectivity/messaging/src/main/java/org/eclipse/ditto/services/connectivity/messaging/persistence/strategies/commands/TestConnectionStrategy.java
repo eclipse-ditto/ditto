@@ -51,7 +51,7 @@ final class TestConnectionStrategy extends AbstractConnectivityCommandStrategy<T
             @Nullable final Connection entity, final long nextRevision, final TestConnection command) {
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else if (entity == null) {
             final Connection connection = command.getConnection();
             final ConnectivityEvent event = ConnectionCreated.of(connection, command.getDittoHeaders());

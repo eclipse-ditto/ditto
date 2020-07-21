@@ -55,5 +55,5 @@ public interface ResultVisitor<E extends Event> {
      *
      * @param error the error.
      */
-    void onError(DittoRuntimeException error);
+    void onError(DittoRuntimeException error, Command errorCausingCommand);
 }

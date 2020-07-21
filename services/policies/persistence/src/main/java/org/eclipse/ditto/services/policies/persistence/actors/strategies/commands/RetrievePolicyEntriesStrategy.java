@@ -46,7 +46,7 @@ final class RetrievePolicyEntriesStrategy extends
                     policy);
             return ResultFactory.newQueryResult(command, response);
         } else {
-            return ResultFactory.newErrorResult(policyNotFound(policyId, command.getDittoHeaders()));
+            return ResultFactory.newErrorResult(policyNotFound(policyId, command.getDittoHeaders()), command);
         }
     }
 

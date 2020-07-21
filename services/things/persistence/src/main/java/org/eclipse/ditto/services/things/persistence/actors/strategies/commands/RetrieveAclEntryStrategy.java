@@ -57,7 +57,7 @@ final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<Retrie
                     return ResultFactory.<ThingEvent>newQueryResult(command, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.aclEntryNotFound(thingId, authorizationSubject, dittoHeaders)));
+                        ExceptionFactory.aclEntryNotFound(thingId, authorizationSubject, dittoHeaders), command));
     }
 
     private Optional<AclEntry> extractAclEntry(final RetrieveAclEntry command, final @Nullable Thing thing) {

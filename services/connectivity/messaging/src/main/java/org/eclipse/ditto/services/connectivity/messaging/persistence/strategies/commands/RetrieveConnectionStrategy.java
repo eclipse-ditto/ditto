@@ -38,7 +38,7 @@ final class RetrieveConnectionStrategy extends AbstractConnectivityCommandStrate
             return ResultFactory.newQueryResult(command,
                     RetrieveConnectionResponse.of(entity.toJson(), command.getDittoHeaders()));
         } else {
-            return ResultFactory.newErrorResult(notAccessible(context, command));
+            return ResultFactory.newErrorResult(notAccessible(context, command), command);
         }
     }
 }

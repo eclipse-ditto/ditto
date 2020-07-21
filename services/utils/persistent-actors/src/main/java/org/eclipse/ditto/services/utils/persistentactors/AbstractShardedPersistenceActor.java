@@ -395,7 +395,9 @@ public abstract class AbstractShardedPersistenceActor<
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
-            notifySender(response);
+            if (command.getDittoHeaders().isResponseRequired()) {
+                notifySender(response);
+            }
             if (becomeDeleted) {
                 becomeDeletedHandler();
             }
@@ -407,12 +409,16 @@ public abstract class AbstractShardedPersistenceActor<
 
     @Override
     public void onQuery(final Command command, final WithDittoHeaders response) {
-        notifySender(response);
+        if (command.getDittoHeaders().isResponseRequired()) {
+            notifySender(response);
+        }
     }
 
     @Override
-    public void onError(final DittoRuntimeException error) {
-        notifySender(error);
+    public void onError(final DittoRuntimeException error, final Command errorCausingCommand) {
+        if (errorCausingCommand.getDittoHeaders().isResponseRequired()) {
+            notifySender(error);
+        }
     }
 
     private long getNextRevisionNumber() {
@@ -443,7 +449,8 @@ public abstract class AbstractShardedPersistenceActor<
     private void takeSnapshot(final String reason) {
         final long revision = getRevisionNumber();
         if (entity != null && lastSnapshotRevision != revision) {
-            log.debug("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId, revision,
+            log.debug("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId,
+                    revision,
                     reason);
 
             final Object snapshotSubject = snapshotAdapter.toSnapshotStore(entity);
