@@ -61,6 +61,7 @@ import com.mongodb.event.ConnectionPoolListener;
 import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.ClassicActorSystemProvider;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.Cluster;
@@ -189,7 +190,7 @@ public final class SearchRootActor extends DittoRootActor {
                         createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
 
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get((ClassicActorSystemProvider) actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint ...");
                     return theBinding.terminate(Duration.ofSeconds(1))
@@ -215,7 +216,8 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(
+                (ClassicActorSystemProvider) actorSystem)),
                 healthCheckingActor, actorSystem);
 
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));

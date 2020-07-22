@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.japi.pf.PFBuilder;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -45,10 +46,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingsSearchCursorTest {
 
     private ActorSystem actorSystem;
+    private Materializer materializer;
 
     @Before
     public void init() {
         actorSystem = ActorSystem.create();
+        materializer = Materializer.createMaterializer(actorSystem);
     }
 
     @After
@@ -68,7 +71,7 @@ public final class ThingsSearchCursorTest {
     public void encodeAndDecodeAreInverse() {
         final ThingsSearchCursor input = randomCursor();
         final ThingsSearchCursor decoded =
-                ThingsSearchCursor.decode(input.encode(), actorSystem)
+                ThingsSearchCursor.decode(input.encode(), materializer)
                         .runWith(Sink.head(), actorSystem)
                         .toCompletableFuture().join();
 
@@ -100,7 +103,7 @@ public final class ThingsSearchCursorTest {
     @Test
     public void decodingInvalidCursorsFailsWithInvalidCursorException() {
         assertThat(
-                ThingsSearchCursor.decode("null", actorSystem)
+                ThingsSearchCursor.decode("null", materializer)
                         .<Object>map(x -> x)
                         .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
                         .runWith(Sink.head(), actorSystem)

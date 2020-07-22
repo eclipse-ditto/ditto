@@ -63,7 +63,7 @@ public interface SupervisedStream {
      *
      * @param error the error with which to fail the stream.
      */
-    void abort(final Throwable error);
+    void abort(Throwable error);
 
     /**
      * Materialized value containing a {@code SourceQueue} and a {@code SupervisedSource}.

@@ -53,7 +53,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
@@ -147,7 +147,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
-        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
+        Patterns.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
                     if (response instanceof SourceRef) {
                         handleSourceRef((SourceRef) response, thingIds, command, sender);
@@ -207,7 +207,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                     return list;
                 });
 
-        PatternsCS.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender);
+        Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender);
     }
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {

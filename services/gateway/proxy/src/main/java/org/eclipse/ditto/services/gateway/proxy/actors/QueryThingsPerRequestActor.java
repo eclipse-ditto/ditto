@@ -92,7 +92,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
      */
     static Props props(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender, final ActorRef pubSubMediator) {
+            final ActorRef originatingSender,
+            final ActorRef pubSubMediator) {
 
         return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender,
                 pubSubMediator);

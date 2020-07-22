@@ -300,13 +300,13 @@ final class StreamingSessionActor extends AbstractActor {
             logger.withCorrelationId(response)
                     .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
                             " about it: {}", type, response);
-            eventAndResponsePublisher.tell(SessionedJsonifiable.response(response), sender);
+            eventAndResponsePublisher.offer(SessionedJsonifiable.response(response));
         } else if (responseOrError instanceof DittoRuntimeException) {
             final DittoRuntimeException error = (DittoRuntimeException) responseOrError;
             logger.withCorrelationId(error)
                     .debug("Got 'DittoRuntimeException' message in <{}> session, telling EventAndResponsePublisher" +
                             " about it: {}", type, error);
-            eventAndResponsePublisher.tell(SessionedJsonifiable.error(error), sender);
+            eventAndResponsePublisher.offer(SessionedJsonifiable.error(error));
         } else {
             logger.error("Unexpected result from AcknowledgementAggregatorActor: <{}>", responseOrError);
         }

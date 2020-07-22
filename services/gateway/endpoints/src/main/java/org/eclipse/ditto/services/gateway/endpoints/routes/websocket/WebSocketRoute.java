@@ -428,7 +428,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
-            final DittoHeaders additionalHeaders, final ProtocolAdapter adapter,
+            final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig,
             @Nullable final SignalEnrichmentFacade signalEnrichmentFacade) {

@@ -71,11 +71,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
-import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.coding.Coder;
 import akka.japi.pf.PFBuilder;
-import akka.stream.SystemMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 import scala.PartialFunction;
@@ -320,17 +319,17 @@ final class ThingsSearchCursor {
      * Decode the string representation of a cursor.
      *
      * @param cursorString the string representation.
-     * @param system actor system holding the default materializer
+     * @param materializer the materializer to use.
      * @return source of the decoded cursor or a failed source containing a {@code DittoRuntimeException}.
      */
-    static Source<ThingsSearchCursor, NotUsed> decode(final String cursorString, final ActorSystem system) {
-        return Source.fromCompletionStage(decodeCS(cursorString, system)).mapError(DECODE_ERROR_MAPPER);
+    static Source<ThingsSearchCursor, NotUsed> decode(final String cursorString, final Materializer materializer) {
+        return Source.fromCompletionStage(decodeCS(cursorString, materializer)).mapError(DECODE_ERROR_MAPPER);
     }
 
     private static CompletionStage<ThingsSearchCursor> decodeCS(final String cursorString,
-            final ActorSystem system) {
+            final Materializer materializer) {
         final ByteString compressed = ByteString.fromArray(Base64.getUrlDecoder().decode(cursorString));
-        return Coder.Deflate.decode(compressed, SystemMaterializer.get(system).materializer())
+        return Coder.Deflate.decode(compressed, materializer)
                 .thenApply(decompressed -> fromJson(JsonFactory.newObject(decompressed.utf8String())));
     }
 
@@ -376,12 +375,12 @@ final class ThingsSearchCursor {
      * Extract a cursor from a {@code QueryThings} command if any exists.
      *
      * @param queryThings the command.
-     * @param system actor system through which to access the materializer.
+     * @param materializer the materializer.
      * @return source of an optional cursor if the command has no cursor or has a valid cursor; a failed source if the
      * command has an invalid cursor.
      */
     static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final QueryThings queryThings,
-            final ActorSystem system) {
+            final Materializer materializer) {
 
         return catchExceptions(queryThings.getDittoHeaders(), () -> {
             final List<Option> options = getOptions(queryThings);
@@ -398,7 +397,7 @@ final class ThingsSearchCursor {
             } else if (!limitOptions.isEmpty()) {
                 return Source.failed(invalidCursor(LIMIT_OPTION_FORBIDDEN, queryThings));
             } else {
-                return decode(cursorOptions.get(0).getCursor(), system)
+                return decode(cursorOptions.get(0).getCursor(), materializer)
                         .flatMapConcat(cursor -> cursor.checkCursorValidity(queryThings, options)
                                 .<Source<Optional<ThingsSearchCursor>, NotUsed>>map(Source::failed)
                                 .orElse(Source.single(Optional.of(cursor))));

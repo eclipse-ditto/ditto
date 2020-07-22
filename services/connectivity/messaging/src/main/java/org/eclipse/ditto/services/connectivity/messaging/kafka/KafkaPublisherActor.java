@@ -39,9 +39,6 @@ import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -54,14 +51,6 @@ import akka.Done;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
-import akka.kafka.ProducerMessage;
-import akka.stream.Materializer;
-import akka.stream.OverflowStrategy;
-import akka.stream.QueueOfferResult;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SourceQueueWithComplete;
 import akka.util.ByteString;
 
 /**
@@ -78,7 +67,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
-    private final Materializer materializer;
 
     private Producer<String, String> producer;
 
@@ -89,7 +77,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         super(connection);
         this.dryRun = dryRun;
         connectionFactory = factory;
-        materializer = Materializer.createMaterializer(this::getContext);
 
         startInternalKafkaProducer(connection);
         reportInitialConnectionState();
