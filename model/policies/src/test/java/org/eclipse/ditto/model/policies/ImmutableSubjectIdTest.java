@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -25,7 +26,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableSubjectId}.
  */
-public final class ImmutableSubjectIdTest {
+public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
+
+    private static final String ISSUER_WITH_SEPARATOR = SubjectIssuer.GOOGLE.toString() + ":";
 
     @Test
     public void assertImmutability() {
@@ -70,27 +73,16 @@ public final class ImmutableSubjectIdTest {
 
     @Test
     public void subjectIdCanHaveMaximumLengthOf256Characters() {
-        final StringBuilder subjectIdWithMaximumLength = generateSubjectIdWithMaximumLength();
+        final String subjectIdWithMaximumLength = generateStringWithMaxLength(ISSUER_WITH_SEPARATOR);
         final SubjectId subjectId = ImmutableSubjectId.of(subjectIdWithMaximumLength);
-        assertThat(subjectId.toString()).isEqualTo(subjectIdWithMaximumLength.toString());
+        assertThat(subjectId.toString()).isEqualTo(subjectIdWithMaximumLength);
     }
 
     @Test
     public void subjectIdCannotHaveMoreThan256Characters() {
-        final StringBuilder invalidSubjectId = generateSubjectIdWithMaximumLength();
+        final String invalidSubjectId = generateStringExceedingMaxLength(ISSUER_WITH_SEPARATOR);
         assertThatExceptionOfType(SubjectIdInvalidException.class)
-                .isThrownBy(() -> ImmutableSubjectId.of(invalidSubjectId.append("a").toString()));
-    }
-
-    private StringBuilder generateSubjectIdWithMaximumLength() {
-        final int charactersForSubjectId = 256;
-        final String issuerWithSeperator = SubjectIssuer.GOOGLE.toString() + ":";
-        final StringBuilder subjectId = new StringBuilder();
-        subjectId.append(issuerWithSeperator);
-        for (int i = 0; i < (charactersForSubjectId - issuerWithSeperator.length()); i++) {
-            subjectId.append("a");
-        }
-        return subjectId;
+                .isThrownBy(() -> ImmutableSubjectId.of(invalidSubjectId));
     }
 
     @Test

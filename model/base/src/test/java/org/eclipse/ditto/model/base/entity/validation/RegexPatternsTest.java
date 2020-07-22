@@ -112,11 +112,11 @@ public final class RegexPatternsTest {
     }
 
     private void assertFeatureMatches(final String id) {
-        assertMatches(RegexPatterns.FEATURE_PATTERN, id);
+        assertMatches(RegexPatterns.FEATURE_PATTERN.getPattern(), id);
     }
 
     private void assertFeatureNotMatches(final String id) {
-        assertNotMatches(RegexPatterns.FEATURE_PATTERN, id);
+        assertNotMatches(RegexPatterns.FEATURE_PATTERN.getPattern(), id);
     }
 
     @Test
@@ -140,11 +140,11 @@ public final class RegexPatternsTest {
     }
 
     private void assertSubjectMatches(final String subject) {
-        assertMatches(RegexPatterns.SUBJECT_REGEX, subject);
+        assertMatches(RegexPatterns.SUBJECT_PATTERN.getPattern(), subject);
     }
 
     private void assertSubjectNotMatches(final String subject) {
-        assertNotMatches(RegexPatterns.SUBJECT_REGEX, subject);
+        assertNotMatches(RegexPatterns.SUBJECT_PATTERN.getPattern(), subject);
     }
 
     @Test

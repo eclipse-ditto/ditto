@@ -13,22 +13,18 @@
 
 package org.eclipse.ditto.model.base.entity.validation;
 
-import java.util.regex.Pattern;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 
-
 @Immutable
 public final class ResourcePatternValidator extends AbstractPatternValidator {
 
-    public static ResourcePatternValidator getInstance() {
-        return new ResourcePatternValidator();
+    public static ResourcePatternValidator getInstance(final CharSequence id) {
+        return new ResourcePatternValidator(id);
     }
 
-    @Override
-    public Pattern getPattern() {
-        return RegexPatterns.RESOURCE_REGEX;
+    protected ResourcePatternValidator(final CharSequence id) {
+        super(id, RegexPatterns.RESOURCE_PATTERN);
     }
 }

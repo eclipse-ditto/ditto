@@ -19,7 +19,7 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.validation.LablePatternValidator;
+import org.eclipse.ditto.model.base.entity.validation.LabelPatternValidator;
 
 /**
  * An immutable implementation of {@link Label}.
@@ -44,8 +44,8 @@ final class ImmutableLabel implements Label {
     public static Label of(final CharSequence labelValue) {
         argumentNotEmpty(labelValue, "label value");
 
-        final LablePatternValidator validator = LablePatternValidator.getInstance();
-        if (!validator.isValid(labelValue)) {
+        final LabelPatternValidator validator = LabelPatternValidator.getInstance(labelValue);
+        if (!validator.isValid()) {
             throw PolicyEntryInvalidException.newBuilder()
                     .message("The Policy Label " + labelValue + " is invalid")
                     .description(validator.getReason().orElse(null))

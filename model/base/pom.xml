@@ -39,6 +39,7 @@
                         <configuration>
                             <includes>
                                 <include>org/eclipse/ditto/model/base/assertions/*</include>
+                                <include>org/eclipse/ditto/model/base/entity/id/restriction/*</include>
                             </includes>
                         </configuration>
                     </execution>

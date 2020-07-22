@@ -58,9 +58,9 @@ final class ImmutableSubjectId implements SubjectId {
         checkNotNull(issuer, "issuer");
         argumentNotEmpty(subject, "subject");
 
-        final SubjectPatternValidator validator = SubjectPatternValidator.getInstance();
         final String subjectIdAsString = issuer.toString() + ":" + subject.toString();
-        if (!validator.isValid(subjectIdAsString)) {
+        final SubjectPatternValidator validator = SubjectPatternValidator.getInstance(subjectIdAsString);
+        if (!validator.isValid()) {
             throw SubjectIdInvalidException.newBuilder(subjectIdAsString)
                     .description(validator.getReason().orElse(null))
                     .build();

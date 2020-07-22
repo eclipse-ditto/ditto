@@ -227,8 +227,8 @@ public final class PoliciesModelFactory {
 
         argumentNotEmpty(typeWithPath, "typeWithPath");
 
-        final ResourcePatternValidator validator = ResourcePatternValidator.getInstance();
-        if (!validator.isValid(typeWithPath)) {
+        final ResourcePatternValidator validator = ResourcePatternValidator.getInstance(typeWithPath);
+        if (!validator.isValid()) {
             throw PolicyEntryInvalidException.newBuilder()
                     .message("The Policy Resource " + typeWithPath + " is invalid")
                     .description(validator.getReason().orElse(null))

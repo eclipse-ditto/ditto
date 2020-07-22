@@ -72,9 +72,9 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     public static FeatureProperties of(final JsonObject jsonObject) {
         ConditionChecker.checkNotNull(jsonObject, "JSON object");
 
-        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance();
         for (JsonKey key : jsonObject.getKeys()) {
-            if (!validator.isValid(key)) {
+            final FeaturePatternValidator validator = FeaturePatternValidator.getInstance(key);
+            if (!validator.isValid()) {
                 throw JsonPointerInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
                         .build();
             }

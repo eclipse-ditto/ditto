@@ -22,11 +22,12 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class DefaultNamespacedEntityIdTest {
+public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
 
     private static final String URL_ESCAPE_EXAMPLE = "%3A";
     private static final List<String> ALLOWED_SPECIAL_CHARACTERS_IN_NAME = Arrays.asList(
@@ -96,24 +97,13 @@ public class DefaultNamespacedEntityIdTest {
 
     @Test
     public void canHaveMaximumLengthOf256Characters() {
-        final int maximumAllowedCharactersForName = 255 - VALID_NAMESPACE.length();
-        final StringBuilder nameWithMaximumLength = new StringBuilder();
-        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
-            nameWithMaximumLength.append("a");
-        }
-        assertValidId(VALID_NAMESPACE, nameWithMaximumLength.toString());
+        assertValidId(VALID_NAMESPACE, generateStringWithLength(MAX_LENGTH - VALID_NAMESPACE.length() - 1));
     }
 
     @Test
     public void cannotHaveMoreThan256Characters() {
-        final int maximumAllowedCharactersForName = 256 - VALID_NAMESPACE.length();
-        final StringBuilder nameWithMaximumLength = new StringBuilder();
-        for (int i = 0; i < maximumAllowedCharactersForName; i++) {
-            nameWithMaximumLength.append("a");
-        }
-        assertInValidId(VALID_NAMESPACE, nameWithMaximumLength.append("a").toString());
+        assertInValidId(VALID_NAMESPACE, generateStringWithLength(MAX_LENGTH - VALID_NAMESPACE.length()));
     }
-
 
     @Test
     public void nullId() {
@@ -190,7 +180,6 @@ public class DefaultNamespacedEntityIdTest {
     @Test
     public void numbersAfterDotInNamespacedIsNotAllowed() {
         assertInvalidNamespace("ns.x.5");
-        System.out.println(RegexPatterns.ID_REGEX);
     }
 
     @Test

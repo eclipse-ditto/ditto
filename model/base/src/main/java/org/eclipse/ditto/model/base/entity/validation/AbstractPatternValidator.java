@@ -16,44 +16,40 @@ package org.eclipse.ditto.model.base.entity.validation;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
-import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 
 /**
  * This abstract implementation of {@code PatternValidator} validates that a given {@code CharSequence} is valid.
- * If no {@code Pattern} is given through an overwrite of {@code getPattern()} it throws a {@code NullPointerException}.
  */
 @Immutable
-public abstract class AbstractPatternValidator implements PatternValidator {
+public abstract class AbstractPatternValidator implements Validator {
 
     public final static int MAX_LENGTH = 256;
-    private String reason;
+    protected final CharSequence id;
+    private final RegexPatterns.PatternWithMessage pattern;
+    @Nullable private String reason = null;
 
-
-    @Override
-    public boolean isValid(final CharSequence toBeValidated) {
-        requireNonNull(getPattern(), "The pattern to be validated against must not be null!");
-        if (toBeValidated.length() > MAX_LENGTH) {
-            reason = "Not allowed to exceed length of 256.";
-            return false;
-        }
-        if (!getPattern().matcher(toBeValidated).matches()) {
-            reason = "Neither slashes nor any control characters are allowed at any place in your JSON Pointer. " +
-                    "Please check!";
-            return false;
-        }
-        return true;
+    protected AbstractPatternValidator(final CharSequence id, final RegexPatterns.PatternWithMessage pattern) {
+        this.id = id;
+        this.pattern = requireNonNull(pattern, "The pattern to be validated against must not be null!");
     }
 
     @Override
     public boolean isValid() {
-        return false;
-    }
-
-    @Override
-    public Pattern getPattern() {
-        return null;
+        if (id.length() > MAX_LENGTH) {
+            reason = String.format("Not allowed to exceed length of %d.", MAX_LENGTH);
+            return false;
+        }
+        if (!pattern.getPattern().matcher(id).matches()) {
+            reason = pattern.getMessage();
+            return false;
+        }
+        return true;
     }
 
     @Override

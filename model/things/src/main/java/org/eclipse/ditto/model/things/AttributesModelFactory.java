@@ -65,9 +65,9 @@ public final class AttributesModelFactory {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            final AttributePatternValidator validator = AttributePatternValidator.getInstance();
             for (JsonKey key: jsonObject.getKeys()) {
-                if (!validator.isValid(key)) {
+                final AttributePatternValidator validator = AttributePatternValidator.getInstance(key);
+                if (!validator.isValid()) {
                     throw JsonPointerInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
                             .build();
                 }
