@@ -685,13 +685,22 @@ public final class MessageMappingProcessorActor
 
         enhanceLogUtil(response);
         recordResponse(response, exception);
-        if (isSuccessResponse(response)) {
-            logger.withCorrelationId(response).debug("Received response <{}>.", response);
+        if (!response.isOfExpectedResponseType()) {
+            logger.withCorrelationId(response)
+                    .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
+                            + " ExternalMessage", DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+            responseDroppedMonitor.success(response,
+                    "Dropped response since requester did not require response via Header {0}",
+                    DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
         } else {
-            logger.withCorrelationId(response).debug("Received error response <{}>", response.toJsonString());
-        }
+            if (isSuccessResponse(response)) {
+                logger.withCorrelationId(response).debug("Received response <{}>.", response);
+            } else {
+                logger.withCorrelationId(response).debug("Received error response <{}>", response.toJsonString());
+            }
 
-        handleSignal(response, sender);
+            handleSignal(response, sender);
+        }
     }
 
     private void recordResponse(final CommandResponse<?> response, @Nullable final DittoRuntimeException exception) {
