@@ -23,10 +23,9 @@ import com.typesafe.config.Config;
 public interface KafkaConfig {
 
     /**
-     * Returns the Config for producers needed by akka-stream-kafka.
+     * Returns the Config for producers needed by the Kafka client.
      *
-     * @see <a href="https://doc.akka.io/docs/akka-stream-kafka/current/producer.html#settings">akka-stream-kafka Producer settings</a>
-     * @return internal producer configuration needed by akka-stream-kafka client.
+     * @return internal producer configuration needed by the Kafka client.
      */
     Config getInternalProducerConfig();
 

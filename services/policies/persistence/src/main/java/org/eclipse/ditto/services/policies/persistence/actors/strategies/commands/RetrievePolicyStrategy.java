@@ -41,7 +41,7 @@ final class RetrievePolicyStrategy extends AbstractPolicyQueryCommandStrategy<Re
             return ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command,
                     RetrievePolicyResponse.of(context.getState(), entity, command.getDittoHeaders()), entity));
         } else {
-            return ResultFactory.newErrorResult(policyNotFound(context.getState(), command.getDittoHeaders()));
+            return ResultFactory.newErrorResult(policyNotFound(context.getState(), command.getDittoHeaders()), command);
         }
     }
 

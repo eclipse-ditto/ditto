@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -84,6 +85,7 @@ final class ImmutableSource implements Source {
     private final int index;
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
+    @Nullable private final FilteredAcknowledgementRequest acknowledgementRequests;
     @Nullable private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
     private final boolean replyTargetEnabled;
@@ -97,6 +99,7 @@ final class ImmutableSource implements Source {
         this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
         this.index = builder.index;
         this.enforcement = builder.enforcement;
+        this.acknowledgementRequests = builder.acknowledgementRequests;
         this.headerMapping = builder.headerMapping;
         this.payloadMapping = builder.payloadMapping;
         this.replyTargetEnabled = builder.replyTargetEnabled;
@@ -131,6 +134,11 @@ final class ImmutableSource implements Source {
     @Override
     public Optional<Enforcement> getEnforcement() {
         return Optional.ofNullable(enforcement);
+    }
+
+    @Override
+    public Optional<FilteredAcknowledgementRequest> getAcknowledgementRequests() {
+        return Optional.ofNullable(acknowledgementRequests);
     }
 
     @Override
@@ -176,6 +184,11 @@ final class ImmutableSource implements Source {
 
         if (enforcement != null) {
             jsonObjectBuilder.set(JsonFields.ENFORCEMENT, enforcement.toJson(schemaVersion, thePredicate), predicate);
+        }
+
+        if (acknowledgementRequests != null) {
+            jsonObjectBuilder.set(JsonFields.ACKNOWLEDGEMENT_REQUESTS,
+                    acknowledgementRequests.toJson(schemaVersion, thePredicate), predicate);
         }
 
         if (headerMapping != null) {
@@ -230,6 +243,11 @@ final class ImmutableSource implements Source {
         final Enforcement readEnforcement =
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
+        final FilteredAcknowledgementRequest readAcknowledgementRequests =
+                jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS)
+                        .map(FilteredAcknowledgementRequest::fromJson)
+                        .orElse(null);
+
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
 
@@ -253,6 +271,7 @@ final class ImmutableSource implements Source {
                 .consumerCount(readConsumerCount)
                 .index(index)
                 .enforcement(readEnforcement)
+                .acknowledgementRequests(readAcknowledgementRequests)
                 .headerMapping(readHeaderMapping)
                 .payloadMapping(readPayloadMapping)
                 .replyTargetEnabled(replyTargetEnabled)
@@ -270,6 +289,7 @@ final class ImmutableSource implements Source {
                 Objects.equals(index, that.index) &&
                 Objects.equals(qos, that.qos) &&
                 Objects.equals(enforcement, that.enforcement) &&
+                Objects.equals(acknowledgementRequests, that.acknowledgementRequests) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
@@ -279,8 +299,9 @@ final class ImmutableSource implements Source {
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping,
-                payloadMapping, replyTargetEnabled, replyTarget);
+        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement,
+                acknowledgementRequests,
+                headerMapping, payloadMapping, replyTargetEnabled, replyTarget);
     }
 
     @Override
@@ -292,6 +313,7 @@ final class ImmutableSource implements Source {
                 ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
+                ", acknowledgementRequests=" + acknowledgementRequests +
                 ", headerMapping=" + headerMapping +
                 ", replyTargetEnabled=" + replyTargetEnabled +
                 ", replyTarget=" + replyTarget +
@@ -339,7 +361,7 @@ final class ImmutableSource implements Source {
      * Builder for {@code ImmutableSource}.
      */
     @NotThreadSafe
-    static final class Builder implements SourceBuilder<SourceBuilder> {
+    static final class Builder implements SourceBuilder<Builder> {
 
         // required but changeable:
         @Nullable private Set<String> addresses = new HashSet<>();
@@ -349,6 +371,7 @@ final class ImmutableSource implements Source {
         @Nullable private Enforcement enforcement;
         @Nullable private HeaderMapping headerMapping;
         @Nullable private Integer qos = null;
+        @Nullable private FilteredAcknowledgementRequest acknowledgementRequests;
         private boolean replyTargetEnabled = DEFAULT_REPLY_TARGET_ENABLED;
         @Nullable private ReplyTarget replyTarget;
 
@@ -365,6 +388,7 @@ final class ImmutableSource implements Source {
                     .enforcement(source.getEnforcement().orElse(null))
                     .headerMapping(source.getHeaderMapping().orElse(null))
                     .qos(source.getQos().orElse(null))
+                    .acknowledgementRequests(source.getAcknowledgementRequests().orElse(null))
                     .replyTarget(source.getReplyTarget().orElse(null))
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
@@ -372,13 +396,13 @@ final class ImmutableSource implements Source {
         }
 
         @Override
-        public SourceBuilder addresses(final Set<String> addresses) {
+        public Builder addresses(final Set<String> addresses) {
             this.addresses = addresses;
             return this;
         }
 
         @Override
-        public SourceBuilder address(final String address) {
+        public Builder address(final String address) {
             if (this.addresses == null) {
                 this.addresses = new HashSet<>();
             }
@@ -387,55 +411,61 @@ final class ImmutableSource implements Source {
         }
 
         @Override
-        public SourceBuilder consumerCount(final int consumerCount) {
+        public Builder consumerCount(final int consumerCount) {
             this.consumerCount = consumerCount;
             return this;
         }
 
         @Override
-        public SourceBuilder index(final int index) {
+        public Builder index(final int index) {
             this.index = index;
             return this;
         }
 
         @Override
-        public SourceBuilder qos(@Nullable final Integer qos) {
+        public Builder qos(@Nullable final Integer qos) {
             this.qos = qos;
             return this;
         }
 
         @Override
-        public SourceBuilder authorizationContext(final AuthorizationContext authorizationContext) {
+        public Builder authorizationContext(final AuthorizationContext authorizationContext) {
             this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
             return this;
         }
 
         @Override
-        public SourceBuilder enforcement(@Nullable final Enforcement enforcement) {
+        public Builder enforcement(@Nullable final Enforcement enforcement) {
             this.enforcement = enforcement;
             return this;
         }
 
         @Override
-        public SourceBuilder headerMapping(@Nullable final HeaderMapping headerMapping) {
+        public Builder acknowledgementRequests(final @Nullable FilteredAcknowledgementRequest acknowledgementRequests) {
+            this.acknowledgementRequests = acknowledgementRequests;
+            return this;
+        }
+
+        @Override
+        public Builder headerMapping(@Nullable final HeaderMapping headerMapping) {
             this.headerMapping = headerMapping;
             return this;
         }
 
         @Override
-        public SourceBuilder payloadMapping(final PayloadMapping payloadMapping) {
+        public Builder payloadMapping(final PayloadMapping payloadMapping) {
             this.payloadMapping = payloadMapping;
             return this;
         }
 
         @Override
-        public SourceBuilder replyTarget(@Nullable final ReplyTarget replyTarget) {
+        public Builder replyTarget(@Nullable final ReplyTarget replyTarget) {
             this.replyTarget = replyTarget;
             return this;
         }
 
         @Override
-        public SourceBuilder replyTargetEnabled(final boolean replyTargetEnabled) {
+        public Builder replyTargetEnabled(final boolean replyTargetEnabled) {
             this.replyTargetEnabled = replyTargetEnabled;
             return this;
         }

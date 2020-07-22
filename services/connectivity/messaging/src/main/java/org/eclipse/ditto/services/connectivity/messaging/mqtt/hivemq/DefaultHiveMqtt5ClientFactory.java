@@ -12,34 +12,23 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
 import javax.annotation.Nullable;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
 
 import com.hivemq.client.mqtt.MqttClient;
-import com.hivemq.client.mqtt.MqttClientSslConfig;
-import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 
 /**
  * Default implementation of {@link HiveMqtt5ClientFactory}.
  */
-public final class DefaultHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
+public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientFactory
+        implements HiveMqtt5ClientFactory {
 
     private static final DefaultHiveMqtt5ClientFactory INSTANCE = new DefaultHiveMqtt5ClientFactory();
-    private static final List<String> MQTT_SECURE_SCHEMES = Arrays.asList("ssl", "wss");
 
     /**
      * @return the singleton instance of {@link DefaultHiveMqtt5ClientFactory}
@@ -52,52 +41,25 @@ public final class DefaultHiveMqtt5ClientFactory implements HiveMqtt5ClientFacto
     }
 
     @Override
-    public Mqtt5Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
+    public Mqtt5AsyncClient newClient(final Connection connection, final String identifier,
+            final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener) {
-        final Mqtt5ClientBuilder mqtt5ClientBuilder = MqttClient.builder().useMqttVersion5();
-        final URI uri = URI.create(connection.getUri());
-        mqtt5ClientBuilder.serverHost(uri.getHost());
-        mqtt5ClientBuilder.serverPort(uri.getPort());
 
-        final Optional<String> possibleUsername = connection.getUsername();
-        final Optional<String> possiblePassword = connection.getPassword();
-        if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
-            mqtt5ClientBuilder.simpleAuth()
-                    .username(possibleUsername.get())
-                    .password(possiblePassword.get().getBytes(StandardCharsets.UTF_8))
-                    .applySimpleAuth();
-        }
-
-        if (allowReconnect && connection.isFailoverEnabled()) {
-            mqtt5ClientBuilder.automaticReconnectWithDefaultConfig();
-        }
-
-        if (isSecuredConnection(connection.getProtocol())) {
-
-            final MqttClientSslConfigBuilder sslConfigBuilder = MqttClientSslConfig.builder();
-
-            // create DittoTrustManagerFactory to apply hostname verification
-            // or to disable certificate check when the connection requires it
-            sslConfigBuilder.trustManagerFactory(DittoTrustManagerFactory.from(connection));
-
-            connection.getCredentials()
-                    .map(credentials -> credentials.accept(KeyManagerFactoryFactory.getInstance()))
-                    .ifPresent(sslConfigBuilder::keyManagerFactory);
-
-            mqtt5ClientBuilder.sslConfig(sslConfigBuilder.build());
-        }
-
-        if (null != connectedListener) {
-            mqtt5ClientBuilder.addConnectedListener(connectedListener);
-        }
-        if (null != disconnectedListener) {
-            mqtt5ClientBuilder.addDisconnectedListener(disconnectedListener);
-        }
-        return mqtt5ClientBuilder.identifier(identifier).build();
+        return newClientBuilder(connection, identifier, allowReconnect, connectedListener, disconnectedListener)
+                .buildAsync();
     }
 
-    private static boolean isSecuredConnection(final String protocol) {
-        return MQTT_SECURE_SCHEMES.contains(protocol.toLowerCase());
+    @Override
+    public Mqtt5ClientBuilder newClientBuilder(final Connection connection, final String identifier,
+            final boolean allowReconnect,
+            @Nullable final MqttClientConnectedListener connectedListener,
+            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+        final Mqtt5ClientBuilder mqtt5ClientBuilder =
+                configureClientBuilder(MqttClient.builder().useMqttVersion5(), connection, identifier, allowReconnect,
+                        connectedListener, disconnectedListener);
+        configureSimpleAuth(mqtt5ClientBuilder.simpleAuth(), connection);
+        return mqtt5ClientBuilder;
     }
+
 }

@@ -54,7 +54,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
                 .map(feature -> getRetrieveFeaturePropertyResult(feature, context, command, thing))
                 .orElseGet(
                         () -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(context.getState(),
-                                featureId, command.getDittoHeaders())));
+                                featureId, command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final RetrieveFeatureProperty command, final @Nullable Thing thing) {
@@ -69,7 +69,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
                 .map(featureProperties -> getRetrieveFeaturePropertyResult(featureProperties, context, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertiesNotFound(context.getState(), feature.getId(),
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Result<ThingEvent> getRetrieveFeaturePropertyResult(final JsonObject featureProperties,
@@ -87,7 +87,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertyNotFound(context.getState(), featureId, propertyPointer,
-                                dittoHeaders)));
+                                dittoHeaders), command));
     }
 
     @Override

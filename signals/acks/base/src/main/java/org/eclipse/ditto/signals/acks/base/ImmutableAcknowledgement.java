@@ -112,6 +112,14 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
     }
 
     @Override
+    public Acknowledgement setEntity(final @Nullable JsonValue payload) {
+        if (payload != null) {
+            return of(label, entityId, statusCode, dittoHeaders, payload);
+        }
+        return of(label, entityId, statusCode, dittoHeaders, null);
+    }
+
+    @Override
     public DittoHeaders getDittoHeaders() {
         return dittoHeaders;
     }

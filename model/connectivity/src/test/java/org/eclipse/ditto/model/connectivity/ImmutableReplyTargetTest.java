@@ -17,8 +17,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,16 +38,22 @@ public class ImmutableReplyTargetTest {
             .set("eclipse", "ditto")
             .build();
 
+    private static final JsonArray EXPECTED_RESPONSE_TYPES = JsonArray.newBuilder()
+            .add(ResponseType.ERROR.getName())
+            .build();
+
     static final ReplyTarget REPLY_TARGET =
             ReplyTarget.newBuilder()
                     .address(ADDRESS)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
+                    .expectedResponseTypes(ResponseType.ERROR)
                     .build();
 
     static final JsonObject REPLY_TARGET_JSON = JsonObject
             .newBuilder()
             .set(ReplyTarget.JsonFields.ADDRESS, ADDRESS)
             .set(ReplyTarget.JsonFields.HEADER_MAPPING, MAPPING)
+            .set(ReplyTarget.JsonFields.EXPECTED_RESPONSE_TYPES, EXPECTED_RESPONSE_TYPES)
             .build();
 
     @Test

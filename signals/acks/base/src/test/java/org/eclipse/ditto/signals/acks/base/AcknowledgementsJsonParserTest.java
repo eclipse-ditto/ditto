@@ -19,6 +19,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -87,6 +89,19 @@ public final class AcknowledgementsJsonParserTest {
                 .isThrownBy(() -> underTest.apply(null))
                 .withMessage("The jsonObject must not be null!")
                 .withNoCause();
+    }
+
+    @Test
+    public void parseJsonWithSeveralAcksOfSameLabel() {
+        final AcknowledgementLabel label = AcknowledgementLabel.of("same-label");
+        final Acknowledgements acks = Acknowledgements.of(Arrays.asList(
+                Acknowledgement.of(label, ThingId.dummy(), HttpStatusCode.OK, DittoHeaders.empty()),
+                Acknowledgement.of(label, ThingId.dummy(), HttpStatusCode.FORBIDDEN, DittoHeaders.empty())
+        ), DittoHeaders.empty());
+
+        final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson());
+
+        assertThat(parsedAcknowledgements).isEqualTo(acks);
     }
 
     @Test

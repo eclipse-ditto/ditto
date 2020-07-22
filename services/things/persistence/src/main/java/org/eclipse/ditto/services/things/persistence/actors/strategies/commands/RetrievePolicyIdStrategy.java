@@ -55,7 +55,8 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         PolicyIdNotAccessibleException.newBuilder(context.getState())
                                 .dittoHeaders(command.getDittoHeaders())
-                                .build()));
+                                .build(),
+                        command));
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {

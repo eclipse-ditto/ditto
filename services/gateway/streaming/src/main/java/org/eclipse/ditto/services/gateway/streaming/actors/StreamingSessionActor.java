@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
@@ -166,13 +167,14 @@ final class StreamingSessionActor extends AbstractActor {
                 )
                 .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
-                .match(ThingModifyCommand.class, thingModifyCommand -> {
-                    final ActorRef self = getSelf();
+                .match(ThingModifyCommand.class, this::isResponseRequired, thingModifyCommand -> {
                     try {
-                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), thingModifyCommand,
-                                acknowledgementConfig,
-                                headerTranslator,
-                                responseSignal -> self.tell(responseSignal, self));
+                        if (!isLiveSignal(thingModifyCommand)) {
+                            AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                                    thingModifyCommand,
+                                    acknowledgementConfig, headerTranslator,
+                                    response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+                        }
                     } catch (final DittoRuntimeException e) {
                         logger.withCorrelationId(thingModifyCommand)
                                 .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
@@ -267,6 +269,17 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
+    private boolean isLiveSignal(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders()
+                .getChannel()
+                .filter(value -> TopicPath.Channel.LIVE.getName().equals(value))
+                .isPresent();
+    }
+
+    private boolean isResponseRequired(final WithDittoHeaders<?> signal) {
+        return signal.getDittoHeaders().isResponseRequired();
+    }
+
     private void potentiallyForwardToAckregator(final CommandResponse<?> response, final Runnable fallbackAction) {
         final ActorContext context = getContext();
         final Consumer<ActorRef> action = aggregator -> aggregator.forward(response, context);
@@ -276,11 +289,27 @@ final class StreamingSessionActor extends AbstractActor {
         ).ifPresentOrElse(action, fallbackAction);
     }
 
+    // NOT thread-safe
     private void handleResponse(final CommandResponse<?> response) {
-        logger.withCorrelationId(response)
-                .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
-                        " about it: {}", type, response);
-        eventAndResponsePublisher.offer(SessionedJsonifiable.response(response));
+        handleResponseThreadSafely(response, getSender());
+    }
+
+    private void handleResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {
+        if (responseOrError instanceof CommandResponse<?>) {
+            final CommandResponse<?> response = (CommandResponse<?>) responseOrError;
+            logger.withCorrelationId(response)
+                    .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
+                            " about it: {}", type, response);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.response(response), sender);
+        } else if (responseOrError instanceof DittoRuntimeException) {
+            final DittoRuntimeException error = (DittoRuntimeException) responseOrError;
+            logger.withCorrelationId(error)
+                    .debug("Got 'DittoRuntimeException' message in <{}> session, telling EventAndResponsePublisher" +
+                            " about it: {}", type, error);
+            eventAndResponsePublisher.tell(SessionedJsonifiable.error(error), sender);
+        } else {
+            logger.error("Unexpected result from AcknowledgementAggregatorActor: <{}>", responseOrError);
+        }
     }
 
     private void forwardAcknowledgement(final Acknowledgement acknowledgement) {

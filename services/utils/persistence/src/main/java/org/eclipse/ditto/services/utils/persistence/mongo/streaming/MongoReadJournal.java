@@ -281,8 +281,15 @@ public class MongoReadJournal {
 
         return RestartSource.onFailuresWithBackoff(minBackOff, maxBackOff, randomFactor, maxRestarts,
                 () -> Source.fromPublisher(journal.aggregate(pipeline))
-                        .filter(document -> document.containsKey(ID))
-                        .map(document -> document.getString(ID)));
+                        .flatMapConcat(document -> {
+                            final Object pid = document.get(ID);
+                            if (pid instanceof CharSequence) {
+                                return Source.single(pid.toString());
+                            } else {
+                                return Source.empty();
+                            }
+                        })
+        );
     }
 
     private int computeMaxRestarts(final Duration maxDuration) {

@@ -12,14 +12,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.DefaultBackOffConfig;
-import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
@@ -35,11 +36,18 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private static final String CONFIG_PATH = "amqp10";
     private static final String CONSUMER_PATH = "consumer";
 
+    private final boolean consumerRateLimitEnabled;
+    private final int consumerMaxInFlight;
+    private final Duration consumerRedeliveryExpectationTimeout;
     private final int producerCacheSize;
     private final BackOffConfig backOffConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
+        consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
+        consumerMaxInFlight = config.getInt(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT.getConfigPath());
+        consumerRedeliveryExpectationTimeout =
+                config.getDuration(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath());
         producerCacheSize = config.getInt(Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath());
         backOffConfig = DefaultBackOffConfig.of(config);
         consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
@@ -56,6 +64,21 @@ public final class DefaultAmqp10Config implements Amqp10Config {
      */
     public static DefaultAmqp10Config of(final Config config) {
         return new DefaultAmqp10Config(ConfigWithFallback.newInstance(config, CONFIG_PATH, Amqp10ConfigValue.values()));
+    }
+
+    @Override
+    public boolean isConsumerRateLimitEnabled() {
+        return consumerRateLimitEnabled;
+    }
+
+    @Override
+    public int getConsumerMaxInFlight() {
+        return consumerMaxInFlight;
+    }
+
+    @Override
+    public Duration getConsumerRedeliveryExpectationTimeout() {
+        return consumerRedeliveryExpectationTimeout;
     }
 
     @Override
@@ -82,20 +105,27 @@ public final class DefaultAmqp10Config implements Amqp10Config {
             return false;
         }
         final DefaultAmqp10Config that = (DefaultAmqp10Config) o;
-        return producerCacheSize == that.producerCacheSize &&
+        return consumerRateLimitEnabled == that.consumerRateLimitEnabled &&
+                consumerMaxInFlight == that.consumerMaxInFlight &&
+                Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
+                producerCacheSize == that.producerCacheSize &&
                 Objects.equals(backOffConfig, that.backOffConfig) &&
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(producerCacheSize, backOffConfig, consumerThrottlingConfig);
+        return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
+                producerCacheSize, backOffConfig, consumerThrottlingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "producerCacheSize=" + producerCacheSize +
+                "consumerRateLimitEnabled=" + consumerRateLimitEnabled +
+                ", consumerMaxInFlight=" + consumerMaxInFlight +
+                ", consumerRedeliveryExpectationTimeout=" + consumerRedeliveryExpectationTimeout +
+                ", producerCacheSize=" + producerCacheSize +
                 ", backOffConfig=" + backOffConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
                 "]";

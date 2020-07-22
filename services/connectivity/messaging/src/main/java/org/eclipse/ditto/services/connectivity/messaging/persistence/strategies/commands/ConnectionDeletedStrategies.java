@@ -59,7 +59,7 @@ public class ConnectionDeletedStrategies
         context.getLog().warning("Received command for deleted connection, rejecting: <{}>", command);
         return ResultFactory.newErrorResult(ConnectionNotAccessibleException.newBuilder(context.getState().id())
                 .dittoHeaders(command.getDittoHeaders())
-                .build());
+                .build(), command);
     }
 
     @Override

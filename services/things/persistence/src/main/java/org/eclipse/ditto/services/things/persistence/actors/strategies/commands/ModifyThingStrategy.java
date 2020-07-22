@@ -163,7 +163,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         } else {
             return newErrorResult(
                     PolicyIdMissingException.fromThingIdOnUpdate(context.getState(),
-                            command.getDittoHeaders()));
+                            command.getDittoHeaders()), command);
         }
     }
 
@@ -240,7 +240,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     @Override
     public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
-        return newErrorResult(new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
+        return newErrorResult(new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()), command);
     }
 
     @Override

@@ -93,7 +93,7 @@ public abstract class AbstractCommandStrategyTest {
 
         final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
         applyStrategy(underTest, getDefaultContext(), thing, command).accept(mock);
-        verify(mock).onError(eq(expectedException));
+        verify(mock).onError(eq(expectedException), eq(command));
     }
 
     protected static <C extends Command> void assertQueryResult(
@@ -114,7 +114,7 @@ public abstract class AbstractCommandStrategyTest {
 
         final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
         underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock);
-        verify(mock).onError(eq(expectedResponse));
+        verify(mock).onError(eq(expectedResponse), eq(command));
     }
 
     private static void assertModificationResult(final Result<ThingEvent> result,

@@ -54,6 +54,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.MediaTypes;
@@ -234,14 +235,19 @@ public abstract class AbstractRoute extends AllDirectives {
         runWithSupervisionStrategy(payloadSource
                 .fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .map(requestJsonToCommandFunction)
-                .map(command -> {
-                    final JsonSchemaVersion schemaVersion =
-                            dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
-                    return command.implementsSchemaVersion(schemaVersion) ? command
-                            : CommandNotSupportedException.newBuilder(schemaVersion.toInt())
-                            .dittoHeaders(dittoHeaders)
-                            .build();
+                .map(x -> {
+                    try {
+                        // DON'T replace this try-catch by .recover: The supervising strategy is called before recovery!
+                        final Command<?> command = requestJsonToCommandFunction.apply(x);
+                        final JsonSchemaVersion schemaVersion =
+                                dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
+                        return command.implementsSchemaVersion(schemaVersion) ? command
+                                : CommandNotSupportedException.newBuilder(schemaVersion.toInt())
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    } catch (final Exception e) {
+                        return new Status.Failure(e);
+                    }
                 })
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
                         AbstractHttpRequestActor.COMPLETE_MESSAGE))

@@ -42,6 +42,7 @@ public final class InfoProviderFactory {
 
     /**
      * Creates a new info provider that uses {@code externalMessage} for getting a correlation ID.
+     *
      * @param externalMessage the external message that might contain a correlation ID.
      * @return an info provider with a correlation ID.
      */
@@ -50,7 +51,8 @@ public final class InfoProviderFactory {
         final Instant timestamp = Instant.now();
         final Supplier<String> payloadSupplier = supplyPayloadFromExternalMessage(externalMessage);
 
-        return new ImmutableInfoProvider(correlationId, timestamp, null, externalMessage.getHeaders(), payloadSupplier);
+        return new ImmutableInfoProvider(correlationId, timestamp, null, externalMessage.getHeaders(), payloadSupplier,
+                false);
     }
 
     private static Supplier<String> supplyPayloadFromExternalMessage(final ExternalMessage externalMessage) {
@@ -66,6 +68,7 @@ public final class InfoProviderFactory {
 
     /**
      * Creates a new info provider that uses {@code signal} for getting a correlation ID and thing ID.
+     *
      * @param signal the signal that might contain a correlation ID and thing ID.
      * @return an info provider with a correlation ID and maybe a thing ID.
      */
@@ -75,7 +78,8 @@ public final class InfoProviderFactory {
         final ThingId thingId = extractThingId(signal);
         final Supplier<String> payloadSupplier = supplyPayloadFromSignal(signal);
 
-        return new ImmutableInfoProvider(correlationId, timestamp, thingId, signal.getDittoHeaders(), payloadSupplier);
+        return new ImmutableInfoProvider(correlationId, timestamp, thingId, signal.getDittoHeaders(), payloadSupplier,
+                false);
     }
 
     private static Supplier<String> supplyPayloadFromSignal(final Signal<?> signal) {
@@ -85,6 +89,7 @@ public final class InfoProviderFactory {
 
     /**
      * Creates a new info provider that uses {@code headers} for getting a correlation ID.
+     *
      * @param headers the headers that might contain a correlation ID.
      * @return an info provider with a correlation ID.
      */
@@ -92,7 +97,7 @@ public final class InfoProviderFactory {
         final String correlationId = extractCorrelationId(headers);
         final Instant timestamp = Instant.now();
 
-        return new ImmutableInfoProvider(correlationId, timestamp, null, headers, supplyEmptyPayload());
+        return new ImmutableInfoProvider(correlationId, timestamp, null, headers, supplyEmptyPayload(), false);
     }
 
     private static String extractCorrelationId(final Map<String, String> headers) {
@@ -109,7 +114,8 @@ public final class InfoProviderFactory {
     }
 
     public static ConnectionMonitor.InfoProvider empty() {
-        return new ImmutableInfoProvider(FALLBACK_CORRELATION_ID, Instant.now(), null, Collections.emptyMap(), supplyEmptyPayload());
+        return new ImmutableInfoProvider(FALLBACK_CORRELATION_ID, Instant.now(), null, Collections.emptyMap(),
+                supplyEmptyPayload(), true);
     }
 
     private static Supplier<String> supplyEmptyPayload() {

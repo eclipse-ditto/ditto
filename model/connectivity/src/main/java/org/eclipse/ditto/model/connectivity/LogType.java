@@ -31,6 +31,11 @@ public enum LogType {
     CONSUMED("consumed", LogCategory.SOURCE),
 
     /**
+     * Log related to a 'acknowledged' metric event.
+     */
+    ACKNOWLEDGED("acknowledged", LogCategory.SOURCE),
+
+    /**
      * Log related to a 'dispatched' metric event.
      */
     DISPATCHED("dispatched", LogCategory.TARGET, LogCategory.RESPONSE),

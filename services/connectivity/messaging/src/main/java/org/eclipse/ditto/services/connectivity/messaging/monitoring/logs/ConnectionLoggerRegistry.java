@@ -285,6 +285,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
+        return getLogger(connectionId, LogCategory.TARGET, LogType.ACKNOWLEDGED, target);
+    }
+
+    @Override
     public ConnectionLogger forOutboundFiltered(final ConnectionId connectionId, final String target) {
         return getLogger(connectionId, LogCategory.TARGET, LogType.FILTERED, target);
     }
@@ -297,6 +302,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public ConnectionLogger forInboundConsumed(final ConnectionId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.CONSUMED, source);
+    }
+
+    @Override
+    public ConnectionLogger forInboundAcknowledged(final ConnectionId connectionId, final String source) {
+        return getLogger(connectionId, LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
     }
 
     @Override

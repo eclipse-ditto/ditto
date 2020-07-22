@@ -12,16 +12,20 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -29,11 +33,12 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 /**
  * A target to handle outbound Ditto command responses to commands sent by a source or reply-source.
  */
-public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>, GenericTarget {
 
     /**
      * @return the address for the outbound responses.
      */
+    @Override
     String getAddress();
 
     /**
@@ -43,7 +48,14 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
      *
      * @return the optional header mapping
      */
+    @Override
     Optional<HeaderMapping> getHeaderMapping();
+
+    /**
+     * @return the list of response types that should be published to the reply target.
+     * @since 1.2.0
+     */
+    Set<ResponseType> getExpectedResponseTypes();
 
     /**
      * Create a builder with the content of this object.
@@ -108,6 +120,25 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          * @return this builder.
          */
         Builder headerMapping(@Nullable HeaderMapping headerMapping);
+
+        /**
+         * Sets the expected response types that should be delivered to the reply target.
+         *
+         * @param expectedResponseTypes the expected response types.
+         * @return this builder.
+         * @since 1.2.0
+         */
+        Builder expectedResponseTypes(Collection<ResponseType> expectedResponseTypes);
+
+        /**
+         * Sets the expected response types that should be delivered to the reply target.
+         *
+         * @param expectedResponseTypes the expected response types.
+         * @return this builder.
+         * @since 1.2.0
+         */
+        Builder expectedResponseTypes(ResponseType... expectedResponseTypes);
+
     }
 
     /**
@@ -128,6 +159,14 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
                 JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the expected response types of this reply target.
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonArray> EXPECTED_RESPONSE_TYPES =
+                JsonFactory.newJsonArrayFieldDefinition("expectedResponseTypes", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

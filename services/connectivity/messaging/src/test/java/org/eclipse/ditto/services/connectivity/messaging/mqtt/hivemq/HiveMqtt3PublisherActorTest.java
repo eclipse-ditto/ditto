@@ -20,13 +20,18 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
@@ -60,7 +65,8 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Target decorateTarget(final Target target) {
-        return ConnectivityModelFactory.newTarget(target, OUTBOUND_ADDRESS, 0);
+        return ConnectivityModelFactory.newTarget(target, OUTBOUND_ADDRESS, 0,
+                AcknowledgementLabel.of("please-verify"));
     }
 
     @Override
@@ -79,6 +85,18 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
         assertThat(received).hasSize(1);
         final Mqtt3Publish mqttMessage = received.get(0);
         assertThat(mqttMessage.getTopic().toString()).isEqualTo("replyTarget/thing:id");
+    }
+
+    @Override
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
+        final Acknowledgements acks = ackSupplier.get();
+        assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
+        for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
+            System.out.println(ack);
+            assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+        }
+
     }
 
     protected String getOutboundAddress() {

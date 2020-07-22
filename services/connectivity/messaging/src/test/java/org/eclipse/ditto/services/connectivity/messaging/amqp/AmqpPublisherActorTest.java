@@ -22,7 +22,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import javax.jms.CompletionListener;
 import javax.jms.Destination;
@@ -36,6 +39,7 @@ import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -51,6 +55,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
@@ -106,8 +112,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build();
             final Adaptable adaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(thingEvent);
-            final OutboundSignal.Mapped mappedOutboundSignal =
+            final OutboundSignal.Mapped mapped =
                     OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
 
             final Props props = AmqpPublisherActor.props(TestConstants.createConnection()
                             .toBuilder()
@@ -119,8 +127,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     loadConnectionConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
-            publisherActor.tell(mappedOutboundSignal, getRef());
-            publisherActor.tell(mappedOutboundSignal, getRef());
+            publisherActor.tell(multiMapped, getRef());
+            publisherActor.tell(multiMapped, getRef());
 
             // producer is cached so created only once
             verify(session, timeout(1_000).times(1)).createProducer(any(Destination.class));
@@ -197,7 +205,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // GIVEN: a message is published with headers matching AMQP properties.
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
-            final OutboundSignal.Mapped mappedOutboundSignal = getMockOutboundSignal(
+            final OutboundSignal.Mapped mapped = getMockOutboundSignal(
                     ConnectivityModelFactory.newTargetBuilder(createTestTarget())
                             .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                     JsonFactory.newObjectBuilder()
@@ -213,6 +221,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             ))
                             .build()
             );
+            final OutboundSignal.MultiMapped mappedOutboundSignal =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
@@ -223,7 +233,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             publisherActor.tell(mappedOutboundSignal, getRef());
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
-            verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+            verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
             final Message message = messageCaptor.getValue();
             final Map<String, String> receivedHeaders =
                     JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
@@ -248,6 +258,26 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig());
+    }
+
+    @Override
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception {
+        final CompletableFuture<Acknowledgements> acksFuture = CompletableFuture.supplyAsync(ackSupplier);
+
+        final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
+        final ArgumentCaptor<CompletionListener> listenerCaptor =
+                ArgumentCaptor.forClass(CompletionListener.class);
+        verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), listenerCaptor.capture());
+        final Message message = messageCaptor.getValue();
+        assertThat(message).isNotNull();
+        listenerCaptor.getValue().onCompletion(message);
+
+        final Acknowledgements acks = acksFuture.join();
+        for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
+            System.out.println(ack);
+            assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+        }
     }
 
     @Override
