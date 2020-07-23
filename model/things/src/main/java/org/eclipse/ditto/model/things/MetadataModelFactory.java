@@ -26,6 +26,8 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 
 /**
  * Factory that creates new {@code metadata} objects.
+ *
+ * @since 1.2.0
  */
 @Immutable
 public final class MetadataModelFactory {

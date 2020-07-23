@@ -49,11 +49,10 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     @Override
     public Thing handle(final T event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
-            ThingMetadataFactory thingMetadataFactory = new ThingMetadataFactory();
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null))
-                    .setMetadata(JsonPointer.empty(), thingMetadataFactory.buildFromEvent(event, thing));
+                    .setMetadata(JsonPointer.empty(), ThingMetadataFactory.buildFromEvent(event, thing));
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }

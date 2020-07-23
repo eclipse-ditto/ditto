@@ -19,7 +19,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Metadata;
 import org.eclipse.ditto.model.things.MetadataBuilder;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import java.time.Instant;

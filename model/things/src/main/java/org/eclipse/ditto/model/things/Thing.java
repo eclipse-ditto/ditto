@@ -576,6 +576,7 @@ public interface Thing extends Entity<ThingRevision> {
      * Returns the Metadata of this Thing.
      *
      * @return the Metadata of this Thing.
+     * @since 1.2.0
      */
     Optional<Metadata> getMetadata();
 
