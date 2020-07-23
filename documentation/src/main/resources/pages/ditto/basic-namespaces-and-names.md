@@ -60,8 +60,8 @@ When writing a Java application, you can use the following regex to validate you
 Examples for valid IDs:
 * `org.eclipse.ditto:smart-coffee-1`,
 * `foo:bar`,
-* `org.eclipse.ditto_42:smart-coffeee`
-* `org.eclipse:admin-policy`
+* `org.eclipse.ditto_42:smart-coffeee`,
+* `org.eclipse:admin-policy`,
 * `org.eclipse:admin policy`
 
 ## Encoding and decoding
