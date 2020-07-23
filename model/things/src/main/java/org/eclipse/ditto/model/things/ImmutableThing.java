@@ -463,6 +463,11 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.ofNullable(this.metadata);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
@@ -554,9 +559,8 @@ final class ImmutableThing implements Thing {
     public String toString() {
         return getClass().getSimpleName() + " [thingId=" + thingId + ", acl=" + acl +
                 ", policyId=" + policyId + ", definition=" + definition + ", attributes=" + attributes +
-                ", features=" +
-                features + ", lifecycle=" +
-                lifecycle + ", revision=" + revision + ", modified=" + modified + "]";
+                ", features=" + features + ", lifecycle=" + lifecycle + ", revision=" + revision +
+                ", modified=" + modified + ", metadata=" + metadata + "]";
     }
 
 }

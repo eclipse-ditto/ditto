@@ -24,6 +24,9 @@ import java.util.regex.Pattern;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+/**
+ * Factory that creates new {@code metadata} objects.
+ */
 @Immutable
 public final class MetadataModelFactory {
 

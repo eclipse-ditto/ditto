@@ -36,7 +36,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    MetadataBuilder set(CharSequence key, int value, Predicate<JsonField> predicate);
+    MetadataBuilder set(final CharSequence key, final int value, final Predicate<JsonField> predicate);
 
     /**
      * Sets a new {@code int} metadate to the {@code Metadata} to be built.
@@ -64,7 +64,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    MetadataBuilder set(CharSequence key, long value, Predicate<JsonField> predicate);
+    MetadataBuilder set(final CharSequence key, final long value, final Predicate<JsonField> predicate);
 
     /**
      * Sets a new {@code long} metadate to the {@code Metadata} to be built.
@@ -92,7 +92,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    MetadataBuilder set(CharSequence key, double value, Predicate<JsonField> predicate);
+    MetadataBuilder set(final CharSequence key, final double value, final Predicate<JsonField> predicate);
 
     /**
      * Sets a new {@code double} value metadate to the {@code Metadata} to be built.
@@ -120,7 +120,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    MetadataBuilder set(CharSequence key, boolean value, Predicate<JsonField> predicate);
+    MetadataBuilder set(final CharSequence key, final boolean value, final Predicate<JsonField> predicate);
 
     /**
      * Sets a new {@code boolean} value metadate to the {@code Metadata} to be built.
@@ -148,7 +148,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    MetadataBuilder set(CharSequence key, @Nullable String value, Predicate<JsonField> predicate);
+    MetadataBuilder set(final CharSequence key, @Nullable final String value, final Predicate<JsonField> predicate);
 
     /**
      * Sets a new string value metadate to the {@code Metadata} to be built.
@@ -176,7 +176,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    MetadataBuilder set(CharSequence key, JsonValue value, Predicate<JsonField> predicate);
+    MetadataBuilder set(final CharSequence key, final JsonValue value, final Predicate<JsonField> predicate);
 
     /**
      * Sets a new {@link JsonValue} metadate to the {@code Metadata} to be built.
@@ -192,10 +192,29 @@ public interface MetadataBuilder extends JsonObjectBuilder {
         return set(key, value, field -> true);
     }
 
+    /**
+     * Sets a new {@link JsonValue} metadate to the {@code Metadata} to be built.
+     *
+     * @param fieldDefinition the field definition of the metadate to be set
+     * @param value the value of the metadate to be set.
+     * @param predicate the predicate which finally determines if the metadate is to be set.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code name} is empty.
+     */
     @Override
-    <T> MetadataBuilder set(JsonFieldDefinition<T> fieldDefinition, @Nullable T value,
-                              Predicate<JsonField> predicate);
+    <T> MetadataBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value,
+                              final Predicate<JsonField> predicate);
 
+    /**
+     * Sets a new {@link JsonValue} metadate to the {@code Metadata} to be built.
+     *
+     * @param fieldDefinition the field definition of the metadate to be set
+     * @param value the value of the metadate to be set.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code name} is empty.
+     */
     @Override
     default <T> MetadataBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
         return set(fieldDefinition, value, jsonField -> true);
@@ -211,7 +230,7 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * @throws NullPointerException if {@code field} is {@code null}.
      */
     @Override
-    MetadataBuilder set(JsonField field, Predicate<JsonField> predicate);
+    MetadataBuilder set(final JsonField field, final Predicate<JsonField> predicate);
 
     /**
      * Sets the specified metadate to the {@code Metadata} to be built. If this builder already contains a field with

@@ -573,6 +573,13 @@ public interface Thing extends Entity<ThingRevision> {
     default void validate(DittoHeaders headers) { }
 
     /**
+     * Returns the Metadata of this Thing.
+     *
+     * @return the Metadata of this Thing.
+     */
+    Optional<Metadata> getMetadata();
+
+    /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */
     @Immutable
@@ -604,13 +611,6 @@ public interface Thing extends Entity<ThingRevision> {
          */
         public static final JsonFieldDefinition<Long> REVISION =
                 JsonFactory.newLongFieldDefinition("_revision", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the Thing's modified timestamp in ISO-8601 format.
-         */
-        public static final JsonFieldDefinition<String> MODIFIED =
-                JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
@@ -652,6 +652,13 @@ public interface Thing extends Entity<ThingRevision> {
         public static final JsonFieldDefinition<JsonObject> FEATURES =
                 JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Thing's modified timestamp in ISO-8601 format.
+         */
+        public static final JsonFieldDefinition<String> MODIFIED =
+            JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's metadata.
