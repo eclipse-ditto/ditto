@@ -86,8 +86,8 @@ final class ImmutableFeature implements Feature {
 
         ConditionChecker.checkNotNull(featureId, "ID of the Feature");
 
-        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance();
-        if (!validator.isValid(featureId)) {
+        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance(featureId);
+        if (!validator.isValid()) {
             throw JsonPointerInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
                     .build();
         }

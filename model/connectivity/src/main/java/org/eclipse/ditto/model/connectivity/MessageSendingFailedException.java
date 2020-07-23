@@ -38,6 +38,7 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "message.sending.failed";
 
+    private static final HttpStatusCode DEFAULT_STATUS_CODE = HttpStatusCode.SERVICE_UNAVAILABLE;
     private static final String MESSAGE_TEMPLATE = "Failed to send message: {0}";
     private static final String DEFAULT_MESSAGE = "Failed to send message.";
     private static final String DEFAULT_DESCRIPTION = "Sending the message to an external system failed, " +
@@ -45,11 +46,12 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
             "messages.";
 
     private MessageSendingFailedException(final DittoHeaders dittoHeaders,
+            final HttpStatusCode statusCode,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, statusCode, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -100,7 +102,21 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<MessageSendingFailedException> {
 
+        private HttpStatusCode statusCode = DEFAULT_STATUS_CODE;
+
         private Builder() {
+        }
+
+        /**
+         * Set the status code of this builder.
+         *
+         * @param statusCode the new status code.
+         * @return this builder.
+         * @since 1.2.0
+         */
+        public Builder statusCode(final HttpStatusCode statusCode) {
+            this.statusCode = statusCode;
+            return this;
         }
 
         @Override
@@ -120,7 +136,7 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new MessageSendingFailedException(dittoHeaders, message, description, cause, href);
+            return new MessageSendingFailedException(dittoHeaders, statusCode, message, description, cause, href);
         }
     }
 }

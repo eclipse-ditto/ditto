@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
@@ -31,4 +32,10 @@ public interface ErrorResponse<T extends ErrorResponse> extends CommandResponse<
      * @return the wrapped exception.
      */
     DittoRuntimeException getDittoRuntimeException();
+
+    @Override
+    default ResponseType getResponseType() {
+        return ResponseType.ERROR;
+    }
+
 }

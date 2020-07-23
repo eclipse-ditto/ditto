@@ -29,18 +29,21 @@ public interface ConnectionLogger {
 
     /**
      * Get all log entries stored in this logger.
+     *
      * @return the log entries.
      */
     Collection<LogEntry> getLogs();
 
     /**
      * Log a success event.
+     *
      * @param infoProvider containing additional information on the event.
      */
     void success(ConnectionMonitor.InfoProvider infoProvider);
 
     /**
      * Log a success event.
+     *
      * @param infoProvider containing additional information on the event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
@@ -50,6 +53,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
+     *
      * @param infoProvider containing additional information on the event.
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
@@ -57,6 +61,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
+     *
      * @param infoProvider containing additional information on the event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
@@ -66,6 +71,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
+     *
      * @param infoProvider containing additional information on the event.
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
@@ -73,6 +79,7 @@ public interface ConnectionLogger {
 
     /**
      * Log an exception event.
+     *
      * @param infoProvider containing additional information on the event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
@@ -87,6 +94,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a success event.
+     *
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      */
@@ -96,6 +104,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
+     *
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      */
@@ -105,6 +114,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
+     *
      * @param infoProvider containing additional information on the event.
      */
     default void failure(final ConnectionMonitor.InfoProvider infoProvider) {
@@ -113,6 +123,7 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
+     *
      * @param signal containing additional information on the event.
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
@@ -122,6 +133,7 @@ public interface ConnectionLogger {
 
     /**
      * Log an exception event.
+     *
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      */
@@ -131,6 +143,7 @@ public interface ConnectionLogger {
 
     /**
      * Log an exception event.
+     *
      * @param infoProvider containing additional information on the event.
      */
     default void exception(final ConnectionMonitor.InfoProvider infoProvider) {

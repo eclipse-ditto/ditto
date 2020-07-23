@@ -20,13 +20,14 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.junit.Test;
 
 /**
  * Unit test for {@link ThingsModelFactory}.
  */
-public final class ThingsModelFactoryTest {
+public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
 
 
     @Test
@@ -106,7 +107,7 @@ public final class ThingsModelFactoryTest {
 
     @Test(expected = JsonPointerInvalidException.class)
     public void createTooLargeFeatureId() {
-        final String invalidFeatureId = generateMaximumLength().append("a").toString();
+        final String invalidFeatureId = generateStringExceedingMaxLength();
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set(invalidFeatureId, JsonFactory.newObject())
                 .build();
@@ -126,21 +127,12 @@ public final class ThingsModelFactoryTest {
 
     @Test(expected = JsonPointerInvalidException.class)
     public void createTooLargeAttribute() {
-        final String invalidAttribute = generateMaximumLength().append("a").toString();
+        final String invalidAttribute = generateStringExceedingMaxLength();
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set(invalidAttribute, JsonFactory.newObject())
                 .build();
 
         ThingsModelFactory.newAttributes(jsonObject);
-    }
-
-    private StringBuilder generateMaximumLength() {
-        final int maxLength = 256;
-        final StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < maxLength; i++) {
-            stringBuilder.append("a");
-        }
-        return stringBuilder;
     }
 
 }

@@ -17,15 +17,22 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -50,6 +57,11 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     private final ActorRef acknowledgementRequester;
     private final String correlationId;
     private final DittoDiagnosticLoggingAdapter log;
+    private final Collection<ResponseType> expectedResponseTypes;
+    @Nullable
+    private final Integer replyTarget;
+    @Nullable
+    private final String inboundPayloadMapper;
 
     @SuppressWarnings("unused")
     private AcknowledgementForwarderActor(final ActorRef acknowledgementRequester, final DittoHeaders dittoHeaders,
@@ -61,6 +73,9 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                         // fall back using the actor name which also contains the correlation-id
                         getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
                 );
+        this.expectedResponseTypes = dittoHeaders.getExpectedResponseTypes();
+        this.replyTarget = dittoHeaders.getReplyTarget().orElse(null);
+        this.inboundPayloadMapper = dittoHeaders.getInboundPayloadMapper().orElse(null);
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         getContext().setReceiveTimeout(dittoHeaders.getTimeout().orElse(defaultTimeout));
@@ -85,15 +100,22 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(Acknowledgement.class, this::handleAcknowledgement)
+                .match(Acknowledgements.class, this::handleAcknowledgement)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
 
-    private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+    private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
         log.withCorrelationId(acknowledgement)
                 .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
-        acknowledgementRequester.tell(acknowledgement, getSender());
+        final DittoHeaders enhancedHeaders = acknowledgement.getDittoHeaders()
+                .toBuilder()
+                .expectedResponseTypes(expectedResponseTypes)
+                .inboundPayloadMapper(inboundPayloadMapper)
+                .replyTarget(replyTarget)
+                .build();
+        acknowledgementRequester.tell(acknowledgement.setDittoHeaders(enhancedHeaders), getSender());
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
@@ -145,6 +167,41 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 AcknowledgementForwarderActorStarter.getInstance(context, entityId, dittoHeaders,
                         acknowledgementConfig);
         return starter.get();
+    }
+
+    /**
+     * Creates and starts an {@code AcknowledgementForwarderActor} actor in the passed {@code context} using the passed
+     * arguments.
+     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code dittoHeaders} and
+     * in case that an Actor with this name already exists, a new correlation ID is generated and the process repeated.
+     * If the signal does not require acknowledgements, no forwarder starts and the signal itself is returned.
+     *
+     * @param context the context ({@code getContext()} of the Actor to start the AcknowledgementForwarderActor in.
+     * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
+     * @param signal the signal for which acknowledgements are expected.
+     * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
+     * @return the signal for which a suitable ack forwarder has started whenever required.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static Signal<?> startAcknowledgementForwarderConflictFree(final akka.actor.ActorContext context,
+            final EntityIdWithType entityId,
+            final Signal<?> signal,
+            final AcknowledgementConfig acknowledgementConfig) {
+
+        final AcknowledgementForwarderActorStarter starter =
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal.getDittoHeaders(),
+                        acknowledgementConfig);
+        final Optional<String> newCorrelationId = starter.getConflictFree();
+        if (newCorrelationId.isPresent()) {
+            // signal requires acks. set new correlation ID and return.
+            return signal.setDittoHeaders(signal.getDittoHeaders()
+                    .toBuilder()
+                    .correlationId(newCorrelationId.get())
+                    .build());
+        } else {
+            // signal does not require acks.
+            return signal;
+        }
     }
 
 }

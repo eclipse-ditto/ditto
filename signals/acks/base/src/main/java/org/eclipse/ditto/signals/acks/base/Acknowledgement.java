@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  * Can contain built-in {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel Ditto ACK labels} as well as
  * custom ones emitted by external applications.
  * </p>
+ *
  * @since 1.1.0
  */
 public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType {
@@ -116,6 +118,15 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      */
     boolean isTimeout();
 
+    @Override
+    default ResponseType getResponseType() {
+        if (isSuccess()) {
+            return ResponseType.RESPONSE;
+        } else {
+            return ResponseType.NACK;
+        }
+    }
+
     /**
      * Returns the status code of the Acknowledgement specifying whether it was a successful {@code ACK} or a
      * {@code NACK} where the status code is something else than {@code 2xx}.
@@ -131,6 +142,14 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
+
+    /**
+     * Sets the optional payload of the Acknowledgement.
+     *
+     * @return the Acknowledgement with set payload.
+     * @since 1.2.0
+     */
+    Acknowledgement setEntity(@Nullable JsonValue payload);
 
     /**
      * Returns all non hidden marked fields of this Acknowledgement.

@@ -163,6 +163,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     REPLY_TARGET("ditto-reply-target", Integer.class, false, false, HeaderValueValidators.getIntValidator()),
 
     /**
+     * Header definition for the internal header "ditto-expected-response-types". This header is evaluated to distinguish
+     * if a response should published or not.
+     *
+     * @since 1.2.0
+     */
+    EXPECTED_RESPONSE_TYPES("ditto-expected-response-types", JsonArray.class, false, false,
+            HeaderValueValidators.getJsonArrayValidator()),
+
+    /**
      * Header definition for "ditto-inbound-payload-mapper".
      * <p>
      * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
@@ -234,7 +243,13 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      */
     LOCATION("location", String.class, false, true,
             HeaderValueValidators.getNoOpValidator()),
-    ;
+
+    /**
+     * Header definition for the Ditto connection ID in automatic acknowledgements.
+     *
+     * @since 1.2.0
+     */
+    CONNECTION_ID("ditto-connection-id", String.class, false, true, HeaderValueValidators.getNoOpValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

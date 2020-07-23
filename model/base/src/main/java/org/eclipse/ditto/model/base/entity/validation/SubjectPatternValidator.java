@@ -12,22 +12,19 @@
  */
 package org.eclipse.ditto.model.base.entity.validation;
 
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.SUBJECT_REGEX;
-
-import java.util.regex.Pattern;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.SUBJECT_PATTERN;
 
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
-public final class SubjectPatternValidator extends AbstractPatternValidator{
+public final class SubjectPatternValidator extends AbstractPatternValidator {
 
-    public static SubjectPatternValidator getInstance() {
-        return new SubjectPatternValidator();
+    public static SubjectPatternValidator getInstance(final CharSequence id) {
+        return new SubjectPatternValidator(id);
     }
 
-    @Override
-    public Pattern getPattern() {
-        return SUBJECT_REGEX;
+    protected SubjectPatternValidator(final CharSequence id) {
+        super(id, SUBJECT_PATTERN);
     }
 
 }

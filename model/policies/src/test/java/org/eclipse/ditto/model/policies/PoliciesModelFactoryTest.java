@@ -16,45 +16,40 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 /**
  * Unit test for {@link PoliciesModelFactoryTest}.
  */
-public final class PoliciesModelFactoryTest {
+public final class PoliciesModelFactoryTest extends LengthRestrictionTestBase {
 
     @Test
     public void resourceKeysFromDifferentInstantiationsAreEqual() {
         final ResourceKey key1 = PoliciesModelFactory.newResourceKey("thing:/foo/bar");
         final ResourceKey key2 = PoliciesModelFactory.newResourceKey("thing", JsonFactory.newPointer("/foo/bar"));
         final ResourceKey key3 = PoliciesModelFactory.newResourceKey(JsonPointer.of("thing:/foo/bar"));
-        final ResourceKey key4 = PoliciesModelFactory.newResourceKey(JsonPointer.of("thing:").append(JsonPointer.of("foo/bar")));
+        final ResourceKey key4 =
+                PoliciesModelFactory.newResourceKey(JsonPointer.of("thing:").append(JsonPointer.of("foo/bar")));
 
         assertThat(key1).isEqualTo(key2);
         assertThat(key1).isEqualTo(key3);
         assertThat(key1).isEqualTo(key4);
     }
 
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void createInvalidResourceKey() {
+        final String invalidResourceKey = "thing:/foo/bar\u0001";
+        PoliciesModelFactory.newResourceKey(invalidResourceKey);
+    }
+
+    @Test
+    public void createValidMaxLengthResourceKey() {
+        PoliciesModelFactory.newResourceKey(generateStringWithMaxLength("thing:"));
+    }
 
     @Test(expected = PolicyEntryInvalidException.class)
-    public void createInvalidAttribute() {
-        final String invalidRessourceKey = "thing:/foo/bar\u0001";
-        PoliciesModelFactory.newResourceKey(invalidRessourceKey);
+    public void createTooLargeResourceKey() {
+        PoliciesModelFactory.newResourceKey(generateStringExceedingMaxLength("thing:"));
     }
-
-    @Test(expected = PolicyEntryInvalidException.class)
-    public void createTooLargeAttribute() {
-        final String invalidRessourceKey = generateMaximumLength().append("a").toString();
-        PoliciesModelFactory.newResourceKey(invalidRessourceKey);
-    }
-
-    private StringBuilder generateMaximumLength() {
-        final int maxLength = 256;
-        final StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < maxLength; i++) {
-            stringBuilder.append("a");
-        }
-        return stringBuilder;
-    }
-
 }

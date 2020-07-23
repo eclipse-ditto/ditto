@@ -107,8 +107,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
-        recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled();
-        recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled();
+        recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
+        recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
     }
 
     /*
@@ -279,7 +279,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
             final ActorRef jmsActor = getConnectConnectionHandler(connection());
@@ -514,15 +514,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return stay().using(currentData);
     }
 
-    private boolean isRecoverSessionOnSessionClosedEnabled() {
+    private boolean isRecoverSessionOnSessionClosedEnabled(final Connection connection) {
         final String recoverOnSessionClosed =
-                connection().getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED, "false");
+                connection.getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED, "false");
         return Boolean.parseBoolean(recoverOnSessionClosed);
     }
 
-    private boolean isRecoverSessionOnConnectionRestoredEnabled() {
+    private boolean isRecoverSessionOnConnectionRestoredEnabled(final Connection connection) {
         final String recoverOnConnectionRestored =
-                connection().getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED, "true");
+                connection.getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED, "true");
         return Boolean.parseBoolean(recoverOnConnectionRestored);
     }
 

@@ -96,11 +96,29 @@ public final class RegexPatterns {
      */
     public static final String ID_REGEX = NAMESPACE_REGEX + NAMESPACE_DELIMITER + ENTITY_NAME_REGEX;
 
-    public final static Pattern FEATURE_PATTERN = Pattern.compile("^" + NO_CONTROL_CHARS_NO_SLASHES + "+$");
+    /**
+     * Pattern that allows anything but {@link #CONTROL_CHARS} and {@link #SLASH}es.
+     */
+    private static final String NO_CONTROL_CHARS_NO_SLASHES_MESSAGE =
+            "Neither slashes nor any control characters are allowed.";
+    private final static PatternWithMessage NO_CONTROL_CHARS_NO_SLASHES_PATTERN =
+            PatternWithMessage.of(Pattern.compile("^" + NO_CONTROL_CHARS_NO_SLASHES + "+$"),
+                    NO_CONTROL_CHARS_NO_SLASHES_MESSAGE);
 
-    public final static Pattern ATTRIBUTE_PATTERN = FEATURE_PATTERN;
+    /**
+     * Pattern for feature identifiers.
+     */
+    public final static PatternWithMessage FEATURE_PATTERN = NO_CONTROL_CHARS_NO_SLASHES_PATTERN;
 
-    public final static Pattern LABEL_PATTERN = FEATURE_PATTERN;
+    /**
+     * Pattern for attribute identifiers.
+     */
+    public final static PatternWithMessage ATTRIBUTE_PATTERN = NO_CONTROL_CHARS_NO_SLASHES_PATTERN;
+
+    /**
+     * Pattern for policy label identifiers.
+     */
+    public final static PatternWithMessage LABEL_PATTERN = NO_CONTROL_CHARS_NO_SLASHES_PATTERN;
 
     /**
      * The compiled regex pattern for namespaces.
@@ -112,15 +130,55 @@ public final class RegexPatterns {
      */
     public static final Pattern ENTITY_NAME_PATTERN = Pattern.compile(ENTITY_NAME_REGEX);
 
+    public static final String ID_PATTEN_MESSAGE = "The given identifier is not valid.";
+
     /**
      * The compiled regex pattern for namespaced entity IDs.
      */
     public static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
     /**
+     * Pattern that allows anything but {@link #CONTROL_CHARS}.
+     */
+    private static final Pattern NO_CONTROL_CHARS_PATTERN = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
+    private static final String NO_CONTROL_CHARS_MESSAGE = "No control characters are allowed.";
+
+    /**
      * The regex pattern a Subject has to conform to.
      */
-    public  static final Pattern SUBJECT_REGEX = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
+    public static final PatternWithMessage
+            SUBJECT_PATTERN = PatternWithMessage.of(NO_CONTROL_CHARS_PATTERN, NO_CONTROL_CHARS_MESSAGE);
 
-    public static final Pattern RESOURCE_REGEX = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
+    /**
+     * The compiled regex pattern for policy resources.
+     */
+    public static final PatternWithMessage
+            RESOURCE_PATTERN = PatternWithMessage.of(NO_CONTROL_CHARS_PATTERN, NO_CONTROL_CHARS_MESSAGE);
+
+    /**
+     * Wraps a compiled {@link Pattern} and an error message that can be used in an exception if the pattern did not
+     * match.
+     */
+    public static class PatternWithMessage {
+
+        private final Pattern pattern;
+        private final String message;
+
+        private PatternWithMessage(final Pattern pattern, final String message) {
+            this.pattern = pattern;
+            this.message = message;
+        }
+
+        public static PatternWithMessage of(final Pattern pattern, final String message) {
+            return new PatternWithMessage(pattern, message);
+        }
+
+        public Pattern getPattern() {
+            return pattern;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
 }

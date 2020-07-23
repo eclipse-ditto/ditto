@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -35,12 +36,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import akka.kafka.ProducerSettings;
-
 /**
- * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.ProducerSettingsFactory}.
+ * Unit test for {@link ProducerPropertiesFactory}.
  */
-public final class ProducerSettingsFactoryTest {
+public final class ProducerPropertiesFactoryTest {
 
     private static final String[] BOOTSTRAP_SERVERS = {
             "foo:123",
@@ -56,7 +55,7 @@ public final class ProducerSettingsFactoryTest {
     private static KafkaConfig kafkaConfig;
     private static Connection connection;
 
-    private ProducerSettingsFactory underTest;
+    private ProducerPropertiesFactory underTest;
 
     @BeforeClass
     public static void initTestFixture() {
@@ -83,19 +82,24 @@ public final class ProducerSettingsFactoryTest {
 
     @Before
     public void setUp() {
-        underTest = ProducerSettingsFactory.getInstance(connection, kafkaConfig);
+        underTest = ProducerPropertiesFactory.getInstance(connection, kafkaConfig);
     }
 
     @Test
-    public void addsBootstrapServers() {
-        final ProducerSettings<String, String> settings = underTest.getProducerSettings();
+    public void addsBootstrapServersAndFlattensProperties() {
+        final Map<String, Object> properties = underTest.getProducerProperties();
 
-        final scala.collection.immutable.Map<String, String> properties = settings.properties();
-        final List<String> servers = properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
-                .map(s -> Arrays.asList(s.split(",")))
-                .getOrElse(null);
+        final List<String> servers =
+                Arrays.asList(properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).toString().split(","));
 
         assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS);
+
+        // check flattening of client properties in kafka.producer.internal.kafka-clients
+        assertThat(properties).contains(
+                new AbstractMap.SimpleEntry<>("connections.max.idle.ms", 543210),
+                new AbstractMap.SimpleEntry<>("reconnect.backoff.ms", 500),
+                new AbstractMap.SimpleEntry<>("reconnect.backoff.max.ms", 10000)
+        );
     }
 
 }

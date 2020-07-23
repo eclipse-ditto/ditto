@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import java.util.HashMap;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-
-import akka.kafka.ProducerSettings;
 
 /**
  * Interface that allows wrapping the configuration logic of specific Kafka configs.
@@ -50,15 +50,15 @@ interface KafkaSpecificConfig {
     boolean isValid(Connection connection);
 
     /**
-     * Apply this Kafka config to the given {@code producerSettings}.
-     *
-     * This method will only add configuration to the {@code producerSettings} if the config {@code isApplicable}
+     * Apply this Kafka config to the given accumulator of producer properties.
+     * <p>
+     * This method will only add configuration to the producer properties if the config {@code isApplicable}
      * and {@code isValid}.
      *
-     * @param producerSettings the producer settings to which the Kafka config is appended.
+     * @param producerProperties the producer properties to which the Kafka config is appended.
+     * Its class is {@code HashMap} instead of {@code Map} to ensure mutability.
      * @param connection the connection which contains the specific config.
-     * @return the {@code producerSettings} enhanced with new configuration provided by the Kafka config.
      */
-    ProducerSettings<String, String> apply(ProducerSettings<String, String> producerSettings, Connection connection);
+    void apply(HashMap<String, Object> producerProperties, Connection connection);
 
 }

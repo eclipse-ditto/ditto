@@ -24,8 +24,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 
-import akka.kafka.ProducerSettings;
-
 /**
  * Adds the correct authentication for the chosen SASL mechanism in the specific config of the connection.
  */
@@ -88,8 +86,7 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     }
 
     @Override
-    public ProducerSettings<String, String> apply(final ProducerSettings<String, String> producerSettings,
-            final Connection connection) {
+    public void apply(final HashMap<String, Object> producerProperties, final Connection connection) {
 
         final Optional<String> username = connection.getUsername();
         final Optional<String> password = connection.getPassword();
@@ -99,11 +96,9 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
             final String loginModule = getLoginModuleForSaslMechanism(saslMechanism);
             final String jaasConfig = getJaasConfig(loginModule, username.get(), password.get());
 
-            return producerSettings.withProperty(SaslConfigs.SASL_MECHANISM, saslMechanism)
-                    .withProperty(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
+            producerProperties.put(SaslConfigs.SASL_MECHANISM, saslMechanism);
+            producerProperties.put(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
         }
-
-        return producerSettings;
     }
 
     private static String getJaasConfig(final String loginModule, final String username, final String password) {

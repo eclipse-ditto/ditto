@@ -28,7 +28,8 @@ import akka.stream.javadsl.Source;
  * increases the according counters for mapped, dropped failed messages.
  */
 final class InboundMappingResultHandler
-        extends AbstractMappingResultHandler<MappedInboundExternalMessage, Source<Signal<?>, ?>> {
+        extends
+        AbstractMappingResultHandler<MappedInboundExternalMessage, Source<Signal<?>, ?>> {
 
     private InboundMappingResultHandler(final Builder builder) {
         super(builder);
@@ -39,7 +40,8 @@ final class InboundMappingResultHandler
     }
 
     @NotThreadSafe
-    static final class Builder extends AbstractBuilder<MappedInboundExternalMessage, Source<Signal<?>, ?>, Builder> {
+    static final class Builder extends
+            AbstractBuilder<MappedInboundExternalMessage, Source<Signal<?>, ?>, Builder> {
 
         private Builder() {
             super(Builder.class);

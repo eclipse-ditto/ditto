@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.policies;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -22,7 +23,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableLabel}.
  */
-public final class ImmutableLabelTest {
+public final class ImmutableLabelTest extends LengthRestrictionTestBase {
 
     @Test
     public void assertImmutability() {
@@ -42,18 +43,14 @@ public final class ImmutableLabelTest {
         ImmutableLabel.of(invalidLabel);
     }
 
-    @Test(expected = PolicyEntryInvalidException.class)
-    public void createTooLargeAttribute() {
-        final String tooLongLabel = generateMaximumLength().append("a").toString();
-        ImmutableLabel.of(tooLongLabel);
+    @Test
+    public void createValidLabelAttribute() {
+        ImmutableLabel.of(generateStringWithMaxLength());
     }
 
-    private StringBuilder generateMaximumLength() {
-        final int maxLength = 256;
-        final StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < maxLength; i++) {
-            stringBuilder.append("a");
-        }
-        return stringBuilder;
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void createTooLargeLabel() {
+        ImmutableLabel.of(generateStringExceedingMaxLength());
     }
+
 }

@@ -36,7 +36,7 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
     private DefaultNamespacedEntityId(final String namespace, final String name, final boolean shouldValidate) {
         if (shouldValidate) {
-            stringRepresentation = EntityIdPatternValidator.getInstance().validate(namespace, name);
+            stringRepresentation = validate(namespace, name);
         } else {
             stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
         }
@@ -50,12 +50,13 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
 
-        final EntityIdPatternValidator validator = EntityIdPatternValidator.getInstance();
-
-        if (validator.isValid(entityId)) {
-            namespace = validator.getNamespace();
-            name = validator.getName();
-            stringRepresentation = validator.getString();
+        final EntityIdPatternValidator validator = EntityIdPatternValidator.getInstance(entityId);
+        if (validator.isValid()) {
+            // the given entityId is valid, so we can safely split at NAMESPACE_DELIMITER
+            final String[] elements = entityId.toString().split(NAMESPACE_DELIMITER, 2);
+            namespace = elements[0];
+            name = elements[1];
+            stringRepresentation = entityId.toString();
         } else {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
@@ -114,6 +115,16 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
      */
     public static NamespacedEntityId dummy() {
         return DUMMY_ID;
+    }
+
+    private String validate(final @Nullable String namespace, final @Nullable String name) {
+        final String sp = namespace + NAMESPACE_DELIMITER + name;
+
+        if (namespace == null || name == null || !EntityIdPatternValidator.getInstance(sp).isValid()) {
+            throw NamespacedEntityIdInvalidException.newBuilder(sp).build();
+        }
+
+        return sp;
     }
 
     @Override

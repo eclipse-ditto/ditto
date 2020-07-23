@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableFeatureProperties}.
  */
-public final class ImmutableFeaturePropertiesTest {
+public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestBase {
 
 
     @Test
@@ -39,7 +40,6 @@ public final class ImmutableFeaturePropertiesTest {
                 .usingGetClass()
                 .verify();
     }
-
 
     @Test
     public void assertImmutability() {
@@ -54,7 +54,6 @@ public final class ImmutableFeaturePropertiesTest {
         assertThat(properties.toJsonString()).isEqualTo("{}");
     }
 
-
     @Test
     public void ensureFeaturesToBuilderWorks() {
         assertThat(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES).isEqualTo(
@@ -68,27 +67,18 @@ public final class ImmutableFeaturePropertiesTest {
     }
 
     @Test(expected = JsonPointerInvalidException.class)
-    public void createInvalidPropertieKey() {
-        final String invalidPropertieKey = "invalid/";
-        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(invalidPropertieKey, "invalidPropertieKey")
+    public void createInvalidPropertyKey() {
+        final String invalidPropertyKey = "invalid/";
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(invalidPropertyKey, "invalidPropertyKey")
                 .toBuilder()
                 .build();
     }
 
     @Test(expected = JsonPointerInvalidException.class)
-    public void createTooLargePropertieKey() {
-        final String tooLargePropertieKey = generateMaximumLength().append("a").toString();
-        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertieKey, "tooLargePropertieKey")
+    public void createTooLargePropertyKey() {
+        final String tooLargePropertyKey = generateStringExceedingMaxLength();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertyKey, "tooLargePropertyKey")
                 .toBuilder()
                 .build();
-    }
-
-    private StringBuilder generateMaximumLength() {
-        final int maxLength = 256;
-        final StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < maxLength; i++) {
-            stringBuilder.append("a");
-        }
-        return stringBuilder;
     }
 }

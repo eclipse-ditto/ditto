@@ -37,7 +37,7 @@ public final class ImmutableInfoProviderTest {
         final String payload = "{\"138\":\"ditto\"}";
 
         final ConnectionMonitor.InfoProvider info = new ImmutableInfoProvider(correlationId, timestamp,
-                thingId, headers, () -> payload);
+                thingId, headers, () -> payload, false);
 
         assertThat(info)
                 .hasCorrelationId(correlationId)

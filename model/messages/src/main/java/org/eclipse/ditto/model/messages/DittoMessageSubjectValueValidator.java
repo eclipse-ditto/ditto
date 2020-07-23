@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
 /**
- * This validator checks if a CharSequence is a valid ID that matches {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#SUBJECT_REGEX}.
+ * This validator checks if a CharSequence is a valid ID that matches {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#SUBJECT_PATTERN}.
  * If validation fails, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable
@@ -41,8 +41,8 @@ final class DittoMessageSubjectValueValidator extends AbstractHeaderValueValidat
 
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
-        final SubjectPatternValidator validator = SubjectPatternValidator.getInstance();
-        if (!validator.isValid(value)) {
+        final SubjectPatternValidator validator = SubjectPatternValidator.getInstance(value);
+        if (!validator.isValid()) {
             throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value, "message subject").build();
         }
     }

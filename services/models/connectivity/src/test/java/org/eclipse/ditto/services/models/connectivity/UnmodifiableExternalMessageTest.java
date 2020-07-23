@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
@@ -40,7 +41,7 @@ public final class UnmodifiableExternalMessageTest {
         MutabilityAssert.assertInstancesOf(UnmodifiableExternalMessage.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),
                 AllowedReason.assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
-                AllowedReason.provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class,
+                AllowedReason.provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class, Source.class,
                         EnforcementFilter.class, HeaderMapping.class, PayloadMapping.class, TopicPath.class)
                         .areAlsoImmutable());
     }
@@ -49,8 +50,8 @@ public final class UnmodifiableExternalMessageTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(UnmodifiableExternalMessage.class)
                 .withPrefabValues(ByteBuffer.class,
-                        ByteBuffer.wrap("red" .getBytes()),
-                        ByteBuffer.wrap("black" .getBytes()))
+                        ByteBuffer.wrap("red".getBytes()),
+                        ByteBuffer.wrap("black".getBytes()))
                 .usingGetClass()
                 .verify();
     }

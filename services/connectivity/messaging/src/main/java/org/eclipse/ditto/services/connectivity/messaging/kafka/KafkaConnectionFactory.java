@@ -12,11 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import org.apache.kafka.clients.producer.Producer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-
-import akka.NotUsed;
-import akka.kafka.ProducerMessage;
-import akka.stream.javadsl.Flow;
 
 /**
  * Creates Kafka sinks.
@@ -31,11 +28,9 @@ interface KafkaConnectionFactory {
     EntityId connectionId();
 
     /**
-     * Create an Akka stream flow of Kafka messages.
+     * Create a producer of Kafka messages.
      *
-     * @param <T> type of the pass through object.
-     * @return Akka stream flow that publishes Kafka messages to the broker.
+     * @return the producer.
      */
-    <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, NotUsed> newFlow();
-
+    Producer<String, String> newProducer();
 }

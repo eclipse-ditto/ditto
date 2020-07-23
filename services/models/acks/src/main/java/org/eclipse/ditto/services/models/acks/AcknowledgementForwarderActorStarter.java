@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
@@ -90,19 +92,44 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         return Optional.ofNullable(actorRef);
     }
 
+    /**
+     * Start an acknowledgement forwarder.
+     * Always succeeds.
+     *
+     * @return the new correlation ID if an ack forwarder started, or an empty optional if the ack forwarder did not
+     * start because no acknowledgement was requested.
+     */
+    public Optional<String> getConflictFree() {
+        if (acknowledgementRequests.isEmpty()) {
+            return Optional.empty();
+        }
+        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+        final String startingCorrelationId = dittoHeaders.getCorrelationId().orElse("");
+        String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
+        while (true) {
+            try {
+                builder.correlationId(correlationId);
+                startAckForwarderActor(builder.build());
+                return Optional.of(correlationId);
+            } catch (final InvalidActorNameException e) {
+                // generate a new ID
+                correlationId = startingCorrelationId + UUID.randomUUID();
+            }
+        }
+    }
+
     @Nullable
     private ActorRef tryToStartAckForwarderActor() {
         try {
-            return startAckForwarderActor();
+            return startAckForwarderActor(dittoHeaders);
         } catch (final InvalidActorNameException e) {
-
             // In case that the actor with that name already existed, the correlation-id was already used recently:
             declineAllNonDittoAckRequests(getDuplicateCorrelationIdException(e));
             return null;
         }
     }
 
-    private ActorRef startAckForwarderActor() {
+    private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders) {
         final Props props = AcknowledgementForwarderActor.props(actorContext.sender(), dittoHeaders,
                 acknowledgementConfig.getForwarderFallbackTimeout());
         return actorContext.actorOf(props, AcknowledgementForwarderActor.determineActorName(dittoHeaders));

@@ -13,8 +13,6 @@
 
 package org.eclipse.ditto.model.base.entity.validation;
 
-import java.util.regex.Pattern;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
@@ -22,12 +20,11 @@ import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 @Immutable
 public final class FeaturePatternValidator extends AbstractPatternValidator {
 
-    public static FeaturePatternValidator getInstance() {
-        return new FeaturePatternValidator();
+    public static FeaturePatternValidator getInstance(final CharSequence id) {
+        return new FeaturePatternValidator(id);
     }
 
-    @Override
-    public Pattern getPattern() {
-        return RegexPatterns.FEATURE_PATTERN;
+    protected FeaturePatternValidator(final CharSequence id) {
+        super(id, RegexPatterns.FEATURE_PATTERN);
     }
 }

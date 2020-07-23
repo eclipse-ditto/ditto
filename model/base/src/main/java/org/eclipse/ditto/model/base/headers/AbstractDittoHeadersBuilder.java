@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
@@ -202,6 +204,28 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
             putCharSequence(DittoHeaderDefinition.REPLY_TARGET, String.valueOf(replyTarget));
         } else {
             removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
+        }
+        return myself;
+    }
+
+    @Override
+    public S expectedResponseTypes(final ResponseType... responseTypes) {
+        checkNotNull(responseTypes, "responseTypes");
+        final List<String> expectedResponseTypes = Arrays.stream(responseTypes)
+                .map(ResponseType::getName)
+                .collect(Collectors.toList());
+        putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
+        return myself;
+    }
+
+    @Override
+    public S expectedResponseTypes(final Collection<ResponseType> responseTypes) {
+        checkNotNull(responseTypes, "responseTypes");
+        if (!responseTypes.isEmpty()) {
+            final List<String> expectedResponseTypes = responseTypes.stream()
+                    .map(ResponseType::getName)
+                    .collect(Collectors.toList());
+            putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
         }
         return myself;
     }
@@ -453,7 +477,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         return doBuild(dittoHeaders);
     }
 
-    private void  calculateIsResponseRequired() {
+    private void calculateIsResponseRequired() {
         // The order is important. A timeout of zero eventually determines response-required to be false.
         calculateIsResponseRequiredViaRequestedAcks();
         calculateIsResponseRequiredViaTimeout();
