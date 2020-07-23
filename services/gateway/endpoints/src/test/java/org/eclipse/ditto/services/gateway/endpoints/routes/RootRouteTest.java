@@ -61,6 +61,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.Config;
@@ -121,6 +122,7 @@ public final class RootRouteTest extends EndpointTestBase {
     @Before
     public void setUp() {
         final ActorSystem actorSystem = system();
+        Mockito.when(httpClientFacade.getActorSystem()).thenReturn(actorSystem);
         final Config config = actorSystem.settings().config();
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
