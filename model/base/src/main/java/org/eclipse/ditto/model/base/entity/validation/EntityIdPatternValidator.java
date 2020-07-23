@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.model.base.entity.validation;
 
-import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ID_PATTEN_MESSAGE;
 import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ID_PATTERN;
+import static org.eclipse.ditto.model.base.entity.id.RegexPatterns.ID_PATTERN_MESSAGE;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -27,6 +27,6 @@ public final class EntityIdPatternValidator extends AbstractPatternValidator {
     }
 
     EntityIdPatternValidator(final CharSequence id) {
-        super(id, RegexPatterns.PatternWithMessage.of(ID_PATTERN, ID_PATTEN_MESSAGE));
+        super(id, RegexPatterns.PatternWithMessage.of(ID_PATTERN, ID_PATTERN_MESSAGE));
     }
 }

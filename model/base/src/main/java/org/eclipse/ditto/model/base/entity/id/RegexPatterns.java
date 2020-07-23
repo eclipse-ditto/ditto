@@ -130,7 +130,7 @@ public final class RegexPatterns {
      */
     public static final Pattern ENTITY_NAME_PATTERN = Pattern.compile(ENTITY_NAME_REGEX);
 
-    public static final String ID_PATTEN_MESSAGE = "The given identifier is not valid.";
+    public static final String ID_PATTERN_MESSAGE = "The given identifier is not valid.";
 
     /**
      * The compiled regex pattern for namespaced entity IDs.
