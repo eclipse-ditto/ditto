@@ -66,5 +66,5 @@ Examples for valid IDs:
 
 ## Encoding and decoding
 
-If hex encoded characters or spaces are used in the Thing name, the protocol dependent de- or encoding must be taken into account. If a Thing is created with the id `eclipse.ditto:foo bar` and is to be queried via the REST Api, the space must be encoded accordingly:
+If hex encoded characters or spaces are used in the Thing name, the protocol dependent de- or encoding must be taken into account. If a Thing is created with the ID `eclipse.ditto:foo bar` and is to be queried via the HTTP API, the space must be encoded accordingly:
 `GET /things/eclipse.ditto:foo%20bar`.
