@@ -38,8 +38,6 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 @Immutable
 abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements EventStrategy<T, Thing> {
 
-    public static final String DITTO_HEADER_METADATA_PREFIX = "ditto-metadata:";
-
     /**
      * Constructs a new {@code AbstractThingEventStrategy} object.
      */
@@ -51,23 +49,11 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     @Override
     public Thing handle(final T event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
-            // Create Metadata from Header, see https://github.com/eclipse/ditto/issues/680#issuecomment-654165747
-            // Use existing Metadata or create a new Builder if none exists
-            MetadataBuilder metadataBuilder = thing.getMetadata()
-                .map(Metadata::toBuilder)
-                .orElse(Metadata.newBuilder());
-            for (String headerKey : event.getDittoHeaders().keySet()) {
-                if (headerKey.startsWith(DITTO_HEADER_METADATA_PREFIX)) {
-                    String metadataKey = headerKey.substring(DITTO_HEADER_METADATA_PREFIX.length());
-                    String metadataValue = event.getDittoHeaders().get(headerKey);
-                    metadataBuilder.set(JsonPointer.of(metadataKey), metadataValue);
-                }
-            }
-
+            ThingMetadataFactory thingMetadataFactory = new ThingMetadataFactory();
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null))
-                    .setMetadata(JsonPointer.empty(), metadataBuilder.build());
+                    .setMetadata(JsonPointer.empty(), thingMetadataFactory.buildFromEvent(event, thing));
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }
