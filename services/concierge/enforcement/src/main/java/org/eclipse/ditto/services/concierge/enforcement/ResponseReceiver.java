@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.util.Collection;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -58,19 +61,27 @@ final class ResponseReceiver {
      * @return the enhanced signal.
      */
     WithDittoHeaders enhance(final WithDittoHeaders signal) {
-        return internalHeaders.isEmpty()
-                ? signal
-                : signal.setDittoHeaders(signal.getDittoHeaders().toBuilder().putHeaders(internalHeaders).build());
+        final DittoHeaders enhancedHeaders = signal.getDittoHeaders()
+                .toBuilder()
+                .removeHeader(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey())
+                .removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey())
+                .removeHeader(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())
+                .putHeaders(internalHeaders)
+                .build();
+
+        return signal.setDittoHeaders(enhancedHeaders);
     }
 
     private static DittoHeaders filterRelevantHeaders(final DittoHeaders commandHeaders) {
         final Optional<String> inboundPayloadMapper = commandHeaders.getInboundPayloadMapper();
         final Optional<Integer> replyTarget = commandHeaders.getReplyTarget();
+        final Collection<ResponseType> expectedResponseTypes = commandHeaders.getExpectedResponseTypes();
 
         final DittoHeadersBuilder<?,?> headersBuilder = DittoHeaders.newBuilder();
 
         inboundPayloadMapper.ifPresent(headersBuilder::inboundPayloadMapper);
         replyTarget.ifPresent(headersBuilder::replyTarget);
+        headersBuilder.expectedResponseTypes(expectedResponseTypes);
 
         return headersBuilder.build();
     }

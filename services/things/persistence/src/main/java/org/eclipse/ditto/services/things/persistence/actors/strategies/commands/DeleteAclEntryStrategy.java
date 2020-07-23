@@ -56,7 +56,7 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
                 .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command, thing))
                 .orElseGet(
                         () -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getState(),
-                                authSubject, dittoHeaders)));
+                                authSubject, dittoHeaders), command));
     }
 
     private Optional<AccessControlList> extractAcl(@Nullable final Thing thing, final DeleteAclEntry command) {
@@ -78,7 +78,7 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
         final Validator validator = getAclValidator(aclWithoutAuthSubject);
         if (!validator.isValid()) {
             return ResultFactory.newErrorResult(
-                    ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders));
+                    ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders), command);
         }
 
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,

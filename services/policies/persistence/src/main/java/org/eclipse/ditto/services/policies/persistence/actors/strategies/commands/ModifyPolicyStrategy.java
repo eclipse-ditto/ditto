@@ -55,7 +55,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
                             () -> modifiedPolicyJsonObject.toString().length(),
                             command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);
@@ -69,7 +69,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
             return ResultFactory.newMutationResult(command, policyModified, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders));
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders), command);
         }
     }
 

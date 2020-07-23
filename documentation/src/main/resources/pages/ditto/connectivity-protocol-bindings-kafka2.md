@@ -11,7 +11,7 @@ Send messages to Apache Kafka via [targets](#target-format).
 
 When Kafka messages are sent in [Ditto Protocol](protocol-overview.html), the payload should be `UTF-8` encoded strings.
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the connection in order to transform the messages.
 
 ## Specific connection configuration
@@ -40,7 +40,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 ```json
 {
@@ -53,6 +53,29 @@ has READ permission on the Thing, that is associated with a message.
 }
 ```
 
+#### Target acknowledgement handling
+
+For Kafka targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
+
+Once the Kafka client signals that the message was acknowledged by the Kafka broker, the following information is mapped
+to the automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: 
+   * will be `204`, if Kafka debug mode was disabled and the message was successfully consumed by Kafka
+   * will be `200`, if Kafka debug mode was enabled (see [specific config](#specific-configuration-properties) `"debugEnabled"`) and the message was successfully consumed by Kafka
+   * will be `4xx`, if Kafka failed to consume the message but retrying sending the message does not make sense
+   * will be `5xx`, if Kafka failed to consume the message but retrying sending the message is feasible
+* Acknowledgement.value: 
+   * will be missing, if Kafka debug mode (see [specific config](#specific-configuration-properties) `"debugEnabled"`) was disabled
+   * will include the Kafka `RecordMetadata` as JsonObject:
+      * `timestamp` (if present)
+      * `serializedKeySize`
+      * `serializedValueSize`
+      * `topic`
+      * `partition`
+      * `offset` (if present)
+
 ### Specific configuration properties
 
 The specific configuration properties contain the following keys:
@@ -62,6 +85,10 @@ The specific configuration properties contain the following keys:
     * `plain`
     * `scram-sha-256`
     * `scram-sha-512`
+* `debugEnabled`: determines whether for acknowledgements 
+  [automatically issued by Kafka targets](#target-acknowledgement-handling) additional debug information should be 
+  included as payload or not - default: `false`
+
 
 ## Establishing connecting to an Apache Kafka endpoint
 

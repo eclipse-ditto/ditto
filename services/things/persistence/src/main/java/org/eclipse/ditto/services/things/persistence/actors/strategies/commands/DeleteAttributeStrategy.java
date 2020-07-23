@@ -56,7 +56,7 @@ final class DeleteAttributeStrategy
                 .map(attributes -> getDeleteAttributeResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.attributeNotFound(context.getState(), attrPointer,
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Result<ThingEvent> getDeleteAttributeResult(final Context<ThingId> context, final long nextRevision,

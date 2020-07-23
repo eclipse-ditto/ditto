@@ -55,7 +55,8 @@ final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<Retr
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing))
                 )
                 .orElseGet(() ->
-                        ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders))
+                        ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders),
+                                command)
                 );
     }
 

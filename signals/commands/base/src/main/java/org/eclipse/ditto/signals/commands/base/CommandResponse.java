@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -47,6 +48,25 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {
         return getDittoHeaders().getSchemaVersion().orElse(getLatestSchemaVersion());
+    }
+
+    /**
+     * Indicates whether this response is of a type contained in
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#EXPECTED_RESPONSE_TYPES} header.
+     *
+     * @return true if this response is expected, false if not.
+     * @since 1.2.0
+     */
+    default boolean isOfExpectedResponseType() {
+        return getDittoHeaders().getExpectedResponseTypes().contains(getResponseType());
+    }
+
+    /**
+     * @return the type of this response.
+     * @since 1.2.0
+     */
+    default ResponseType getResponseType() {
+        return ResponseType.RESPONSE;
     }
 
     /**

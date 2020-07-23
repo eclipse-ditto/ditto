@@ -187,12 +187,10 @@ final class JMSPropertyMapper {
 
     private static void setContentEncoding(final Message message, final String contentEncoding) {
         // do nothing---not supported by Qpid client.
-        // TODO: introduce the function when Qpid client supports content encoding.
     }
 
     private static Optional<String> getContentEncoding(final Message message) {
         // return nothing---not supported by Qpid client.
-        // TODO: introduce the functionality when Qpid client supports content encoding.
         return Optional.empty();
     }
 

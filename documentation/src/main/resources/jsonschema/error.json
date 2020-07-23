@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "title": "Error",
+  "description": "An *error* contains information about the status code (in HTTP semantics), error identifier and message.\nOptionally a description and a link how to solve the error may be provided.",
+  "properties": {
+    "status": {
+      "type": "integer",
+      "title": "Error status",
+      "description": "The status code of the error with HTTP status code semantics (e.g.: 4xx for user errors, 5xx for server errors)."
+    },
+    "error": {
+      "type": "string",
+      "title": "Error code",
+      "description": "The error code or identifier that uniquely identifies the error e.g. `things:features.notfound`."
+    },
+    "message": {
+      "type": "string",
+      "title": "Error message",
+      "description": "The human readable message that explains what went wrong during the execution of a command/message."
+    },
+    "description": {
+      "type": "string",
+      "title": "Error description",
+      "description": "Contains further information about the error e.g. a hint what caused the problem and how to solve it."
+    },
+    "href": {
+      "type": "string",
+      "title": "Error link",
+      "description": "A link to further information about the error and how to fix it."
+    }
+  },
+  "required": [
+    "status",
+    "error",
+    "message"
+  ]
+}

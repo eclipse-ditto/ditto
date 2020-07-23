@@ -51,7 +51,7 @@ final class DeleteAttributesStrategy
         return extractAttributes(thing)
                 .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders()), command));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {

@@ -55,7 +55,7 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, T
             final long nextRevision, final CreateThing command) {
         return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
-                .build());
+                .build(), command);
     }
 
 }

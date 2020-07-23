@@ -38,14 +38,17 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
     private final Map<String, String> headers;
     // a supplier to postpone getting the payload until it is really needed
     private final Supplier<String> payloadSupplier;
+    private final boolean isEmpty;
 
     ImmutableInfoProvider(final String correlationId, final Instant timestamp,
-            @Nullable final ThingId thingId, final Map<String, String> headers, final Supplier<String> payloadSupplier) {
+            @Nullable final ThingId thingId, final Map<String, String> headers,
+            final Supplier<String> payloadSupplier, final boolean isEmpty) {
         this.correlationId = correlationId;
         this.timestamp = timestamp;
         this.thingId = thingId;
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.payloadSupplier = payloadSupplier;
+        this.isEmpty = isEmpty;
     }
 
     @Override
@@ -75,6 +78,11 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
     }
 
     @Override
+    public boolean isEmpty() {
+        return isEmpty;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -87,12 +95,13 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
                 Objects.equals(timestamp, that.timestamp) &&
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(headers, that.headers) &&
-                Objects.equals(payloadSupplier, that.payloadSupplier);
+                Objects.equals(payloadSupplier, that.payloadSupplier) &&
+                isEmpty == that.isEmpty;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(correlationId, timestamp, thingId, headers, payloadSupplier);
+        return Objects.hash(correlationId, timestamp, thingId, headers, payloadSupplier, isEmpty);
     }
 
     @Override
@@ -102,6 +111,7 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
                 ", timestamp=" + timestamp +
                 ", thingId=" + thingId +
                 ", headers=" + headers +
+                ", isEmpty=" + isEmpty +
                 "]";
     }
 

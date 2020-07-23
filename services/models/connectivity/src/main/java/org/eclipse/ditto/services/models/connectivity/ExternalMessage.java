@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
@@ -148,6 +149,12 @@ public interface ExternalMessage {
      * @return optional source address, where this message was received
      */
     Optional<String> getSourceAddress();
+
+    /**
+     * @return optional source, where this message was received
+     * @since 1.2.0
+     */
+    Optional<Source> getSource();
 
     /**
      * @return Ditto headers of the signal that created this external message if any.

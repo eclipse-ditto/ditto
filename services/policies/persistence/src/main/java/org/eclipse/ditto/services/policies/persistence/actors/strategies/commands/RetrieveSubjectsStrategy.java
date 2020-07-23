@@ -52,7 +52,7 @@ final class RetrieveSubjectsStrategy extends AbstractPolicyQueryCommandStrategy<
             return ResultFactory.newQueryResult(command, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()));
+                    policyEntryNotFound(policyId, command.getLabel(), command.getDittoHeaders()), command);
         }
     }
 

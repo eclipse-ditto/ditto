@@ -26,6 +26,9 @@ In [connections](basic-connections.html), the following placeholders are availab
 
 | Placeholder                       | Description  |
 |-----------------------------------|--------------|
+| `{%raw%}{{ entity:id }}{%endraw%}` | full ID composed of ''namespace'' + '':'' as a separator + ''name'' for things and policies  | 
+| `{%raw%}{{ entity:namespace }}{%endraw%}` | Namespace (i.e. first part of an ID) for things and policies |
+| `{%raw%}{{ entity:name }}{%endraw%}` | Name (i.e. second part of an ID ) for things and policies |
 | `{%raw%}{{ thing:id }}{%endraw%}` | full ID composed of ''namespace'' + '':'' as a separator + ''name''  | 
 | `{%raw%}{{ thing:namespace }}{%endraw%}` | Namespace (i.e. first part of an ID) |
 | `{%raw%}{{ thing:name }}{%endraw%}` | Name (i.e. second part of an ID ) |

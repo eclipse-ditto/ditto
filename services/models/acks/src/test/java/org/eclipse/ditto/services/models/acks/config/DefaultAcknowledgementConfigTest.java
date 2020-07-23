@@ -63,6 +63,18 @@ public final class DefaultAcknowledgementConfigTest {
         softly.assertThat(underTest.getForwarderFallbackTimeout())
                 .as(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath())
                 .isEqualTo(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getDefaultValue());
+
+        softly.assertThat(underTest.getCollectorFallbackLifetime())
+                .as(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME.getConfigPath())
+                .isEqualTo(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME.getDefaultValue());
+
+        softly.assertThat(underTest.getCollectorFallbackAskTimeout())
+                .as(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT.getDefaultValue());
+
+        softly.assertThat(underTest.getIssuedMaxBytes())
+                .as(AcknowledgementConfigValue.ISSUED_MAX_BYTES.getConfigPath())
+                .isEqualTo(AcknowledgementConfigValue.ISSUED_MAX_BYTES.getDefaultValue());
     }
 
     @Test
@@ -72,6 +84,18 @@ public final class DefaultAcknowledgementConfigTest {
         softly.assertThat(underTest.getForwarderFallbackTimeout())
                 .as(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(23L));
+
+        softly.assertThat(underTest.getCollectorFallbackLifetime())
+                .as(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(45L));
+
+        softly.assertThat(underTest.getCollectorFallbackAskTimeout())
+                .as(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(67L));
+
+        softly.assertThat(underTest.getIssuedMaxBytes())
+                .as(AcknowledgementConfigValue.ISSUED_MAX_BYTES.getConfigPath())
+                .isEqualTo(89);
     }
 
 }

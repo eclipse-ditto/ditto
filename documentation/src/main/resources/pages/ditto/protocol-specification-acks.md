@@ -1,6 +1,6 @@
 ---
 title: Protocol specification for acknowledgements
-keywords: protocol, specification, general
+keywords: protocol, specification, ack, acknowledgement
 tags: [protocol]
 permalink: protocol-specification-acks.html
 ---

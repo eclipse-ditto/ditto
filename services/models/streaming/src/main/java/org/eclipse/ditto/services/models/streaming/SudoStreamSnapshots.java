@@ -173,8 +173,10 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.JSON_BURST, burst, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
-        jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_SNAPSHOT_FIELDS, snapshotFields, predicate);
+        if (!lowerBound.isDummy()) {
+            jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
+        }
     }
 
     @Override

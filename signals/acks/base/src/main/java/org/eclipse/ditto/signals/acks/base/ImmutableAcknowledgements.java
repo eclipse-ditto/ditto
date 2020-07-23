@@ -19,8 +19,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -31,6 +33,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -43,6 +47,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -255,18 +260,17 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
     private JsonObject acknowledgementsEntitiesToJson(final JsonSchemaVersion schemaVersion) {
 
-        return stream().map(ack -> {
-                    final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
-                            .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt());
+        return acknowledgementsToJsonWithDisambiguation(schemaVersion, FieldType.all(), (ack, version, predicate) -> {
+            final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
+                    .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt());
 
-                    final Optional<JsonValue> ackEntity = ack.getEntity(schemaVersion);
-                    ackEntity.ifPresent(ae -> jsonObjectBuilder.set(Acknowledgement.JsonFields.PAYLOAD, ae));
+            final Optional<JsonValue> ackEntity = ack.getEntity(version);
+            ackEntity.ifPresent(ae -> jsonObjectBuilder.set(Acknowledgement.JsonFields.PAYLOAD, ae));
 
-                    final DittoHeaders ackHeaders = ack.getDittoHeaders();
-                    jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS, buildHeadersJson(ackHeaders));
-                    return JsonField.newInstance(ack.getLabel(), jsonObjectBuilder.build());
-                }
-        ).collect(JsonCollectors.fieldsToObject());
+            final DittoHeaders ackHeaders = ack.getDittoHeaders();
+            jsonObjectBuilder.set(Acknowledgement.JsonFields.DITTO_HEADERS, buildHeadersJson(ackHeaders));
+            return jsonObjectBuilder.build();
+        });
     }
 
     private static JsonObject buildHeadersJson(final DittoHeaders dittoHeaders) {
@@ -284,22 +288,48 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         }
     }
 
-    private JsonObject acknowledgementsToJson(final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
+    /**
+     * Create a JSON object of acknowledgements with labels as key such that acks of the same label are grouped into
+     * an array.
+     *
+     * @param schemaVersion the schema version.
+     * @param predicate the JSON field predicate.
+     * @param acknowledgementToJson the function to turn each ack into a JSON object.
+     * @return the disambiguated JSON object.
+     */
+    private JsonObject acknowledgementsToJsonWithDisambiguation(final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> predicate,
+            final AcknowledgementToJson acknowledgementToJson) {
 
-        return stream()
-                .map(ack -> JsonField.newInstance(ack.getLabel(), ack.toJson(schemaVersion, predicate)))
+        // use a linked hash map to preserve the order of the first appearance of ack labels
+        final Map<CharSequence, JsonArrayBuilder> disambiguationMap = new LinkedHashMap<>();
+        for (final Acknowledgement ack : acknowledgements) {
+            disambiguationMap.compute(ack.getLabel(), (label, previousBuilder) -> {
+                final JsonArrayBuilder builder = previousBuilder == null ? JsonArray.newBuilder() : previousBuilder;
+                return builder.add(acknowledgementToJson.toJson(ack, schemaVersion, predicate));
+            });
+        }
+
+        return disambiguationMap.entrySet()
+                .stream()
+                .map(entry -> {
+                    final JsonArray array = entry.getValue().build();
+                    final JsonValue value = array.getSize() == 1 ? array.get(0).orElse(array) : array;
+                    return JsonField.newInstance(entry.getKey(), value);
+                })
                 .collect(JsonCollectors.fieldsToObject());
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final JsonObject acksJsonObject =
+                acknowledgementsToJsonWithDisambiguation(schemaVersion, thePredicate, Acknowledgement::toJson);
         return JsonObject.newBuilder()
                 .set(JsonFields.ENTITY_ID, entityId.toString(), predicate)
                 .set(JsonFields.ENTITY_TYPE, getEntityType().toString(), predicate)
                 .set(JsonFields.STATUS_CODE, statusCode.toInt(), predicate)
-                .set(JsonFields.ACKNOWLEDGEMENTS, acknowledgementsToJson(schemaVersion, thePredicate), predicate)
+                .set(JsonFields.ACKNOWLEDGEMENTS, acksJsonObject, predicate)
                 .set(JsonFields.DITTO_HEADERS, dittoHeaders.toJson(), predicate)
                 .build();
     }
@@ -332,6 +362,12 @@ final class ImmutableAcknowledgements implements Acknowledgements {
                 ", statusCode=" + statusCode +
                 ", dittoHeaders=" + dittoHeaders +
                 "]";
+    }
+
+    @FunctionalInterface
+    private interface AcknowledgementToJson {
+
+        JsonObject toJson(Acknowledgement ack, JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
     }
 
 }
