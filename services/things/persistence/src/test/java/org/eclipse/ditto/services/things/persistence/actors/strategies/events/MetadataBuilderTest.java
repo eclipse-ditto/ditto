@@ -35,9 +35,7 @@ public class MetadataBuilderTest extends AbstractStrategyTest {
             FeaturePropertiesModified.of(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, REVISION,
                 DittoHeaders.of(Collections.singletonMap("ditto-metadata:issuedAt", "Hallo")));
 
-        ThingMetadataFactory metadataBuilder = new ThingMetadataFactory();
-
-        Metadata metadata = metadataBuilder.buildFromEvent(event, THING);
+        Metadata metadata = ThingMetadataFactory.buildFromEvent(event, THING);
 
         assertThat(metadata)
             .hasToString("{\"features\":{\"flux-capacitor\":{\"properties\":{\"bumlux\":{\"issuedAt\":\"Hallo\"}}}}}");
@@ -49,9 +47,7 @@ public class MetadataBuilderTest extends AbstractStrategyTest {
             FeaturePropertiesModified.of(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, REVISION,
                 DittoHeaders.empty());
 
-        ThingMetadataFactory metadataBuilder = new ThingMetadataFactory();
-
-        Metadata metadata = metadataBuilder.buildFromEvent(event, THING, "Hallo");
+        Metadata metadata = ThingMetadataFactory.buildFromEvent(event, THING, "Hallo");
 
         assertThat(metadata)
             .hasToString("{\"features\":{\"flux-capacitor\":{\"properties\":{\"bumlux\":{\"issuedAt\":\"Hallo\"}}}}}");
@@ -66,9 +62,7 @@ public class MetadataBuilderTest extends AbstractStrategyTest {
                 .build(), REVISION,
                 DittoHeaders.of(Collections.singletonMap("ditto-metadata:issuedAt", "Hallo")));
 
-        ThingMetadataFactory metadataBuilder = new ThingMetadataFactory();
-
-        Metadata metadata = metadataBuilder.buildFromEvent(event, THING);
+        Metadata metadata = ThingMetadataFactory.buildFromEvent(event, THING);
 
         assertThat(metadata)
             .hasToString("{\"features\":{\"flux-capacitor\":{\"properties\":{\"bumlux\":{\"issuedAt\":\"Hallo\"},\"dimmer\":{\"position\":{\"issuedAt\":\"Hallo\"}}}}}}");
