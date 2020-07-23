@@ -59,7 +59,7 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 
@@ -78,7 +78,6 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
     private final HttpClientFacade httpClient;
-    private final Materializer materializer;
     private final Cache<PublicKeyIdWithIssuer, PublicKey> publicKeyCache;
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
@@ -88,7 +87,6 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
-        materializer = Materializer.createMaterializer(httpClient.getActorSystem());
         argumentNotNull(publicKeysConfig, "config of the public keys cache");
         argumentNotNull(cacheName);
 
@@ -211,7 +209,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .map(ByteString::utf8String)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
-                .runWith(Sink.head(), materializer);
+                .runWith(Sink.head(), SystemMaterializer.get(httpClient.getActorSystem()).materializer());
     }
 
     private void handleNonSuccessResponse(final HttpResponse response) {
@@ -228,7 +226,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     private CompletionStage<String> getBodyAsString(final HttpResponse response) {
         return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .runWith(Sink.head(), materializer);
+                .runWith(Sink.head(), SystemMaterializer.get(httpClient.getActorSystem()).materializer());
     }
 
     private static PublicKeyProviderUnavailableException handleUnexpectedException(final Throwable e,

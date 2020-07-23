@@ -39,8 +39,8 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.Materializer;
 import akka.stream.SourceRef;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
@@ -61,7 +61,6 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final ActorRef targetActor;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
-    private final Materializer materializer;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorActor(final ActorRef targetActor) {
@@ -71,7 +70,6 @@ public final class ThingsAggregatorActor extends AbstractActor {
         ).getThingsAggregatorConfig();
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
-        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
@@ -153,7 +151,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
                 .log("command-response", log)
-                .runWith(StreamRefs.sourceRef(), materializer);
+                .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getContext().getSystem()).materializer());
 
         resultReceiver.tell(commandResponseSource, getSelf());
     }
