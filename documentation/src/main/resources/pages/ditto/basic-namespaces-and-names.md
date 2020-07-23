@@ -16,7 +16,6 @@ The namespace must conform to the following notation:
 * a dot must be followed by a lower- or uppercase character from a-z
 * numbers may be used
 * underscore may be used
-* have a maximum length of 256 characters
 	
 When writing a Java application, you can use the following regex to validate your namespaces: <br/>
     ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+))``
@@ -33,10 +32,9 @@ The name must conform to the following notation:
 * may not be empty
 * may not contain `/` (slash)
 * may not contain control characters
-* may contain hex encoded characters, e.g. `%3A`, `%4B`
-* have a maximum length of 256 characters
 
 When writing a Java application, you can use the following regex to validate your thing name: <br/>
+    ``(?<name>(?:[[^\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)``
     ``(!"$%&()=?`*+~'#_-:.;,|<>\{}[]^)`` 
     (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java#L90)).
 
@@ -44,6 +42,10 @@ Examples for valid names:
     * `ditto`,
     * `smart-coffee-1`,
     * `foo%2Fbar`
+    * `foo bar`
+    * `foo+bar%20`
+    
+
 
 ## Namespaced ID
 
@@ -52,7 +54,7 @@ A namespaced ID must conform to the following expectations:
 * have a maximum length of 256 characters
 
 When writing a Java application, you can use the following regex to validate your namespaced IDs: <br/>
-	``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+)):(!"$%&()=?`*+~'#_-:.;,|<>\{}[]^)`` 
+	``(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a...\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)`` 
 	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java#L97)).
 
 Examples for valid IDs:
@@ -60,3 +62,9 @@ Examples for valid IDs:
 * `foo:bar`,
 * `org.eclipse.ditto_42:smart-coffeee`
 * `org.eclipse:admin-policy`
+* `org.eclipse:admin policy`
+
+## Encoding and decoding
+
+If hex encoded characters or spaces are used in the Thing name, the protocol dependent de- or encoding must be taken into account. If a Thing is created with the id `eclipse.ditto:foo bar` and is to be queried via the REST Api, the space must be encoded accordingly:
+`GET /things/eclipse.ditto:foo%20bar`.
