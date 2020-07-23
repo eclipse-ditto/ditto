@@ -12,24 +12,37 @@
  */
 package org.eclipse.ditto.services.base.actors;
 
+import static akka.http.javadsl.server.Directives.logRequest;
+import static akka.http.javadsl.server.Directives.logResult;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.ConnectException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
+import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
+import akka.cluster.Cluster;
+import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.Http;
+import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -144,6 +157,40 @@ public abstract class DittoRootActor extends AbstractActor {
 
     private void startChildActor(final StartChildActor startChildActor) {
         startChildActor(startChildActor.getActorName(), startChildActor.getProps());
+    }
+
+    protected void bindHttpStatusRoute(final HttpConfig httpConfig, final ActorRef healthCheckingActor) {
+
+        String hostname = httpConfig.getHostname();
+        if (hostname.isEmpty()) {
+            hostname = LocalHostAddressSupplier.getInstance().get();
+            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
+        }
+
+        final ActorSystem system = getContext().getSystem();
+
+        Http.get(system)
+                .bindAndHandle(createStatusRoute(system, healthCheckingActor).flow(system),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), system)
+                .thenAccept(theBinding -> {
+                    theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), system);
+                    log.info("Created new server binding for the status route.");
+                })
+                .exceptionally(failure -> {
+                    log.error(failure,
+                            "Could not create the server binding for the status route because of: <{}>",
+                            failure.getMessage());
+                    log.error("Terminating the actor system");
+                    system.terminate();
+                    return null;
+                });
+    }
+
+    private static Route createStatusRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+                healthCheckingActor, actorSystem);
+
+        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
 

@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.actors;
 
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
-
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -24,7 +19,6 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
-import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
@@ -38,38 +32,28 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActo
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.http.javadsl.ConnectHttp;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import scala.PartialFunction;
 
@@ -121,20 +105,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
-        final CompletionStage<ServerBinding> binding =
-                getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem,
-                        getHealthCheckingActor(connectivityConfig, pubSubMediator));
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint ...");
-                    return theBinding.terminate(Duration.ofSeconds(1))
-                            .handle((httpTerminated, e) -> Done.getInstance());
-                })
-        ).exceptionally(failure -> {
-            log.error("Something very bad happened! " + failure.getMessage(), failure);
-            actorSystem.terminate();
-            return null;
-        });
+        final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig, pubSubMediator);
+        bindHttpStatusRoute(connectivityConfig.getHttpConfig(), healthCheckingActor);
     }
 
     /**
@@ -185,13 +157,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private void startClusterSingletonActor(final Props props, final String name) {
         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
     private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig,
@@ -252,21 +217,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         connectionSupervisorProps,
                         shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
-    }
-
-    private CompletionStage<ServerBinding> getHttpBinding(final HttpConfig httpConfig,
-            final ActorSystem actorSystem,
-            final ActorRef healthCheckingActor) {
-
-        String hostname = httpConfig.getHostname();
-        if (hostname.isEmpty()) {
-            hostname = LocalHostAddressSupplier.getInstance().get();
-            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
-        }
-
-        return Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
     }
 
 }

@@ -63,7 +63,6 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.Route;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
@@ -306,23 +305,22 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             final int prometheusPort = metricsConfig.getPrometheusPort();
             final Route prometheusReporterRoute = PrometheusReporterRoute
                     .buildPrometheusReporterRoute(prometheusReporter);
-            final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem),
-                            ConnectHttp.toHost(prometheusHostname, prometheusPort), actorSystem);
 
-            binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
-                    CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_prometheus_http_endpoint", () -> {
-                        logger.info("Gracefully shutting down Prometheus HTTP endpoint ...");
-                        // prometheus requests don't get the luxury of being processed a long time after shutdown:
-                        return theBinding.terminate(Duration.ofSeconds(1))
-                                .handle((httpTerminated, e) -> Done.getInstance());
+            Http.get(actorSystem)
+                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem),
+                            ConnectHttp.toHost(prometheusHostname, prometheusPort), actorSystem)
+                    .thenAccept(theBinding -> {
+                        // prometheus requests don't get the luxury of being processed a long time after shutdown
+                        theBinding.addToCoordinatedShutdown(Duration.ofSeconds(1), actorSystem);
+                        logger.info("Created new server binding for Kamon Prometheus HTTP endpoint.");
                     })
-            ).exceptionally(failure -> {
-                logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(), failure);
-                logger.error("Terminating ActorSystem!");
-                actorSystem.terminate();
-                return null;
-            });
+                    .exceptionally(failure -> {
+                        logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(),
+                                failure);
+                        logger.error("Terminating ActorSystem!");
+                        actorSystem.terminate();
+                        return null;
+                    });
         }
     }
 

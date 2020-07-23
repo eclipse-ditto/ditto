@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -69,10 +68,8 @@ import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.dispatch.MessageDispatcher;
@@ -162,22 +159,19 @@ final class GatewayRootActor extends DittoRootActor {
 
         httpBinding = Http.get(actorSystem)
                 .bindAndHandle(routeWithLogging.flow(actorSystem),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
-
-        httpBinding.thenAccept(theBinding -> {
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem)
+                .thenApply(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
-                    CoordinatedShutdown.get(actorSystem).addTask(
-                            CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
-                                log.info("Gracefully shutting down user HTTP endpoint ...");
-                                return theBinding.terminate(Duration.ofSeconds(10))
-                                        .handle((httpTerminated, e) -> Done.getInstance());
-                            });
-                }
-        ).exceptionally(failure -> {
-            log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            actorSystem.terminate();
-            return null;
-        });
+                    return theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), actorSystem);
+                })
+                .exceptionally(failure -> {
+                    log.error(failure,
+                            "Could not create the server binding for the Gateway route because of: <{}>",
+                            failure.getMessage());
+                    log.error("Terminating the actor system");
+                    actorSystem.terminate();
+                    return null;
+                });
     }
 
     /**
@@ -199,7 +193,9 @@ final class GatewayRootActor extends DittoRootActor {
                     final ActorRef sender = getSender();
                     httpBinding.thenAccept(binding -> sender.tell(
                             GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
-                }).build().orElse(super.createReceive());
+                })
+                .build()
+                .orElse(super.createReceive());
     }
 
     private static Route createRoute(final ActorSystem actorSystem,

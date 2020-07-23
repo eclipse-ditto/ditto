@@ -12,15 +12,9 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
-
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
-import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.EventSnapshotCleanupCoordinator;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
@@ -28,29 +22,18 @@ import org.eclipse.ditto.services.concierge.starter.proxy.EnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.SingletonStatusReporter;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 
-import akka.Done;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.cluster.Cluster;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.http.javadsl.ConnectHttp;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.server.Route;
 
 /**
  * The root actor of the concierge service.
@@ -85,8 +68,7 @@ public final class ConciergeRootActor extends DittoRootActor {
                         shardRegions));
 
         final ActorRef healthCheckingActor = startHealthCheckingActor(conciergeConfig, cleanupCoordinator);
-
-        bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig());
+        bindHttpStatusRoute(conciergeConfig.getHttpConfig(), healthCheckingActor);
     }
 
     /**
@@ -138,41 +120,6 @@ public final class ConciergeRootActor extends DittoRootActor {
                         SingletonStatusReporter.props(ConciergeMessagingConstants.CLUSTER_ROLE,
                                 cleanupCoordinatorProxy))
         );
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () ->
-                logResult("http-response", statusRoute::buildStatusRoute));
-    }
-
-    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfig httpConfig) {
-
-        String hostname = httpConfig.getHostname();
-        if (hostname.isEmpty()) {
-            hostname = LocalHostAddressSupplier.getInstance().get();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
-        }
-
-        final ActorSystem system = getContext().getSystem();
-
-        final CompletionStage<ServerBinding> binding = Http.get(system)
-                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(system),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), system);
-
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(system).addTask(
-                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint..");
-                    return theBinding.terminate(Duration.ofSeconds(1))
-                            .handle((httpTerminated, e) -> Done.getInstance());
-                })
-        ).exceptionally(failure -> {
-            log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            getContext().system().terminate();
-            return null;
-        });
     }
 
 }

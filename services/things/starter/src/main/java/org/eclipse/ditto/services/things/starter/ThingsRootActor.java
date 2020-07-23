@@ -12,15 +12,9 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.services.models.things.ThingsMessagingConstants.CLUSTER_ROLE;
 
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
-
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
-import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
@@ -29,17 +23,14 @@ import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceOper
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
@@ -47,19 +38,12 @@ import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.http.javadsl.ConnectHttp;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
@@ -134,30 +118,7 @@ public final class ThingsRootActor extends DittoRootActor {
         pubSubMediator.tell(DistPubSubAccess.put(eventStreamingActor), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(snapshotStreamingActor), getSelf());
 
-        final HttpConfig httpConfig = thingsConfig.getHttpConfig();
-        String hostname = httpConfig.getHostname();
-        if (hostname.isEmpty()) {
-            hostname = LocalHostAddressSupplier.getInstance().get();
-            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
-        }
-        final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                .bindAndHandle(
-                        createRoute(actorSystem, healthCheckingActor).flow(actorSystem),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem);
-
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint ...");
-                    return theBinding.terminate(Duration.ofSeconds(1))
-                            .handle((httpTerminated, e) -> Done.getInstance());
-                })
-        );
-        binding.thenAccept(this::logServerBinding)
-                .exceptionally(failure -> {
-                    log.error(failure, "Something very bad happened: {}", failure.getMessage());
-                    actorSystem.terminate();
-                    return null;
-                });
+        bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);
     }
 
     /**
@@ -176,13 +137,6 @@ public final class ThingsRootActor extends DittoRootActor {
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
     }
 
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
-    }
-
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -194,11 +148,6 @@ public final class ThingsRootActor extends DittoRootActor {
         log.info("Sending the namespace stats of the things shard as requested ...");
         Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
-    }
-
-    private void logServerBinding(final ServerBinding serverBinding) {
-        log.info("Bound to address {}:{}", serverBinding.localAddress().getHostString(),
-                serverBinding.localAddress().getPort());
     }
 
     private static Props getThingSupervisorActorProps(
