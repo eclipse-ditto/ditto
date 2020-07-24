@@ -307,8 +307,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                     .buildPrometheusReporterRoute(prometheusReporter);
 
             Http.get(actorSystem)
-                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem),
-                            ConnectHttp.toHost(prometheusHostname, prometheusPort), actorSystem)
+                    .newServerAt(prometheusHostname, prometheusPort)
+                    .bindFlow(prometheusReporterRoute.flow(actorSystem))
                     .thenAccept(theBinding -> {
                         // prometheus requests don't get the luxury of being processed a long time after shutdown
                         theBinding.addToCoordinatedShutdown(Duration.ofSeconds(1), actorSystem);

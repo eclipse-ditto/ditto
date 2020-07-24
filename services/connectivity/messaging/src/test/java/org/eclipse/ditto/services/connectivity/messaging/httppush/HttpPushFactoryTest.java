@@ -235,7 +235,8 @@ public final class HttpPushFactoryTest {
                             return NotUsed.getInstance();
                         });
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), actorSystem)
+                .newServerAt("127.0.0.1", 0)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
     }

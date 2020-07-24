@@ -158,8 +158,8 @@ final class GatewayRootActor extends DittoRootActor {
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
-                .bindAndHandle(routeWithLogging.flow(actorSystem),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), actorSystem)
+                .newServerAt(hostname, httpConfig.getPort())
+                .bindFlow(routeWithLogging.flow(actorSystem))
                 .thenApply(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
                     return theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), actorSystem);

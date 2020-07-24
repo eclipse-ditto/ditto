@@ -170,8 +170,8 @@ public abstract class DittoRootActor extends AbstractActor {
         final ActorSystem system = getContext().getSystem();
 
         Http.get(system)
-                .bindAndHandle(createStatusRoute(system, healthCheckingActor).flow(system),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), system)
+                .newServerAt(hostname, httpConfig.getPort())
+                .bindFlow(createStatusRoute(system, healthCheckingActor).flow(system))
                 .thenAccept(theBinding -> {
                     theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), system);
                     log.info("Created new server binding for the status route.");

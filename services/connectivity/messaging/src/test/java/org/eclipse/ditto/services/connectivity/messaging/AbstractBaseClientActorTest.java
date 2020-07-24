@@ -198,9 +198,8 @@ public abstract class AbstractBaseClientActorTest {
 
         final ActorSystem actorSystem = getActorSystem();
         final ServerBinding binding = Http.get(actorSystem)
-                .bindAndHandle(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()),
-                        ConnectHttp.toHostHttps("127.0.0.1", 0).withCustomHttpsContext(invalidHttpsContext),
-                        actorSystem)
+                .newServerAt("127.0.0.1", 0)
+                .bindFlow(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()))
                 .toCompletableFuture()
                 .join();
 

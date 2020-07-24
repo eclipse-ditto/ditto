@@ -17,7 +17,6 @@ import java.util.function.Consumer;
 
 import akka.Done;
 import akka.stream.KillSwitch;
-import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Implementation of {@link org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream}.

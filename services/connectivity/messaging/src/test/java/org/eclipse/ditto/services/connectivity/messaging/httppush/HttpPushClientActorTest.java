@@ -95,7 +95,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             return responseQueue.take();
         });
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), actorSystem)
+                .newServerAt("127.0.0.1", 0)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
         connection = getHttpConnectionBuilderToLocalBinding(false, binding.localAddress().getPort()).build();
@@ -169,14 +170,14 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .build();
         final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
                 .clientCertificate(credentials);
-        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
+        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.httpsServer(sslContext);
 
         final int port = binding.localAddress().getPort();
         binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler,
-                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(invalidHttpsContext),
-                        actorSystem)
+                .newServerAt("127.0.0.1", port)
+                .enableHttps(invalidHttpsContext)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
 
@@ -207,14 +208,14 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .build();
         final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
                 .clientCertificate(credentials);
-        final HttpsConnectionContext httpsContext = ConnectionContext.https(sslContext);
+        final HttpsConnectionContext httpsContext = ConnectionContext.httpsServer(sslContext);
 
         final int port = binding.localAddress().getPort();
         binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler,
-                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(httpsContext),
-                        actorSystem)
+                .newServerAt("127.0.0.1", port)
+                .enableHttps(httpsContext)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
 
