@@ -1,8 +1,8 @@
-com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.15.2:test
+com.github.dnvriend:akka-persistence-inmemory_2.13:jar:2.5.15.2:test
 com.github.stefanbirkner:system-rules:jar:1.19.0:test
-com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.11:test
-com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.29:test
-com.typesafe.akka:akka-testkit_2.12:jar:2.5.29:test
+com.typesafe.akka:akka-http-testkit_2.13:jar:10.2.0-RC2:test
+com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.8:test
+com.typesafe.akka:akka-testkit_2.13:jar:2.6.8:test
 de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.2.0:test
 de.flapdoodle.embed:de.flapdoodle.embed.process:jar:2.1.2:test
 io.jsonwebtoken:jjwt-orgjson:jar:0.10.7:test
@@ -27,9 +27,9 @@ org.mutabilitydetector:MutabilityDetector:jar:0.10.2:test
 org.objenesis:objenesis:jar:2.6:test
 org.openjdk.jmh:jmh-core:jar:1.21:test
 org.openjdk.jmh:jmh-generator-annprocess:jar:1.21:test
-org.scalactic:scalactic_2.12:jar:3.0.0:test
-org.scala-lang.modules:scala-xml_2.12:jar:1.0.5:test
-org.scalatest:scalatest_2.12:jar:3.0.0:test
-org.scalaz:scalaz-core_2.12:jar:7.2.28:test
+org.scalactic:scalactic_2.13:jar:3.1.2:test
+org.scala-lang.modules:scala-xml_2.13:jar:1.2.0:test
+org.scalatest:scalatest_2.13:jar:3.1.2:test
+org.scalaz:scalaz-core_2.13:jar:7.2.28:test
 org.skyscreamer:jsonassert:jar:1.2.3:test
 org.slf4j:slf4j-simple:jar:1.7.28:test
