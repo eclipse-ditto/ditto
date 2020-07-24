@@ -16,13 +16,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -193,8 +193,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                         .map(param -> thingPlainJsonSupplier.apply((Jsonifiable<?>) param))
                         .log("retrieve-thing-response", log)
                         .recover(new PFBuilder()
-                                .match(NoSuchElementException.class,
-                                        nsee -> overallResponseSupplier.apply(Collections.emptyList()))
+                                .match(NoSuchElementException.class, nsee -> PlainJson.empty())
+                                .match(IllegalStateException.class, ise -> PlainJson.empty())
                                 .build()
                         )
                         .runWith(Sink.seq(), materializer);
@@ -239,9 +239,13 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
         return plainJsonThings -> {
             final Comparator<PlainJson> comparator = (pj1, pj2) -> {
-                final ThingId thingId1 = ThingId.of(pj1.getId());
-                final ThingId thingId2 = ThingId.of(pj2.getId());
-                return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
+                if (!pj1.isEmpty() && !pj2.isEmpty()) {
+                    final ThingId thingId1 = ThingId.of(pj1.getId());
+                    final ThingId thingId2 = ThingId.of(pj2.getId());
+                    return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
+                } else {
+                    return 0;
+                }
             };
 
             final List<PlainJson> sortedList = new ArrayList<>(plainJsonThings);
@@ -255,6 +259,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             @Nullable final String namespace) {
         return plainJsonThings -> RetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
+                .filter(Predicate.not(String::isEmpty))
                 .collect(Collectors.toList()), namespace, dittoHeaders);
     }
 
@@ -262,6 +267,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final DittoHeaders dittoHeaders) {
         return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
+                .filter(Predicate.not(String::isEmpty))
                 .collect(Collectors.toList()), dittoHeaders);
     }
 
@@ -278,8 +284,16 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             this.json = checkNotNull(json, "JSON");
         }
 
+        static PlainJson empty() {
+            return new PlainJson("", "");
+        }
+
         static PlainJson of(final CharSequence id, final String json) {
             return new PlainJson(id, json);
+        }
+
+        boolean isEmpty() {
+            return id.isEmpty() && json.isEmpty();
         }
 
         String getId() {
