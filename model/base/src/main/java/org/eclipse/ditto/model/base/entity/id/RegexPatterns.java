@@ -23,6 +23,10 @@ public final class RegexPatterns {
 
     public static final String NAMESPACE_DELIMITER = ":";
 
+    /**
+     * Should the restrictions be too strict and üöäÜÖÄ and ß should be valid again:
+     * [^\x00-\x1F\x7F-\xC3\xC5-\xD5\xD7-\xDB\xDD-\xDE\xE0-\xE3\xE5-\xF5\xF7-\xFB\xFD-\xFF]
+     */
     public final static String CONTROL_CHARS = "\\x00-\\x1F\\x7F-\\xFF";
 
     public final static String NO_CONTROL_CHARS = "[^" + CONTROL_CHARS + "]";
