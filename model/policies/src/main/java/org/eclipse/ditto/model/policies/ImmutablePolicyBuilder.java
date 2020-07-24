@@ -64,7 +64,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.validation.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ImmutablePolicyBuilder of(final PolicyId id) {
         return new ImmutablePolicyBuilder().setId(id);
@@ -79,7 +79,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is null;
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.validation.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyBuilder of(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         checkNotNull(policyEntries, "initial Policy entries");
@@ -98,7 +98,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @return the new builder.
      * @throws NullPointerException if {@code existingPolicy} is {@code null}.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.validation.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyBuilder of(final Policy existingPolicy) {
         checkNotNull(existingPolicy, "existing Policy");

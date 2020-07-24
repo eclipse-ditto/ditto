@@ -86,7 +86,7 @@ final class ImmutablePolicy implements Policy {
      * @return a new initialised Policy.
      * @throws NullPointerException if {@code entries} is {@code null}.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.validation.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @deprecated Policy ID is now typed. Use
      * {@link #of(PolicyId, PolicyLifecycle, PolicyRevision, java.time.Instant, Iterable)}
      * instead
@@ -135,7 +135,7 @@ final class ImmutablePolicy implements Policy {
      * @throws PolicyEntryInvalidException if an Policy entry does not contain any known permission which evaluates to
      * {@code true} or {@code false}.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.validation.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static Policy fromJson(final JsonObject jsonObject) {
         final PolicyId policyId = jsonObject.getValue(JsonFields.ID).map(PolicyId::of).orElse(null);

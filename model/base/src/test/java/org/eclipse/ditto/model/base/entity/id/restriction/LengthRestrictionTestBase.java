@@ -12,14 +12,12 @@
  */
 package org.eclipse.ditto.model.base.entity.id.restriction;
 
-import org.eclipse.ditto.model.base.entity.validation.AbstractPatternValidator;
-
 /**
  * Base class for tests related to length restrictions of identifiers.
  */
 public abstract class LengthRestrictionTestBase {
 
-    public static final int MAX_LENGTH = AbstractPatternValidator.MAX_LENGTH;
+    protected static final int MAX_LENGTH = 256;
 
     public String generateStringExceedingMaxLength() {
         return generateStringExceedingMaxLength("");
@@ -34,7 +32,7 @@ public abstract class LengthRestrictionTestBase {
     }
 
     public String generateStringWithMaxLength(final String prefix) {
-        return generateStringWithLength(AbstractPatternValidator.MAX_LENGTH, prefix);
+        return generateStringWithLength(MAX_LENGTH, prefix);
     }
 
     public String generateStringWithLength(final int length) {

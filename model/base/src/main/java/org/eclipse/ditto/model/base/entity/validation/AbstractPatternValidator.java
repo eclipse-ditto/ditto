@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
  * This abstract implementation of {@code PatternValidator} validates that a given {@code CharSequence} is valid.
  */
 @Immutable
-public abstract class AbstractPatternValidator implements Validator {
+abstract class AbstractPatternValidator implements Validator {
 
     public final static int MAX_LENGTH = 256;
     protected final CharSequence id;
