@@ -33,7 +33,7 @@ public final class AttributesCreatedStrategyTest extends AbstractStrategyTest {
 
     @Test
     public void appliesEventCorrectly() {
-        final AttributesCreatedStrategy strategy = new AttributesCreatedStrategy();
+        final AttributesCreatedStrategy strategy = new AttributesCreatedStrategy(new NoOpMetadataHandler<>());
         final AttributesCreated event = AttributesCreated.of(THING_ID, ATTRIBUTES, REVISION, DittoHeaders.empty());
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);

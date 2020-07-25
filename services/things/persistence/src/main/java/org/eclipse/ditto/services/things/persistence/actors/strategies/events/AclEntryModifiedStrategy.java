@@ -23,6 +23,14 @@ import org.eclipse.ditto.signals.events.things.AclEntryModified;
 @Immutable
 final class AclEntryModifiedStrategy extends AbstractThingEventStrategy<AclEntryModified> {
 
+    protected AclEntryModifiedStrategy() {
+        super();
+    }
+
+    protected AclEntryModifiedStrategy(MetadataHandler<AclEntryModified> metadataHandler) {
+        super(metadataHandler);
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclEntryModified event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setPermissions(event.getAclEntry());

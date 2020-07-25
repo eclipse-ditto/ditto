@@ -23,6 +23,14 @@ import org.eclipse.ditto.signals.events.things.AttributeCreated;
 @Immutable
 final class AttributeCreatedStrategy extends AbstractThingEventStrategy<AttributeCreated> {
 
+    protected AttributeCreatedStrategy() {
+        super();
+    }
+
+    protected AttributeCreatedStrategy(MetadataHandler<AttributeCreated> metadataHandler) {
+        super(metadataHandler);
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AttributeCreated event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setAttribute(event.getAttributePointer(), event.getAttributeValue());

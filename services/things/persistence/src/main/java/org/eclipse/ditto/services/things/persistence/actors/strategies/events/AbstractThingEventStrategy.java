@@ -16,8 +16,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.things.Metadata;
-import org.eclipse.ditto.model.things.MetadataBuilder;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
@@ -38,11 +36,17 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 @Immutable
 abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements EventStrategy<T, Thing> {
 
+    private final MetadataHandler<T> metadataHandler;
+
     /**
      * Constructs a new {@code AbstractThingEventStrategy} object.
      */
     protected AbstractThingEventStrategy() {
-        super();
+        this(new DefaultMetadataHandler<>());
+    }
+
+    protected AbstractThingEventStrategy(MetadataHandler<T> metadataHandler) {
+        this.metadataHandler = metadataHandler;
     }
 
     @Nullable
@@ -51,8 +55,8 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         if (null != thing) {
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
-                    .setModified(event.getTimestamp().orElse(null))
-                    .setMetadata(JsonPointer.empty(), ThingMetadataFactory.buildFromEvent(event, thing));
+                    .setModified(event.getTimestamp().orElse(null));
+            thingBuilder = metadataHandler.handle(event, thing, thingBuilder);
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }
@@ -72,4 +76,17 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return thingBuilder;
     }
 
+    /**
+     * Default Implementation which uses {@link ThingMetadataFactory} to generate {@code Metadata}
+     * for the Thing.
+     * @param <T> Event Type.
+     */
+    @Immutable
+    private static class DefaultMetadataHandler<T extends ThingEvent<T>> implements MetadataHandler<T> {
+
+        @Override
+        public ThingBuilder.FromCopy handle(T event, Thing thing, ThingBuilder.FromCopy builder) {
+            return builder.setMetadata(JsonPointer.empty(), ThingMetadataFactory.buildFromEvent(event, thing));
+        }
+    }
 }

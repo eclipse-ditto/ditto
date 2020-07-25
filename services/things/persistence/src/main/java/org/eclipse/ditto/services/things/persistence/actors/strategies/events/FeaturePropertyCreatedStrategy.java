@@ -23,6 +23,14 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
 @Immutable
 final class FeaturePropertyCreatedStrategy extends AbstractThingEventStrategy<FeaturePropertyCreated> {
 
+    protected FeaturePropertyCreatedStrategy() {
+        super();
+    }
+
+    protected FeaturePropertyCreatedStrategy(MetadataHandler<FeaturePropertyCreated> metadataHandler) {
+        super(metadataHandler);
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeaturePropertyCreated event,
             final ThingBuilder.FromCopy thingBuilder) {

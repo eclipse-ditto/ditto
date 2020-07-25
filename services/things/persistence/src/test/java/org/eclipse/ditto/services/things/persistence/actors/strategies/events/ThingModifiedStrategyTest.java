@@ -34,7 +34,7 @@ public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
 
     @Test
     public void appliesEventCorrectly() {
-        final ThingModifiedStrategy strategy = new ThingModifiedStrategy();
+        final ThingModifiedStrategy strategy = new ThingModifiedStrategy(new NoOpMetadataHandler<>());
         final ThingModified event = ThingModified.of(THING, REVISION, DittoHeaders.empty());
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);

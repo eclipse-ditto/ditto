@@ -23,6 +23,14 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 @Immutable
 final class FeaturePropertyModifiedStrategy extends AbstractThingEventStrategy<FeaturePropertyModified> {
 
+    protected FeaturePropertyModifiedStrategy() {
+        super();
+    }
+
+    protected FeaturePropertyModifiedStrategy(MetadataHandler<FeaturePropertyModified> metadataHandler) {
+        super(metadataHandler);
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeaturePropertyModified event,
             final ThingBuilder.FromCopy thingBuilder) {

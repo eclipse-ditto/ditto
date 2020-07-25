@@ -33,7 +33,7 @@ public final class PolicyIdModifiedStrategyTest extends AbstractStrategyTest {
 
     @Test
     public void appliesEventCorrectly() {
-        final PolicyIdModifiedStrategy strategy = new PolicyIdModifiedStrategy();
+        final PolicyIdModifiedStrategy strategy = new PolicyIdModifiedStrategy(new NoOpMetadataHandler<>());
         final PolicyIdModified event = PolicyIdModified.of(THING_ID, POLICY_ID, REVISION,
                 DittoHeaders.empty());
 

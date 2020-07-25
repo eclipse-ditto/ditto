@@ -34,7 +34,7 @@ public final class ThingDefinitionCreatedStrategyTest extends AbstractStrategyTe
 
     @Test
     public void appliesEventCorrectly() {
-        final ThingDefinitionCreatedStrategy strategy = new ThingDefinitionCreatedStrategy();
+        final ThingDefinitionCreatedStrategy strategy = new ThingDefinitionCreatedStrategy(new NoOpMetadataHandler<>());
         final ThingDefinitionCreated event = ThingDefinitionCreated.of(THING_ID, THING_DEFINITION, REVISION,
                 DittoHeaders.empty());
 

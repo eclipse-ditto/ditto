@@ -23,6 +23,14 @@ import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 @Immutable
 final class PolicyIdCreatedStrategy extends AbstractThingEventStrategy<PolicyIdCreated> {
 
+    protected PolicyIdCreatedStrategy() {
+        super();
+    }
+
+    protected PolicyIdCreatedStrategy(MetadataHandler<PolicyIdCreated> metadataHandler) {
+        super(metadataHandler);
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final PolicyIdCreated event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setPolicyId(event.getPolicyEntityId());

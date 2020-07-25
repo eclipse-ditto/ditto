@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.things.MetadataBuilder;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -49,7 +50,7 @@ public class ThingMetadataFactory {
      * @param <T> Event Type
      * @return Metadata element
      */
-    public static <T extends ThingEvent<T>> Metadata buildFromEvent(T event, Thing thing) {
+    public static <T extends ThingEvent<T>> Metadata buildFromEvent(final T event, final Thing thing) {
         return buildFromEvent(event, thing, Instant.now().toString());
     }
 
@@ -62,7 +63,7 @@ public class ThingMetadataFactory {
      * @param <T> Event Type
      * @return Metadata element
      */
-    public static <T extends ThingEvent<T>> Metadata buildFromEvent(T event, Thing thing, String issuedAt) {
+    public static <T extends ThingEvent<T>> Metadata buildFromEvent(final T event, final Thing thing, final String issuedAt) {
         // Create Metadata from Header, see https://github.com/eclipse/ditto/issues/680#issuecomment-654165747
         // Use existing Metadata or create a new Builder if none exists
         org.eclipse.ditto.model.things.MetadataBuilder metadataBuilder = thing.getMetadata()

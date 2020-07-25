@@ -23,6 +23,14 @@ import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 @Immutable
 final class ThingDefinitionModifiedStrategy extends AbstractThingEventStrategy<ThingDefinitionModified> {
 
+    protected ThingDefinitionModifiedStrategy() {
+        super();
+    }
+
+    protected ThingDefinitionModifiedStrategy(MetadataHandler<ThingDefinitionModified> metadataHandler) {
+        super(metadataHandler);
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final ThingDefinitionModified event,
             final ThingBuilder.FromCopy thingBuilder) {
