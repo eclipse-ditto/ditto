@@ -147,7 +147,7 @@
 |org.slf4j|slf4j-simple|1.7.28| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.github.siom79.japicmp|japicmp-maven-plugin|0.14.3| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.mycila|license-maven-plugin|3.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|net.alchim31.maven|scala-maven-plugin|4.1.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
+|net.alchim31.maven|scala-maven-plugin|4.4.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.felix|maven-bundle-plugin|4.2.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-assembly-plugin|3.1.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-clean-plugin|2.5| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
