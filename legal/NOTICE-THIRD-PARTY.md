@@ -112,17 +112,17 @@
  * Source: https://github.com/oshi/oshi
 
 
-## akka-persistence-mongo-common (3.0.2)
+## akka-persistence-mongo-common (3.0.3)
 
- * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.13:3.0.2`
+ * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.13:3.0.3`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/scullxbones/akka-persistence-mongo
  * Source: github.com/scullxbones/akka-persistence-mongo
 
 
-## akka-persistence-mongo-scala (3.0.2)
+## akka-persistence-mongo-scala (3.0.3)
 
- * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.13:3.0.2`
+ * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.13:3.0.3`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/scullxbones/akka-persistence-mongo
  * Source: github.com/scullxbones/akka-persistence-mongo
@@ -208,6 +208,14 @@
  * Source: https://github.com/lightbend/config
 
 
+## ssl-config-core (0.3.8)
+
+ * Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.3.8`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://github.com/lightbend/ssl-config
+ * Source: https://github.com/lightbend/ssl-config
+
+
 ## ssl-config-core (0.4.1)
 
  * Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.4.1`
@@ -224,9 +232,25 @@
  * Source: https://github.com/akka/akka
 
 
+## akka-cluster-sharding (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.5.27`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
 ## akka-cluster-sharding (2.6.8)
 
  * Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.8`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-cluster-tools (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.5.27`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
@@ -240,9 +264,25 @@
  * Source: https://github.com/akka/akka
 
 
+## akka-cluster (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.5.27`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
 ## akka-cluster (2.6.8)
 
  * Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.8`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-coordination (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.5.27`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
@@ -256,6 +296,22 @@
  * Source: https://github.com/akka/akka
 
 
+## akka-discovery (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.5.27`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-distributed-data (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.5.27`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
 ## akka-distributed-data (2.6.8)
 
  * Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.8`
@@ -264,25 +320,57 @@
  * Source: https://github.com/akka/akka
 
 
-## akka-http-core (10.2.0)
+## akka-http-core (10.1.11)
 
- * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.0`
+ * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.1.11`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
 
 
-## akka-http (10.2.0)
+## akka-http-core (10.2.0-RC2)
 
- * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.0`
+ * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.0-RC2`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
 
 
-## akka-parsing (10.2.0)
+## akka-http-spray-json (10.1.11)
 
- * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.0`
+ * Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.1.11`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io
+ * Source: https://github.com/akka/akka-http
+
+
+## akka-http (10.1.11)
+
+ * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.1.11`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io
+ * Source: https://github.com/akka/akka-http
+
+
+## akka-http (10.2.0-RC2)
+
+ * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.0-RC2`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io
+ * Source: https://github.com/akka/akka-http
+
+
+## akka-parsing (10.1.11)
+
+ * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.1.11`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io
+ * Source: https://github.com/akka/akka-http
+
+
+## akka-parsing (10.2.0-RC2)
+
+ * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.0-RC2`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
@@ -291,6 +379,14 @@
 ## akka-persistence-query (2.6.8)
 
  * Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.8`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-persistence (2.5.23)
+
+ * Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.5.23`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
@@ -320,6 +416,22 @@
  * Source: https://github.com/akka/akka
 
 
+## akka-protobuf (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-protobuf_2.13:2.5.27`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-remote (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.5.27`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
 ## akka-remote (2.6.8)
 
  * Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.8`
@@ -331,6 +443,22 @@
 ## akka-slf4j (2.6.8)
 
  * Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.8`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-stream (2.5.23)
+
+ * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.5.23`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-stream (2.5.27)
+
+ * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.5.27`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
@@ -360,17 +488,17 @@
  * Source: https://github.com/real-logic/aeron
 
 
-## Metrics Core (4.1.5)
+## Metrics Core (4.1.9)
 
- * Maven coordinates: `io.dropwizard.metrics:metrics-core:4.1.5`
+ * Maven coordinates: `io.dropwizard.metrics:metrics-core:4.1.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://metrics.dropwizard.io/metrics-core
  * Source: https://github.com/dropwizard/metrics/metrics-core/
 
 
-## Metrics Health Checks (4.1.5)
+## Metrics Health Checks (4.1.9)
 
- * Maven coordinates: `io.dropwizard.metrics:metrics-healthchecks:4.1.5`
+ * Maven coordinates: `io.dropwizard.metrics:metrics-healthchecks:4.1.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://metrics.dropwizard.io/metrics-healthchecks
  * Source: https://github.com/dropwizard/metrics/metrics-healthchecks/
@@ -416,52 +544,85 @@
  * Source: https://github.com/kamon-io/Kamon
 
 
-## Netty/Buffer (4.1.48.Final)
+## Netty/Buffer (4.1.50.Final)
 
- * Maven coordinates: `io.netty:netty-buffer:4.1.48.Final`
+ * Maven coordinates: `io.netty:netty-buffer:4.1.50.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-buffer/
  * Source: https://github.com/netty/netty/netty-buffer
 
 
-## Netty/Codec (4.1.48.Final)
+## Netty/Codec (4.1.50.Final)
 
- * Maven coordinates: `io.netty:netty-codec:4.1.48.Final`
+ * Maven coordinates: `io.netty:netty-codec:4.1.50.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-codec/
  * Source: https://github.com/netty/netty/netty-codec
 
 
-## Netty/Common (4.1.48.Final)
+## Netty/Codec/HTTP (4.1.48.Final)
 
- * Maven coordinates: `io.netty:netty-common:4.1.48.Final`
+ * Maven coordinates: `io.netty:netty-codec-http:4.1.48.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://netty.io/netty-codec-http/
+ * Source: https://github.com/netty/netty/netty-codec-http
+
+
+
+## Netty/Common (4.1.50.Final)
+
+ * Maven coordinates: `io.netty:netty-common:4.1.50.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-common/
  * Source: https://github.com/netty/netty/netty-common
 
 
-## Netty/Handler (4.1.48.Final)
+## Netty/Handler (4.1.50.Final)
 
- * Maven coordinates: `io.netty:netty-handler:4.1.48.Final`
+ * Maven coordinates: `io.netty:netty-handler:4.1.50.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-handler/
  * Source: https://github.com/netty/netty/netty-handler
 
 
-## Netty/Resolver (4.1.48.Final)
+## Netty/Resolver (4.1.50.Final)
 
- * Maven coordinates: `io.netty:netty-resolver:4.1.48.Final`
+ * Maven coordinates: `io.netty:netty-resolver:4.1.50.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-resolver/
  * Source: https://github.com/netty/netty/netty-resolver
 
 
-## Netty/Transport (4.1.48.Final)
+## Netty/Transport (4.1.50.Final)
 
- * Maven coordinates: `io.netty:netty-transport:4.1.48.Final`
+ * Maven coordinates: `io.netty:netty-transport:4.1.50.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://netty.io/netty-transport/
  * Source: https://github.com/netty/netty/netty-transport
+
+
+## Netty/Transport/Native/Epoll (4.1.48.Final)
+
+ * Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.48.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://netty.io/netty-transport-native-epoll/
+ * Source: https://github.com/netty/netty/netty-transport-native-epoll
+
+
+## Netty/Transport/Native/KQueue (4.1.48.Final)
+
+ * Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.48.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://netty.io/netty-transport-native-kqueue/
+ * Source: https://github.com/netty/netty/netty-transport-native-kqueue
+
+
+## Netty/Transport/Native/Unix/Common (4.1.48.Final)
+
+ * Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.48.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://netty.io/netty-transport-native-unix-common/
+ * Source: https://github.com/netty/netty/netty-transport-native-unix-common
 
 
 ## RxJava (2.2.19)
@@ -496,17 +657,17 @@
  * Source: https://github.com/java-native-access/jna
 
 
-## metrics4-akka_a25 (4.1.5)
+## metrics4-akka_a25 (4.1.9)
 
- * Maven coordinates: `nl.grons:metrics4-akka_a25_2.13:4.1.5`
+ * Maven coordinates: `nl.grons:metrics4-akka_a25_2.13:4.1.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/erikvanoosten/metrics-scala
  * Source: https://github.com/erikvanoosten/metrics-scala
 
 
-## metrics4-scala (4.1.5)
+## metrics4-scala (4.1.9)
 
- * Maven coordinates: `nl.grons:metrics4-scala_2.13:4.1.5`
+ * Maven coordinates: `nl.grons:metrics4-scala_2.13:4.1.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/erikvanoosten/metrics-scala
  * Source: https://github.com/erikvanoosten/metrics-scala
@@ -544,17 +705,17 @@
  * Source: not declared
 
 
-## Proton-J (0.33.2)
+## Proton-J (0.33.4)
 
- * Maven coordinates: `org.apache.qpid:proton-j:0.33.2`
+ * Maven coordinates: `org.apache.qpid:proton-j:0.33.4`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://qpid.apache.org/proton/proton-j
  * Source: https://gitbox.apache.org/repos/asf?p=qpid-proton-j/proton-j
 
 
-## QpidJMS Client (0.45.0)
+## QpidJMS Client (0.51.0)
 
- * Maven coordinates: `org.apache.qpid:qpid-jms-client:0.45.0`
+ * Maven coordinates: `org.apache.qpid:qpid-jms-client:0.51.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://qpid.apache.org/qpid-jms-client
  * Source: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
@@ -592,17 +753,17 @@
  * Source: https://github.com/mongodb/mongo-java-driver
 
 
-## BSON (3.12.4)
+## BSON (3.12.6)
 
- * Maven coordinates: `org.mongodb:bson:3.12.4`
+ * Maven coordinates: `org.mongodb:bson:3.12.6`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://bsonspec.org
  * Source: https://github.com/mongodb/mongo-java-driver
 
 
-## MongoDB Java Driver (3.12.4)
+## MongoDB Java Driver (3.12.6)
 
- * Maven coordinates: `org.mongodb:mongo-java-driver:3.12.4`
+ * Maven coordinates: `org.mongodb:mongo-java-driver:3.12.6`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://www.mongodb.org
  * Source: https://github.com/mongodb/mongo-java-driver
@@ -624,9 +785,9 @@
  * Source: https://github.com/mongodb/mongo-java-driver
 
 
-## MongoDB Java Driver Core (3.12.4)
+## MongoDB Java Driver Core (3.12.6)
 
- * Maven coordinates: `org.mongodb:mongodb-driver-core:3.12.4`
+ * Maven coordinates: `org.mongodb:mongodb-driver-core:3.12.6`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://www.mongodb.org
  * Source: https://github.com/mongodb/mongo-java-driver
