@@ -568,11 +568,10 @@ public final class ConnectivityModelFactory {
      * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @param label the {@link AcknowledgementLabel} of the new Target
      * @return the created {@link Target}
-     *
      * @since 1.2.0
      */
     public static Target newTarget(final Target target, final String address, @Nullable final Integer qos, final
-            AcknowledgementLabel label) {
+    AcknowledgementLabel label) {
         return newTargetBuilder()
                 .address(address)
                 .originalAddress(target.getOriginalAddress())
@@ -586,7 +585,7 @@ public final class ConnectivityModelFactory {
 
     /**
 
-    /**
+     /**
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published

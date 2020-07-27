@@ -72,7 +72,6 @@ public final class ImmutableJsonFieldTest {
         ImmutableJsonField.newInstance(null, jsonValueMock);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullValue() {
         ImmutableJsonField.newInstance(jsonKeyMock, null);

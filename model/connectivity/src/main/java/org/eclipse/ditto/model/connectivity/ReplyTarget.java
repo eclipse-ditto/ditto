@@ -163,6 +163,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
         /**
          * JSON field containing the expected response types of this reply target.
+         *
          * @since 1.2.0
          */
         public static final JsonFieldDefinition<JsonArray> EXPECTED_RESPONSE_TYPES =

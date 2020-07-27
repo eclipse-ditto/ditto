@@ -73,7 +73,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
      * Returns a new builder already containing a generic message that leading or trailing slashes are not supported for JSON
      * pointers.
      *
-     * @param jsonPointer The JSON pointer containing the consecutive slashes.
+     * @param jsonPointer The JSON pointer containing the leading and/or trailing slashes.
      * @return a builder for {@code JsonPointerInvalidException} objects.
      */
     public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForOuterSlashes(
@@ -81,6 +81,35 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
         return new Builder()
                 .jsonPointer(jsonPointer)
                 .description(OUTER_SLASHES_DESCRIPTION);
+    }
+
+
+    /**
+     * Returns a new builder containing the given message for the given JSON pointers.
+     *
+     * @param jsonPointer The JSON pointer the message is about.
+     * @param description The description to be in the exception.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithDescription(
+            final CharSequence jsonPointer, @Nullable final String description) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(description);
+    }
+
+
+    /**
+     * Returns a new builder already containing a default message that the JSON pointer is no valid.
+     *
+     * @param jsonPointer The JSON pointer the message is about.
+     * @return a builder for {@code JsonPointerInvalidException} objects.
+     */
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithoutDescription(
+            final CharSequence jsonPointer) {
+        return new Builder()
+                .jsonPointer(jsonPointer)
+                .description(DEFAULT_DESCRIPTION);
     }
 
     /**

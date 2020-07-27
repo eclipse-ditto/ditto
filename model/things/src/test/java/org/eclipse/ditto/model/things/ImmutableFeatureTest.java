@@ -44,8 +44,11 @@ public final class ImmutableFeatureTest {
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
 
     private static final String KNOWN_FEATURE_ID = "myFeature";
-    private static final String LEADING_SLASH_FEATURE_ID = "/wrongFeature";
-    private static final String ENDING_SLASH_FEATURE_ID = "wrongFeature/";
+    private static final String LEADING_SLASH_FEATURE_ID = "/myFeature";
+    private static final String ENDING_SLASH_FEATURE_ID = "myFeature/";
+    private static final String SLASH_INBETWEEN_ID = "myFea/ture";
+
+
 
     private static final JsonObject KNOWN_JSON_OBJECT = JsonFactory.newObjectBuilder()
             .set(Feature.JsonFields.SCHEMA_VERSION, KNOWN_SCHEMA_VERSION.toInt())
@@ -101,6 +104,12 @@ public final class ImmutableFeatureTest {
     public void createInstanceWithEndingSlash() {
         assertThatExceptionOfType(JsonPointerInvalidException.class)
                 .isThrownBy(() -> ImmutableFeature.of(ENDING_SLASH_FEATURE_ID, null));
+    }
+
+    @Test
+    public void createInstanceWithInbetweenSlash() {
+        assertThatExceptionOfType(JsonPointerInvalidException.class)
+                .isThrownBy(() -> ImmutableFeature.of(SLASH_INBETWEEN_ID, null));
     }
 
     @Test

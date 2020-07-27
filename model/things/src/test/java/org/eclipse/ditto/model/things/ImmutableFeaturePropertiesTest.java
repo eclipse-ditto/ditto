@@ -22,6 +22,8 @@ import java.io.IOException;
 import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -29,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableFeatureProperties}.
  */
-public final class ImmutableFeaturePropertiesTest {
+public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestBase {
 
 
     @Test
@@ -38,7 +40,6 @@ public final class ImmutableFeaturePropertiesTest {
                 .usingGetClass()
                 .verify();
     }
-
 
     @Test
     public void assertImmutability() {
@@ -53,7 +54,6 @@ public final class ImmutableFeaturePropertiesTest {
         assertThat(properties.toJsonString()).isEqualTo("{}");
     }
 
-
     @Test
     public void ensureFeaturesToBuilderWorks() {
         assertThat(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES).isEqualTo(
@@ -64,5 +64,21 @@ public final class ImmutableFeaturePropertiesTest {
     public void writeValueWritesExpected() throws IOException {
         assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(ImmutableFeatureProperties.of(TestConstants.Thing.ATTRIBUTES))))
                 .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(TestConstants.Thing.ATTRIBUTES)));
+    }
+
+    @Test(expected = JsonPointerInvalidException.class)
+    public void createInvalidPropertyKey() {
+        final String invalidPropertyKey = "invalid/";
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(invalidPropertyKey, "invalidPropertyKey")
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonPointerInvalidException.class)
+    public void createTooLargePropertyKey() {
+        final String tooLargePropertyKey = generateStringExceedingMaxLength();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertyKey, "tooLargePropertyKey")
+                .toBuilder()
+                .build();
     }
 }

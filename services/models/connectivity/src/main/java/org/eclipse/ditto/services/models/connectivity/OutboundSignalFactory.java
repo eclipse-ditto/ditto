@@ -67,7 +67,6 @@ public final class OutboundSignalFactory {
      * @param sender sender of the original signal.
      * @return a multi-mapped outbound signal if the list of mapped signals is not empty.
      * @throws java.lang.IllegalArgumentException if the list of mapped signals is empty.
-     *
      * @since 1.2.0
      */
     public static OutboundSignal.MultiMapped newMultiMappedOutboundSignal(

@@ -15,8 +15,6 @@ package org.eclipse.ditto.model.things;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -29,6 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.entity.validation.FeaturePatternValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -37,7 +36,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableFeature implements Feature {
 
-    private static final Pattern FEATURE_ID_PATTERN = Pattern.compile("^[^/].*[^/]$|[^/]");
     private final String featureId;
     @Nullable private final FeatureDefinition definition;
     @Nullable private final FeatureProperties properties;
@@ -86,10 +84,12 @@ final class ImmutableFeature implements Feature {
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
 
-        final Matcher matcher =
-                FEATURE_ID_PATTERN.matcher(ConditionChecker.checkNotNull(featureId, "ID of the Feature"));
-        if (!matcher.matches()) {
-            throw JsonPointerInvalidException.newBuilderForOuterSlashes(featureId).build();
+        ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+
+        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance(featureId);
+        if (!validator.isValid()) {
+            throw JsonPointerInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
+                    .build();
         }
 
         return new ImmutableFeature(featureId, definition, properties);
