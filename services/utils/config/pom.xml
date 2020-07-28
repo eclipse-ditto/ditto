@@ -50,6 +50,14 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-lease-kubernetes_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-coordination_${scala.version}</artifactId>
+        </dependency>
 
         <!-- ### Testing ### -->
         <dependency>

@@ -187,6 +187,11 @@
                 <artifactId>akka-discovery_${scala.version}</artifactId>
                 <version>${akka.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-coordination_${scala.version}</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
@@ -281,6 +286,11 @@
             <dependency>
                 <groupId>com.lightbend.akka.management</groupId>
                 <artifactId>akka-management-cluster-http_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.management</groupId>
+                <artifactId>akka-lease-kubernetes_${scala.version}</artifactId>
                 <version>${akka-management.version}</version>
             </dependency>
 
