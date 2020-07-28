@@ -110,11 +110,11 @@ public final class RegexPatternsTest {
     }
 
     private void assertFeatureMatches(final String id) {
-        assertMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN.getPattern(), id);
+        assertMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN, id);
     }
 
     private void assertFeatureNotMatches(final String id) {
-        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN.getPattern(), id);
+        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN, id);
     }
 
     @Test
@@ -138,11 +138,11 @@ public final class RegexPatternsTest {
     }
 
     private void assertSubjectMatches(final String subject) {
-        assertMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN.getPattern(), subject);
+        assertMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN, subject);
     }
 
     private void assertSubjectNotMatches(final String subject) {
-        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN.getPattern(), subject);
+        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN, subject);
     }
 
     @Test

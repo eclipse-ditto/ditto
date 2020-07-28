@@ -15,12 +15,12 @@ package org.eclipse.ditto.model.base.entity.validation;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 
 /**
  * This abstract implementation of {@code PatternValidator} validates that a given {@code CharSequence} is valid.
@@ -30,13 +30,21 @@ abstract class AbstractPatternValidator implements Validator {
 
     private static final int MAX_LENGTH = 256;
 
-    protected final CharSequence id;
-    private final RegexPatterns.PatternWithMessage pattern;
+    private final CharSequence id;
+    private final Pattern pattern;
+    private final String patternErrorMessage;
     @Nullable private String reason = null;
 
-    protected AbstractPatternValidator(final CharSequence id, final RegexPatterns.PatternWithMessage pattern) {
+    /**
+     * @param id the char sequence that is validated
+     * @param pattern the pattern against which the id is validated
+     * @param patternErrorMessage the error message used to describe a pattern mismatch
+     */
+    protected AbstractPatternValidator(final CharSequence id, final Pattern pattern, final String patternErrorMessage) {
         this.id = id;
         this.pattern = requireNonNull(pattern, "The pattern to be validated against must not be null!");
+        this.patternErrorMessage =
+                requireNonNull(patternErrorMessage, "The message describing a mismatch must not be null!");
     }
 
     @Override
@@ -45,8 +53,8 @@ abstract class AbstractPatternValidator implements Validator {
             reason = String.format("Not allowed to exceed length of %d.", MAX_LENGTH);
             return false;
         }
-        if (!pattern.getPattern().matcher(id).matches()) {
-            reason = pattern.getMessage();
+        if (!pattern.matcher(id).matches()) {
+            reason = patternErrorMessage;
             return false;
         }
         return true;

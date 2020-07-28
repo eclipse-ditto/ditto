@@ -28,7 +28,7 @@ public final class RegexPatterns {
 
     /**
      * Contains control characters.
-     *
+     * <p>
      * Should the restrictions be too strict and üöäÜÖÄ and ß should be valid again:
      * [^\x00-\x1F\x7F-\xC3\xC5-\xD5\xD7-\xDB\xDD-\xDE\xE0-\xE3\xE5-\xF5\xF7-\xFB\xFD-\xFF]
      *
@@ -123,63 +123,21 @@ public final class RegexPatterns {
     public static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
     /**
-     * Pattern with error message for string which a namespaced entity ID has to conform to.
+     * Pattern for string which may not contain control characters.
      *
      * @since 1.2.0
      */
-    public static final PatternWithMessage ENTITY_ID_PATTERN = PatternWithMessage.of(
-            ID_PATTERN,
-            "The given identifier is not valid.");
+    public static final Pattern NO_CONTROL_CHARS_PATTERN = Pattern.compile("^" + NO_CONTROL_CHARS + "+$");
 
     /**
-     * Pattern with error message for string which may not contain control characters.
+     * Pattern for string which may not contain control characters and no slashes.
      *
      * @since 1.2.0
      */
-    public static final PatternWithMessage NO_CONTROL_CHARS_PATTERN = PatternWithMessage.of(
-            Pattern.compile("^" + NO_CONTROL_CHARS + "+$"),
-            "No control characters are allowed.");
-
-    /**
-     * Pattern with error message for string which may not contain control characters and no slashes.
-     *
-     * @since 1.2.0
-     */
-    public static final PatternWithMessage NO_CONTROL_CHARS_NO_SLASHES_PATTERN = PatternWithMessage.of(
-            Pattern.compile("^" + NO_CONTROL_CHARS_NO_SLASHES + "+$"),
-            "Neither slashes nor any control characters are allowed as part of the JSON key.");
-
+    public static final Pattern NO_CONTROL_CHARS_NO_SLASHES_PATTERN =
+            Pattern.compile("^" + NO_CONTROL_CHARS_NO_SLASHES + "+$");
 
     private RegexPatterns() {
         throw new AssertionError();
-    }
-
-    /**
-     * Wraps a compiled {@link Pattern} and an error message that can be used in an exception if the pattern did not
-     * match.
-     *
-     * @since 1.2.0
-     */
-    public static class PatternWithMessage {
-
-        private final Pattern pattern;
-        private final String message;
-
-        private PatternWithMessage(final Pattern pattern, final String message) {
-            this.pattern = pattern;
-            this.message = message;
-        }
-
-        public static PatternWithMessage of(final Pattern pattern, final String message) {
-            return new PatternWithMessage(pattern, message);
-        }
-
-        public Pattern getPattern() {
-            return pattern;
-        }
-
-        public String getMessage() {
-            return message;
-        }
     }
 }

@@ -25,12 +25,16 @@ import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 @Immutable
 public final class NoControlCharactersValidator extends AbstractPatternValidator {
 
+    /**
+     * @param id the char sequence that is validated
+     * @return new instance of {@link NoControlCharactersValidator}
+     */
     public static NoControlCharactersValidator getInstance(final CharSequence id) {
         return new NoControlCharactersValidator(id);
     }
 
     protected NoControlCharactersValidator(final CharSequence id) {
-        super(id, RegexPatterns.NO_CONTROL_CHARS_PATTERN);
+        super(id, RegexPatterns.NO_CONTROL_CHARS_PATTERN, "No control characters are allowed.");
     }
 
 }

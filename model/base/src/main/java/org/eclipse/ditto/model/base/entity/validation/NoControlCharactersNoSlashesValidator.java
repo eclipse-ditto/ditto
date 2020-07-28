@@ -26,11 +26,16 @@ import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 @Immutable
 public final class NoControlCharactersNoSlashesValidator extends AbstractPatternValidator {
 
+    /**
+     * @param id the char sequence that is validated
+     * @return new instance of {@link NoControlCharactersNoSlashesValidator}
+     */
     public static NoControlCharactersNoSlashesValidator getInstance(final CharSequence id) {
         return new NoControlCharactersNoSlashesValidator(id);
     }
 
     protected NoControlCharactersNoSlashesValidator(final CharSequence id) {
-        super(id, RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN);
+        super(id, RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN,
+                "Neither slashes nor any control characters are allowed.");
     }
 }
