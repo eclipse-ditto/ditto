@@ -7,6 +7,13 @@ topnav: topnav
 
 This page contains a collection of presentations, videos and workshops about Eclipse Ditto, sorted from most recent ones downwards.
 
+## 28.07.2020 Eclipse IoT WorkingGroup status update
+
+Topic: Eclipse Ditto: Eclipse IoT WG status update
+
+The slides can be found here: [2020_07_28-iot-wg-status-update](slides/2020_07_28-iot-wg-status-update/index.html).
+
+
 ## 16.04.2020 The Things Network Virtual Conference 2020 #StayHome
 
 Topic: Eclipse Ditto: Digital Twins as part of an open IoT platform
