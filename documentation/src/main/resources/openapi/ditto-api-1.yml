@@ -1990,6 +1990,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
         '429':
@@ -2055,6 +2070,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
         '503':
@@ -2109,6 +2139,21 @@ paths:
         '403':
           description: |-
             The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
           content:
             application/json:
               schema:
@@ -2172,6 +2217,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
         '503':
@@ -2227,6 +2287,21 @@ paths:
         '403':
           description: |-
             The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
           content:
             application/json:
               schema:
