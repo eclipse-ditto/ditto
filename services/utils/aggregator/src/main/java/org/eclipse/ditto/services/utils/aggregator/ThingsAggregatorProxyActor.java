@@ -46,6 +46,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -150,7 +151,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         Patterns.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
                     if (response instanceof SourceRef) {
-                        handleSourceRef((SourceRef) response, thingIds, command, sender);
+                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender);
                     } else if (response instanceof DittoRuntimeException) {
                         sender.tell(response, getSelf());
                     } else {
@@ -166,7 +167,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 });
     }
 
-    private void handleSourceRef(final SourceRef sourceRef, final List<ThingId> thingIds,
+    private void handleSourceRef(final SourceRef<?> sourceRef, final List<ThingId> thingIds,
             final Command<?> originatingCommand, final ActorRef originatingSender) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
@@ -185,16 +186,25 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .tag("size", Integer.toString(thingIds.size()))
                 .build();
 
+        final Source<Jsonifiable<?>, NotUsed> thingNotAccessibleExceptionSource = Source.single(
+                ThingNotAccessibleException.fromMessage("Thing could not be accessed.", DittoHeaders.empty())
+        );
+
         final CompletionStage<List<PlainJson>> o =
-                (CompletionStage<List<PlainJson>>) sourceRef.getSource()
-                        .orElse(Source.single(ThingNotAccessibleException.fromMessage("Thing could not be accessed.",
-                                DittoHeaders.empty())))
+                sourceRef.getSource()
+                        .<Jsonifiable<?>>map(Jsonifiable.class::cast)
+                        .orElse(thingNotAccessibleExceptionSource)
                         .filterNot(el -> el instanceof DittoRuntimeException)
-                        .map(param -> thingPlainJsonSupplier.apply((Jsonifiable<?>) param))
+                        .map(thingPlainJsonSupplier::apply)
                         .log("retrieve-thing-response", log)
-                        .recover(new PFBuilder()
-                                .match(NoSuchElementException.class, nsee -> PlainJson.empty())
-                                .match(IllegalStateException.class, ise -> PlainJson.empty())
+                        .recoverWithRetries(1, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
+                                .match(NoSuchElementException.class, nsee -> Source.single(PlainJson.empty()))
+                                .match(IllegalStateException.class, ise -> {
+                                    // TODO: remove this workaround after akka/akka#28852 is resolved.
+                                    // It prevents spurious failures due to upstream crashing but also
+                                    // hides legitimate errors.
+                                    return Source.single(PlainJson.empty());
+                                })
                                 .build()
                         )
                         .runWith(Sink.seq(), materializer);
