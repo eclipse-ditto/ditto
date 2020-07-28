@@ -455,12 +455,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     LOGGER.withCorrelationId(connectionCorrelationId)
                                             .info("WebSocket connection terminated because JWT expired!");
                                     return Source.empty();
-                                }).match(GatewayWebsocketSessionClosedException.class,
+                                })
+                        .match(GatewayWebsocketSessionClosedException.class,
                                 ex -> {
                                     LOGGER.withCorrelationId(connectionCorrelationId).info("WebSocket connection" +
                                             " terminated because authorization context changed!");
                                     return Source.empty();
                                 })
+                        .match(DittoRuntimeException.class, ex -> Source.single(SessionedJsonifiable.error(ex)))
                         .build());
 
         final Flow<DittoRuntimeException, SessionedJsonifiable, NotUsed> errorFlow =
