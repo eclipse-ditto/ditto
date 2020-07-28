@@ -19,7 +19,7 @@ The namespace must conform to the following notation:
 	
 When writing a Java application, you can use the following regex to validate your namespaces: <br/>
     ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+))``
-    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java#L42)).
+    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java)).
 	
 Examples for valid namespaces:
 * `org.eclipse.ditto`,
@@ -36,7 +36,7 @@ The name must conform to the following notation:
 When writing a Java application, you can use the following regex to validate your thing name: <br/>
     ``(?<name>(?:[[^\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)``
     ``(!"$%&()=?`*+~'#_-:.;,|<>\{}[]^)`` 
-    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java#L90)).
+    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java)).
 
 Examples for valid names:
     * `ditto`,
@@ -55,7 +55,7 @@ A namespaced ID must conform to the following expectations:
 
 When writing a Java application, you can use the following regex to validate your namespaced IDs: <br/>
 	``(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a...\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)`` 
-	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java#L97)).
+	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java)).
 
 Examples for valid IDs:
 * `org.eclipse.ditto:smart-coffee-1`,

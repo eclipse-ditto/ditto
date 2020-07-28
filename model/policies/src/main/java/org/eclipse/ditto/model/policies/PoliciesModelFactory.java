@@ -31,7 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.validation.ResourcePatternValidator;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersValidator;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
@@ -227,7 +228,7 @@ public final class PoliciesModelFactory {
 
         argumentNotEmpty(typeWithPath, "typeWithPath");
 
-        final ResourcePatternValidator validator = ResourcePatternValidator.getInstance(typeWithPath);
+        final Validator validator = NoControlCharactersValidator.getInstance(typeWithPath);
         if (!validator.isValid()) {
             throw PolicyEntryInvalidException.newBuilder()
                     .message("The Policy Resource " + typeWithPath + " is invalid")

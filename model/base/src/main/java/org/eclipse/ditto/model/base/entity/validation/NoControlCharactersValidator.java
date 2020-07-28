@@ -17,18 +17,20 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 
 /**
- * Validator capable of validating {@code Entity} identifiers via pattern {@link RegexPatterns#ENTITY_ID_PATTERN}.
+ * Validator capable of validating char sequences via the pattern {@link RegexPatterns#NO_CONTROL_CHARS_PATTERN} in
+ * order to validate that they do not contain control characters as defined in {@link RegexPatterns#CONTROL_CHARS}.
  *
  * @since 1.2.0
  */
 @Immutable
-public final class EntityIdPatternValidator extends AbstractPatternValidator {
+public final class NoControlCharactersValidator extends AbstractPatternValidator {
 
-    public static EntityIdPatternValidator getInstance(final CharSequence id) {
-        return new EntityIdPatternValidator(id);
+    public static NoControlCharactersValidator getInstance(final CharSequence id) {
+        return new NoControlCharactersValidator(id);
     }
 
-    EntityIdPatternValidator(final CharSequence id) {
-        super(id, RegexPatterns.ENTITY_ID_PATTERN);
+    protected NoControlCharactersValidator(final CharSequence id) {
+        super(id, RegexPatterns.NO_CONTROL_CHARS_PATTERN);
     }
+
 }
