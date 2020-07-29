@@ -21,13 +21,14 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.entity.validation.FeaturePatternValidator;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -54,6 +55,8 @@ final class ImmutableFeature implements Feature {
      * @param featureId the ID.
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ImmutableFeature of(final String featureId) {
         return of(featureId, null, null);
@@ -66,6 +69,8 @@ final class ImmutableFeature implements Feature {
      * @param properties the properties. Can also be {@code null}.
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureProperties properties) {
         return of(featureId, null, properties);
@@ -79,16 +84,17 @@ final class ImmutableFeature implements Feature {
      * @param properties the properties or {@code null}.
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
-     * @throws JsonPointerInvalidException if {@code featureId} starts or ends with slashes.
+     * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
 
         ConditionChecker.checkNotNull(featureId, "ID of the Feature");
 
-        final FeaturePatternValidator validator = FeaturePatternValidator.getInstance(featureId);
+        final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(featureId);
         if (!validator.isValid()) {
-            throw JsonPointerInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
+            throw JsonKeyInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
                     .build();
         }
 

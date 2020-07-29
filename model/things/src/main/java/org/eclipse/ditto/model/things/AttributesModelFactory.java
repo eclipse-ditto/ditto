@@ -18,10 +18,8 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
-import org.eclipse.ditto.model.base.entity.validation.AttributePatternValidator;
 
 /**
  * Factory that creates new {@code attributes} objects.
@@ -60,18 +58,14 @@ public final class AttributesModelFactory {
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code Attributes}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws JsonPointerInvalidException if an attribute name in the contained {@code jsonObject} was not valid
+     * according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Attributes newAttributes(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            for (JsonKey key: jsonObject.getKeys()) {
-                final AttributePatternValidator validator = AttributePatternValidator.getInstance(key);
-                if (!validator.isValid()) {
-                    throw JsonPointerInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
-                            .build();
-                }
-            }
             return ImmutableAttributes.of(jsonObject);
         } else {
             return nullAttributes();

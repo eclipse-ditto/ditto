@@ -83,35 +83,6 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
                 .description(OUTER_SLASHES_DESCRIPTION);
     }
 
-
-    /**
-     * Returns a new builder containing the given message for the given JSON pointers.
-     *
-     * @param jsonPointer The JSON pointer the message is about.
-     * @param description The description to be in the exception.
-     * @return a builder for {@code JsonPointerInvalidException} objects.
-     */
-    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithDescription(
-            final CharSequence jsonPointer, @Nullable final String description) {
-        return new Builder()
-                .jsonPointer(jsonPointer)
-                .description(description);
-    }
-
-
-    /**
-     * Returns a new builder already containing a default message that the JSON pointer is no valid.
-     *
-     * @param jsonPointer The JSON pointer the message is about.
-     * @return a builder for {@code JsonPointerInvalidException} objects.
-     */
-    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderWithoutDescription(
-            final CharSequence jsonPointer) {
-        return new Builder()
-                .jsonPointer(jsonPointer)
-                .description(DEFAULT_DESCRIPTION);
-    }
-
     /**
      * A mutable builder for a {@code JsonPointerInvalidException}.
      */
