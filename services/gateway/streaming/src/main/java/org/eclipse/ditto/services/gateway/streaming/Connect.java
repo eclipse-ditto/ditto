@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 
-import akka.actor.ActorRef;
 import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
