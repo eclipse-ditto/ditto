@@ -113,4 +113,15 @@ public final class ImmutableJsonFieldSelectorTest {
         assertThat(underTest1.toString()).isEqualTo(inputJsonFieldSelector);
     }
 
+    @Test
+    public void concatenatingJsonPointers() {
+        final JsonFieldSelector jsonFieldSelectorA = JsonFieldSelector.newInstance("/thingId", "features/test/properties/A");
+        final JsonFieldSelector jsonFieldSelectorB = JsonFieldSelector.newInstance("features/test/properties/B");
+
+        final JsonFieldSelector newFieldSelector = jsonFieldSelectorA.concat(jsonFieldSelectorB);
+
+        assertThat(newFieldSelector.getPointers()).hasSize(3);
+        assertThat(newFieldSelector.getPointers()).containsAll(jsonFieldSelectorA.getPointers());
+        assertThat(newFieldSelector.getPointers()).containsAll(jsonFieldSelectorB.getPointers());
+    }
 }

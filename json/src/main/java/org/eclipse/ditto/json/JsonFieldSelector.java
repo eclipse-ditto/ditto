@@ -72,4 +72,13 @@ public interface JsonFieldSelector extends Iterable<JsonPointer> {
     @Override
     String toString();
 
+    /**
+     * Creates a new JsonFieldSelector which contains the json pointers of this instance and the pointers of the
+     * given JsonFieldSelector in the parameters.
+     *
+     * @param jsonFieldSelector The field selector to append to this selector.
+     * @return The new instance with json pointers of both selectors.
+     */
+    JsonFieldSelector concat(JsonFieldSelector jsonFieldSelector);
+
 }

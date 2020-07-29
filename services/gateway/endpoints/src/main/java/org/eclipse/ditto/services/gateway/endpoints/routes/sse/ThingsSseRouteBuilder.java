@@ -230,8 +230,18 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         @Nullable final String filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
-        @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final JsonFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
+        @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
+        @Nullable final JsonFieldSelector fieldsWithExtraFields;
+        if (fields == null) {
+            fieldsWithExtraFields = null;
+        } else if (extraFields == null) {
+            fieldsWithExtraFields = fields;
+        } else {
+            fieldsWithExtraFields = fields.concat(extraFields);
+        }
+
+
         final SignalEnrichmentFacade facade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
@@ -276,7 +286,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 return NotUsed.getInstance();
                             })
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
-                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fields))
+                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fieldsWithExtraFields))
                             .mapConcat(jsonObjects -> jsonObjects)
                             .map(jsonValue -> {
                                 THINGS_SSE_COUNTER.increment();

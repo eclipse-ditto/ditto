@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -108,6 +109,14 @@ final class ImmutableJsonFieldSelector implements JsonFieldSelector {
     @Override
     public Iterator<JsonPointer> iterator() {
         return pointers.iterator();
+    }
+
+    @Override
+    public JsonFieldSelector concat(final JsonFieldSelector jsonFieldSelector) {
+
+        final HashSet<JsonPointer> newPointers = new HashSet<>(pointers);
+        newPointers.addAll(jsonFieldSelector.getPointers());
+        return of(newPointers);
     }
 
     @Override
