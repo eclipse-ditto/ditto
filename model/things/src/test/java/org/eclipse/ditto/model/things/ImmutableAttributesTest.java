@@ -22,7 +22,9 @@ import java.io.IOException;
 import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,7 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableAttributes}.
  */
-public final class ImmutableAttributesTest {
+public final class ImmutableAttributesTest extends LengthRestrictionTestBase {
 
     private static final int KNOWN_INT_42 = 42;
 
@@ -45,8 +47,8 @@ public final class ImmutableAttributesTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableAttributes.class, //
-                areImmutable(), //
+        assertInstancesOf(ImmutableAttributes.class,
+                areImmutable(),
                 provided(JsonObject.class).isAlsoImmutable());
     }
 
@@ -146,5 +148,47 @@ public final class ImmutableAttributesTest {
     public void writeValueWritesExpected() throws IOException {
         assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(ImmutableAttributes.of(KNOWN_JSON_OBJECT))))
                 .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(KNOWN_JSON_OBJECT)));
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidAttributeKey() {
+        final String invalidAttributeKey = "invalid/";
+        TestConstants.Thing.ATTRIBUTES.setValue(invalidAttributeKey, "invalidAttributeKey")
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidNestedAttributeKey() {
+        final String validAttributeKey = "valid";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set("foo/", "bar")
+                .build();
+        TestConstants.Thing.ATTRIBUTES.setValue(validAttributeKey, invalidJsonObject)
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidNestedNestedAttributeKey() {
+        final String validAttributeKey = "valid";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set("foo/", "bar")
+                .build();
+        final JsonObject validJsonObject = JsonObject.newBuilder()
+                .set("foo", "bar")
+                .set("invalid", invalidJsonObject)
+                .build();
+        TestConstants.Thing.ATTRIBUTES.setValue(validAttributeKey, validJsonObject)
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createTooLargePropertyKey() {
+        final String tooLargePropertyKey = generateStringExceedingMaxLength();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertyKey, "tooLargePropertyKey")
+                .toBuilder()
+                .build();
     }
 }

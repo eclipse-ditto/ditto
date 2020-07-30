@@ -18,8 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.junit.Test;
@@ -95,7 +95,7 @@ public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
     }
 
 
-    @Test(expected = JsonPointerInvalidException.class)
+    @Test(expected = JsonKeyInvalidException.class)
     public void createInvalidFeatureId() {
         final String invalidFeatureId = "invalidFeatureId/";
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
@@ -105,7 +105,7 @@ public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
         ThingsModelFactory.newFeatures(jsonObject);
     }
 
-    @Test(expected = JsonPointerInvalidException.class)
+    @Test(expected = JsonKeyInvalidException.class)
     public void createTooLargeFeatureId() {
         final String invalidFeatureId = generateStringExceedingMaxLength();
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
@@ -115,7 +115,7 @@ public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
         ThingsModelFactory.newFeatures(jsonObject);
     }
 
-    @Test(expected = JsonPointerInvalidException.class)
+    @Test(expected = JsonKeyInvalidException.class)
     public void createInvalidAttribute() {
         final String invalidAttribute = "invalidAttribute/";
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
@@ -125,7 +125,7 @@ public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
         ThingsModelFactory.newAttributes(jsonObject);
     }
 
-    @Test(expected = JsonPointerInvalidException.class)
+    @Test(expected = JsonKeyInvalidException.class)
     public void createTooLargeAttribute() {
         final String invalidAttribute = generateStringExceedingMaxLength();
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()

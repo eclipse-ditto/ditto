@@ -79,6 +79,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
+     * @throws JsonKeyInvalidException if the JSON {@code key} was not valid.
      */
     JsonObject setValue(CharSequence key, int value);
 
@@ -94,6 +95,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
+     * @throws JsonKeyInvalidException if the JSON {@code key} was not valid.
      */
     JsonObject setValue(CharSequence key, long value);
 
@@ -109,6 +111,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
+     * @throws JsonKeyInvalidException if the JSON {@code key} was not valid.
      */
     JsonObject setValue(CharSequence key, double value);
 
@@ -123,6 +126,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
+     * @throws JsonKeyInvalidException if the JSON {@code key} was not valid.
      */
     JsonObject setValue(CharSequence key, boolean value);
 
@@ -137,6 +141,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
+     * @throws JsonKeyInvalidException if the JSON {@code key} was not valid.
      */
     JsonObject setValue(CharSequence key, String value);
 
@@ -151,6 +156,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
+     * @throws JsonKeyInvalidException if the JSON {@code key} was not valid.
      */
     JsonObject setValue(CharSequence key, JsonValue value);
 
@@ -165,8 +171,9 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @return a copy of this object with the value set at the pointer defined location.
      * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
      * @throws IllegalArgumentException if the pointer of {@code fieldDefinition} is empty.
+     * @throws JsonKeyInvalidException if the JSON key in the passed {@code fieldDefinition} was not valid.
      */
-    <T> JsonObject set(JsonFieldDefinition<T> fieldDefinition, @Nullable final T value);
+    <T> JsonObject set(JsonFieldDefinition<T> fieldDefinition, @Nullable T value);
 
     /**
      * Sets the specified field to a copy of this object. A previous field with the same key is replaced.
@@ -174,6 +181,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @param field the field to be set.
      * @return a copy of this object with the field set.
      * @throws NullPointerException if {@code field} is {@code null}.
+     * @throws JsonKeyInvalidException if the JSON key in the passed {@code jsonField} was not valid.
      */
     JsonObject set(JsonField field);
 
@@ -184,6 +192,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @param jsonFields the fields to set.
      * @return a new JSON object extended by the specified fields.
      * @throws NullPointerException if {@code jsonFields} is null.
+     * @throws JsonKeyInvalidException if a JSON key in the passed {@code jsonFields} was not valid.
      */
     JsonObject setAll(Iterable<JsonField> jsonFields);
 

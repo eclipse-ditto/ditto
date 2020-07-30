@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,8 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-package org.eclipse.ditto.model.base.entity.validation;
+package org.eclipse.ditto.model.base.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,11 +18,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.model.base.entity.id.RegexPatterns;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns}.
+ * Unit test for {@link RegexPatterns}.
  */
 public final class RegexPatternsTest {
 
@@ -112,11 +110,11 @@ public final class RegexPatternsTest {
     }
 
     private void assertFeatureMatches(final String id) {
-        assertMatches(RegexPatterns.FEATURE_PATTERN.getPattern(), id);
+        assertMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN, id);
     }
 
     private void assertFeatureNotMatches(final String id) {
-        assertNotMatches(RegexPatterns.FEATURE_PATTERN.getPattern(), id);
+        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN, id);
     }
 
     @Test
@@ -140,11 +138,11 @@ public final class RegexPatternsTest {
     }
 
     private void assertSubjectMatches(final String subject) {
-        assertMatches(RegexPatterns.SUBJECT_PATTERN.getPattern(), subject);
+        assertMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN, subject);
     }
 
     private void assertSubjectNotMatches(final String subject) {
-        assertNotMatches(RegexPatterns.SUBJECT_PATTERN.getPattern(), subject);
+        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN, subject);
     }
 
     @Test

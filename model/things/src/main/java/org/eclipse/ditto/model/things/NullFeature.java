@@ -20,10 +20,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 
@@ -47,6 +50,13 @@ final class NullFeature implements Feature {
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     public static NullFeature of(final String featureId) {
+        ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+
+        final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(featureId);
+        if (!validator.isValid()) {
+            throw JsonKeyInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
+                    .build();
+        }
         return new NullFeature(featureId);
     }
 

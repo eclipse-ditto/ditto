@@ -21,8 +21,8 @@ import java.io.IOException;
 
 import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.CborFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
@@ -66,7 +66,7 @@ public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestB
                 .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(TestConstants.Thing.ATTRIBUTES)));
     }
 
-    @Test(expected = JsonPointerInvalidException.class)
+    @Test(expected = JsonKeyInvalidException.class)
     public void createInvalidPropertyKey() {
         final String invalidPropertyKey = "invalid/";
         TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(invalidPropertyKey, "invalidPropertyKey")
@@ -74,7 +74,33 @@ public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestB
                 .build();
     }
 
-    @Test(expected = JsonPointerInvalidException.class)
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidNestedPropertyKey() {
+        final String validPropertyKey = "valid";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set("foo/", "bar")
+                .build();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(validPropertyKey, invalidJsonObject)
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidNestedNestedPropertyKey() {
+        final String validPropertyKey = "valid";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set("foo/", "bar")
+                .build();
+        final JsonObject validJsonObject = JsonObject.newBuilder()
+                .set("foo", "bar")
+                .set("invalid", invalidJsonObject)
+                .build();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(validPropertyKey, validJsonObject)
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
     public void createTooLargePropertyKey() {
         final String tooLargePropertyKey = generateStringExceedingMaxLength();
         TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertyKey, "tooLargePropertyKey")
