@@ -19,6 +19,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
+/**
+ * @param <T>
+ * @deprecated no longer used in any of Ditto's classes
+ */
+@Deprecated
 public abstract class AbstractEventRegistry<T extends Event> extends AbstractJsonParsableRegistry<T>
         implements EventRegistry<T> {
 

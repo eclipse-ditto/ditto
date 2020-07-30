@@ -17,7 +17,9 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
@@ -27,7 +29,7 @@ public final class GlobalMappingStrategies extends MappingStrategies {
 
     @Nullable private static GlobalMappingStrategies instance = null;
 
-    private GlobalMappingStrategies(final Map<String, MappingStrategy> mappingStrategies) {
+    private GlobalMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> mappingStrategies) {
         super(mappingStrategies);
     }
 

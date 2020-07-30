@@ -16,13 +16,16 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.signals.base.JsonParsable;
+
 /**
  * Default implementation of {@link MappingStrategies}.
  */
 @Immutable
 final class DefaultMappingStrategies extends MappingStrategies {
 
-    private DefaultMappingStrategies(final Map<String, MappingStrategy> strategies) {
+    private DefaultMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
         super(strategies);
     }
 
@@ -33,7 +36,7 @@ final class DefaultMappingStrategies extends MappingStrategies {
      * @return the instance.
      * @throws NullPointerException if {@code strategies} is {@code null}.
      */
-    public static DefaultMappingStrategies of(final Map<String, MappingStrategy> strategies) {
+    public static DefaultMappingStrategies of(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
         return new DefaultMappingStrategies(strategies);
     }
 
