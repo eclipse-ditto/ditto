@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.persistence;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
@@ -92,6 +93,7 @@ public final class TestConstants {
                     .forLabel(SUPPORT_LABEL)
                     .setSubject(SUPPORT_SUBJECT)
                     .setRevokedPermissions(FEATURES_RESOURCE_KEY, PERMISSION_READ, PERMISSION_WRITE)
+                    .setModified(Instant.now())
                     .build();
         }
 

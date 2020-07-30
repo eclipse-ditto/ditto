@@ -121,7 +121,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasPolicyId(final String expectedPolicyId) {
         isNotNull();
 
-        final Optional<String> optionalPolicyId = actual.getPolicyId();
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
 
         assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
                 .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
@@ -212,9 +212,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         if (accessControlListOptional.isPresent()) {
             isHasAclEntry = accessControlListOptional.get()
                     .stream()
-                    .filter(actualAclEntry -> Objects.equals(actualAclEntry, expectedAclEntry))
-                    .findAny()
-                    .isPresent();
+                    .anyMatch(actualAclEntry -> Objects.equals(actualAclEntry, expectedAclEntry));
         }
 
         assertThat(isHasAclEntry)
@@ -529,6 +527,41 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         assertThat(actualmodifiedOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a modified but it had <%s>",
                         actualmodifiedOptional.orElse(null))
+                .isFalse();
+
+        return this;
+    }
+
+    public ThingAssert isCreated() {
+        isNotNull();
+        final Optional<Instant> actualCreated = actual.getCreated();
+        assertThat(actualCreated)
+                .overridingErrorMessage("Expected Thing to be created but it was not")
+                .isPresent();
+        return this;
+    }
+
+    public ThingAssert hasCreated(final Instant expectedCreated) {
+        isNotNull();
+
+        final Optional<Instant> createdOptional = actual.getCreated();
+
+        assertThat(createdOptional)
+                .overridingErrorMessage("Expected Thing created to be \n<%s> but it was \n<%s>", expectedCreated,
+                        createdOptional.orElse(null))
+                .contains(expectedCreated);
+
+        return this;
+    }
+
+    public ThingAssert hasNoCreated() {
+        isNotNull();
+
+        final Optional<Instant> actualCreatedOptional = actual.getCreated();
+
+        assertThat(actualCreatedOptional.isPresent())
+                .overridingErrorMessage("Expected Thing not have a created but it had <%s>",
+                        actualCreatedOptional.orElse(null))
                 .isFalse();
 
         return this;

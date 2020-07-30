@@ -146,6 +146,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .and(IS_MODIFIED.negate()));
 
         assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
+        assertThat(actualThing.getCreated()).isPresent(); // we cannot check exact timestamp
     }
 
     private static void assertThingInResponseV2(final Thing actualThing, final Thing expectedThing) {
@@ -368,7 +369,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
         final Thing thingWithDifferentFirstLevelFields = Thing.newBuilder()
                 .setId(getIdOrThrow(thingWithFirstLevelFields))
-                .setPolicyId("org.eclipse.ditto:changedPolicyId")
+                .setPolicyId(PolicyId.of("org.eclipse.ditto:changedPolicyId"))
                 .setAttributes(Attributes.newBuilder().set("changedAttrKey", "changedAttrVal").build())
                 .setFeatures(Features.newBuilder().set(Feature.newBuilder().withId("changedFeatureId").build()))
                 .build();
@@ -387,7 +388,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         new TestKit(actorSystem) {
             {
-                final TestKit pubSub = new TestKit(actorSystem);
                 final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
 
                 final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);

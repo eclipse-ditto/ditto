@@ -519,6 +519,15 @@ public interface PolicyBuilder {
     PolicyBuilder setModified(@Nullable Instant modified);
 
     /**
+     * Sets the given created timestamp to this builder.
+     *
+     * @param created the created timestamp to be set.
+     * @return this builder to allow method chaining.
+     * @since TODO
+     */
+    PolicyBuilder setCreated(@Nullable Instant created);
+
+    /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the
      * provided {@code entry} is replaced.
      *

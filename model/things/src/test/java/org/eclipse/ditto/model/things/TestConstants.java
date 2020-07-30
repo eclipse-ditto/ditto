@@ -175,6 +175,8 @@ public final class TestConstants {
 
         public static final Instant MODIFIED = Instant.EPOCH;
 
+        public static final Instant CREATED = Instant.EPOCH;
+
         /**
          * A known Thing for testing in V1.
          */
@@ -186,6 +188,7 @@ public final class TestConstants {
                 .setId(THING_ID)
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
+                .setCreated(CREATED)
                 .build();
 
         /**
@@ -200,6 +203,7 @@ public final class TestConstants {
                 .setId(THING_ID)
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
+                .setCreated(CREATED)
                 .build();
 
         private Thing() {
