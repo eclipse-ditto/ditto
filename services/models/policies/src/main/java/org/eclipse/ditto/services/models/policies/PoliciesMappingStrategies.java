@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 
 /**
  * {@link MappingStrategies} for the Policies service containing all {@link Jsonifiable} types known to Policies.
@@ -34,7 +34,7 @@ public final class PoliciesMappingStrategies extends MappingStrategies {
 
     @Nullable private static PoliciesMappingStrategies instance = null;
 
-    private PoliciesMappingStrategies(final Map<String, MappingStrategy> policiesMappingStrategies) {
+    private PoliciesMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> policiesMappingStrategies) {
         super(policiesMappingStrategies);
     }
 
