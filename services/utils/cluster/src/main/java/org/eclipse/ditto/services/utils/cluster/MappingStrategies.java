@@ -32,7 +32,7 @@ import com.typesafe.config.Config;
 import akka.actor.ActorSystem;
 
 /**
- * An unmodifiable map of {@link JsonParsable<Jsonifiable>} elements associated with the name of the type the strategy
+ * An unmodifiable map of {@link JsonParsable} elements associated with the name of the type the strategy
  * yields.
  * <p>
  * Implementations define the mapping strategies for both persistence (JsonifiableSerializer) as well as Cluster
