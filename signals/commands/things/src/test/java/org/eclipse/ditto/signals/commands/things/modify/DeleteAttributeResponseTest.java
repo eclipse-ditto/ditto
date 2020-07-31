@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.EMPTY_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,6 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,6 +38,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link DeleteAttributeResponse}.
  */
 public final class DeleteAttributeResponseTest {
+
+    private static final JsonPointer INVALID_JSON_POINTER = JsonFactory.newPointer("key1/äöü/foo");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, DeleteAttributeResponse.TYPE)
@@ -51,14 +56,12 @@ public final class DeleteAttributeResponseTest {
                 provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DeleteAttributeResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -70,7 +73,6 @@ public final class DeleteAttributeResponseTest {
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final DeleteAttributeResponse underTest = DeleteAttributeResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -78,4 +80,14 @@ public final class DeleteAttributeResponseTest {
         assertThat(underTest).isNotNull();
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceWithInvalidArguments() {
+        DeleteAttributeResponse.of(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = AttributePointerInvalidException.class)
+    public void createInstanceWithEmptyPointer() {
+        DeleteAttributeResponse.of(TestConstants.Thing.THING_ID, EMPTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 }

@@ -41,7 +41,6 @@ public final class DeleteFeatureResponseTest {
             .set(DeleteFeatureResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureResponse.class,
@@ -49,14 +48,12 @@ public final class DeleteFeatureResponseTest {
                 provided(Feature.class, ThingId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DeleteFeatureResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -67,7 +64,6 @@ public final class DeleteFeatureResponseTest {
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

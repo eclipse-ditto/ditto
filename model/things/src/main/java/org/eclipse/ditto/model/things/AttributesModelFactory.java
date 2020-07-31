@@ -18,7 +18,9 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 
 /**
@@ -106,4 +108,16 @@ public final class AttributesModelFactory {
         return ImmutableAttributesBuilder.of(jsonObject);
     }
 
+    /**
+     * Validates the given attribute {@link JsonPointer}.
+     *
+     * @param jsonPointer {@code jsonPointer} that is validated
+     * @return the same {@code jsonPointer} if validation was successful
+     * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.2.0
+     */
+    public static JsonPointer validateAttributePointer(final JsonPointer jsonPointer) {
+        return JsonKeyValidator.validate(jsonPointer);
+    }
 }
