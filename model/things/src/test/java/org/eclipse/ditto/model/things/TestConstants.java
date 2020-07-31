@@ -13,13 +13,13 @@
 package org.eclipse.ditto.model.things;
 
 
+import java.time.Instant;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.policies.PolicyId;
-
-import java.time.Instant;
 
 /**
  * Defines constants for testing.
@@ -219,9 +219,10 @@ public final class TestConstants {
         /**
          * Known Metadata of a Thing.
          */
-        public static final org.eclipse.ditto.model.things.Metadata METADATA = ThingsModelFactory.newMetadataBuilder()
-            .set("_issuedAt", 0L)
-            .build();
+        public static final org.eclipse.ditto.model.base.entity.metadata.Metadata METADATA =
+                ThingsModelFactory.newMetadataBuilder()
+                        .set("_issuedAt", 0L)
+                        .build();
     }
 
 }

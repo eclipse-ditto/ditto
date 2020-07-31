@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Metadata;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
@@ -45,7 +44,6 @@ abstract class AbstractStrategyTest {
      */
     static final Thing THING = Thing.newBuilder()
             .setId(THING_ID)
-            .setMetadata(JsonPointer.empty(), Metadata.newBuilder().build())
             .build();
 
     /**

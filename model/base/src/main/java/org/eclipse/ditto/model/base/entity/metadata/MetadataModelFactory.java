@@ -10,19 +10,20 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things;
+package org.eclipse.ditto.model.base.entity.metadata;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
-
-import javax.annotation.concurrent.Immutable;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 /**
  * Factory that creates new {@code metadata} objects.
@@ -108,13 +109,14 @@ public final class MetadataModelFactory {
     }
 
     /**
-     * Returns a new builder for a {@link Metadata} which is initialised with the values of the given JSON object.
+     * Returns a new builder for a {@link Metadata} which is initialised with the values of the given Metadata.
      *
-     * @param jsonObject provides the initial values of the result.
+     * @param metadata provides the initial values of the result.
      * @return the builder.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if {@code metadata} is {@code null}.
      */
-    public static MetadataBuilder newMetadataBuilder(final JsonObject jsonObject) {
-        return ImmutableMetadataBuilder.of(jsonObject);
+    public static MetadataBuilder newMetadataBuilder(final Metadata metadata) {
+        return ImmutableMetadataBuilder.of(metadata);
     }
+
 }

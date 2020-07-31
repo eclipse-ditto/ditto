@@ -10,7 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things;
+package org.eclipse.ditto.model.base.entity.metadata;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -19,10 +21,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
-import javax.annotation.concurrent.Immutable;
-
 /**
  * {@code Metadata} describe a {@code Thing} in more detail and can be of any type.
+ *
+ * @since 1.2.0
  */
 @Immutable
 public interface Metadata extends JsonObject, Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {

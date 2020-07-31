@@ -573,14 +573,6 @@ public interface Thing extends Entity<ThingRevision> {
     default void validate(DittoHeaders headers) { }
 
     /**
-     * Returns the Metadata of this Thing.
-     *
-     * @return the Metadata of this Thing.
-     * @since 1.2.0
-     */
-    Optional<Metadata> getMetadata();
-
-    /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */
     @Immutable

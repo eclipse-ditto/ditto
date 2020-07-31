@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.events.MetadataFromEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -45,7 +46,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         this(new DefaultMetadataHandler<>());
     }
 
-    protected AbstractThingEventStrategy(MetadataHandler<T> metadataHandler) {
+    protected AbstractThingEventStrategy(final MetadataHandler<T> metadataHandler) {
         this.metadataHandler = metadataHandler;
     }
 
@@ -77,7 +78,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     }
 
     /**
-     * Default Implementation which uses {@link ThingMetadataFactory} to generate {@code Metadata}
+     * Default Implementation which uses {@link MetadataFromEvent} to generate {@code Metadata}
      * for the Thing.
      * @param <T> Event Type.
      */
@@ -85,8 +86,11 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     private static class DefaultMetadataHandler<T extends ThingEvent<T>> implements MetadataHandler<T> {
 
         @Override
-        public ThingBuilder.FromCopy handle(T event, Thing thing, ThingBuilder.FromCopy builder) {
-            return builder.setMetadata(JsonPointer.empty(), ThingMetadataFactory.buildFromEvent(event, thing));
+        public ThingBuilder.FromCopy handle(final T event, final Thing thing, final ThingBuilder.FromCopy builder) {
+            final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
+            return builder.setMetadata(JsonPointer.empty(), metadataFromEvent.get());
         }
+
     }
+
 }

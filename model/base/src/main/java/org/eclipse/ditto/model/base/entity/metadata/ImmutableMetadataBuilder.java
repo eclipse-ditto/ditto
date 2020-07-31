@@ -10,7 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things;
+package org.eclipse.ditto.model.base.entity.metadata;
+
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -18,13 +26,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 /**
  * A mutable builder for an {@link ImmutableMetadata} with a fluent API.
