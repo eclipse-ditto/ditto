@@ -83,6 +83,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
+import org.eclipse.ditto.services.models.acks.ThingModifyTwinCommandAcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -99,6 +100,8 @@ import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -226,7 +229,9 @@ public final class MessageMappingProcessorActor
                 // Outgoing responses and signals go through the signal enrichment stream
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
-                .match(AcksRequestingSignal.class, this::handleAcksRequestingSignal)
+                .match(AcksRequestingThingModifyCommand.class, this::handleAcksRequestingSignal)
+                .match(AcksRequestingMessageCommand.class, this::handleAcksRequestingSignal)
+                .match(AcksRequestingThingLiveCommand.class, this::handleAcksRequestingSignal)
                 .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
     }
@@ -254,52 +259,117 @@ public final class MessageMappingProcessorActor
      * @param acksRequestingSignal the signal requesting acknowledgements together with its original sender,
      * the response collector actor.
      */
-    private void handleAcksRequestingSignal(final AcksRequestingSignal acksRequestingSignal) {
+    private void handleAcksRequestingSignal(final AcksRequestingThingModifyCommand acksRequestingSignal) {
+        final ThingModifyCommand<?> thingModifyCommand = acksRequestingSignal.thingModifyCommand;
+        final ActorRef sender = acksRequestingSignal.sender;
         try {
-            startAckregatorAndForwardSignal(acksRequestingSignal);
+            startAckregatorAndForwardSignal(thingModifyCommand, sender);
         } catch (final DittoRuntimeException e) {
-            logger.withCorrelationId(acksRequestingSignal.signal)
-                    .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
-                            " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
-            responseMappedMonitor.getLogger()
-                    .failure("Got exception {0} when processing external message: {1}",
-                            e.getErrorCode()
-                            ,
-                            e.getMessage());
-            final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
-            // tell sender the error response for consumer settlement
-            acksRequestingSignal.sender.tell(errorResponse, getSelf());
-            // publish error response
-            handleErrorResponse(e, errorResponse.setDittoHeaders(acksRequestingSignal.signal.getDittoHeaders()),
-                    ActorRef.noSender());
+            handleErrorDuringStartingOfAckregator(e, thingModifyCommand.getDittoHeaders(), sender);
         }
     }
 
-    // NOT thread-safe
-    private void startAckregatorAndForwardSignal(final AcksRequestingSignal acksRequestingSignal) {
-        final Signal<?> signal = acksRequestingSignal.signal;
+
+    /**
+     * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
+     * acknowledgement aggregators is not thread-safe.
+     *
+     * @param acksRequestingSignal the signal requesting acknowledgements together with its original sender,
+     * the response collector actor.
+     */
+    private void handleAcksRequestingSignal(final AcksRequestingThingLiveCommand acksRequestingSignal) {
+        final ThingCommand<?> thingCommand = acksRequestingSignal.thingCommand;
         final ActorRef sender = acksRequestingSignal.sender;
-        Optional<ActorRef> ackregator;
         try {
-            ackregator = startAckregator(signal, sender);
-        } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
-            ackregator = startAckregatorWithRandomCorrelationId(signal, sender);
+            startAckregatorAndForwardSignal(thingCommand, sender);
+        } catch (final DittoRuntimeException e) {
+            handleErrorDuringStartingOfAckregator(e, thingCommand.getDittoHeaders(), sender);
         }
+    }
+
+
+    /**
+     * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
+     * acknowledgement aggregators is not thread-safe.
+     *
+     * @param acksRequestingSignal the signal requesting acknowledgements together with its original sender,
+     * the response collector actor.
+     */
+    private void handleAcksRequestingSignal(final AcksRequestingMessageCommand acksRequestingSignal) {
+        final MessageCommand<?, ?> messageCommand = acksRequestingSignal.messageCommand;
+        final ActorRef sender = acksRequestingSignal.sender;
+        try {
+            startAckregatorAndForwardSignal(messageCommand, sender);
+        } catch (final DittoRuntimeException e) {
+            handleErrorDuringStartingOfAckregator(e, messageCommand.getDittoHeaders(), sender);
+        }
+    }
+
+    private void handleErrorDuringStartingOfAckregator(final DittoRuntimeException e,
+            final DittoHeaders dittoHeaders, final ActorRef sender) {
+        logger.withCorrelationId(dittoHeaders.getCorrelationId().orElse("?"))
+                .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
+                        " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
+        responseMappedMonitor.getLogger()
+                .failure("Got exception {0} when processing external message: {1}",
+                        e.getErrorCode(), e.getMessage());
+        final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
+        // tell sender the error response for consumer settlement
+        sender.tell(errorResponse, getSelf());
+        // publish error response
+        handleErrorResponse(e, errorResponse.setDittoHeaders(dittoHeaders), ActorRef.noSender());
+    }
+
+    // NOT thread-safe
+    private void startAckregatorAndForwardSignal(final ThingModifyCommand<?> thingModifyCommand,
+            final ActorRef sender) {
+        Optional<ActorRef> ackregator = startAckregator(thingModifyCommand, sender);
         if (ackregator.isEmpty()) {
             // signal that I thought should be acknowledged did not start an ackregator actor---this is a bug.
             // tell collector of the problem.
-            logger.withCorrelationId(signal)
+            logger.withCorrelationId(thingModifyCommand)
                     .error("Did not start Ackregator for signal that should be acknowledged. sender=<{}>, signal=<{}>",
-                            sender, signal);
-            sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
+                            sender, thingModifyCommand);
+            sender.tell(failedToStartAckregator(thingModifyCommand, connectionId), ActorRef.noSender());
         } else {
             // ackregator started
-            proxyActor.tell(signal, ackregator.orElseThrow());
+            proxyActor.tell(thingModifyCommand, ackregator.orElseThrow());
         }
     }
 
+    private void startAckregatorAndForwardSignal(final ThingCommand<?> thingCommand, final ActorRef sender) {
+        Optional<ActorRef> ackregator = startAckregator(thingCommand, sender);
+        if (ackregator.isEmpty()) {
+            // signal that I thought should be acknowledged did not start an ackregator actor---this is a bug.
+            // tell collector of the problem.
+            logger.withCorrelationId(thingCommand)
+                    .error("Did not start Ackregator for signal that should be acknowledged. sender=<{}>, signal=<{}>",
+                            sender, thingCommand);
+            sender.tell(failedToStartAckregator(thingCommand, connectionId), ActorRef.noSender());
+        } else {
+            // ackregator started
+            proxyActor.tell(thingCommand, ackregator.orElseThrow());
+        }
+    }
+
+    private void startAckregatorAndForwardSignal(final MessageCommand<?, ?> messageCommand, final ActorRef sender) {
+        Optional<ActorRef> ackregator = startAckregator(messageCommand, sender);
+        if (ackregator.isEmpty()) {
+            // signal that I thought should be acknowledged did not start an ackregator actor---this is a bug.
+            // tell collector of the problem.
+            logger.withCorrelationId(messageCommand)
+                    .error("Did not start Ackregator for signal that should be acknowledged. sender=<{}>, signal=<{}>",
+                            sender, messageCommand);
+            sender.tell(failedToStartAckregator(messageCommand, connectionId), ActorRef.noSender());
+        } else {
+            // ackregator started
+            proxyActor.tell(messageCommand, ackregator.orElseThrow());
+        }
+    }
+
+
     // NOT thread-safe
-    private Optional<ActorRef> startAckregatorWithRandomCorrelationId(final Signal<?> signal, final ActorRef sender) {
+    private DittoHeaders getHeadersWithRandomCorrelationId(final Signal<?> signal) {
         final String originalCorrelationId = signal.getDittoHeaders().getCorrelationId().orElse("");
         DittoHeaders dittoHeaders;
         do {
@@ -308,9 +378,9 @@ public final class MessageMappingProcessorActor
                     .build();
         } while (getContext().child(AcknowledgementAggregatorActor.determineActorName(dittoHeaders)).isDefined());
         final String newCorrelationId = dittoHeaders.getCorrelationId().orElse(null);
-        logger.withCorrelationId(signal).info("SetCorrelationId {}", dittoHeaders.getCorrelationId().orElse(null));
+        logger.withCorrelationId(newCorrelationId).info("SetCorrelationId {}", newCorrelationId);
         logReplacedCorrelationId(signal, newCorrelationId);
-        return startAckregator(signal.setDittoHeaders(dittoHeaders), sender);
+        return dittoHeaders;
     }
 
     private void logReplacedCorrelationId(final Signal<?> signalWithOldCorrelationId,
@@ -324,19 +394,66 @@ public final class MessageMappingProcessorActor
     }
 
     // NOT thread-safe
-    private Optional<ActorRef> startAckregator(final Signal<?> signal, final ActorRef sender) {
-        return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                (ThingModifyCommand<?>) signal,
-                acknowledgementConfig,
-                messageMappingProcessor.getHeaderTranslator(),
-                responseSignal -> {
-                    // potentially publish response/aggregated acks to reply target
-                    // acks don't get send when no response-required by #handleCommandResponse
-                    getSelf().tell(responseSignal, getSelf());
+    private Optional<ActorRef> startAckregator(final ThingModifyCommand<?> thingModifyCommand, final ActorRef sender) {
+        try {
+            return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                    thingModifyCommand,
+                    acknowledgementConfig,
+                    messageMappingProcessor.getHeaderTranslator(),
+                    responseSignal -> {
+                        // potentially publish response/aggregated acks to reply target
+                        // acks don't get send when no response-required by #handleCommandResponse
+                        getSelf().tell(responseSignal, getSelf());
 
-                    // forward acks to the original sender for consumer settlement
-                    sender.tell(responseSignal, ActorRef.noSender());
-                });
+                        // forward acks to the original sender for consumer settlement
+                        sender.tell(responseSignal, ActorRef.noSender());
+                    });
+        } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
+            final DittoHeaders newHeaders = getHeadersWithRandomCorrelationId(thingModifyCommand);
+            return startAckregator(thingModifyCommand.setDittoHeaders(newHeaders), sender);
+        }
+    }
+
+    // NOT thread-safe
+    private Optional<ActorRef> startAckregator(final MessageCommand<?, ?> messageCommand, final ActorRef sender) {
+        try {
+            return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                    messageCommand,
+                    acknowledgementConfig,
+                    messageMappingProcessor.getHeaderTranslator(),
+                    responseSignal -> {
+                        // potentially publish response/aggregated acks to reply target
+                        // acks don't get send when no response-required by #handleCommandResponse
+                        getSelf().tell(responseSignal, getSelf());
+
+                        // forward acks to the original sender for consumer settlement
+                        sender.tell(responseSignal, ActorRef.noSender());
+                    });
+        } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
+            final DittoHeaders newHeaders = getHeadersWithRandomCorrelationId(messageCommand);
+            return startAckregator(messageCommand.setDittoHeaders(newHeaders), sender);
+        }
+    }
+
+    // NOT thread-safe
+    private Optional<ActorRef> startAckregator(final ThingCommand<?> thingCommand, final ActorRef sender) {
+        try {
+            return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                    thingCommand,
+                    acknowledgementConfig,
+                    messageMappingProcessor.getHeaderTranslator(),
+                    responseSignal -> {
+                        // potentially publish response/aggregated acks to reply target
+                        // acks don't get send when no response-required by #handleCommandResponse
+                        getSelf().tell(responseSignal, getSelf());
+
+                        // forward acks to the original sender for consumer settlement
+                        sender.tell(responseSignal, ActorRef.noSender());
+                    });
+        } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
+            final DittoHeaders newHeaders = getHeadersWithRandomCorrelationId(thingCommand);
+            return startAckregator(thingCommand.setDittoHeaders(newHeaders), sender);
+        }
     }
 
     private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
@@ -355,8 +472,19 @@ public final class MessageMappingProcessorActor
                         //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
                         // for the message path of the search protocol.
                         connectionActor.tell(signal, ActorRef.noSender());
-                    } else if (areAcknowledgementsRequested(signal)) {
-                        getSelf().tell(new AcksRequestingSignal(signal, sender), ActorRef.noSender());
+                    } else if ((signal instanceof ThingModifyCommand) && !isLiveSignal(signal) &&
+                            containsAcknowledgementRequests(signal)) {
+                        getSelf().tell(new AcksRequestingThingModifyCommand((ThingModifyCommand<?>) signal, sender),
+                                ActorRef.noSender());
+                        return Source.single(signal);
+                    } else if (signal instanceof ThingCommand && isLiveSignal(signal) &&
+                            containsAcknowledgementRequests(signal)) {
+                        getSelf().tell(new AcksRequestingThingLiveCommand((ThingCommand<?>) signal, sender),
+                                ActorRef.noSender());
+                        return Source.single(signal);
+                    } else if ((signal instanceof MessageCommand) && containsAcknowledgementRequests(signal)) {
+                        getSelf().tell(new AcksRequestingMessageCommand((MessageCommand<?, ?>) signal, sender),
+                                ActorRef.noSender());
                         return Source.single(signal);
                     } else {
                         proxyActor.tell(signal, self);
@@ -998,18 +1126,6 @@ public final class MessageMappingProcessorActor
                 signal.getDittoHeaders().getReplyTarget().isPresent();
     }
 
-    /**
-     * Test if a signal requires acknowledgements.
-     *
-     * @param signal the signal.
-     * @return whether it requires acknowledgements.
-     */
-    private static boolean areAcknowledgementsRequested(final Signal<?> signal) {
-        return (signal instanceof ThingModifyCommand) &&
-                !isLiveSignal(signal) &&
-                containsAcknowledgementRequests(signal);
-    }
-
     private static boolean isLiveSignal(final Signal<?> signal) {
         return StreamingType.isLiveSignal(signal);
     }
@@ -1018,13 +1134,36 @@ public final class MessageMappingProcessorActor
         return !signal.getDittoHeaders().getAcknowledgementRequests().isEmpty();
     }
 
-    private static final class AcksRequestingSignal {
+    private static final class AcksRequestingThingModifyCommand {
 
-        private final Signal<?> signal;
+        private final ThingModifyCommand<?> thingModifyCommand;
         private final ActorRef sender;
 
-        private AcksRequestingSignal(final Signal<?> signal, final ActorRef sender) {
-            this.signal = signal;
+        private AcksRequestingThingModifyCommand(final ThingModifyCommand<?> thingModifyCommand,
+                final ActorRef sender) {
+            this.thingModifyCommand = thingModifyCommand;
+            this.sender = sender;
+        }
+    }
+
+    private static final class AcksRequestingThingLiveCommand {
+
+        private final ThingCommand<?> thingCommand;
+        private final ActorRef sender;
+
+        private AcksRequestingThingLiveCommand(final ThingCommand<?> thingCommand, final ActorRef sender) {
+            this.thingCommand = thingCommand;
+            this.sender = sender;
+        }
+    }
+
+    private static final class AcksRequestingMessageCommand {
+
+        private final MessageCommand<?, ?> messageCommand;
+        private final ActorRef sender;
+
+        private AcksRequestingMessageCommand(final MessageCommand<?, ?> messageCommand, final ActorRef sender) {
+            this.messageCommand = messageCommand;
             this.sender = sender;
         }
     }

@@ -61,6 +61,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
@@ -84,6 +85,8 @@ import scala.concurrent.duration.FiniteDuration;
  */
 final class StreamingSessionActor extends AbstractActor {
 
+    private static final String START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE =
+            "Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator': {}: <{}>";
     private final JsonSchemaVersion jsonSchemaVersion;
     private final String connectionCorrelationId;
     private final String type;
@@ -167,18 +170,43 @@ final class StreamingSessionActor extends AbstractActor {
                 )
                 .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
+                .match(MessageCommand.class, messageCommand -> {
+                    try {
+                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                                messageCommand,
+                                acknowledgementConfig, headerTranslator,
+                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+                    } catch (final DittoRuntimeException e) {
+                        logger.withCorrelationId(messageCommand).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
+                                e.getClass().getSimpleName(), e.getMessage());
+                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+                        return;
+                    }
+                    handleSignal(messageCommand);
+                })
+                .match(ThingCommand.class, this::isLiveSignal, thingLiveCommand -> {
+                    try {
+                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                                thingLiveCommand,
+                                acknowledgementConfig, headerTranslator,
+                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+                    } catch (final DittoRuntimeException e) {
+                        logger.withCorrelationId(thingLiveCommand).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
+                                e.getClass().getSimpleName(), e.getMessage());
+                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+                        return;
+                    }
+                    handleSignal(thingLiveCommand);
+                })
                 .match(ThingModifyCommand.class, this::isResponseRequired, thingModifyCommand -> {
                     try {
-                        if (!isLiveSignal(thingModifyCommand)) {
-                            AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                                    thingModifyCommand,
-                                    acknowledgementConfig, headerTranslator,
-                                    response -> handleResponseThreadSafely(response, ActorRef.noSender()));
-                        }
+                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                                thingModifyCommand,
+                                acknowledgementConfig, headerTranslator,
+                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
                     } catch (final DittoRuntimeException e) {
-                        logger.withCorrelationId(thingModifyCommand)
-                                .info("Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator':" +
-                                        " {}: <{}>", type, e.getClass().getSimpleName(), e.getMessage());
+                        logger.withCorrelationId(thingModifyCommand).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
+                                e.getClass().getSimpleName(), e.getMessage());
                         eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
                         return;
                     }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.things.acks;
+package org.eclipse.ditto.signals.commands.messages.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -25,22 +25,21 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 
 /**
  * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by an
- * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
+ * {@link org.eclipse.ditto.model.base.acks.AcknowledgementRequest} for {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#LIVE_RESPONSE}.
  * If so, the result is a new command with extended headers, else the same command is returned.
- * The headers are only extended if the command is an instance of {@link ThingModifyCommand} if
- * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true} and if command headers do not yet contain
- * acknowledgement requests.
+ * The headers are only extended if {@link org.eclipse.ditto.model.base.headers.DittoHeaders#isResponseRequired()}
+ * evaluates to {@code true} and if command headers do not yet contain acknowledgement requests.
  *
  * @since 1.1.0
  */
 @Immutable
-public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<ThingModifyCommand<?>> {
+public final class MessageCommandAckRequestSetter implements UnaryOperator<MessageCommand<?, ?>> {
 
-    private ThingModifyCommandAckRequestSetter() {
+    private MessageCommandAckRequestSetter() {
         super();
     }
 
@@ -49,36 +48,17 @@ public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<T
      *
      * @return the instance.
      */
-    public static ThingModifyCommandAckRequestSetter getInstance() {
-        return new ThingModifyCommandAckRequestSetter();
+    public static MessageCommandAckRequestSetter getInstance() {
+        return new MessageCommandAckRequestSetter();
     }
 
-    /**
-     * @deprecated Use {@link #apply(org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand)} instead.
-     */
-    @Deprecated
-    public Command<?> apply(final Command<?> command) {
-        Command<?> result = checkNotNull(command, "command");
-        if (isThingModifyCommand(command) && isResponseRequired(command)) {
-            result = requestDittoPersistedAckIfNoOtherAcksAreRequested((ThingModifyCommand<?>) command);
-        }
-        return result;
-    }
-
-    /**
-     * @since 1.2.0
-     */
     @Override
-    public ThingModifyCommand<?> apply(final ThingModifyCommand<?> command) {
-        ThingModifyCommand<?> result = checkNotNull(command, "command");
+    public MessageCommand<?, ?> apply(final MessageCommand<?, ?> command) {
+        MessageCommand<?, ?> result = checkNotNull(command, "command");
         if (isResponseRequired(command)) {
             result = requestDittoPersistedAckIfNoOtherAcksAreRequested(command);
         }
         return result;
-    }
-
-    private static boolean isThingModifyCommand(final Command<?> command) {
-        return ThingModifyCommand.class.isAssignableFrom(command.getClass());
     }
 
     private static boolean isResponseRequired(final WithDittoHeaders<?> command) {
@@ -86,8 +66,8 @@ public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<T
         return dittoHeaders.isResponseRequired();
     }
 
-    private static ThingModifyCommand<?> requestDittoPersistedAckIfNoOtherAcksAreRequested(
-            final ThingModifyCommand<?> command) {
+    private static MessageCommand<?, ?> requestDittoPersistedAckIfNoOtherAcksAreRequested(
+            final MessageCommand<?, ?> command) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();

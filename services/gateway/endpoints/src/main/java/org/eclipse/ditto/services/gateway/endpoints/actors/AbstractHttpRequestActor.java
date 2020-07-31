@@ -185,8 +185,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private void handleThingModifyCommand(final ThingModifyCommand<?> thingCommand) {
         final ThingModifyCommand<?> commandWithAckLabels;
         try {
-            commandWithAckLabels = (ThingModifyCommand<?>)
-                    ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
+            commandWithAckLabels = ThingModifyCommandAckRequestSetter.getInstance().apply(thingCommand);
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e);
             return;
@@ -317,13 +316,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     /**
      * Provide an adequate {@link WhoamiResponse} as answer for an {@link Whoami}.
+     *
      * @param request the request which should be answered.
      * @return the correct {@link WhoamiResponse} for the {@code request}.
      */
     // intentionally protected to allow overwriting this in extensions
     protected WhoamiResponse createWhoamiResponse(final Whoami request) {
         final DittoHeaders dittoHeaders = request.getDittoHeaders();
-        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(dittoHeaders.getAuthorizationContext());
+        final UserInformation userInformation =
+                DefaultUserInformation.fromAuthorizationContext(dittoHeaders.getAuthorizationContext());
         return WhoamiResponse.of(userInformation, dittoHeaders);
     }
 
@@ -562,7 +563,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static ContentType getContentType(final DittoHeaders dittoHeaders) {
-        if ("text/plain".equalsIgnoreCase(dittoHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.name()))) {
+        if ("text/plain" .equalsIgnoreCase(dittoHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.name()))) {
             return CONTENT_TYPE_TEXT;
         }
         return CONTENT_TYPE_JSON;

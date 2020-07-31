@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -35,7 +36,11 @@ import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingEx
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
@@ -66,13 +71,14 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private final Consumer<Object> responseSignalConsumer;
 
     @SuppressWarnings("unused")
-    private AcknowledgementAggregatorActor(final ThingModifyCommand<?> thingModifyCommand,
+    private AcknowledgementAggregatorActor(final ThingId thingId,
+            final DittoHeaders dittoHeaders,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
         this.responseSignalConsumer = responseSignalConsumer;
-        requestCommandHeaders = thingModifyCommand.getDittoHeaders();
+        requestCommandHeaders = dittoHeaders;
         correlationId = requestCommandHeaders.getCorrelationId()
                 .orElseGet(() ->
                         // fall back using the actor name which also contains the correlation-id
@@ -83,8 +89,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                 requestCommandHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
         getContext().setReceiveTimeout(timeout);
 
-        ackregator = AcknowledgementAggregator.getInstance(thingModifyCommand.getEntityId(), correlationId, timeout,
-                headerTranslator);
+        ackregator = AcknowledgementAggregator.getInstance(thingId, correlationId, timeout, headerTranslator);
         ackregator.addAcknowledgementRequests(requestCommandHeaders.getAcknowledgementRequests());
     }
 
@@ -107,8 +112,65 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final Consumer<Object> responseSignalConsumer) {
 
         final ThingModifyCommand<?> commandWithAckLabels =
-                (ThingModifyCommand<?>) ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
-        return Props.create(AcknowledgementAggregatorActor.class, commandWithAckLabels,
+                ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
+        return props(commandWithAckLabels.getEntityId(), commandWithAckLabels.getDittoHeaders(), acknowledgementConfig,
+                headerTranslator, responseSignalConsumer);
+    }
+
+
+    /**
+     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     *
+     * @param thingCommand the thing live command which potentially includes {@code AcknowledgementRequests}
+     * based on which the AggregatorActor is started.
+     * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @return the Akka configuration Props object.
+     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
+     */
+    static Props props(final ThingCommand<?> thingCommand,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+
+        final ThingCommand<?> commandWithAckLabels = ThingLiveCommandAckRequestSetter.getInstance().apply(thingCommand);
+        return props(commandWithAckLabels.getEntityId(), commandWithAckLabels.getDittoHeaders(), acknowledgementConfig,
+                headerTranslator, responseSignalConsumer);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     *
+     * @param messageCommand the message command which potentially includes {@code AcknowledgementRequests}
+     * based on which the AggregatorActor is started.
+     * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @return the Akka configuration Props object.
+     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
+     */
+    static Props props(final MessageCommand<?, ?> messageCommand,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+
+        final MessageCommand<?, ?> commandWithAckLabels =
+                MessageCommandAckRequestSetter.getInstance().apply(messageCommand);
+        return props(commandWithAckLabels.getEntityId(), commandWithAckLabels.getDittoHeaders(), acknowledgementConfig,
+                headerTranslator, responseSignalConsumer);
+    }
+
+    private static Props props(final ThingId thingId,
+            final DittoHeaders dittoHeaders,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+        return Props.create(AcknowledgementAggregatorActor.class, thingId, dittoHeaders,
                 acknowledgementConfig, headerTranslator, responseSignalConsumer);
     }
 
@@ -147,7 +209,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @param context the context to start the aggregator actor in.
      * @param thingModifyCommand the thing modify command which potentially includes {@code AcknowledgementRequests}
      * based on which the AggregatorActor is started.
-     * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
+     * @param ackConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
      * response over a channel to the user.
@@ -162,14 +224,92 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      */
     public static Optional<ActorRef> startAcknowledgementAggregator(final akka.actor.ActorContext context,
             final ThingModifyCommand<?> thingModifyCommand,
-            final AcknowledgementConfig acknowledgementConfig,
+            final AcknowledgementConfig ackConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
-        final AcknowledgementAggregatorActorStarter starter =
-                AcknowledgementAggregatorActorStarter.getInstance(context, thingModifyCommand, acknowledgementConfig,
-                        headerTranslator, responseSignalConsumer);
-        return starter.get();
+        return ThingModifyTwinCommandAcknowledgementAggregatorActorStarter
+                .getInstance(context, thingModifyCommand, ackConfig, headerTranslator, responseSignalConsumer).get();
+    }
+
+    /**
+     * Creates and starts an {@code AcknowledgementAggregatorActor} actor in the passed {@code context} using the passed
+     * arguments.
+     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code thingCommand}'s
+     * {@code dittoHeaders} and in case that an Actor with this name already exists, a
+     * {@code AcknowledgementRequestDuplicateCorrelationIdException} will be thrown.
+     * <p>
+     * NOT thread-safe!
+     * <p>
+     * Only actually starts the actor if the passed {@code thingCommand}:
+     * <ul>
+     * <li>contains in its ditto headers that {@code response-required} is given</li>
+     * </ul>
+     *
+     * @param context the context to start the aggregator actor in.
+     * @param thingCommand the thing live command which potentially includes {@code AcknowledgementRequests}
+     * based on which the AggregatorActor is started.
+     * @param ackConfig provides configuration setting regarding acknowledgement handling.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @return the optionally created ActorRef - empty when either no AcknowledgementRequests were contained in the
+     * {@code dittoHeaders} of the passed {@code thingCommand} or when a conflict caused by a re-used
+     * {@code correlation-id} was detected.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException in case that an
+     * aggregator actor with the same correlation-id is already running.
+     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
+     */
+    public static Optional<ActorRef> startAcknowledgementAggregator(final akka.actor.ActorContext context,
+            final ThingCommand<?> thingCommand,
+            final AcknowledgementConfig ackConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+
+        return ThingLiveCommandAcknowledgementAggregatorActorStarter
+                .getInstance(context, thingCommand, ackConfig, headerTranslator, responseSignalConsumer).get();
+    }
+
+    /**
+     * Creates and starts an {@code AcknowledgementAggregatorActor} actor in the passed {@code context} using the passed
+     * arguments.
+     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code messageCommand}'s
+     * {@code dittoHeaders} and in case that an Actor with this name already exists, a
+     * {@code AcknowledgementRequestDuplicateCorrelationIdException} will be thrown.
+     * <p>
+     * NOT thread-safe!
+     * <p>
+     * Only actually starts the actor if the passed {@code messageCommand}:
+     * <ul>
+     * <li>contains in its ditto headers that {@code response-required} is given</li>
+     * </ul>
+     *
+     * @param context the context to start the aggregator actor in.
+     * @param messageCommand the message command which potentially includes {@code AcknowledgementRequests}
+     * based on which the AggregatorActor is started.
+     * @param ackConfig provides configuration setting regarding acknowledgement handling.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @return the optionally created ActorRef - empty when either no AcknowledgementRequests were contained in the
+     * {@code dittoHeaders} of the passed {@code messageCommand} or when a conflict caused by a re-used
+     * {@code correlation-id} was detected.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException in case that an
+     * aggregator actor with the same correlation-id is already running.
+     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
+     */
+    public static Optional<ActorRef> startAcknowledgementAggregator(final akka.actor.ActorContext context,
+            final MessageCommand<?, ?> messageCommand,
+            final AcknowledgementConfig ackConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+
+        return MessageCommandAcknowledgementAggregatorActorStarter
+                .getInstance(context, messageCommand, ackConfig, headerTranslator, responseSignalConsumer).get();
     }
 
     @Override

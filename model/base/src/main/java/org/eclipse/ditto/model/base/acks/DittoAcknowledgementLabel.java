@@ -33,6 +33,11 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      */
     public static final DittoAcknowledgementLabel TWIN_PERSISTED = new DittoAcknowledgementLabel("twin-persisted");
 
+    /**
+     * Label for Acknowledgements indicating that a response to a live message/command was received.
+     */
+    public static final DittoAcknowledgementLabel LIVE_RESPONSE = new DittoAcknowledgementLabel("live-response");
+
     private final AcknowledgementLabel delegate;
 
     private DittoAcknowledgementLabel(final CharSequence labelValue) {
@@ -45,7 +50,7 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      * @return an array containing the Ditto acknowledgement labels, in the order they're declared.
      */
     public static AcknowledgementLabel[] values() {
-        return new AcknowledgementLabel[]{TWIN_PERSISTED};
+        return new AcknowledgementLabel[]{TWIN_PERSISTED, LIVE_RESPONSE};
     }
 
     /**
