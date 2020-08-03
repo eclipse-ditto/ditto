@@ -31,6 +31,9 @@ import org.eclipse.ditto.model.base.headers.ValueValidator;
 @Immutable
 final class MessageHeaderTimeoutValueValidator extends AbstractHeaderValueValidator {
 
+    private static final ValueValidator INSTANCE = HeaderValueValidators.getLongValidator()
+            .andThen(new MessageHeaderTimeoutValueValidator());
+
     private MessageHeaderTimeoutValueValidator() {
         super(valueType -> long.class.equals(valueType) || Long.class.equals(valueType));
     }
@@ -41,7 +44,7 @@ final class MessageHeaderTimeoutValueValidator extends AbstractHeaderValueValida
      * @return the instance.
      */
     static ValueValidator getInstance() {
-        return HeaderValueValidators.getLongValidator().andThen(new MessageHeaderTimeoutValueValidator());
+        return INSTANCE;
     }
 
     @SuppressWarnings("squid:S2201")

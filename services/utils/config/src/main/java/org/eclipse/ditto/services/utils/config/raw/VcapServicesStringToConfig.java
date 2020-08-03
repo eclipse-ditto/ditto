@@ -32,6 +32,8 @@ final class VcapServicesStringToConfig implements Function<String, Config> {
      */
     static final String VCAP_CONFIG_PATH = "vcap";
 
+    private static final VcapServicesStringToConfig INSTANCE = new VcapServicesStringToConfig();
+
     private VcapServicesStringToConfig() {
         super();
     }
@@ -42,7 +44,7 @@ final class VcapServicesStringToConfig implements Function<String, Config> {
      * @return the instance.
      */
     static VcapServicesStringToConfig getInstance() {
-        return new VcapServicesStringToConfig();
+        return INSTANCE;
     }
 
     /**

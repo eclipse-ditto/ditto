@@ -41,12 +41,14 @@ final class DefaultAuthenticationFailureAggregator implements AuthenticationFail
     private static final String AGGREGATED_AUTH_FAILURE_DESCRIPTION_PREFIX =
             "For a successful authentication see the following suggestions: ";
 
+    private static final DefaultAuthenticationFailureAggregator INSTANCE = new DefaultAuthenticationFailureAggregator();
+
     private DefaultAuthenticationFailureAggregator() {
         super();
     }
 
     static DefaultAuthenticationFailureAggregator getInstance() {
-        return new DefaultAuthenticationFailureAggregator();
+        return INSTANCE;
     }
 
     @Override

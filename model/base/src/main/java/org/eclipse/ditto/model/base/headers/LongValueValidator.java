@@ -23,6 +23,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 @Immutable
 final class LongValueValidator extends AbstractHeaderValueValidator {
 
+    private static final LongValueValidator INSTANCE = new LongValueValidator();
+
     private LongValueValidator() {
         super(valueType -> long.class.equals(valueType) || Long.class.equals(valueType));
     }
@@ -33,7 +35,7 @@ final class LongValueValidator extends AbstractHeaderValueValidator {
      * @return the instance.
      */
     static LongValueValidator getInstance() {
-        return new LongValueValidator();
+        return INSTANCE;
     }
 
     @Override

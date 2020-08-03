@@ -19,17 +19,20 @@ import org.eclipse.ditto.model.base.exceptions.TimeoutInvalidException;
 /**
  * This validator parses a CharSequence to a {@link DittoDuration}.
  * If parsing fails, a {@link TimeoutInvalidException} is thrown.
+ *
  * @since 1.2.0
  */
 @Immutable
 final class TimeoutValueValidator extends AbstractHeaderValueValidator {
+
+    private static final TimeoutValueValidator INSTANCE = new TimeoutValueValidator();
 
     private TimeoutValueValidator() {
         super(DittoDuration.class::equals);
     }
 
     static TimeoutValueValidator getInstance() {
-        return new TimeoutValueValidator();
+        return INSTANCE;
     }
 
     @Override

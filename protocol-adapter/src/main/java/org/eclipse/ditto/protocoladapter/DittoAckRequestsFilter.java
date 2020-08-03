@@ -36,6 +36,8 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
 
     private static final JsonValue EMPTY_JSON_STRING = JsonValue.of("");
 
+    private static final DittoAckRequestsFilter INSTANCE = new DittoAckRequestsFilter();
+
     private DittoAckRequestsFilter() {
         super();
     }
@@ -48,7 +50,7 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
      * @return the instance.
      */
     public static DittoAckRequestsFilter getInstance() {
-        return new DittoAckRequestsFilter();
+        return INSTANCE;
     }
 
     @Override
