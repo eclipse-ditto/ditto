@@ -40,21 +40,23 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 @Immutable
 public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<ThingModifyCommand<?>> {
 
+    private static final ThingModifyCommandAckRequestSetter INSTANCE = new ThingModifyCommandAckRequestSetter();
+
     private ThingModifyCommandAckRequestSetter() {
         super();
     }
 
     /**
-     * Returns an instance of {@code CommandAckLabelSetter}.
+     * Returns an instance of {@code ThingModifyCommandAckRequestSetter}.
      *
      * @return the instance.
      */
     public static ThingModifyCommandAckRequestSetter getInstance() {
-        return new ThingModifyCommandAckRequestSetter();
+        return INSTANCE;
     }
 
     /**
-     * @deprecated Use {@link #apply(org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand)} instead.
+     * @deprecated as of 1.2.0: use {@link #apply(org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand)} instead.
      */
     @Deprecated
     public Command<?> apply(final Command<?> command) {
@@ -65,9 +67,6 @@ public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<T
         return result;
     }
 
-    /**
-     * @since 1.2.0
-     */
     @Override
     public ThingModifyCommand<?> apply(final ThingModifyCommand<?> command) {
         ThingModifyCommand<?> result = checkNotNull(command, "command");

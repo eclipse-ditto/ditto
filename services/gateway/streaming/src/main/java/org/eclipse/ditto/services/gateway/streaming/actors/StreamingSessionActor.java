@@ -57,12 +57,16 @@ import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -171,46 +175,19 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(CommandResponse.class, this::handleResponse)
                 .match(ThingEvent.class, event -> handleSignalsToStartAckForwarderFor(event, event.getEntityId()))
                 .match(MessageCommand.class, messageCommand -> {
-                    try {
-                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                                messageCommand,
-                                acknowledgementConfig, headerTranslator,
-                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
-                    } catch (final DittoRuntimeException e) {
-                        logger.withCorrelationId(messageCommand).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
-                                e.getClass().getSimpleName(), e.getMessage());
-                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
-                        return;
-                    }
-                    handleSignal(messageCommand);
+                    final MessageCommand<?, ?> commandWithAckLabels =
+                            MessageCommandAckRequestSetter.getInstance().apply(messageCommand);
+                    handleCommandPotentiallyStartingAckAggregator(commandWithAckLabels);
                 })
                 .match(ThingCommand.class, this::isLiveSignal, thingLiveCommand -> {
-                    try {
-                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                                thingLiveCommand,
-                                acknowledgementConfig, headerTranslator,
-                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
-                    } catch (final DittoRuntimeException e) {
-                        logger.withCorrelationId(thingLiveCommand).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
-                                e.getClass().getSimpleName(), e.getMessage());
-                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
-                        return;
-                    }
-                    handleSignal(thingLiveCommand);
+                    final ThingCommand<?> commandWithAckLabels =
+                            ThingLiveCommandAckRequestSetter.getInstance().apply(thingLiveCommand);
+                    handleCommandPotentiallyStartingAckAggregator(commandWithAckLabels);
                 })
                 .match(ThingModifyCommand.class, this::isResponseRequired, thingModifyCommand -> {
-                    try {
-                        AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                                thingModifyCommand,
-                                acknowledgementConfig, headerTranslator,
-                                response -> handleResponseThreadSafely(response, ActorRef.noSender()));
-                    } catch (final DittoRuntimeException e) {
-                        logger.withCorrelationId(thingModifyCommand).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
-                                e.getClass().getSimpleName(), e.getMessage());
-                        eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
-                        return;
-                    }
-                    handleSignal(thingModifyCommand);
+                    final ThingModifyCommand<?> commandWithAckLabels =
+                            ThingModifyCommandAckRequestSetter.getInstance().apply(thingModifyCommand);
+                    handleCommandPotentiallyStartingAckAggregator(commandWithAckLabels);
                 })
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
@@ -317,6 +294,21 @@ final class StreamingSessionActor extends AbstractActor {
         context.findChild(
                 AcknowledgementAggregatorActor.determineActorName(response.getDittoHeaders())
         ).ifPresentOrElse(action, fallbackAction);
+    }
+
+    private void handleCommandPotentiallyStartingAckAggregator(final Command<?> commandWithAckLabels) {
+        try {
+            AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                    commandWithAckLabels,
+                    acknowledgementConfig, headerTranslator,
+                    response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+        } catch (final DittoRuntimeException e) {
+            logger.withCorrelationId(commandWithAckLabels).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
+                    e.getClass().getSimpleName(), e.getMessage());
+            eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
+            return;
+        }
+        handleSignal(commandWithAckLabels);
     }
 
     // NOT thread-safe

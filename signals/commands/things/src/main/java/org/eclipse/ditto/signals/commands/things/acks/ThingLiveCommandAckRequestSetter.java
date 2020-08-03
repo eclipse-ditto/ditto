@@ -12,43 +12,74 @@
  */
 package org.eclipse.ditto.signals.commands.things.acks;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This UnaryOperator accepts a ThingCommand and checks whether its DittoHeaders should be extended by an
- * {@link org.eclipse.ditto.model.base.acks.AcknowledgementRequest} for {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#LIVE_RESPONSE}.
+ * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#LIVE_RESPONSE}.
  * If so, the result is a new command with extended headers, else the same command is returned.
- * The headers are only extended if {@link org.eclipse.ditto.model.base.headers.DittoHeaders#isResponseRequired()}
+ * The headers are only extended if {@link DittoHeaders#isResponseRequired()}
  * evaluates to {@code true} and if command headers do not yet contain acknowledgement requests.
  *
- * @since 1.1.0
+ * @since 1.2.0
  */
 @Immutable
 public final class ThingLiveCommandAckRequestSetter implements UnaryOperator<ThingCommand<?>> {
+
+    private static final ThingLiveCommandAckRequestSetter INSTANCE = new ThingLiveCommandAckRequestSetter();
 
     private ThingLiveCommandAckRequestSetter() {
         super();
     }
 
     /**
-     * Returns an instance of {@code CommandAckLabelSetter}.
+     * Returns an instance of {@code ThingLiveCommandAckRequestSetter}.
      *
      * @return the instance.
      */
     public static ThingLiveCommandAckRequestSetter getInstance() {
-        return new ThingLiveCommandAckRequestSetter();
+        return INSTANCE;
     }
 
-    /**
-     * @since 1.2.0
-     */
     @Override
     public ThingCommand<?> apply(final ThingCommand<?> command) {
-        //TODO: implement
+        ThingCommand<?> result = checkNotNull(command, "command");
+        if (isResponseRequired(command)) {
+            result = requestDittoLiveResponseAckIfNoOtherAcksAreRequested(command);
+        }
+        return result;
+    }
+
+    private static boolean isResponseRequired(final WithDittoHeaders<?> command) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        return dittoHeaders.isResponseRequired();
+    }
+
+    private static ThingCommand<?> requestDittoLiveResponseAckIfNoOtherAcksAreRequested(
+            final ThingCommand<?> command) {
+
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
+        final boolean requestedAcksHeaderPresent =
+                dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
+        if (acknowledgementRequests.isEmpty() && !requestedAcksHeaderPresent) {
+            acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE));
+            return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
+                    .acknowledgementRequests(acknowledgementRequests)
+                    .build());
+        }
         return command;
     }
 

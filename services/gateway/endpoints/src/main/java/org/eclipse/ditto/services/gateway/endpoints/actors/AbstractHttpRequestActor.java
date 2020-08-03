@@ -563,7 +563,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static ContentType getContentType(final DittoHeaders dittoHeaders) {
-        if ("text/plain" .equalsIgnoreCase(dittoHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.name()))) {
+        if ("text/plain".equalsIgnoreCase(dittoHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.name()))) {
             return CONTENT_TYPE_TEXT;
         }
         return CONTENT_TYPE_JSON;

@@ -23,11 +23,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.InvalidActorNameException;
+import akka.actor.Props;
 
 /**
  * Starting an acknowledgement aggregator actor is more complex than simply call {@code actorOf}.
@@ -35,28 +36,50 @@ import akka.actor.InvalidActorNameException;
  *
  * @since 1.1.0
  */
-abstract class AbstractAcknowledgementAggregatorActorStarter<T extends Signal<?>>
-        implements Supplier<Optional<ActorRef>> {
+public final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<ActorRef>> {
 
     protected final ActorContext actorContext;
-    protected final T signal;
+    protected final Command<?> command;
     protected final DittoHeaders dittoHeaders;
     protected final AcknowledgementConfig acknowledgementConfig;
     protected final HeaderTranslator headerTranslator;
     protected final Consumer<Object> responseSignalConsumer;
 
-    protected AbstractAcknowledgementAggregatorActorStarter(final ActorContext context,
-            final T signal,
+    private AcknowledgementAggregatorActorStarter(final ActorContext context,
+            final Command<?> command,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
         actorContext = checkNotNull(context, "context");
-        this.signal = checkNotNull(signal, "signal");
-        this.dittoHeaders = this.signal.getDittoHeaders();
+        this.command = checkNotNull(command, "command");
+        this.dittoHeaders = this.command.getDittoHeaders();
         this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.responseSignalConsumer = checkNotNull(responseSignalConsumer, "responseSignalConsumer");
+    }
+
+    /**
+     * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
+     *
+     * @param context the context to start the aggregator actor in.
+     * @param command the message command which potentially includes {@code AcknowledgementRequests}
+     * based on which the AggregatorActor is started.
+     * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @return a means to start an acknowledgement forwarder actor.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    static AcknowledgementAggregatorActorStarter getInstance(final ActorContext context,
+            final Command<?> command,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+
+        return new AcknowledgementAggregatorActorStarter(context, command, acknowledgementConfig,
+                headerTranslator, responseSignalConsumer);
     }
 
     @Override
@@ -73,7 +96,13 @@ abstract class AbstractAcknowledgementAggregatorActorStarter<T extends Signal<?>
         }
     }
 
-    protected abstract Optional<ActorRef> startAckAggregatorActor();
+    private Optional<ActorRef> startAckAggregatorActor() {
+        final Props props = AcknowledgementAggregatorActor.props(command, acknowledgementConfig, headerTranslator,
+                responseSignalConsumer);
+        final ActorRef actorRef =
+                actorContext.actorOf(props, AcknowledgementAggregatorActor.determineActorName(dittoHeaders));
+        return Optional.ofNullable(actorRef);
+    }
 
     private DittoRuntimeException getDuplicateCorrelationIdException(final Throwable cause) {
         return AcknowledgementRequestDuplicateCorrelationIdException
