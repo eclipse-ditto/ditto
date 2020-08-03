@@ -51,8 +51,6 @@ final class AliasesAppender implements UnaryOperator<Config> {
     private static final Map<String, String> DEFAULT_CONFIG_ALIASES = Collections.emptyMap();
     private static final Logger LOGGER = LoggerFactory.getLogger(AliasesAppender.class);
 
-    private static final AliasesAppender INSTANCE = new AliasesAppender(parseString(getSystemConfigAliasesOrNull()));
-
     private final Map<String, String> systemConfigAliases;
 
     private AliasesAppender(final Map<String, String> theSystemConfigAliases) {
@@ -67,7 +65,7 @@ final class AliasesAppender implements UnaryOperator<Config> {
      * @return the instance.
      */
     static AliasesAppender getInstance() {
-        return INSTANCE;
+        return new AliasesAppender(parseString(getSystemConfigAliasesOrNull()));
     }
 
     @Nullable

@@ -49,9 +49,6 @@ final class VcapServicesStringSupplier implements Supplier<Optional<String>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VcapServicesStringSupplier.class);
 
-    private static final VcapServicesStringSupplier INSTANCE = of(tryToGetAsPath(
-            System.getenv(VCAP_LOCATION_ENV_VARIABLE_NAME)));
-
     private final Path vcapServicesFilePath;
 
     private VcapServicesStringSupplier(final Path theVcapServicesFilePath) {
@@ -68,7 +65,7 @@ final class VcapServicesStringSupplier implements Supplier<Optional<String>> {
      * {@value #VCAP_LOCATION_ENV_VARIABLE_NAME} was either not set or is not a valid {@link java.nio.file.Path}.
      */
     static VcapServicesStringSupplier getInstance() {
-        return INSTANCE;
+        return of(tryToGetAsPath(System.getenv(VCAP_LOCATION_ENV_VARIABLE_NAME)));
     }
 
     private static Path tryToGetAsPath(final String vcapLocation) {
