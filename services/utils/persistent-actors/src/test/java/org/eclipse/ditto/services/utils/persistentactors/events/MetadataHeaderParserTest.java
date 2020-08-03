@@ -20,7 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.stream.Stream;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -57,9 +57,9 @@ public final class MetadataHeaderParserTest {
     public void parseEmptyDittoHeaders() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
 
-        final Stream<MetadataHeader> metadataHeaderStream = underTest.parse(emptyDittoHeaders);
+        final List<MetadataHeader> metadataHeaders = underTest.parse(emptyDittoHeaders);
 
-        assertThat(metadataHeaderStream).isEmpty();
+        assertThat(metadataHeaders).isEmpty();
     }
 
     @Test
@@ -72,9 +72,9 @@ public final class MetadataHeaderParserTest {
                 .putHeader(MetadataHeaderKey.PREFIX + keySuffix, issueInstant.toString())
                 .build();
 
-        final Stream<MetadataHeader> metadataHeaderStream = underTest.parse(dittoHeaders);
+        final List<MetadataHeader> metadataHeaders = underTest.parse(dittoHeaders);
 
-        assertThat(metadataHeaderStream).containsOnly(expected);
+        assertThat(metadataHeaders).containsOnly(expected);
     }
 
     @Test
@@ -103,9 +103,9 @@ public final class MetadataHeaderParserTest {
                         "/features/lamp/properties/color/b/issuedAt", issueInstant2.toString())
                 .build();
 
-        final Stream<MetadataHeader> metadataHeaderStream = underTest.parse(dittoHeaders);
+        final List<MetadataHeader> metadataHeaders = underTest.parse(dittoHeaders);
 
-        assertThat(metadataHeaderStream).containsOnlyElementsOf(expected);
+        assertThat(metadataHeaders).containsOnlyElementsOf(expected);
     }
 
 }

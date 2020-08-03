@@ -112,6 +112,27 @@ public final class MetadataFromEventTest {
     }
 
     @Test
+    public void entityHasNoMetadataAndEventDittoHeadersHaveNoMetadata() {
+        Mockito.when(event.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
+        Mockito.when(event.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
+        final MetadataFromEvent underTest = MetadataFromEvent.of(event, entity);
+
+        assertThat(underTest.get()).isNull();
+    }
+
+    @Test
+    public void entityMetadataButEventDittoHeadersHaveNoMetadata() {
+        final Metadata existingMetadata = Metadata.newBuilder().set("/scruplusFine", JsonValue.of("^6,00.32")).build();
+        Mockito.when(event.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
+        Mockito.when(event.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        Mockito.when(entity.getMetadata()).thenReturn(Optional.of(existingMetadata));
+        final MetadataFromEvent underTest = MetadataFromEvent.of(event, entity);
+
+        assertThat(underTest.get()).isEqualTo(existingMetadata);
+    }
+
+    @Test
     public void createMetadataFromScratch() {
         final Feature modifiedFeature = fluxCapacitor.toBuilder()
                 .properties(fluxCapacitorProperties.toBuilder()

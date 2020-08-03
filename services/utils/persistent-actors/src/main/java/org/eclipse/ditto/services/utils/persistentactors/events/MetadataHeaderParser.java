@@ -14,7 +14,8 @@ package org.eclipse.ditto.services.utils.persistentactors.events;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -47,7 +48,7 @@ final class MetadataHeaderParser {
      * Parses MetadataHeaders from the given DittoHeaders.
      *
      * @param dittoHeaders the DittoHeaders to be parsed.
-     * @return a stream of the parsed metadata headers.
+     * @return the parsed metadata headers.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      * @throws IllegalArgumentException if the key of a metadata header
      * <ul>
@@ -57,15 +58,15 @@ final class MetadataHeaderParser {
      * </ul>
      * @throws org.eclipse.ditto.json.JsonParseException if the value of a metadata header cannot be parsed.
      */
-    Stream<MetadataHeader> parse(final DittoHeaders dittoHeaders) {
+    List<MetadataHeader> parse(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        final Stream.Builder<MetadataHeader> streamBuilder = Stream.builder();
+        final List<MetadataHeader> result = new ArrayList<>();
         dittoHeaders.forEach((key, value) -> {
             if (key.startsWith(MetadataHeaderKey.PREFIX)) {
-                streamBuilder.accept(MetadataHeader.of(parseKey(key), parseValue(value)));
+                result.add(MetadataHeader.of(parseKey(key), parseValue(value)));
             }
         });
-        return streamBuilder.build();
+        return result;
     }
 
     private static MetadataHeaderKey parseKey(final CharSequence key) {

@@ -14,9 +14,11 @@ package org.eclipse.ditto.services.utils.persistentactors.events;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -84,12 +86,27 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
     @Override
     @Nullable
     public Metadata get() {
-        return event.getEntity(event.getImplementedSchemaVersion())
-                .map(this::buildMetadata)
-                .orElse(existingMetadata);
+        final Metadata result;
+        final Optional<JsonValue> entityOptional = event.getEntity(event.getImplementedSchemaVersion());
+        if (entityOptional.isPresent()) {
+            final List<MetadataHeader> metadataHeaders = getMetadataHeaders();
+            if (metadataHeaders.isEmpty()) {
+                result = existingMetadata;
+            } else {
+                result = buildMetadata(entityOptional.get(), metadataHeaders);
+            }
+        } else {
+            result = existingMetadata;
+        }
+        return result;
     }
 
-    private Metadata buildMetadata(final JsonValue entity) {
+    private List<MetadataHeader> getMetadataHeaders() {
+        final MetadataHeaderParser metadataHeaderParser = MetadataHeaderParser.getInstance();
+        return metadataHeaderParser.parse(event.getDittoHeaders());
+    }
+
+    private Metadata buildMetadata(final JsonValue entity, final List<MetadataHeader> metadataHeaders) {
         final MetadataBuilder metadataBuilder = getMetadataBuilder();
 
         final Consumer<MetadataHeader> addMetadataToBuilder = metadataHeader -> {
@@ -104,7 +121,8 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
 
         // Sorting ensures that values for a key with specific path overwrite overlapping values for a key with wildcard
         // path, i. e. specific > generic.
-        metadataHeaders().sorted().forEach(addMetadataToBuilder);
+        Collections.sort(metadataHeaders);
+        metadataHeaders.forEach(addMetadataToBuilder);
 
         return metadataBuilder.build();
     }
@@ -128,11 +146,6 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
             metadataBuilder.set(path.append(metadataHeaderKey.getPath()), metadataHeader.getValue());
         }
-    }
-
-    private Stream<MetadataHeader> metadataHeaders() {
-        final MetadataHeaderParser metadataHeaderParser = MetadataHeaderParser.getInstance();
-        return metadataHeaderParser.parse(event.getDittoHeaders());
     }
 
 }
