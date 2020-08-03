@@ -34,9 +34,8 @@ public final class PolicyIdCreatedStrategyTest extends AbstractStrategyTest {
 
     @Test
     public void appliesEventCorrectly() {
-        final PolicyIdCreatedStrategy strategy = new PolicyIdCreatedStrategy(new NoOpMetadataHandler<>());
-        final PolicyIdCreated event = PolicyIdCreated.of(THING_ID, POLICY_ID, REVISION,
-                DittoHeaders.empty());
+        final PolicyIdCreatedStrategy strategy = new PolicyIdCreatedStrategy();
+        final PolicyIdCreated event = PolicyIdCreated.of(THING_ID, POLICY_ID, REVISION, DittoHeaders.empty());
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 

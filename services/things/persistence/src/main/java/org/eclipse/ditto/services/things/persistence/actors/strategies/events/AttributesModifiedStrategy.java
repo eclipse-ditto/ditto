@@ -27,10 +27,6 @@ final class AttributesModifiedStrategy extends AbstractThingEventStrategy<Attrib
         super();
     }
 
-    protected AttributesModifiedStrategy(MetadataHandler<AttributesModified> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AttributesModified event,
             final ThingBuilder.FromCopy thingBuilder) {

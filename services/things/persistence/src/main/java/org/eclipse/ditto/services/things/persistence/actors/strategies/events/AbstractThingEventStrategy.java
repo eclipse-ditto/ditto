@@ -25,8 +25,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This abstract implementation of {@code EventStrategy} checks if the Thing to be handled is {@code null}.
  * If the Thing is {@code null} the {@code handle} method returns with {@code null}; otherwise a ThingBuilder will be
  * derived from the Thing with the revision and modified timestamp set.
- * This builder is then passed to the
- * {@link #applyEvent(T, org.eclipse.ditto.model.things.ThingBuilder.FromCopy)}
+ * This builder is then passed to the {@link #applyEvent(T, org.eclipse.ditto.model.things.ThingBuilder.FromCopy)}
  * method for further handling.
  * However, sub-classes are free to implement the {@code handle} method directly and thus completely circumvent the
  * {@code applyEvent} method.
@@ -36,17 +35,11 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 @Immutable
 abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements EventStrategy<T, Thing> {
 
-    private final MetadataHandler<T> metadataHandler;
-
     /**
      * Constructs a new {@code AbstractThingEventStrategy} object.
      */
     protected AbstractThingEventStrategy() {
-        this(new DefaultMetadataHandler<>());
-    }
-
-    protected AbstractThingEventStrategy(final MetadataHandler<T> metadataHandler) {
-        this.metadataHandler = metadataHandler;
+        super();
     }
 
     @Nullable
@@ -56,16 +49,21 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null));
-            thingBuilder = metadataHandler.handle(event, thing, thingBuilder);
+            thingBuilder = setMetadata(event, thing, thingBuilder);
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }
         return null;
     }
 
+    private ThingBuilder.FromCopy setMetadata(final T event, final Thing thing, final ThingBuilder.FromCopy builder) {
+        final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
+        return builder.setMetadata(metadataFromEvent.get());
+    }
+
     /**
-     * Apply the specified event to the also specified ThingBuilder. The builder has already the specified revision
-     * set as well as the event's timestamp.
+     * Apply the specified event to the also specified ThingBuilder.
+     * The builder has already the specified revision set as well as the event's timestamp.
      *
      * @param event the ThingEvent to be applied.
      * @param thingBuilder builder which is derived from the {@code event}'s Thing with the revision and event
@@ -74,22 +72,6 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
      */
     protected ThingBuilder.FromCopy applyEvent(final T event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder;
-    }
-
-    /**
-     * Default Implementation which uses {@link MetadataFromEvent} to generate {@code Metadata}
-     * for the Thing.
-     * @param <T> Event Type.
-     */
-    @Immutable
-    private static class DefaultMetadataHandler<T extends ThingEvent<T>> implements MetadataHandler<T> {
-
-        @Override
-        public ThingBuilder.FromCopy handle(final T event, final Thing thing, final ThingBuilder.FromCopy builder) {
-            final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
-            return builder.setMetadata(metadataFromEvent.get());
-        }
-
     }
 
 }

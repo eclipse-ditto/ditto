@@ -33,7 +33,7 @@ public final class FeatureDefinitionModifiedStrategyTest extends AbstractStrateg
 
     @Test
     public void appliesEventCorrectly() {
-        final FeatureDefinitionModifiedStrategy strategy = new FeatureDefinitionModifiedStrategy(new NoOpMetadataHandler<>());
+        final FeatureDefinitionModifiedStrategy strategy = new FeatureDefinitionModifiedStrategy();
         final FeatureDefinitionModified event =
                 FeatureDefinitionModified.of(THING_ID, FEATURE_ID, FEATURE_DEFINITION, REVISION, DittoHeaders.empty());
 

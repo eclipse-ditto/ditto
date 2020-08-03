@@ -33,7 +33,7 @@ public final class ThingDefinitionModifiedStrategyTest extends AbstractStrategyT
 
     @Test
     public void appliesEventCorrectly() {
-        final ThingDefinitionModifiedStrategy strategy = new ThingDefinitionModifiedStrategy(new NoOpMetadataHandler<>());
+        final ThingDefinitionModifiedStrategy strategy = new ThingDefinitionModifiedStrategy();
         final ThingDefinitionModified event = ThingDefinitionModified.of(THING_ID, THING_DEFINITION, REVISION,
                 DittoHeaders.empty());
 

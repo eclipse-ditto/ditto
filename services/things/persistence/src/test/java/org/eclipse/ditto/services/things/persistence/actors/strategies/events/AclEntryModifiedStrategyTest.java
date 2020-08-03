@@ -33,7 +33,7 @@ public final class AclEntryModifiedStrategyTest extends AbstractStrategyTest {
 
     @Test
     public void appliesEventCorrectly() {
-        final AclEntryModifiedStrategy strategy = new AclEntryModifiedStrategy(new NoOpMetadataHandler<>());
+        final AclEntryModifiedStrategy strategy = new AclEntryModifiedStrategy();
         final AclEntryModified event = AclEntryModified.of(THING_ID, ACL_ENTRY, REVISION, DittoHeaders.empty());
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);

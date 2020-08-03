@@ -27,10 +27,6 @@ final class PolicyIdCreatedStrategy extends AbstractThingEventStrategy<PolicyIdC
         super();
     }
 
-    protected PolicyIdCreatedStrategy(MetadataHandler<PolicyIdCreated> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final PolicyIdCreated event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setPolicyId(event.getPolicyEntityId());

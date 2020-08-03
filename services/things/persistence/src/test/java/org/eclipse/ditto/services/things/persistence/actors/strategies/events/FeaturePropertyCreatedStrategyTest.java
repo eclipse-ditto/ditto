@@ -33,7 +33,7 @@ public final class FeaturePropertyCreatedStrategyTest extends AbstractStrategyTe
 
     @Test
     public void appliesEventCorrectly() {
-        final FeaturePropertyCreatedStrategy strategy = new FeaturePropertyCreatedStrategy(new NoOpMetadataHandler<>());
+        final FeaturePropertyCreatedStrategy strategy = new FeaturePropertyCreatedStrategy();
         final FeaturePropertyCreated event = FeaturePropertyCreated.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
                 FEATURE_PROPERTY_VALUE, REVISION, DittoHeaders.empty());
 

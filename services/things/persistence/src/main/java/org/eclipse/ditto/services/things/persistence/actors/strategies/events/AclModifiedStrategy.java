@@ -27,10 +27,6 @@ final class AclModifiedStrategy extends AbstractThingEventStrategy<AclModified> 
         super();
     }
 
-    protected AclModifiedStrategy(MetadataHandler<AclModified> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclModified event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder

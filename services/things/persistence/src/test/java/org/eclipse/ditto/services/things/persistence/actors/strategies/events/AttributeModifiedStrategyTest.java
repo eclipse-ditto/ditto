@@ -33,7 +33,7 @@ public final class AttributeModifiedStrategyTest extends AbstractStrategyTest {
 
     @Test
     public void appliesEventCorrectly() {
-        final AttributeModifiedStrategy strategy = new AttributeModifiedStrategy(new NoOpMetadataHandler<>());
+        final AttributeModifiedStrategy strategy = new AttributeModifiedStrategy();
         final AttributeModified event = AttributeModified.of(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, REVISION,
                 DittoHeaders.empty());
 

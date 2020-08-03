@@ -27,13 +27,10 @@ final class ThingDefinitionCreatedStrategy extends AbstractThingEventStrategy<Th
         super();
     }
 
-    protected ThingDefinitionCreatedStrategy(MetadataHandler<ThingDefinitionCreated> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final ThingDefinitionCreated event,
             final ThingBuilder.FromCopy thingBuilder) {
+
         return thingBuilder.setDefinition(event.getThingDefinition());
     }
 

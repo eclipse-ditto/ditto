@@ -27,10 +27,6 @@ final class FeaturePropertiesModifiedStrategy extends AbstractThingEventStrategy
         super();
     }
 
-    protected FeaturePropertiesModifiedStrategy(MetadataHandler<FeaturePropertiesModified> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeaturePropertiesModified event,
             final ThingBuilder.FromCopy thingBuilder) {

@@ -27,10 +27,6 @@ final class AclEntryCreatedStrategy extends AbstractThingEventStrategy<AclEntryC
         super();
     }
 
-    protected AclEntryCreatedStrategy(MetadataHandler<AclEntryCreated> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclEntryCreated event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setPermissions(event.getAclEntry());

@@ -27,10 +27,6 @@ final class FeatureDefinitionCreatedStrategy extends AbstractThingEventStrategy<
         super();
     }
 
-    protected FeatureDefinitionCreatedStrategy(MetadataHandler<FeatureDefinitionCreated> metadataHandler) {
-        super(metadataHandler);
-    }
-
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeatureDefinitionCreated event,
             final ThingBuilder.FromCopy thingBuilder) {

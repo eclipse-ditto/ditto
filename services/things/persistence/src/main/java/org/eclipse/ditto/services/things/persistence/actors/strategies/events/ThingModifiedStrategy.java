@@ -29,10 +29,6 @@ final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModifi
         super();
     }
 
-    protected ThingModifiedStrategy(MetadataHandler<ThingModified> metadataHandler) {
-        super(metadataHandler);
-    }
-
     /**
      * Merges the modifications from {@code thingWithModifications} to {@code thingBuilder}.
      * Merge is implemented very simple: All first level fields of {@code thingWithModifications} overwrite the first
