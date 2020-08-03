@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -112,7 +113,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscri
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -513,8 +513,10 @@ public final class ConnectionPersistenceActor
         }
 
         final Signal<?> signalToForward;
-        if (signal instanceof ThingEvent) {
-            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
+        if (hasSource() && signal instanceof WithThingId) {
+            // no point starting the acknowledgement forwarder if there is no source.
+            // issued acknowledgements from targets go to the sender directly.
+            final WithThingId thingEvent = (WithThingId) signal;
             signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
                     thingEvent.getThingEntityId(),
                     signal,
@@ -959,6 +961,10 @@ public final class ConnectionPersistenceActor
         final StagedCommand stagedCommand = StagedCommand.of(connect, StagedCommand.dummyEvent(), connect,
                 Collections.singletonList(UPDATE_SUBSCRIPTIONS));
         openConnection(stagedCommand, false);
+    }
+
+    private boolean hasSource() {
+        return entity != null && !entity.getSources().isEmpty();
     }
 
     private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {

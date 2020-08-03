@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -39,21 +39,21 @@ import akka.actor.Props;
 public final class AcknowledgementAggregatorActorStarter implements Supplier<Optional<ActorRef>> {
 
     protected final ActorContext actorContext;
-    protected final Command<?> command;
+    protected final Signal<?> signal;
     protected final DittoHeaders dittoHeaders;
     protected final AcknowledgementConfig acknowledgementConfig;
     protected final HeaderTranslator headerTranslator;
     protected final Consumer<Object> responseSignalConsumer;
 
     private AcknowledgementAggregatorActorStarter(final ActorContext context,
-            final Command<?> command,
+            final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
         actorContext = checkNotNull(context, "context");
-        this.command = checkNotNull(command, "command");
-        this.dittoHeaders = this.command.getDittoHeaders();
+        this.signal = checkNotNull(signal, "signal");
+        this.dittoHeaders = this.signal.getDittoHeaders();
         this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.responseSignalConsumer = checkNotNull(responseSignalConsumer, "responseSignalConsumer");
@@ -63,7 +63,7 @@ public final class AcknowledgementAggregatorActorStarter implements Supplier<Opt
      * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
      *
      * @param context the context to start the aggregator actor in.
-     * @param command the message command which potentially includes {@code AcknowledgementRequests}
+     * @param signal the signal which potentially includes {@code AcknowledgementRequests}
      * based on which the AggregatorActor is started.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
@@ -73,12 +73,12 @@ public final class AcknowledgementAggregatorActorStarter implements Supplier<Opt
      * @throws NullPointerException if any argument is {@code null}.
      */
     static AcknowledgementAggregatorActorStarter getInstance(final ActorContext context,
-            final Command<?> command,
+            final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
-        return new AcknowledgementAggregatorActorStarter(context, command, acknowledgementConfig,
+        return new AcknowledgementAggregatorActorStarter(context, signal, acknowledgementConfig,
                 headerTranslator, responseSignalConsumer);
     }
 
@@ -97,7 +97,7 @@ public final class AcknowledgementAggregatorActorStarter implements Supplier<Opt
     }
 
     private Optional<ActorRef> startAckAggregatorActor() {
-        final Props props = AcknowledgementAggregatorActor.props(command, acknowledgementConfig, headerTranslator,
+        final Props props = AcknowledgementAggregatorActor.props(signal, acknowledgementConfig, headerTranslator,
                 responseSignalConsumer);
         final ActorRef actorRef =
                 actorContext.actorOf(props, AcknowledgementAggregatorActor.determineActorName(dittoHeaders));

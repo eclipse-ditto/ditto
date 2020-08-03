@@ -14,13 +14,12 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -29,9 +28,14 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -48,18 +52,20 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
     private final ActorContext actorContext;
     private final EntityIdWithType entityId;
+    private final Signal<?> signal;
     private final DittoHeaders dittoHeaders;
     private final Set<AcknowledgementRequest> acknowledgementRequests;
     private final AcknowledgementConfig acknowledgementConfig;
 
     private AcknowledgementForwarderActorStarter(final ActorContext context,
             final EntityIdWithType entityId,
-            final DittoHeaders dittoHeaders,
+            final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
         actorContext = checkNotNull(context, "context");
         this.entityId = checkNotNull(entityId, "entityId");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
+        this.signal = checkNotNull(signal, "signal");
+        dittoHeaders = signal.getDittoHeaders();
         acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
         this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
     }
@@ -70,24 +76,29 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * @param context the context to start the forwarder actor in. Furthermore provides the sender and self
      * reference for forwarding.
      * @param entityId is used for the NACKs if the forwarder actor cannot be started.
-     * @param dittoHeaders the headers which contain the acknowledgement requests.
+     * @param signal the signal for which the forwarder actor is to start.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @return a means to start an acknowledgement forwarder actor.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static AcknowledgementForwarderActorStarter getInstance(final ActorContext context,
             final EntityIdWithType entityId,
-            final DittoHeaders dittoHeaders,
+            final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
-        return new AcknowledgementForwarderActorStarter(context, entityId, dittoHeaders, acknowledgementConfig);
+        return new AcknowledgementForwarderActorStarter(context, entityId, signal, acknowledgementConfig);
     }
 
     @Override
     public Optional<ActorRef> get() {
         ActorRef actorRef = null;
-        if (!acknowledgementRequests.isEmpty()) {
-            actorRef = tryToStartAckForwarderActor();
+        if (hasEffectiveAckRequests(signal)) {
+            try {
+                actorRef = startAckForwarderActor(dittoHeaders);
+            } catch (final InvalidActorNameException e) {
+                // In case that the actor with that name already existed, the correlation-id was already used recently:
+                declineAllNonDittoAckRequests(getDuplicateCorrelationIdException(e));
+            }
         }
         return Optional.ofNullable(actorRef);
     }
@@ -100,7 +111,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * start because no acknowledgement was requested.
      */
     public Optional<String> getConflictFree() {
-        if (acknowledgementRequests.isEmpty()) {
+        if (hasEffectiveAckRequests(signal)) {
             return Optional.empty();
         }
         final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
@@ -115,17 +126,6 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                 // generate a new ID
                 correlationId = startingCorrelationId + UUID.randomUUID();
             }
-        }
-    }
-
-    @Nullable
-    private ActorRef tryToStartAckForwarderActor() {
-        try {
-            return startAckForwarderActor(dittoHeaders);
-        } catch (final InvalidActorNameException e) {
-            // In case that the actor with that name already existed, the correlation-id was already used recently:
-            declineAllNonDittoAckRequests(getDuplicateCorrelationIdException(e));
-            return null;
         }
     }
 
@@ -162,4 +162,27 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                 dittoRuntimeException.toJson());
     }
 
+    static boolean isNotLiveResponse(final AcknowledgementRequest request) {
+        return !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(request.getLabel());
+    }
+
+    static boolean isNotTwinPersisted(final AcknowledgementRequest request) {
+        return !DittoAcknowledgementLabel.TWIN_PERSISTED.equals(request.getLabel());
+    }
+
+    static boolean isLiveSignal(final Signal<?> signal) {
+        return signal.getDittoHeaders().getChannel().stream().anyMatch(TopicPath.Channel.LIVE.getName()::equals);
+    }
+
+    static boolean hasEffectiveAckRequests(final Signal<?> signal) {
+        final boolean isLiveSignal = isLiveSignal(signal);
+        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
+        if (signal instanceof ThingEvent && !isLiveSignal) {
+            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
+        } else if (signal instanceof MessageCommand || isLiveSignal && signal instanceof ThingCommand) {
+            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
+        } else {
+            return false;
+        }
+    }
 }

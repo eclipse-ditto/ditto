@@ -28,6 +28,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.IncomingSignal;
 import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
@@ -141,6 +142,7 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     @Override
     public Receive createReceive() {
+        // TODO: rearrange this
         return ReceiveBuilder.create()
                 // Handle internal connect/streaming commands
                 .match(Connect.class, connect -> {
@@ -166,6 +168,13 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
+                        // TODO: deduplicate
+                        .match(IncomingSignal.class, incomingSignal ->
+                                lookupSessionActor(incomingSignal.getSignal(), sessionActor -> {
+                                    sessionActor.forward(incomingSignal, getContext());
+                                    commandRouter.tell(incomingSignal.getSignal(), sessionActor);
+                                })
+                        )
                         .match(Acknowledgement.class, acknowledgement ->
                                 lookupSessionActor(acknowledgement, sessionActor ->
                                         sessionActor.forward(acknowledgement, getContext())
