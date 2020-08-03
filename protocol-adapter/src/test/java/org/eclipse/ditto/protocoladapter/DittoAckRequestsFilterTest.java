@@ -59,6 +59,17 @@ public final class DittoAckRequestsFilterTest {
     }
 
     @Test
+    public void filterValueWithLiveResponseOnlyAckRequest() {
+        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
+        final AcknowledgementRequest liveResponseAckRequest = AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE);
+        final JsonArray liveResponseJsonArray = JsonArray.newBuilder().add(liveResponseAckRequest.toString()).build();
+
+        final DittoAckRequestsFilter underTest = DittoAckRequestsFilter.getInstance();
+
+        assertThat(underTest.apply(headerDefinition.getKey(), liveResponseJsonArray.toString())).isNull();
+    }
+
+    @Test
     public void filterEmptyStringValue() {
         final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.REQUESTED_ACKS;
 
@@ -90,6 +101,7 @@ public final class DittoAckRequestsFilterTest {
         final List<AcknowledgementRequest> allAcknowledgementRequests = Lists.list(
                 AcknowledgementRequest.of(AcknowledgementLabel.of("foo")),
                 AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
+                AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE),
                 AcknowledgementRequest.of(AcknowledgementLabel.of("bar")));
         final JsonArray allAcknowledgementRequestsJsonArray = allAcknowledgementRequests.stream()
                 .map(AcknowledgementRequest::toString)
@@ -97,7 +109,8 @@ public final class DittoAckRequestsFilterTest {
                 .collect(JsonCollectors.valuesToArray());
         final String value = allAcknowledgementRequestsJsonArray.toString();
         final JsonArray externalAcknowledgementRequests = allAcknowledgementRequestsJsonArray.toBuilder()
-                .remove(1)
+                .remove(2) // "live-response"
+                .remove(1) // "twin-persisted"
                 .build();
         final String expected = externalAcknowledgementRequests.toString();
 

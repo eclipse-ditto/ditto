@@ -33,6 +33,7 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
 
     // Representation of the supposedly most often occurring ack request header value.
     private static final String TWIN_PERSISTED_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.TWIN_PERSISTED + "\"]";
+    private static final String LIVE_RESPONSE_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.LIVE_RESPONSE + "\"]";
 
     private static final JsonValue EMPTY_JSON_STRING = JsonValue.of("");
 
@@ -58,7 +59,7 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
     public String filterValue(final String key, final String value) {
         String result = value;
         if (Objects.equals(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), key)) {
-            if (isTwinPersistedOnly(value) || value.isEmpty()) {
+            if (isTwinPersistedOnly(value) || isLiveResponseOnly(value) || value.isEmpty()) {
                 result = null;
             } else {
                 result = parseAsJsonArrayAndFilter(value);
@@ -69,6 +70,10 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
 
     private static boolean isTwinPersistedOnly(final String value) {
         return TWIN_PERSISTED_ONLY_VALUE.equals(value);
+    }
+
+    private static boolean isLiveResponseOnly(final String value) {
+        return LIVE_RESPONSE_ONLY_VALUE.equals(value);
     }
 
     private static String parseAsJsonArrayAndFilter(final String value) {
