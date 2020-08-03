@@ -171,7 +171,7 @@ public final class MetadataFromEventTest {
                 .set(JsonPointer.of("/features/flux-capacitor/definition/lastSeen"), 2023)
                 .build();
         final Thing thingWithMetadata = thingWithoutMetadata.toBuilder()
-                .setMetadata(JsonPointer.empty(), existingMetadata)
+                .setMetadata(existingMetadata)
                 .build();
         final Feature modifiedFeature = fluxCapacitor.toBuilder()
                 .properties(fluxCapacitorProperties.toBuilder()

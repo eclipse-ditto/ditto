@@ -339,7 +339,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setMetadata(JsonPointer resourcePath, Metadata metadata) {
+    public FromScratch setMetadata(@Nullable final Metadata metadata) {
         this.metadata = metadata;
         return this;
     }

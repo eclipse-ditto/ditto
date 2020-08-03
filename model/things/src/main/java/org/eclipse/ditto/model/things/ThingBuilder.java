@@ -476,10 +476,11 @@ public interface ThingBuilder {
         /**
          * Sets the given Metadata to this builder.
          *
-         * @param metadata the modified to be set.
+         * @param metadata the metadata to be set.
          * @return this builder to allow method chaining.
+         * @since 1.2.0
          */
-        FromScratch setMetadata(JsonPointer resourcePath, Metadata metadata);
+        FromScratch setMetadata(@Nullable Metadata metadata);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
@@ -1413,10 +1414,11 @@ public interface ThingBuilder {
         /**
          * Sets the given metadata to this builder.
          *
-         * @param metadata the modified to be set.
+         * @param metadata the metadata to be set.
          * @return this builder to allow method chaining.
+         * @since 1.2.0
          */
-        FromCopy setMetadata(JsonPointer resourcePath, Metadata metadata);
+        FromCopy setMetadata(@Nullable Metadata metadata);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.

@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
@@ -88,7 +87,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         @Override
         public ThingBuilder.FromCopy handle(final T event, final Thing thing, final ThingBuilder.FromCopy builder) {
             final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
-            return builder.setMetadata(JsonPointer.empty(), metadataFromEvent.get());
+            return builder.setMetadata(metadataFromEvent.get());
         }
 
     }

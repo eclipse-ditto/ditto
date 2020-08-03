@@ -63,7 +63,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         thing.getLifecycle().ifPresent(result::setLifecycle);
         thing.getRevision().ifPresent(result::setRevision);
         thing.getModified().ifPresent(result::setModified);
-        thing.getMetadata().ifPresent(metadta -> result.setMetadata(JsonPointer.empty(), metadta));
+        thing.getMetadata().ifPresent(metadata -> result.setMetadata(metadata));
 
         return result;
     }
@@ -127,7 +127,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         jsonObject.getValue(Thing.JsonFields.METADATA)
                 .map(ThingsModelFactory::newMetadata)
-                .ifPresent(json -> result.setMetadata(JsonPointer.empty(), json));
+                .ifPresent(json -> result.setMetadata(json));
 
         return result;
     }
@@ -697,8 +697,8 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setMetadata(final JsonPointer resourcePath, final Metadata metadata) {
-        fromScratchBuilder.setMetadata(resourcePath, metadata);
+    public FromCopy setMetadata(@Nullable final Metadata metadata) {
+        fromScratchBuilder.setMetadata(metadata);
         return this;
     }
 
