@@ -5,8 +5,16 @@ permalink: sandbox.html
 topnav: topnav
 ---
 
-Starting with Eclipse Ditto milestone 0.1.0-M3 the Ditto team provides a [sandbox](https://ditto.eclipse.org) which may be used
-by everyone wanting to try out Ditto without starting it locally.
+The Ditto team provides a [sandbox](https://ditto.eclipse.org) which may be used by everyone wanting to try out Ditto 
+without starting it locally.
+
+{% include warning.html content="The Ditto sandbox is not set up in a highly available manner and may experience
+   downtimes. Also, the sandbox will be reset from time to time without prior notice." %}
+
+In addition, the following vendors offer free trial accounts for their Eclipse Ditto compatible products:
+
+* [Bosch IoT Things](https://developer.bosch-iot-suite.com/service/things/) by [Bosch.IO](https://bosch.io)
+
 
 ## Instructions
 
@@ -26,7 +34,7 @@ item in order to create a new `Thing`, a **digital twin** so to say.<br/>
 Scroll down to the parameters and enter the required ones (in this case the `thingId`), for example:
 
 ```
-org.eclipse.ditto.tjaeckle:my-first-thing
+org.eclipse.ditto:my-first-thing
 ```
 
 The ID must contain a namespace (in Java package notation) followed by a `:` and an arbitrary string afterwards.

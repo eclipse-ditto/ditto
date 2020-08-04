@@ -12,36 +12,31 @@
  */
 package org.eclipse.ditto.signals.commands.messages.acks;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import java.util.Set;
-import java.util.function.UnaryOperator;
-
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 /**
- * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by an
+ * This UnaryOperator accepts a MessageCommand and checks whether its DittoHeaders should be extended by an
  * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#LIVE_RESPONSE}.
+ * <p>
  * If so, the result is a new command with extended headers, else the same command is returned.
- * The headers are only extended if {@link DittoHeaders#isResponseRequired()}
- * evaluates to {@code true} and if command headers do not yet contain acknowledgement requests.
+ * </p>
  *
  * @since 1.2.0
  */
 @Immutable
-public final class MessageCommandAckRequestSetter implements UnaryOperator<MessageCommand<?, ?>> {
+@AllParametersAndReturnValuesAreNonnullByDefault
+public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequestSetter<MessageCommand<?, ?>> {
 
     private static final MessageCommandAckRequestSetter INSTANCE = new MessageCommandAckRequestSetter();
 
     private MessageCommandAckRequestSetter() {
-        super();
+        super(DittoAcknowledgementLabel.LIVE_RESPONSE);
     }
 
     /**
@@ -54,33 +49,7 @@ public final class MessageCommandAckRequestSetter implements UnaryOperator<Messa
     }
 
     @Override
-    public MessageCommand<?, ?> apply(final MessageCommand<?, ?> command) {
-        MessageCommand<?, ?> result = checkNotNull(command, "command");
-        if (isResponseRequired(command)) {
-            result = requestDittoLiveResponseAckIfNoOtherAcksAreRequested(command);
-        }
-        return result;
+    protected boolean isApplicable(final MessageCommand<?, ?> command) {
+        return isLiveChannelCommand(command);
     }
-
-    private static boolean isResponseRequired(final WithDittoHeaders<?> command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        return dittoHeaders.isResponseRequired();
-    }
-
-    private static MessageCommand<?, ?> requestDittoLiveResponseAckIfNoOtherAcksAreRequested(
-            final MessageCommand<?, ?> command) {
-
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
-        final boolean requestedAcksHeaderPresent =
-                dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
-        if (acknowledgementRequests.isEmpty() && !requestedAcksHeaderPresent) {
-            acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE));
-            return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                    .acknowledgementRequests(acknowledgementRequests)
-                    .build());
-        }
-        return command;
-    }
-
 }
