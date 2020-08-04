@@ -112,20 +112,21 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      */
     public Optional<String> getConflictFree() {
         if (hasEffectiveAckRequests(signal)) {
-            return Optional.empty();
-        }
-        final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
-        final String startingCorrelationId = dittoHeaders.getCorrelationId().orElse("");
-        String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
-        while (true) {
-            try {
-                builder.correlationId(correlationId);
-                startAckForwarderActor(builder.build());
-                return Optional.of(correlationId);
-            } catch (final InvalidActorNameException e) {
-                // generate a new ID
-                correlationId = startingCorrelationId + UUID.randomUUID();
+            final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+            final String startingCorrelationId = dittoHeaders.getCorrelationId().orElse("");
+            String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
+            while (true) {
+                try {
+                    builder.correlationId(correlationId);
+                    startAckForwarderActor(builder.build());
+                    return Optional.of(correlationId);
+                } catch (final InvalidActorNameException e) {
+                    // generate a new ID
+                    correlationId = startingCorrelationId + UUID.randomUUID();
+                }
             }
+        } else {
+            return Optional.empty();
         }
     }
 
