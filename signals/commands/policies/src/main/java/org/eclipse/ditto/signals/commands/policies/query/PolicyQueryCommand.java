@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyQueryCommand<T extends PolicyQueryCommand> extends PolicyCommand<T> {
+public interface PolicyQueryCommand<T extends PolicyQueryCommand<T>> extends PolicyCommand<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

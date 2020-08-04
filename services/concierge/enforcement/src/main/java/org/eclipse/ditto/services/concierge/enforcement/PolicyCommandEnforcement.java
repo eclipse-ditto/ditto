@@ -60,7 +60,7 @@ import akka.pattern.Patterns;
 /**
  * Authorize {@link PolicyCommand}.
  */
-public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCommand> {
+public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCommand<?>> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -72,7 +72,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     private final EnforcerRetriever enforcerRetriever;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
 
-    private PolicyCommandEnforcement(final Contextual<PolicyCommand> data, final ActorRef policiesShardRegion,
+    private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> data, final ActorRef policiesShardRegion,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache) {
 
         super(data);
@@ -115,7 +115,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer..
      */
-    public static <T extends PolicyQueryCommandResponse> T buildJsonViewForPolicyQueryCommandResponse(
+    public static <T extends PolicyQueryCommandResponse<T>> T buildJsonViewForPolicyQueryCommandResponse(
             final PolicyQueryCommandResponse<T> response,
             final Enforcer enforcer) {
 
@@ -293,7 +293,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     /**
      * Provides {@link AbstractEnforcement} for commands of type {@link PolicyCommand}.
      */
-    public static final class Provider implements EnforcementProvider<PolicyCommand> {
+    public static final class Provider implements EnforcementProvider<PolicyCommand<?>> {
 
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
         private ActorRef policiesShardRegion;
@@ -311,17 +311,18 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         }
 
         @Override
-        public Class<PolicyCommand> getCommandClass() {
-            return PolicyCommand.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<PolicyCommand<?>> getCommandClass() {
+            return (Class) PolicyCommand.class;
         }
 
         @Override
-        public boolean changesAuthorization(final PolicyCommand signal) {
+        public boolean changesAuthorization(final PolicyCommand<?> signal) {
             return signal instanceof PolicyModifyCommand;
         }
 
         @Override
-        public AbstractEnforcement<PolicyCommand> createEnforcement(final Contextual<PolicyCommand> context) {
+        public AbstractEnforcement<PolicyCommand<?>> createEnforcement(final Contextual<PolicyCommand<?>> context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
 

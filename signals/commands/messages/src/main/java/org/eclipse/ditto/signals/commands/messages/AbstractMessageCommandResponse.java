@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * @param <T> the type of the message's payload.
  * @param <C> the type of the AbstractMessageCommand.
  */
-abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageCommandResponse>
+abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageCommandResponse<T, C>>
         extends AbstractCommandResponse<C> implements MessageCommandResponse<T, C> {
 
     private final ThingId thingId;

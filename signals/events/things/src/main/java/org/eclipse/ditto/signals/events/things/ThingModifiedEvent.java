@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingModifiedEvent<T extends ThingModifiedEvent> extends ThingEvent<T> {
+public interface ThingModifiedEvent<T extends ThingModifiedEvent<T>> extends ThingEvent<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand> extends Command<T>, WithIdButActuallyNot {
+public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand<T>> extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of Sudo commands.

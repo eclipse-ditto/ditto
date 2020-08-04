@@ -57,13 +57,13 @@ import akka.actor.ActorRef;
 /**
  * Enforces live commands (including message commands) and live events.
  */
-public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
+public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> {
 
     private final EnforcerRetriever enforcerRetriever;
     private final Cache<String, ResponseReceiver> responseReceivers;
     private final LiveSignalPub liveSignalPub;
 
-    private LiveSignalEnforcement(final Contextual<Signal> context,
+    private LiveSignalEnforcement(final Contextual<Signal<?>> context,
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
@@ -82,7 +82,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     /**
      * {@link EnforcementProvider} for {@link LiveSignalEnforcement}.
      */
-    public static final class Provider implements EnforcementProvider<Signal> {
+    public static final class Provider implements EnforcementProvider<Signal<?>> {
 
         private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
@@ -109,17 +109,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
 
         @Override
-        public Class<Signal> getCommandClass() {
-            return Signal.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<Signal<?>> getCommandClass() {
+            return (Class) Signal.class;
         }
 
         @Override
-        public boolean isApplicable(final Signal signal) {
+        public boolean isApplicable(final Signal<?> signal) {
             return LiveSignalEnforcement.isLiveSignal(signal);
         }
 
         @Override
-        public AbstractEnforcement<Signal> createEnforcement(final Contextual<Signal> context) {
+        public AbstractEnforcement<Signal<?>> createEnforcement(final Contextual<Signal<?>> context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache,
                     liveSignalPub);
         }

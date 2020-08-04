@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the response.
  */
-public interface NamespaceCommandResponse<T extends NamespaceCommandResponse>
+public interface NamespaceCommandResponse<T extends NamespaceCommandResponse<T>>
         extends CommandResponse<T>, WithNamespace {
 
 

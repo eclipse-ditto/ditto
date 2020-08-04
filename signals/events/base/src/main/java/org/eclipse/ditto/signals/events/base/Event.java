@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  * @param <T> the type of the implementing class.
  */
 @IndexSubclasses
-public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
+public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity {
 
     /**
      * Type qualifier of events.

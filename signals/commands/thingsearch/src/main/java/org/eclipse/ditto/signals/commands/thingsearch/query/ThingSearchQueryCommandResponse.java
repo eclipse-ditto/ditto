@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponse
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchQueryCommandResponse<T extends ThingSearchQueryCommandResponse>
+public interface ThingSearchQueryCommandResponse<T extends ThingSearchQueryCommandResponse<T>>
         extends ThingSearchCommandResponse<T>, WithEntity<T> {
 }
 

@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingModifyCommandResponse<T extends ThingModifyCommandResponse> extends ThingCommandResponse<T>,
+public interface ThingModifyCommandResponse<T extends ThingModifyCommandResponse<T>> extends ThingCommandResponse<T>,
         WithOptionalEntity {
 
     @Override

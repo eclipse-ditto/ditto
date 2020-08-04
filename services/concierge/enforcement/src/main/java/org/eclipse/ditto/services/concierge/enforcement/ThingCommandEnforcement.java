@@ -118,7 +118,7 @@ import akka.pattern.Patterns;
 /**
  * Authorize {@code ThingCommand}.
  */
-public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
+public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand<?>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingCommandEnforcement.class);
 
@@ -144,7 +144,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
-    private ThingCommandEnforcement(final Contextual<ThingCommand> data,
+    private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
@@ -564,7 +564,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer.
      */
-    private static <T extends ThingQueryCommandResponse> T buildJsonViewForThingQueryCommandResponse(
+    private static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
             final ThingQueryCommandResponse<T> response, final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();
@@ -879,7 +879,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static <T extends ThingCommand> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
+    static <T extends ThingCommand<T>> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
             final ThingCommand<T> command) {
 
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
@@ -1187,7 +1187,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     /**
      * Provides {@link AbstractEnforcement} for commands of type {@link ThingCommand}.
      */
-    public static final class Provider implements EnforcementProvider<ThingCommand> {
+    public static final class Provider implements EnforcementProvider<ThingCommand<?>> {
 
         private static final List<SubjectIssuer> DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
                 Collections.singletonList(SubjectIssuer.GOOGLE);
@@ -1250,24 +1250,25 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
 
         @Override
-        public Class<ThingCommand> getCommandClass() {
-            return ThingCommand.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<ThingCommand<?>> getCommandClass() {
+            return (Class) ThingCommand.class;
         }
 
         @Override
-        public boolean isApplicable(final ThingCommand command) {
+        public boolean isApplicable(final ThingCommand<?> command) {
             // live commands are not applicable for thing command enforcement
             // because they should never be forwarded to things shard region
             return !LiveSignalEnforcement.isLiveSignal(command);
         }
 
         @Override
-        public boolean changesAuthorization(final ThingCommand signal) {
-            return signal instanceof ThingModifyCommand && ((ThingModifyCommand) signal).changesAuthorization();
+        public boolean changesAuthorization(final ThingCommand<?> signal) {
+            return signal instanceof ThingModifyCommand && ((ThingModifyCommand<?>) signal).changesAuthorization();
         }
 
         @Override
-        public AbstractEnforcement<ThingCommand> createEnforcement(final Contextual<ThingCommand> context) {
+        public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
                     policyEnforcerCache, aclEnforcerCache, preEnforcer, subjectIssuersForPolicyMigration);
         }
