@@ -277,8 +277,9 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
      * @param <S> the message's type
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
-            final ActorRef receiver) {
+    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(
+            @Nullable final S message,
+            @Nullable final ActorRef receiver) {
 
         return context.withMessage(message).withReceiver(receiver);
     }

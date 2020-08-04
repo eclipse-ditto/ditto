@@ -171,7 +171,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     @Override
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
-        final ThingCommand signal = signal();
+        final ThingCommand<?> signal = signal();
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
 
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
@@ -254,10 +254,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      */
     private Contextual<WithDittoHeaders> enforceThingCommandByAclEnforcer(final Enforcer enforcer) {
         final ThingCommand<?> thingCommand = signal();
-        final Optional<? extends ThingCommand> authorizedCommand = authorizeByAcl(enforcer, thingCommand);
+        final Optional<? extends ThingCommand<?>> authorizedCommand = authorizeByAcl(enforcer, thingCommand);
 
         if (authorizedCommand.isPresent()) {
-            final ThingCommand commandWithReadSubjects = authorizedCommand.get();
+            final ThingCommand<?> commandWithReadSubjects = authorizedCommand.get();
             if (commandWithReadSubjects instanceof RetrieveThing &&
                     shouldRetrievePolicyWithThing(commandWithReadSubjects)) {
                 final RetrieveThing retrieveThing = (RetrieveThing) commandWithReadSubjects;

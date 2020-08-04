@@ -31,8 +31,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -99,14 +99,13 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(Acknowledgement.class, this::handleAcknowledgement)
-                .match(Acknowledgements.class, this::handleAcknowledgement)
+                .match(CommandResponse.class, this::forwardCommandResponse)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
 
-    private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
+    private void forwardCommandResponse(final WithDittoHeaders<?> acknowledgement) {
         log.withCorrelationId(acknowledgement)
                 .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
         final DittoHeaders enhancedHeaders = acknowledgement.getDittoHeaders()
@@ -116,6 +115,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 .replyTarget(replyTarget)
                 .build();
         acknowledgementRequester.tell(acknowledgement.setDittoHeaders(enhancedHeaders), getSender());
+        getContext().stop(getSelf());
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
@@ -200,17 +200,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
             // signal does not require acks.
             return signal;
         }
-    }
-
-    /**
-     * Tests whether an outgoing signal has effective acknowledgement requests and thereby warrants starting an
-     * acknowledgement forwarder.
-     *
-     * @param signal the outgoing signal.
-     * @return whether the signal has effective acknowledgement requests.
-     */
-    public static boolean shouldStartForOutgoing(final Signal<?> signal) {
-        return AcknowledgementForwarderActorStarter.hasEffectiveAckRequests(signal);
     }
 
 }

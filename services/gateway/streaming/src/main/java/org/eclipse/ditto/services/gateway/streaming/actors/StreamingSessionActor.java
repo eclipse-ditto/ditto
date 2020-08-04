@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -179,12 +179,7 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(IncomingSignal.class, IncomingSignal::getSignal)
                 .build();
 
-        final PartialFunction<Object, Object> setAckRequest = new PFBuilder<>()
-                .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingCommand.class, this::isLiveSignal, ThingLiveCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
-                .matchAny(x -> x)
-                .build();
+        final PartialFunction<Object, Object> setAckRequest = createSetAckRequestBehavior();
 
         final PartialFunction<Object, Object> startAckregator = new PFBuilder<>()
                 .match(Signal.class, AcknowledgementAggregatorActor::shouldStartForIncoming, this::startAckregator)
@@ -192,7 +187,7 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
 
         final Receive signalBehavior = ReceiveBuilder.create()
-                .match(Acknowledgement.class, this::forwardAcknowledgement)
+                .match(CommandResponse.class, this::forwardCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(Signal.class, signal -> {
                     // other incoming signals do not require attention from this actor; ignore them silently
@@ -206,7 +201,11 @@ final class StreamingSessionActor extends AbstractActor {
         final PartialFunction<Object, Object> setCorrelationIdAndStartAckForwarder = new PFBuilder<>()
                 .match(Signal.class, signal -> {
                     logger.setCorrelationId(signal);
-                    return startAckForwarder(signal);
+
+                    // TODO: This should NOT be necessary! Figure out why requested-acks went missing and remove it.
+                    final Signal<?> nextStage = (Signal<?>) createSetAckRequestBehavior().apply(signal);
+
+                    return startAckForwarder(nextStage);
                 })
                 .match(DittoRuntimeException.class, x -> x)
                 .build();
@@ -215,6 +214,7 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(Acknowledgement.class, this::forwardToAckregator)
                 .match(ThingCommandResponse.class, this::forwardToAckregator)
                 .match(MessageCommandResponse.class, this::forwardToAckregator)
+                .match(DittoRuntimeException.class, error -> potentiallyForwardToAckregator(error, () -> error))
                 .matchAny(x -> x)
                 .build();
 
@@ -233,8 +233,7 @@ final class StreamingSessionActor extends AbstractActor {
                     // check if this session is "allowed" to receive the Signal
                     @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
                     if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
-                        logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                                signal.getType(), type, signal);
+                        logger.debug("Got Signal in <{}> session, publishing: {}", type, signal);
 
                         final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
                                 .authorizationContext(authorizationContext)
@@ -248,7 +247,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .matchEquals(Done.getInstance(), done -> { /* already done, nothing to publish */ })
                 .build();
 
-        return addPreprocessors(List.of(setCorrelationIdAndStartAckForwarder, forwardToAckregator), publishSignal);
+        return addPreprocessors(List.of(
+                setCorrelationIdAndStartAckForwarder,
+                forwardToAckregator),
+                publishSignal);
     }
 
     private Receive createPubSubBehavior() {
@@ -350,6 +352,16 @@ final class StreamingSessionActor extends AbstractActor {
                 .orElse(receive);
     }
 
+    // TODO: inline if not needed in createOutgoingSignalBehavior.
+    private PartialFunction<Object, Object> createSetAckRequestBehavior() {
+        return new PFBuilder<>()
+                .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingCommand.class, this::isLiveSignal, ThingLiveCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
+                .matchAny(x -> x)
+                .build();
+    }
+
     private boolean isLiveSignal(final WithDittoHeaders<?> signal) {
         return signal.getDittoHeaders()
                 .getChannel()
@@ -361,20 +373,23 @@ final class StreamingSessionActor extends AbstractActor {
         return signal.getDittoHeaders().getOrigin().stream().anyMatch(connectionCorrelationId::equals);
     }
 
-    private Done forwardToAckregator(final CommandResponse<?> ackOrLiveOrMessageResponse) {
-        potentiallyForwardToAckregator(ackOrLiveOrMessageResponse, () -> logger.info(
-                "About to send Ack/Response but no AcknowledgementAggregatorActor was present: <{}>",
-                ackOrLiveOrMessageResponse));
-        return Done.getInstance();
+    private Object forwardToAckregator(final CommandResponse<?> ackOrLiveOrMessageResponse) {
+        return potentiallyForwardToAckregator(ackOrLiveOrMessageResponse, () -> {
+            logger.info("About to send Ack/Response but no AcknowledgementAggregatorActor was present: <{}>",
+                    ackOrLiveOrMessageResponse);
+            return Done.getInstance();
+        });
     }
 
-    private void potentiallyForwardToAckregator(final CommandResponse<?> response, final Runnable fallbackAction) {
+    private Object potentiallyForwardToAckregator(final WithDittoHeaders<?> response,
+            final Supplier<Object> fallbackAction) {
         final ActorContext context = getContext();
-        final Consumer<ActorRef> action = aggregator -> aggregator.forward(response, context);
-
-        context.findChild(
-                AcknowledgementAggregatorActor.determineActorName(response.getDittoHeaders())
-        ).ifPresentOrElse(action, fallbackAction);
+        return context.findChild(AcknowledgementAggregatorActor.determineActorName(response.getDittoHeaders()))
+                .<Object>map(aggregator -> {
+                    aggregator.forward(response, context);
+                    return Done.getInstance();
+                })
+                .orElseGet(fallbackAction);
     }
 
     // precondition: signal has ack requests
@@ -423,15 +438,15 @@ final class StreamingSessionActor extends AbstractActor {
         }
     }
 
-    private void forwardAcknowledgement(final Acknowledgement acknowledgement) {
+    private void forwardCommandResponse(final CommandResponse<?> commandResponse) {
         // the Acknowledgement is meant for someone else:
         final ActorContext context = getContext();
-        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+        context.findChild(AcknowledgementForwarderActor.determineActorName(commandResponse.getDittoHeaders()))
                 .ifPresentOrElse(
-                        forwarder -> forwarder.forward(acknowledgement, context),
-                        () -> logger.withCorrelationId(acknowledgement)
-                                .info("Received Acknowledgement but no AcknowledgementForwarderActor " +
-                                        "was present: <{}>", acknowledgement)
+                        forwarder -> forwarder.forward(commandResponse, context),
+                        () -> logger.withCorrelationId(commandResponse)
+                                .info("Received CommandResponse but no AcknowledgementForwarderActor " +
+                                        "was present: <{}>", commandResponse)
                 );
     }
 
