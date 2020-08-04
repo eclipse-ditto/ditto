@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -64,18 +63,18 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -172,7 +171,7 @@ final class StreamingSessionActor extends AbstractActor {
                 .orElse(createOutgoingSignalBehavior())
                 .orElse(createPubSubBehavior())
                 .orElse(createSelfTerminationBehavior())
-                .orElse(logUnknownMessage(Function.identity()));
+                .orElse(logUnknownMessage());
     }
 
     private Receive createIncomingSignalBehavior() {
@@ -180,12 +179,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(IncomingSignal.class, IncomingSignal::getSignal)
                 .build();
 
-        // TODO: consider merging the cases
         final PartialFunction<Object, Object> setAckRequest = new PFBuilder<>()
                 .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
                 .match(ThingCommand.class, this::isLiveSignal, ThingLiveCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingModifyCommand.class, this::isResponseRequired,
-                        ThingModifyCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
                 .matchAny(x -> x)
                 .build();
 
@@ -194,36 +191,64 @@ final class StreamingSessionActor extends AbstractActor {
                 .matchAny(x -> x)
                 .build();
 
-        // TODO: specialize handleSignal for incoming and outgoing
         final Receive signalBehavior = ReceiveBuilder.create()
                 .match(Acknowledgement.class, this::forwardAcknowledgement)
-                .match(Signal.class, this::handleSignal)
+                .match(ThingSearchCommand.class, this::forwardSearchCommand)
+                .match(Signal.class, signal -> {
+                    // other incoming signals do not require attention from this actor; ignore them silently
+                })
                 .build();
 
         return addPreprocessors(List.of(stripEnvelope, setAckRequest, startAckregator), signalBehavior);
     }
 
     private Receive createOutgoingSignalBehavior() {
-        return ReceiveBuilder.create()
-                .match(Acknowledgement.class, ack ->
-                        potentiallyForwardToAckregator(ack, () -> logger.withCorrelationId(ack)
-                                .info("About to send Acknowledgement but no AcknowledgementAggregatorActor " +
-                                        "was present: <{}>", ack))
-                )
-                .match(ThingCommandResponse.class, response ->
-                        potentiallyForwardToAckregator(response, () -> handleResponse(response))
-                )
-                .match(CommandResponse.class, this::handleResponse)
-                .match(Signal.class, AcknowledgementForwarderActor::shouldStartForOutgoing,
-                        this::handleSignalsToStartAckForwarderFor)
-                .match(Signal.class, this::handleSignal)
-                .match(DittoRuntimeException.class, cre -> {
-                    logger.withCorrelationId(cre)
-                            .info("Got 'DittoRuntimeException' message in <{}> session, telling" +
-                                    " EventAndResponsePublisher about it: {}", type, cre);
-                    eventAndResponsePublisher.forward(SessionedJsonifiable.error(cre), getContext());
+        final PartialFunction<Object, Object> setCorrelationIdAndStartAckForwarder = new PFBuilder<>()
+                .match(Signal.class, signal -> {
+                    logger.setCorrelationId(signal);
+                    return startAckForwarder(signal);
                 })
+                .match(DittoRuntimeException.class, x -> x)
                 .build();
+
+        final PartialFunction<Object, Object> forwardToAckregator = new PFBuilder<>()
+                .match(Acknowledgement.class, this::forwardToAckregator)
+                .match(ThingCommandResponse.class, this::forwardToAckregator)
+                .match(MessageCommandResponse.class, this::forwardToAckregator)
+                .matchAny(x -> x)
+                .build();
+
+        final Receive publishSignal = ReceiveBuilder.create()
+                .match(SubscriptionEvent.class, signal -> {
+                    logger.debug("Got SubscriptionEvent in <{}> session, publishing: {}", type, signal);
+                    eventAndResponsePublisher.tell(SessionedJsonifiable.subscription(signal), getSelf());
+                })
+                .match(CommandResponse.class, this::publishResponseOrError)
+                .match(DittoRuntimeException.class, this::publishResponseOrError)
+                .match(Signal.class, this::isSameOrigin, signal ->
+                        logger.debug("Got Signal <{}> in <{}> session, but this was issued by " +
+                                " this connection itself, not publishing", signal.getType(), type)
+                )
+                .match(Signal.class, signal -> {
+                    // check if this session is "allowed" to receive the Signal
+                    @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
+                    if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
+                        logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
+                                signal.getType(), type, signal);
+
+                        final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
+                                .authorizationContext(authorizationContext)
+                                .schemaVersion(jsonSchemaVersion)
+                                .build();
+                        final SessionedJsonifiable sessionedJsonifiable =
+                                SessionedJsonifiable.signal(signal, sessionHeaders, session);
+                        eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
+                    }
+                })
+                .matchEquals(Done.getInstance(), done -> { /* already done, nothing to publish */ })
+                .build();
+
+        return addPreprocessors(List.of(setCorrelationIdAndStartAckForwarder, forwardToAckregator), publishSignal);
     }
 
     private Receive createPubSubBehavior() {
@@ -311,10 +336,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
-    private Receive logUnknownMessage(final Function<Object, Object> logMapper) {
+    private Receive logUnknownMessage() {
         return ReceiveBuilder.create()
                 .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
-                        .warning("Got unknown message in '{}' session: '{}'", type, logMapper.apply(any)))
+                        .warning("Got unknown message in '{}' session: '{}'", type, any))
                 .build();
     }
 
@@ -328,12 +353,19 @@ final class StreamingSessionActor extends AbstractActor {
     private boolean isLiveSignal(final WithDittoHeaders<?> signal) {
         return signal.getDittoHeaders()
                 .getChannel()
-                .filter(value -> TopicPath.Channel.LIVE.getName().equals(value))
-                .isPresent();
+                .stream()
+                .anyMatch(TopicPath.Channel.LIVE.getName()::equals);
     }
 
-    private boolean isResponseRequired(final WithDittoHeaders<?> signal) {
-        return signal.getDittoHeaders().isResponseRequired();
+    private boolean isSameOrigin(final Signal<?> signal) {
+        return signal.getDittoHeaders().getOrigin().stream().anyMatch(connectionCorrelationId::equals);
+    }
+
+    private Done forwardToAckregator(final CommandResponse<?> ackOrLiveOrMessageResponse) {
+        potentiallyForwardToAckregator(ackOrLiveOrMessageResponse, () -> logger.info(
+                "About to send Ack/Response but no AcknowledgementAggregatorActor was present: <{}>",
+                ackOrLiveOrMessageResponse));
+        return Done.getInstance();
     }
 
     private void potentiallyForwardToAckregator(final CommandResponse<?> response, final Runnable fallbackAction) {
@@ -345,12 +377,11 @@ final class StreamingSessionActor extends AbstractActor {
         ).ifPresentOrElse(action, fallbackAction);
     }
 
+    // precondition: signal has ack requests
     private Object startAckregator(final Signal<?> signal) {
         try {
-            AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                    signal,
-                    acknowledgementConfig, headerTranslator,
-                    response -> handleResponseThreadSafely(response, ActorRef.noSender()));
+            AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), signal, acknowledgementConfig,
+                    headerTranslator, response -> publishResponseThreadSafely(response, ActorRef.noSender()));
         } catch (final DittoRuntimeException e) {
             logger.withCorrelationId(signal).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
                     e.getClass().getSimpleName(), e.getMessage());
@@ -359,12 +390,22 @@ final class StreamingSessionActor extends AbstractActor {
         return signal;
     }
 
-    // NOT thread-safe
-    private void handleResponse(final CommandResponse<?> response) {
-        handleResponseThreadSafely(response, getSender());
+    // no precondition; forwarder starter does not start for signals without ack requests, in contrast to ackregator
+    private Signal<?> startAckForwarder(final Signal<?> signal) {
+        if (signal instanceof WithThingId) {
+            final EntityIdWithType entityIdWithType = ((WithThingId) signal).getThingEntityId();
+            AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), entityIdWithType, signal,
+                    acknowledgementConfig);
+        }
+        return signal;
     }
 
-    private void handleResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {
+    // NOT thread-safe
+    private void publishResponseOrError(final Object responseOrError) {
+        publishResponseThreadSafely(responseOrError, getSender());
+    }
+
+    private void publishResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {
         if (responseOrError instanceof CommandResponse<?>) {
             final CommandResponse<?> response = (CommandResponse<?>) responseOrError;
             logger.withCorrelationId(response)
@@ -394,50 +435,8 @@ final class StreamingSessionActor extends AbstractActor {
                 );
     }
 
-    // precondition: signal instanceof WithThingId
-    // guaranteed by AcknowledgementForwarderActor::hasEffectiveAckRequests
-    private void handleSignalsToStartAckForwarderFor(final Signal<?> signal) {
-        final EntityIdWithType entityIdWithType = ((WithThingId) signal).getThingEntityId();
-        AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(), entityIdWithType, signal,
-                acknowledgementConfig);
-        handleSignal(signal);
-    }
-
-    // TODO: split directions
-    private void handleSignal(final Signal<?> signal) {
-        logger.setCorrelationId(signal);
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        if (signal instanceof CreateSubscription || signal instanceof RequestFromSubscription ||
-                signal instanceof CancelSubscription) {
-            subscriptionManager.tell(signal, getSelf());
-        } else if (signal instanceof SubscriptionEvent) {
-            logger.debug("Got SubscriptionEvent <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                    signal.getType(), type, signal);
-            eventAndResponsePublisher.tell(SessionedJsonifiable.subscription((SubscriptionEvent<?>) signal), getSelf());
-        } else if (signal instanceof CommandResponse) {
-            logger.debug("Got CommandResponse <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                    signal.getType(), type, signal);
-            eventAndResponsePublisher.forward(SessionedJsonifiable.response((CommandResponse<?>) signal), getContext());
-        } else if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
-            logger.debug("Got Signal <{}> in <{}> session, but this was issued by this connection itself, not telling" +
-                    " EventAndResponsePublisher about it", signal.getType(), type);
-        } else {
-            // check if this session is "allowed" to receive the Signal
-            @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
-            if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
-                logger.debug("Got Signal <{}> in <{}> session, telling EventAndResponsePublisher about it: {}",
-                        signal.getType(), type, signal);
-
-                final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
-                        .authorizationContext(authorizationContext)
-                        .schemaVersion(jsonSchemaVersion)
-                        .build();
-                final SessionedJsonifiable sessionedJsonifiable =
-                        SessionedJsonifiable.signal(signal, sessionHeaders, session);
-                eventAndResponsePublisher.tell(sessionedJsonifiable, getSelf());
-            }
-        }
-        logger.setCorrelationId(connectionCorrelationId);
+    private void forwardSearchCommand(final ThingSearchCommand<?> searchCommand) {
+        subscriptionManager.tell(searchCommand, getSelf());
     }
 
     private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal, final StreamingSession session) {

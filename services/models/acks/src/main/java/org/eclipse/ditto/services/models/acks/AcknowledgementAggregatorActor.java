@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.LIVE_RESPONSE;
+import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActorStarter.isLiveSignal;
 
@@ -25,12 +27,14 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -40,7 +44,9 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -189,6 +195,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(ThingCommandResponse.class, this::handleThingCommandResponse)
+                .match(MessageCommandResponse.class, this::handleMessageCommandResponse)
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
@@ -198,22 +205,35 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     }
 
     private void handleThingCommandResponse(final ThingCommandResponse<?> thingCommandResponse) {
-        final DittoHeaders dittoHeaders = thingCommandResponse.getDittoHeaders();
-        ackregator.addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(
-                DittoAcknowledgementLabel.TWIN_PERSISTED,
-                thingCommandResponse.getEntityId(),
-                thingCommandResponse.getStatusCode(),
-                dittoHeaders,
-                getPayload(thingCommandResponse).orElse(null)
-        ));
-        potentiallyCompleteAcknowledgements(thingCommandResponse);
+        final boolean isLiveResponse = thingCommandResponse.getDittoHeaders().getChannel().stream()
+                .anyMatch(TopicPath.Channel.LIVE.getName()::equals);
+        addCommandResponse(thingCommandResponse, thingCommandResponse, isLiveResponse);
     }
 
-    private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
+    private void handleMessageCommandResponse(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        addCommandResponse(messageCommandResponse, messageCommandResponse, true);
+    }
+
+    private void addCommandResponse(final CommandResponse<?> commandResponse, final WithThingId withThingId,
+            final boolean isLiveResponse) {
+        final DittoHeaders dittoHeaders = commandResponse.getDittoHeaders();
+        ackregator.addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(
+                isLiveResponse ? LIVE_RESPONSE : TWIN_PERSISTED,
+                withThingId.getThingEntityId(),
+                commandResponse.getStatusCode(),
+                dittoHeaders,
+                getPayload(commandResponse).orElse(null)
+        ));
+        potentiallyCompleteAcknowledgements(commandResponse);
+    }
+
+    private static Optional<JsonValue> getPayload(final CommandResponse<?> response) {
         final Optional<JsonValue> result;
-        if (thingCommandResponse instanceof WithOptionalEntity) {
-            result = ((WithOptionalEntity) thingCommandResponse).getEntity(
-                    thingCommandResponse.getImplementedSchemaVersion());
+        if (response instanceof WithOptionalEntity) {
+            result = ((WithOptionalEntity) response).getEntity(
+                    response.getImplementedSchemaVersion());
+        } else if (response instanceof MessageCommandResponse) {
+            result = response.toJson().getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE).map(x -> x);
         } else {
             result = Optional.empty();
         }
@@ -242,18 +262,18 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
-    private void potentiallyCompleteAcknowledgements(@Nullable final ThingCommandResponse<?> response) {
+    private void potentiallyCompleteAcknowledgements(@Nullable final CommandResponse<?> response) {
 
         if (ackregator.receivedAllRequestedAcknowledgements()) {
             completeAcknowledgements(response, requestCommandHeaders);
         }
     }
 
-    private void completeAcknowledgements(@Nullable final ThingCommandResponse<?> response,
+    private void completeAcknowledgements(@Nullable final CommandResponse<?> response,
             final DittoHeaders dittoHeaders) {
 
         final Acknowledgements aggregatedAcknowledgements = ackregator.getAggregatedAcknowledgements(dittoHeaders);
-        if (null != response && containsOnlyTwinPersisted(aggregatedAcknowledgements)) {
+        if (null != response && containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements)) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
         } else {
@@ -269,10 +289,14 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         responseSignalConsumer.accept(signal);
     }
 
-    private static boolean containsOnlyTwinPersisted(final Acknowledgements aggregatedAcknowledgements) {
+    private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
         return aggregatedAcknowledgements.getSize() == 1 &&
                 aggregatedAcknowledgements.stream()
-                        .anyMatch(ack -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ack.getLabel()));
+                        .anyMatch(ack -> {
+                            final AcknowledgementLabel label = ack.getLabel();
+                            return TWIN_PERSISTED.equals(label) ||
+                                    LIVE_RESPONSE.equals(label);
+                        });
     }
 
     /**

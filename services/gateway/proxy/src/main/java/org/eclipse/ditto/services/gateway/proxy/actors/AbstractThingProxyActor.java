@@ -72,7 +72,10 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(Command.class, this::forwardToConciergeService)
 
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveSignal, this::forwardToConciergeService);
+                .match(Signal.class, AbstractProxyActor::isLiveCommandOrEvent, this::forwardToConciergeService)
+
+                // discard irrelevant signals silently. may be sent from websocket.
+                .match(Signal.class, signal -> {});
     }
 
     @Override

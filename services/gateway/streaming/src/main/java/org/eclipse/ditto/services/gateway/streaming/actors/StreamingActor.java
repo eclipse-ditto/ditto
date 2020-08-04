@@ -44,10 +44,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import com.typesafe.config.Config;
 
@@ -168,18 +165,6 @@ public final class StreamingActor extends AbstractActorWithTimers
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior())
                 .orElse(ReceiveBuilder.create()
-                        // TODO: deduplicate
-                        .match(IncomingSignal.class, incomingSignal ->
-                                lookupSessionActor(incomingSignal.getSignal(), sessionActor -> {
-                                    sessionActor.forward(incomingSignal, getContext());
-                                    commandRouter.tell(incomingSignal.getSignal(), sessionActor);
-                                })
-                        )
-                        .match(Acknowledgement.class, acknowledgement ->
-                                lookupSessionActor(acknowledgement, sessionActor ->
-                                        sessionActor.forward(acknowledgement, getContext())
-                                )
-                        )
                         .match(Signal.class, this::handleSignal)
                         .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
                         .matchEquals(Control.SCRAPE_STREAM_COUNTER, this::updateStreamingSessionsCounter)
@@ -245,17 +230,11 @@ public final class StreamingActor extends AbstractActorWithTimers
     }
 
     private void handleSignal(final Signal<?> signal) {
-        if (signal.getDittoHeaders().isResponseRequired()) {
-            lookupSessionActor(signal, sessionActor -> {
-                if (signal instanceof ThingModifyCommand || signal instanceof ThingSearchCommand) {
-                    // also tell the sessionActor so that the sessionActor may start an AcknowledgementAggregator
-                    sessionActor.tell(signal, getSelf());
-                }
-                commandRouter.tell(signal, sessionActor);
-            });
-        } else {
-            commandRouter.tell(signal, ActorRef.noSender());
-        }
+        lookupSessionActor(signal, sessionActor -> {
+            // also tell the sessionActor so that the sessionActor may start an AcknowledgementAggregator
+            sessionActor.forward(IncomingSignal.of(signal), getContext());
+            commandRouter.tell(signal, sessionActor);
+        });
     }
 
     private void lookupSessionActor(final WithDittoHeaders<?> withHeaders, final Consumer<ActorRef> sessionActorCon) {

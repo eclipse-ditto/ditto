@@ -64,7 +64,6 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.IncomingSignal;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
@@ -351,10 +350,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Graph<SinkShape<Either<StreamControlMessage, Signal>>, ?> getStreamControlOrSignalSink() {
 
         return Sink.foreach(either -> {
-            // TODO: see if streaming actor can decide whether a signal is incoming or outgoing without envelope.
-            final Object streamControlMessageOrSignal = either.isLeft()
-                    ? either.left().get()
-                    : IncomingSignal.of(either.right().get());
+            final Object streamControlMessageOrSignal = either.right().getOrElse(either.left()::get);
             streamingActor.tell(streamControlMessageOrSignal, ActorRef.noSender());
         });
     }
