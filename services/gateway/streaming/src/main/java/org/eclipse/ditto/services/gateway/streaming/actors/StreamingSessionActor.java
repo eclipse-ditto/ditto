@@ -64,12 +64,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
-import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
@@ -179,8 +174,6 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(IncomingSignal.class, IncomingSignal::getSignal)
                 .build();
 
-        final PartialFunction<Object, Object> setAckRequest = createSetAckRequestBehavior();
-
         final PartialFunction<Object, Object> startAckregator = new PFBuilder<>()
                 .match(Signal.class, AcknowledgementAggregatorActor::shouldStartForIncoming, this::startAckregator)
                 .matchAny(x -> x)
@@ -194,18 +187,14 @@ final class StreamingSessionActor extends AbstractActor {
                 })
                 .build();
 
-        return addPreprocessors(List.of(stripEnvelope, setAckRequest, startAckregator), signalBehavior);
+        return addPreprocessors(List.of(stripEnvelope, startAckregator), signalBehavior);
     }
 
     private Receive createOutgoingSignalBehavior() {
         final PartialFunction<Object, Object> setCorrelationIdAndStartAckForwarder = new PFBuilder<>()
                 .match(Signal.class, signal -> {
                     logger.setCorrelationId(signal);
-
-                    // TODO: This should NOT be necessary! Figure out why requested-acks went missing and remove it.
-                    final Signal<?> nextStage = (Signal<?>) createSetAckRequestBehavior().apply(signal);
-
-                    return startAckForwarder(nextStage);
+                    return startAckForwarder(signal);
                 })
                 .match(DittoRuntimeException.class, x -> x)
                 .build();
@@ -350,16 +339,6 @@ final class StreamingSessionActor extends AbstractActor {
                 .reduce(PartialFunction::andThen)
                 .map(preprocessor -> new Receive(preprocessor.andThen(receive.onMessage())))
                 .orElse(receive);
-    }
-
-    // TODO: inline if not needed in createOutgoingSignalBehavior.
-    private PartialFunction<Object, Object> createSetAckRequestBehavior() {
-        return new PFBuilder<>()
-                .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingCommand.class, this::isLiveSignal, ThingLiveCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
-                .matchAny(x -> x)
-                .build();
     }
 
     private boolean isLiveSignal(final WithDittoHeaders<?> signal) {

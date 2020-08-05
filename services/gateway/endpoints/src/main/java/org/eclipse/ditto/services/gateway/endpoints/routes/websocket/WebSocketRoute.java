@@ -85,8 +85,14 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 
 import akka.NotUsed;
@@ -113,6 +119,7 @@ import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import scala.PartialFunction;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -136,6 +143,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(WebSocketRoute.class);
 
     private static final Duration CONFIG_ASK_TIMEOUT = Duration.ofSeconds(5L);
+
+    private static final PartialFunction<Object, Object> SET_ACK_REQUEST = createSetAckRequestFunction();
 
     private static final String STREAMING_MESSAGES = "streaming_messages";
     private static final String WS = "ws";
@@ -318,11 +327,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     builder.add(getStrictifyFlow(request, connectionCorrelationId)
                             .via(AbstractRoute.throttleByConfig(websocketConfig.getThrottlingConfig())));
 
-            final FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException> select =
+            final FanOutShape2<String, Either<StreamControlMessage, Signal<?>>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
                             dittoHeaders, adapter));
 
-            final FanOutShape2<Either<StreamControlMessage, Signal>, Either<StreamControlMessage, Signal>,
+            final FanOutShape2<Either<StreamControlMessage, Signal<?>>, Either<StreamControlMessage, Signal<?>>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
 
             final FlowShape<DittoRuntimeException, DittoRuntimeException> droppedCounter =
@@ -331,7 +340,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         return e;
                     }));
 
-            final SinkShape<Either<StreamControlMessage, Signal>> sink =
+            final SinkShape<Either<StreamControlMessage, Signal<?>>> sink =
                     builder.add(getStreamControlOrSignalSink());
 
             final UniformFanInShape<DittoRuntimeException, DittoRuntimeException> exceptionMerger =
@@ -347,10 +356,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         }));
     }
 
-    private Graph<SinkShape<Either<StreamControlMessage, Signal>>, ?> getStreamControlOrSignalSink() {
+    private Graph<SinkShape<Either<StreamControlMessage, Signal<?>>>, ?> getStreamControlOrSignalSink() {
 
         return Sink.foreach(either -> {
-            final Object streamControlMessageOrSignal = either.right().getOrElse(either.left()::get);
+            final Object streamControlMessageOrSignal =
+                    SET_ACK_REQUEST.apply(either.right().getOrElse(either.left()::get));
             streamingActor.tell(streamControlMessageOrSignal, ActorRef.noSender());
         });
     }
@@ -383,7 +393,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     }
 
-    private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal>, DittoRuntimeException>, NotUsed>
+    private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal<?>>, DittoRuntimeException>, NotUsed>
     selectStreamControlOrSignal(
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
@@ -481,6 +491,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow);
     }
 
+    private static PartialFunction<Object, Object> createSetAckRequestFunction() {
+        return new PFBuilder<>()
+                .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingCommand.class, StreamingType::isLiveSignal,
+                        ThingLiveCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
+                .matchAny(x -> x)
+                .build();
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> Flow<DittoRuntimeException, Message, NotUsed> joinOutgoingFlows(
             final Source<T, NotUsed> eventAndResponseSource,
@@ -500,7 +520,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 }));
     }
 
-    private static <T> Graph<FanOutShape2<Either<T, Signal>, Either<T, Signal>, DittoRuntimeException>, NotUsed>
+    private static <T> Graph<FanOutShape2<Either<T, Signal<?>>, Either<T, Signal<?>>, DittoRuntimeException>, NotUsed>
     getRateLimiter(final WebsocketConfig websocketConfig) {
         final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
         final int throttlingLimit = websocketConfig.getThrottlingConfig().getLimit();

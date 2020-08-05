@@ -249,8 +249,8 @@ public abstract class AbstractShardedPersistenceActor<
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                 .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                 .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
-                .matchAny(this::matchAnyAfterInitialization)
-                .build());
+                .build())
+                .orElse(matchAnyAfterInitialization());
 
         getContext().become(receive);
 
@@ -534,10 +534,12 @@ public abstract class AbstractShardedPersistenceActor<
     /**
      * Default is to log a warning, may be overwritten by implementations in order to handle additional messages.
      *
-     * @param message the message to handle after initialization.
+     * @return the match-all Receive object.
      */
-    protected void matchAnyAfterInitialization(final Object message) {
-        log.warning("Unknown message: {}", message);
+    protected Receive matchAnyAfterInitialization() {
+        return ReceiveBuilder.create()
+                .matchAny(message -> log.warning("Unknown message: {}", message))
+                .build();
     }
 
     /**

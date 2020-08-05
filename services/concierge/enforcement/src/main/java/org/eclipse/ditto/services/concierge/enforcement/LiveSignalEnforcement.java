@@ -140,7 +140,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         });
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal liveSignal, final ActorRef sender,
+    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal<?> liveSignal, final ActorRef sender,
             final Entry<Enforcer> enforcerEntry) {
 
         final Optional<String> correlationIdOpt = liveSignal.getDittoHeaders().getCorrelationId();
@@ -178,7 +178,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal<?> liveSignal,
             final String correlationId) {
         log().warning("Got live response, should never happen: <{}>", liveSignal);
         return CompletableFuture.completedFuture(withMessageToReceiver(null, null));
@@ -213,7 +213,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
                             publishLiveSignal(withReadSubjects, liveSignalPub.command()));
                 } else {
                     log(liveSignal).info("Live Command was NOT authorized: <{}>", liveSignal);
-                    throw ThingCommandEnforcement.errorForThingCommand((ThingCommand) liveSignal);
+                    throw ThingCommandEnforcement.errorForThingCommand((ThingCommand<?>) liveSignal);
                 }
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
@@ -224,7 +224,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
             final Enforcer enforcer) {
         // enforce Live Events
         final boolean authorized = enforcer.hasUnrestrictedPermissions(
@@ -235,11 +235,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
 
         if (authorized) {
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
-            final Event withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
+            final Event<?> withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
             return CompletableFuture.completedFuture(publishLiveSignal(withReadSubjects, liveSignalPub.event()));
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
-            throw EventSendNotAllowedException.newBuilder(((ThingEvent) liveSignal).getThingEntityId())
+            throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getThingEntityId())
                     .dittoHeaders(liveSignal.getDittoHeaders())
                     .build();
         }
@@ -255,7 +255,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         return StreamingType.isLiveSignal(signal);
     }
 
-    private Contextual<WithDittoHeaders> enforceMessageCommand(final MessageCommand command, final Enforcer enforcer,
+    private Contextual<WithDittoHeaders> enforceMessageCommand(final MessageCommand<?, ?> command,
+            final Enforcer enforcer,
             final ActorRef sender) {
         if (isAuthorized(command, enforcer)) {
             return publishMessageCommand(command, enforcer, sender);
@@ -279,7 +280,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         return publishLiveSignal(commandWithReadSubjects, liveSignalPub.message());
     }
 
-    private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand command) {
+    private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
         final MessageSendNotAllowedException error =
                 MessageSendNotAllowedException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
@@ -293,7 +294,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Signal> Contextual<WithDittoHeaders> publishLiveSignal(final T signal,
+    private <T extends Signal<?>> Contextual<WithDittoHeaders> publishLiveSignal(final T signal,
             final DistributedPub<T> pub) {
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub");
@@ -301,14 +302,14 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         return withMessageToReceiver(signal, pub.getPublisher(), obj -> pub.wrapForPublication((T) obj));
     }
 
-    private boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {
+    private boolean isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {
         return enforcer.hasUnrestrictedPermissions(
                 extractMessageResourceKey(command),
                 command.getDittoHeaders().getAuthorizationContext(),
                 WRITE);
     }
 
-    private ResourceKey extractMessageResourceKey(final MessageCommand command) {
+    private ResourceKey extractMessageResourceKey(final MessageCommand<?, ?> command) {
         try {
             final JsonPointer resourcePath = command.getResourcePath();
             return PoliciesResourceType.messageResource(resourcePath);

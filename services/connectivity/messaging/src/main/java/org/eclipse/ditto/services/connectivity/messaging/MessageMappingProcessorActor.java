@@ -94,9 +94,9 @@ import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
@@ -116,6 +116,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
@@ -123,6 +124,7 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
+import scala.PartialFunction;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -232,7 +234,7 @@ public final class MessageMappingProcessorActor
                 // Outgoing responses and signals go through the signal enrichment stream
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
-                .match(AcksRequestingCommand.class, this::handleAcksRequestingCommand)
+                .match(AckRequestingSignal.class, this::handleAcksRequestingCommand)
                 .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
     }
@@ -257,16 +259,16 @@ public final class MessageMappingProcessorActor
      * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
      * acknowledgement aggregators is not thread-safe.
      *
-     * @param acksRequestingCommand the command requesting acknowledgements together with its original sender,
+     * @param ackRequestingSignal the command requesting acknowledgements together with its original sender,
      * the response collector actor.
      */
-    private void handleAcksRequestingCommand(final AcksRequestingCommand acksRequestingCommand) {
-        final Command<?> commandWithAckLabels = acksRequestingCommand.commandWithAckLabels;
-        final ActorRef sender = acksRequestingCommand.sender;
+    private void handleAcksRequestingCommand(final AckRequestingSignal ackRequestingSignal) {
+        final Signal<?> signal = ackRequestingSignal.signal;
+        final ActorRef sender = ackRequestingSignal.sender;
         try {
-            startAckregatorAndForwardSignal(commandWithAckLabels, sender);
+            startAckregatorAndForwardSignal(signal, sender);
         } catch (final DittoRuntimeException e) {
-            handleErrorDuringStartingOfAckregator(e, commandWithAckLabels.getDittoHeaders(), sender);
+            handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
         }
     }
 
@@ -285,26 +287,27 @@ public final class MessageMappingProcessorActor
         handleErrorResponse(e, errorResponse.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
 
-    private void startAckregatorAndForwardSignal(final Command<?> commandWithAckLabels, final ActorRef sender) {
-        final Optional<ActorRef> ackregator = doStartAckregator(commandWithAckLabels, sender);
+    private void startAckregatorAndForwardSignal(final Signal<?> signal, final ActorRef sender) {
+        final Optional<ActorRef> ackregator = doStartAckregator(signal, sender);
         if (ackregator.isEmpty()) {
             // command that I thought should be acknowledged did not start an ackregator actor---this is a bug.
             // tell collector of the problem.
-            logger.withCorrelationId(commandWithAckLabels)
+            logger.withCorrelationId(signal)
                     .error("Did not start Ackregator for command that should be acknowledged. sender=<{}>, command=<{}>",
-                            sender, commandWithAckLabels);
-            sender.tell(failedToStartAckregator(commandWithAckLabels, connectionId), ActorRef.noSender());
+                            sender, signal);
+            sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
         } else {
             // ackregator started
-            proxyActor.tell(commandWithAckLabels, ackregator.orElseThrow());
+            proxyActor.tell(signal, ackregator.orElseThrow());
         }
     }
 
     // NOT thread-safe
-    private Optional<ActorRef> doStartAckregator(final Command<?> commandWithAckLabels, final ActorRef sender) {
+    private Optional<ActorRef> doStartAckregator(final Signal<?> signal, final ActorRef sender) {
         try {
+            // TODO: move this into "Ack.Agg.Actor.startConflictFree"
             return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                    commandWithAckLabels,
+                    signal,
                     acknowledgementConfig,
                     messageMappingProcessor.getHeaderTranslator(),
                     responseSignal -> {
@@ -316,8 +319,8 @@ public final class MessageMappingProcessorActor
                         sender.tell(responseSignal, ActorRef.noSender());
                     });
         } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
-            final DittoHeaders newHeaders = getHeadersWithRandomCorrelationId(commandWithAckLabels);
-            return doStartAckregator(commandWithAckLabels.setDittoHeaders(newHeaders), sender);
+            final DittoHeaders newHeaders = getHeadersWithRandomCorrelationId(signal);
+            return doStartAckregator(signal.setDittoHeaders(newHeaders), sender);
         }
     }
 
@@ -349,45 +352,48 @@ public final class MessageMappingProcessorActor
     private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
         final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
-        mappedSignals.flatMapConcat(
-                signal -> {
-                    final ActorRef self = getSelf();
-                    if (signal instanceof Acknowledgement) {
-                        // Acknowledgements are directly sent to the ConnectionPersistenceActor as the ConnectionPersistenceActor
-                        //  contains all the AcknowledgementForwarderActor instances for a connection
-                        clientActor.tell(signal, sender);
-                    } else if (signal instanceof ThingSearchCommand<?>) {
-                        // Send to connection actor for dispatching to the same client actor for each session.
-                        // See javadoc of
-                        //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
-                        // for the message path of the search protocol.
-                        connectionActor.tell(signal, ActorRef.noSender());
-                    } else if ((signal instanceof ThingModifyCommand) && !isLiveSignal(signal) &&
-                            containsAcknowledgementRequests(signal)) {
-                        final ThingModifyCommand<?> commandWithAckLabels =
-                                ThingModifyCommandAckRequestSetter.getInstance().apply((ThingModifyCommand<?>) signal);
-                        getSelf().tell(new AcksRequestingCommand(commandWithAckLabels, sender), ActorRef.noSender());
-                        return Source.single(signal);
-                    } else if (signal instanceof ThingCommand && isLiveSignal(signal) &&
-                            containsAcknowledgementRequests(signal)) {
-                        final ThingCommand<?> commandWithAckLabels =
-                                ThingLiveCommandAckRequestSetter.getInstance().apply((ThingCommand<?>) signal);
-                        getSelf().tell(new AcksRequestingCommand(commandWithAckLabels, sender), ActorRef.noSender());
-                        return Source.single(signal);
-                    } else if ((signal instanceof MessageCommand) && containsAcknowledgementRequests(signal)) {
-                        final Command<?> commandWithAckLabels =
-                                MessageCommandAckRequestSetter.getInstance().apply((MessageCommand<?, ?>) signal);
-                        getSelf().tell(new AcksRequestingCommand(commandWithAckLabels, sender), ActorRef.noSender());
-                        return Source.single(signal);
-                    } else {
-                        proxyActor.tell(signal, self);
-                    }
-                    return Source.empty();
-                })
+        mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
                 .runWith(Sink.seq(), materializer)
                 .thenAccept(ackRequestingSignals ->
                         sender.tell(ResponseCollectorActor.setCount(ackRequestingSignals.size()), getSelf())
                 );
+    }
+
+    private PartialFunction<Signal<?>, Source<Signal<?>, NotUsed>> onIncomingMappedSignal(final ActorRef sender) {
+        final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
+                .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
+                .match(CommandResponse.class, ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                .build();
+
+        final PartialFunction<Signal<?>, Signal<?>> setAckRequest = new PFBuilder<Signal<?>, Signal<?>>()
+                .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingCommand.class, StreamingType::isLiveSignal,
+                        ThingLiveCommandAckRequestSetter.getInstance()::apply)
+                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
+                .matchAny(x -> x)
+                .build();
+
+        final PartialFunction<Signal<?>, Source<Signal<?>, NotUsed>> dispatchSignal =
+                new PFBuilder<Signal<?>, Source<Signal<?>, NotUsed>>()
+                        .match(CommandResponse.class, ack -> forwardIncomingAckOrSearchCommand(ack, sender))
+                        .match(ThingSearchCommand.class, cmd -> forwardIncomingAckOrSearchCommand(cmd, sender))
+                        .match(Signal.class, AcknowledgementAggregatorActor::shouldStartForIncoming, signal -> {
+                            getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
+                            return Source.<Signal<?>>single(signal);
+                        })
+                        .matchAny(signal -> {
+                            proxyActor.tell(signal, getSelf());
+                            return Source.empty();
+                        })
+                        .build();
+
+        return appendConnectionId.orElse(setAckRequest).andThen(dispatchSignal);
+    }
+
+    private Source<Signal<?>, NotUsed> forwardIncomingAckOrSearchCommand(final Object signal,
+            final ActorRef sender) {
+        connectionActor.tell(signal, sender);
+        return Source.empty();
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {
@@ -906,6 +912,30 @@ public final class MessageMappingProcessorActor
                 });
     }
 
+    /**
+     * Appends the ConnectionId to the processed acknowledgements payload.
+     *
+     * @return the Acknowledgement with appended ConnectionId.
+     */
+    static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T ack,
+            final ConnectionId connectionId) {
+        final DittoHeaders newHeaders = ack.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
+                .build();
+        return ack.setDittoHeaders(newHeaders);
+    }
+
+    static Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements,
+            final ConnectionId connectionId) {
+        final List<Acknowledgement> acksList = acknowledgements.stream()
+                .map(ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                .collect(Collectors.toList());
+        // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
+        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
+                acknowledgements.getDittoHeaders());
+    }
+
     private static Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
             final FilteredTopic filteredTopic) {
 
@@ -1019,21 +1049,17 @@ public final class MessageMappingProcessorActor
                 signal.getDittoHeaders().getReplyTarget().isPresent();
     }
 
-    private static boolean isLiveSignal(final Signal<?> signal) {
-        return StreamingType.isLiveSignal(signal);
-    }
-
     private static boolean containsAcknowledgementRequests(final Signal<?> signal) {
         return !signal.getDittoHeaders().getAcknowledgementRequests().isEmpty();
     }
 
-    private static final class AcksRequestingCommand {
+    private static final class AckRequestingSignal {
 
-        private final Command<?> commandWithAckLabels;
+        private final Signal<?> signal;
         private final ActorRef sender;
 
-        private AcksRequestingCommand(final Command<?> commandWithAckLabels, final ActorRef sender) {
-            this.commandWithAckLabels = commandWithAckLabels;
+        private AckRequestingSignal(final Signal<?> signal, final ActorRef sender) {
+            this.signal = signal;
             this.sender = sender;
         }
     }
