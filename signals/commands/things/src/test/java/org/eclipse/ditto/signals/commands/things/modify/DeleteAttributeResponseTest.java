@@ -39,8 +39,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DeleteAttributeResponseTest {
 
-    private static final JsonPointer INVALID_JSON_POINTER = JsonFactory.newPointer("key1/äöü/foo");
-
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, DeleteAttributeResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
@@ -82,7 +80,7 @@ public final class DeleteAttributeResponseTest {
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceWithInvalidArguments() {
-        DeleteAttributeResponse.of(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER,
+        DeleteAttributeResponse.of(TestConstants.Thing.THING_ID, TestConstants.Pointer.INVALID_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

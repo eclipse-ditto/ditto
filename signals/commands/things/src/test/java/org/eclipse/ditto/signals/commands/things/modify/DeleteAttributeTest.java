@@ -37,13 +37,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DeleteAttributeTest {
 
-    private static final JsonPointer KNOWN_JSON_POINTER = JsonFactory.newPointer("key1");
-    private static final JsonPointer INVALID_JSON_POINTER = JsonFactory.newPointer("key1/äöü/foo");
-
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteAttribute.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(DeleteAttribute.JSON_ATTRIBUTE, KNOWN_JSON_POINTER.toString())
+            .set(DeleteAttribute.JSON_ATTRIBUTE, TestConstants.Pointer.VALID_JSON_POINTER.toString())
             .build();
 
 
@@ -63,12 +60,12 @@ public final class DeleteAttributeTest {
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
-        DeleteAttribute.of((String) null, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteAttribute.of((String) null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        DeleteAttribute.of((ThingId) null, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteAttribute.of((ThingId) null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -80,15 +77,15 @@ public final class DeleteAttributeTest {
     @Test
     public void createInstanceWithValidArguments() {
         final DeleteAttribute underTest = DeleteAttribute.of(TestConstants.Thing.THING_ID,
-                KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
+        assertThat(underTest.getAttributePointer()).isEqualTo(TestConstants.Pointer.VALID_JSON_POINTER);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceWithInvalidArguments() {
-        DeleteAttribute.of(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteAttribute.of(TestConstants.Thing.THING_ID, TestConstants.Pointer.INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = AttributePointerInvalidException.class)
@@ -99,7 +96,7 @@ public final class DeleteAttributeTest {
     @Test
     public void toJsonReturnsExpected() {
         final DeleteAttribute underTest = DeleteAttribute.of(TestConstants.Thing.THING_ID,
-                KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -112,7 +109,7 @@ public final class DeleteAttributeTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
+        assertThat(underTest.getAttributePointer()).isEqualTo(TestConstants.Pointer.VALID_JSON_POINTER);
     }
 
 }
