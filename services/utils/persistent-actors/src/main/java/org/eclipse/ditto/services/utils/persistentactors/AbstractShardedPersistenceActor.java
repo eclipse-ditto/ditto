@@ -18,6 +18,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -395,7 +396,7 @@ public abstract class AbstractShardedPersistenceActor<
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
-            if (command.getDittoHeaders().isResponseRequired()) {
+            if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(response);
             }
             if (becomeDeleted) {
@@ -405,6 +406,13 @@ public abstract class AbstractShardedPersistenceActor<
                 becomeCreatedHandler();
             }
         });
+    }
+
+    private boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired() ||
+                dittoHeaders.getAcknowledgementRequests()
+                        .stream()
+                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
     }
 
     @Override
