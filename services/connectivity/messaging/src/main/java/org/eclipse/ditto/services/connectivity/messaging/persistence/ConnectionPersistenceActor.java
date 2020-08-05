@@ -527,7 +527,8 @@ public final class ConnectionPersistenceActor
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signalToForward.getType(),
                 subscribedAndAuthorizedTargets);
 
-        final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
+        final OutboundSignal outbound =
+                OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
         final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
     }

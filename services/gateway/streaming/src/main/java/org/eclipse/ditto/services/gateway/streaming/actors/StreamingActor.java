@@ -12,31 +12,17 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.IncomingSignal;
-import org.eclipse.ditto.services.gateway.streaming.InvalidJwt;
-import org.eclipse.ditto.services.gateway.streaming.Jwt;
-import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
-import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.akka.actors.GenerateActorNamesFromCounter;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -44,7 +30,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
-import org.eclipse.ditto.signals.base.Signal;
 
 import com.typesafe.config.Config;
 
@@ -62,7 +47,7 @@ import akka.stream.ActorMaterializer;
  * Manages WebSocket configuration.
  */
 public final class StreamingActor extends AbstractActorWithTimers
-        implements RetrieveConfigBehavior, ModifyConfigBehavior {
+        implements RetrieveConfigBehavior, ModifyConfigBehavior, GenerateActorNamesFromCounter {
 
     /**
      * The name of this Actor.
@@ -77,6 +62,7 @@ public final class StreamingActor extends AbstractActorWithTimers
     private final Props subscriptionManagerProps;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final HeaderTranslator headerTranslator;
+    private int childCounter = -1;
 
     private StreamingConfig streamingConfig;
 
@@ -139,46 +125,30 @@ public final class StreamingActor extends AbstractActorWithTimers
 
     @Override
     public Receive createReceive() {
-        // TODO: rearrange this
+        return retrieveConfigBehavior()
+                .orElse(modifyConfigBehavior())
+                .orElse(createConnectAndMetricsBehavior())
+                .orElse(ReceiveBuilder.create()
+                        .matchAny(any -> logger.warning("Got unknown message: '{}'", any))
+                        .build());
+    }
+
+    private Receive createConnectAndMetricsBehavior() {
         return ReceiveBuilder.create()
-                // Handle internal connect/streaming commands
                 .match(Connect.class, connect -> {
                     final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
                     eventAndResponsePublisher.forward(connect, getContext());
-                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
-                    getContext().actorOf(
+                    final String sessionActorName = getUniqueChildActorName(connect.getConnectionCorrelationId());
+                    final ActorRef streamingSessionActor = getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,
-                                    streamingConfig.getAcknowledgementConfig(), headerTranslator,
-                                    subscriptionManagerProps),
-                            connectionCorrelationId);
+                                    commandRouter, streamingConfig.getAcknowledgementConfig(), headerTranslator,
+                                    subscriptionManagerProps, jwtValidator, jwtAuthenticationResultProvider),
+                            sessionActorName);
+                    getSender().tell(streamingSessionActor, ActorRef.noSender());
                 })
-                .match(StartStreaming.class,
-                        startStreaming -> forwardToSessionActor(startStreaming.getConnectionCorrelationId(),
-                                startStreaming)
-                )
-                .match(StopStreaming.class,
-                        stopStreaming -> forwardToSessionActor(stopStreaming.getConnectionCorrelationId(),
-                                stopStreaming)
-                )
-                .match(Jwt.class, this::refreshWebSocketSession)
-                .build()
-                .orElse(retrieveConfigBehavior())
-                .orElse(modifyConfigBehavior())
-                .orElse(ReceiveBuilder.create()
-                        .match(Signal.class, this::handleSignal)
-                        .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
-                        .matchEquals(Control.SCRAPE_STREAM_COUNTER, this::updateStreamingSessionsCounter)
-                        .match(DittoRuntimeException.class, cre -> {
-                            final Optional<String> originOpt = cre.getDittoHeaders().getOrigin();
-                            if (originOpt.isPresent()) {
-                                forwardToSessionActor(originOpt.get(), cre);
-                            } else {
-                                logger.withCorrelationId(cre).warning("Unhandled DittoRuntimeException: <{}: {}>",
-                                        cre.getClass().getSimpleName(), cre.getMessage());
-                            }
-                        })
-                        .matchAny(any -> logger.warning("Got unknown message: '{}'", any))
-                        .build());
+                .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
+                .matchEquals(Control.SCRAPE_STREAM_COUNTER, this::updateStreamingSessionsCounter)
+                .build();
     }
 
     @Override
@@ -195,65 +165,8 @@ public final class StreamingActor extends AbstractActorWithTimers
         return streamingConfig.render();
     }
 
-    private void refreshWebSocketSession(final Jwt jwt) {
-        final String connectionCorrelationId = jwt.getConnectionCorrelationId();
-        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
-        jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
-            if (binaryValidationResult.isValid()) {
-                try {
-                    final AuthenticationResult authorizationResult =
-                            jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
-                    final AuthorizationContext authorizationContext =
-                            authorizationResult.getDittoHeaders().getAuthorizationContext();
-
-                    forwardToSessionActor(connectionCorrelationId,
-                            new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
-                                    authorizationContext));
-                } catch (final Exception exception) {
-                    logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
-                            connectionCorrelationId, exception.getMessage());
-                    forwardToSessionActor(connectionCorrelationId, InvalidJwt.getInstance());
-                }
-            } else {
-                forwardToSessionActor(connectionCorrelationId, InvalidJwt.getInstance());
-            }
-        });
-    }
-
-    private void forwardToSessionActor(final CharSequence connectionCorrelationId, final Object object) {
-        if (object instanceof WithDittoHeaders) {
-            logger.setCorrelationId((WithDittoHeaders<?>) object);
-        }
-        logger.debug("Forwarding to session actor '{}': {}", connectionCorrelationId, object);
-        logger.discardCorrelationId();
-        getContext().actorSelection(connectionCorrelationId.toString()).forward(object, getContext());
-    }
-
-    private void handleSignal(final Signal<?> signal) {
-        lookupSessionActor(signal, sessionActor -> {
-            // also tell the sessionActor so that the sessionActor may start an AcknowledgementAggregator
-            sessionActor.forward(IncomingSignal.of(signal), getContext());
-            commandRouter.tell(signal, sessionActor);
-        });
-    }
-
-    private void lookupSessionActor(final WithDittoHeaders<?> withHeaders, final Consumer<ActorRef> sessionActorCon) {
-
-        final DittoHeaders dittoHeaders = withHeaders.getDittoHeaders();
-        final Optional<String> originOpt = dittoHeaders.getOrigin();
-        if (originOpt.isPresent()) {
-            final String origin = originOpt.get();
-            final Optional<ActorRef> sessionActor = getContext().findChild(origin);
-            if (sessionActor.isPresent()) {
-                sessionActorCon.accept(sessionActor.get());
-            } else {
-                logger.withCorrelationId(dittoHeaders)
-                        .error("No session actor found for origin <{}>", origin);
-            }
-        } else {
-            logger.withCorrelationId(dittoHeaders)
-                    .error("No origin header present for WithDittoHeaders <{}>", withHeaders);
-        }
+    private String getUniqueChildActorName(final String suffix) {
+        return getActorNameFromCounter(++childCounter, suffix);
     }
 
     private void scheduleScrapeStreamSessionsCounter() {

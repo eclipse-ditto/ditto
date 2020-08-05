@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -90,10 +89,10 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.services.utils.akka.actors.GenerateActorNamesFromCounter;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
@@ -133,7 +132,8 @@ import scala.util.Right;
  * This Actor processes incoming {@link Signal}s and dispatches them.
  */
 public final class MessageMappingProcessorActor
-        extends AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal> {
+        extends AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal>
+        implements GenerateActorNamesFromCounter {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -160,6 +160,7 @@ public final class MessageMappingProcessorActor
     private final int processorPoolSize;
     private final SourceQueue<ExternalMessageWithSender> inboundSourceQueue;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
+    private int childCounter = -1;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef proxyActor,
@@ -297,56 +298,26 @@ public final class MessageMappingProcessorActor
                             sender, signal);
             sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
         } else {
-            // ackregator started
+            // ackregator started, set ackregator as sender of commands to receive replies directly
             proxyActor.tell(signal, ackregator.orElseThrow());
         }
     }
 
     // NOT thread-safe
     private Optional<ActorRef> doStartAckregator(final Signal<?> signal, final ActorRef sender) {
-        try {
-            // TODO: move this into "Ack.Agg.Actor.startConflictFree"
-            return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                    signal,
-                    acknowledgementConfig,
-                    messageMappingProcessor.getHeaderTranslator(),
-                    responseSignal -> {
-                        // potentially publish response/aggregated acks to reply target
-                        // acks don't get send when no response-required by #handleCommandResponse
-                        getSelf().tell(responseSignal, getSelf());
+        return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
+                getActorNameFromCounter(++childCounter, signal.getDittoHeaders().getCorrelationId().orElse("")),
+                signal,
+                acknowledgementConfig,
+                messageMappingProcessor.getHeaderTranslator(),
+                responseSignal -> {
+                    // potentially publish response/aggregated acks to reply target
+                    // acks don't get send when no response-required by #handleCommandResponse
+                    getSelf().tell(responseSignal, getSelf());
 
-                        // forward acks to the original sender for consumer settlement
-                        sender.tell(responseSignal, ActorRef.noSender());
-                    });
-        } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
-            final DittoHeaders newHeaders = getHeadersWithRandomCorrelationId(signal);
-            return doStartAckregator(signal.setDittoHeaders(newHeaders), sender);
-        }
-    }
-
-    // NOT thread-safe
-    private DittoHeaders getHeadersWithRandomCorrelationId(final Signal<?> signal) {
-        final String originalCorrelationId = signal.getDittoHeaders().getCorrelationId().orElse("");
-        DittoHeaders dittoHeaders;
-        do {
-            dittoHeaders = signal.getDittoHeaders().toBuilder()
-                    .correlationId(originalCorrelationId + "-" + UUID.randomUUID())
-                    .build();
-        } while (getContext().child(AcknowledgementAggregatorActor.determineActorName(dittoHeaders)).isDefined());
-        final String newCorrelationId = dittoHeaders.getCorrelationId().orElse(null);
-        logger.withCorrelationId(newCorrelationId).info("SetCorrelationId {}", newCorrelationId);
-        logReplacedCorrelationId(signal, newCorrelationId);
-        return dittoHeaders;
-    }
-
-    private void logReplacedCorrelationId(final Signal<?> signalWithOldCorrelationId,
-            @Nullable final String newCorrelationId) {
-        final ConnectionMonitor inboundMonitor =
-                connectionMonitorRegistry.getMonitor(connectionId, MAPPED, MetricDirection.INBOUND, LogType.MAPPED,
-                        LogCategory.SOURCE, "");
-        inboundMonitor.getLogger()
-                .success(InfoProviderFactory.forSignal(signalWithOldCorrelationId),
-                        "Due to a conflict, correlation ID is set to: {0}", newCorrelationId);
+                    // forward acks to the original sender for consumer settlement
+                    sender.tell(responseSignal, ActorRef.noSender());
+                });
     }
 
     private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {

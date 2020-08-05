@@ -41,6 +41,7 @@ import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
+import akka.japi.Pair;
 
 /**
  * Starting an acknowledgement forwarder actor is more complex than simply call {@code actorOf}.
@@ -49,6 +50,8 @@ import akka.actor.Props;
  * @since 1.1.0
  */
 final class AcknowledgementForwarderActorStarter implements Supplier<Optional<ActorRef>> {
+
+    private static final String PREFIX_COUNTER_SEPARATOR = "#";
 
     private final ActorContext actorContext;
     private final EntityIdWithType entityId;
@@ -113,8 +116,10 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     public Optional<String> getConflictFree() {
         if (hasEffectiveAckRequests(signal)) {
             final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
-            final String startingCorrelationId = dittoHeaders.getCorrelationId().orElse("");
-            String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
+            final Pair<String, Integer> prefixPair = parseCorrelationId(dittoHeaders);
+            final String prefix = prefixPair.first();
+            int counter = prefixPair.second();
+            String correlationId = dittoHeaders.getCorrelationId().orElse(prefix);
             while (true) {
                 try {
                     builder.correlationId(correlationId);
@@ -122,12 +127,36 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                     return Optional.of(correlationId);
                 } catch (final InvalidActorNameException e) {
                     // generate a new ID
-                    correlationId = startingCorrelationId + UUID.randomUUID();
+                    correlationId = joinPrefixAndCounter(prefix, ++counter);
                 }
             }
         } else {
             return Optional.empty();
         }
+    }
+
+    private String joinPrefixAndCounter(final String prefix, final int counter) {
+        return String.format("%s%s%d", prefix, PREFIX_COUNTER_SEPARATOR, counter);
+    }
+
+    private Pair<String, Integer> parseCorrelationId(final DittoHeaders dittoHeaders) {
+        final Optional<String> providedCorrelationId = dittoHeaders.getCorrelationId();
+        if (providedCorrelationId.isPresent()) {
+            final String correlationId = providedCorrelationId.get();
+            final int separatorIndex = correlationId.lastIndexOf(PREFIX_COUNTER_SEPARATOR);
+            if (separatorIndex >= 0 && isNumber(correlationId, separatorIndex + 1)) {
+                final String prefix = correlationId.substring(0, separatorIndex);
+                final String number = correlationId.substring(separatorIndex + 1);
+                try {
+                    return Pair.create(prefix, Integer.valueOf(number));
+                } catch (final NumberFormatException e) {
+                    return Pair.create(prefix, -1);
+                }
+            } else {
+                return Pair.create(correlationId, -1);
+            }
+        }
+        return Pair.create(UUID.randomUUID().toString(), -1);
     }
 
     private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders) {
@@ -185,5 +214,24 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         } else {
             return false;
         }
+    }
+
+    private static boolean isNumber(final String string, final int startIndex) {
+        if (startIndex > string.length()) {
+            return false;
+        }
+        final char firstChar = string.charAt(startIndex);
+        if (!Character.isDigit(firstChar)) {
+            if (firstChar != '-' || startIndex + 1 > string.length()) {
+                // singular "-" is not a number.
+                return false;
+            }
+        }
+        for (int i = startIndex + 1; i < string.length(); ++i) {
+            if (!Character.isDigit(string.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

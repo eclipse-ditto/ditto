@@ -182,13 +182,15 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * request could not be parsed.
      */
     public static Optional<ActorRef> startAcknowledgementAggregator(final akka.actor.ActorContext context,
+            final String actorName,
             final Signal<?> signal,
             final AcknowledgementConfig ackConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
         return AcknowledgementAggregatorActorStarter
-                .getInstance(context, signal, ackConfig, headerTranslator, responseSignalConsumer).get();
+                .getInstance(context, actorName, signal, ackConfig, headerTranslator, responseSignalConsumer)
+                .get();
     }
 
     @Override
