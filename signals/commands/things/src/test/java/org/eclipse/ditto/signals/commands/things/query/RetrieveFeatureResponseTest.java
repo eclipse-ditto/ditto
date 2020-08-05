@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -44,13 +44,11 @@ public final class RetrieveFeatureResponseTest {
             .set(RetrieveFeatureResponse.JSON_FEATURE, TestConstants.Feature.FLUX_CAPACITOR.toJson())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureResponse.class, areImmutable(),
                 provided(Feature.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -59,12 +57,10 @@ public final class RetrieveFeatureResponseTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeature() {
         RetrieveFeatureResponse.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -76,7 +72,6 @@ public final class RetrieveFeatureResponseTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final RetrieveFeatureResponse underTest =
@@ -85,7 +80,6 @@ public final class RetrieveFeatureResponseTest {
         assertThat(underTest).isNotNull();
         assertThat(underTest.getFeature()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
     }
-
 
     @Test
     public void createInstanceFromJsonWithNullFeature() {

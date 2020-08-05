@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -36,6 +37,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DeleteFeaturePropertyTest {
 
     private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/target_year_1");
+    private static final JsonPointer INVALID_PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/target_year_1" +
+            "/füü/bar");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeatureProperty.TYPE)
@@ -73,7 +76,6 @@ public final class DeleteFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
         DeleteFeatureProperty.of(TestConstants.Thing.THING_ID, null, PROPERTY_JSON_POINTER,
@@ -87,7 +89,6 @@ public final class DeleteFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void createInstanceWithValidArguments() {
         final DeleteFeatureProperty underTest = DeleteFeatureProperty.of(TestConstants.Thing.THING_ID,
@@ -96,6 +97,12 @@ public final class DeleteFeaturePropertyTest {
         assertThat(underTest).isNotNull();
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceWithInvalidArgument() {
+        DeleteFeatureProperty.of(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_ID, INVALID_PROPERTY_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test
     public void toJsonReturnsExpected() {
@@ -105,7 +112,6 @@ public final class DeleteFeaturePropertyTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

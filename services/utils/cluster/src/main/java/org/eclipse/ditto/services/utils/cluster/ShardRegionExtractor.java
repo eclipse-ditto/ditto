@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.WithId;
 
@@ -50,7 +51,7 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
      * via the passed {@code ActorSystem}.
      *
      * @param numberOfShards the amount of shards to use.
-     * @param actorSystem the ActorSystem to use for looking up the MappingStrategy.
+     * @param actorSystem the ActorSystem to use for looking up the MappingStrategies.
      */
     public static ShardRegionExtractor of(final int numberOfShards, final ActorSystem actorSystem) {
         final MappingStrategies mappingStrategies = MappingStrategies.loadMappingStrategies(actorSystem);
@@ -128,13 +129,13 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
 
     private Jsonifiable<?> createJsonifiableFrom(final ShardedMessageEnvelope messageEnvelope) {
         final String type = messageEnvelope.getType();
-        final MappingStrategy mappingStrategy = mappingStrategies.getMappingStrategy(type)
+        final JsonParsable<Jsonifiable<?>> mappingStrategy = mappingStrategies.getMappingStrategy(type)
                 .orElseThrow(() -> {
                     final String pattern = "No strategy found to map type {0} to a Jsonifiable!";
                     throw new IllegalStateException(MessageFormat.format(pattern, type));
                 });
 
-        return mappingStrategy.map(messageEnvelope.getMessage(), messageEnvelope.getDittoHeaders());
+        return mappingStrategy.parse(messageEnvelope.getMessage(), messageEnvelope.getDittoHeaders());
     }
 
     @Override
