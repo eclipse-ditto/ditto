@@ -215,7 +215,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
     private void modifyDummyAndWaitForSnapshotSuccess(final TestKit testKit,
             final ActorRef persistenceActor, final int times, final Duration waitTimeout) {
         IntStream.range(0, times).forEach(i -> persistenceActor.tell("SAVE", ActorRef.noSender()));
-        IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(Duration.ofSeconds(10),
+        IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(waitTimeout,
                 SaveSnapshotSuccess.class));
     }
 
