@@ -14,12 +14,16 @@ package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.EMPTY_JSON_POINTER;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.INVALID_JSON_POINTER;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.VALID_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -93,9 +97,21 @@ public final class ModifyAttributeTest {
                 .withNoCause();
     }
 
-    @Test
+    @Test()
     public void tryToCreateInstanceWithValidArguments() {
-        ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, KNOWN_ATTRIBUTE,
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, VALID_JSON_POINTER, KNOWN_ATTRIBUTE,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void tryToCreateInstanceWithInvalidAttributePointer() {
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER, KNOWN_ATTRIBUTE,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = AttributePointerInvalidException.class)
+    public void createInstanceWithEmptyPointer() {
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, EMPTY_JSON_POINTER, KNOWN_ATTRIBUTE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

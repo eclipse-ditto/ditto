@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.INVALID_JSON_POINTER;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.VALID_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -54,7 +57,6 @@ public class ModifyFeaturePropertyResponseTest {
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeaturePropertyResponse.class,
@@ -62,14 +64,12 @@ public class ModifyFeaturePropertyResponseTest {
                 provided(JsonValue.class, JsonPointer.class, ThingId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyFeaturePropertyResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -90,7 +90,6 @@ public class ModifyFeaturePropertyResponseTest {
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final ModifyFeaturePropertyResponse underTestCreated =
@@ -105,5 +104,17 @@ public class ModifyFeaturePropertyResponseTest {
 
         assertThat(underTestUpdated).isNotNull();
         assertThat(underTestUpdated.getFeaturePropertyValue()).isEmpty();
+    }
+
+    @Test
+    public void tryToCreateInstanceWithValidArguments() {
+        ModifyFeaturePropertyResponse.modified(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void tryToCreateInstanceWithInvalidArguments() {
+        ModifyFeaturePropertyResponse.modified(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 }

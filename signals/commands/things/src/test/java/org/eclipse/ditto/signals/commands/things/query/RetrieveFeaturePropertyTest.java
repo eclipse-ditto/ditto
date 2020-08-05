@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -39,6 +40,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveFeaturePropertyTest {
 
     private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/foo");
+    private static final JsonPointer INVALID_PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/bar/füü");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeatureProperty.TYPE)
@@ -62,7 +64,6 @@ public final class RetrieveFeaturePropertyTest {
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
@@ -90,14 +91,11 @@ public final class RetrieveFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void tryToCreateInstanceWithValidArguments() {
         RetrieveFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                PROPERTY_JSON_POINTER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void jsonSerializationWorksAsExpected() {
@@ -109,7 +107,6 @@ public final class RetrieveFeaturePropertyTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final RetrieveFeatureProperty underTest =
@@ -118,6 +115,20 @@ public final class RetrieveFeaturePropertyTest {
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void tryToCreateInstanceWithInvalidArguments() {
+        RetrieveFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                INVALID_PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidJson() {
+        final JsonObject invalidJson = KNOWN_JSON.toBuilder()
+                .set(RetrieveFeatureProperty.JSON_PROPERTY_JSON_POINTER, INVALID_PROPERTY_JSON_POINTER.toString())
+                .build();
+        RetrieveFeatureProperty.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 }

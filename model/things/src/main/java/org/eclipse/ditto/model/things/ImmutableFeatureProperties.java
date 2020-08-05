@@ -38,8 +38,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -80,24 +78,8 @@ final class ImmutableFeatureProperties implements FeatureProperties {
         if (jsonObject instanceof ImmutableFeatureProperties) {
             return (FeatureProperties) jsonObject;
         }
-        validateJsonKeys(jsonObject);
-        return new ImmutableFeatureProperties(jsonObject);
-    }
 
-    private static void validateJsonKeys(final JsonObject jsonObject) {
-        for (final JsonField jsonField : jsonObject) {
-            final JsonKey key = jsonField.getKey();
-            final JsonValue value = jsonField.getValue();
-            final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(key);
-            if (!validator.isValid()) {
-                throw JsonKeyInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
-                        .build();
-            }
-            if (value.isObject()) {
-                // recurse!
-                validateJsonKeys(value.asObject());
-            }
-        }
+        return new ImmutableFeatureProperties(JsonKeyValidator.validateJsonKeys(jsonObject));
     }
 
     @Override
