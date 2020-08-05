@@ -242,7 +242,7 @@ public final class PubSubFactoryTest {
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
-            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofMillis(500));
+            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofMillis(1000));
             // give local subscriber a chance to receive most updated subscriptions
             TimeUnit.MILLISECONDS.sleep(sleepAmount.toMillis());
 
