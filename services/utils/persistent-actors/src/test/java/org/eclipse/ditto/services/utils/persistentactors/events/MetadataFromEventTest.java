@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -141,9 +142,9 @@ public final class MetadataFromEventTest {
                 .definition(FeatureDefinition.fromIdentifier("foo:bar:1"))
                 .build();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .putHeader(MetadataHeaderKey.PREFIX + "/scruplusFine", "\"^6,00.32\"")
-                .putHeader(MetadataHeaderKey.PREFIX + "/properties/grumbo/froodNoops", "5")
-                .putHeader(MetadataHeaderKey.PREFIX + "/*/lastSeen", "1955")
+                .metadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
+                .metadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
+                .metadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
                 .build();
         final FeatureModified featureModified = FeatureModified.of(thingWithoutMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
@@ -180,9 +181,9 @@ public final class MetadataFromEventTest {
                 .definition(FeatureDefinition.fromIdentifier("foo:bar:1"))
                 .build();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .putHeader(MetadataHeaderKey.PREFIX + "/scruplusFine", "\"^6,00.32\"")
-                .putHeader(MetadataHeaderKey.PREFIX + "/properties/grumbo/froodNoops", "5")
-                .putHeader(MetadataHeaderKey.PREFIX + "/*/lastSeen", "1955")
+                .metadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
+                .metadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
+                .metadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
                 .build();
         final FeatureModified featureModified = FeatureModified.of(thingWithMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
@@ -209,8 +210,8 @@ public final class MetadataFromEventTest {
         final JsonValue metric = JsonValue.of("metric");
         final JsonValue nonMetric = JsonValue.of("non-metric");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .putHeader(MetadataHeaderKey.PREFIX + "/properties/capacity/unit/type", nonMetric.toString())
-                .putHeader(MetadataHeaderKey.PREFIX + "/*/type", metric.toString())
+                .metadata(MetadataHeaderKey.parse("/properties/capacity/unit/type"), nonMetric)
+                .metadata(MetadataHeaderKey.parse("/*/type"), metric)
                 .build();
         final Feature modifiedFeature = fluxCapacitor.toBuilder()
                 .properties(fluxCapacitorProperties.toBuilder()

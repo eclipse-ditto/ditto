@@ -14,9 +14,8 @@ package org.eclipse.ditto.services.utils.persistentactors.events;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
+import java.util.SortedSet;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -30,6 +29,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -89,7 +91,7 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
         final Metadata result;
         final Optional<JsonValue> entityOptional = event.getEntity(event.getImplementedSchemaVersion());
         if (entityOptional.isPresent()) {
-            final List<MetadataHeader> metadataHeaders = getMetadataHeaders();
+            final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeaders();
             if (metadataHeaders.isEmpty()) {
                 result = existingMetadata;
             } else {
@@ -101,12 +103,12 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
         return result;
     }
 
-    private List<MetadataHeader> getMetadataHeaders() {
-        final MetadataHeaderParser metadataHeaderParser = MetadataHeaderParser.getInstance();
-        return metadataHeaderParser.parse(event.getDittoHeaders());
+    private SortedSet<MetadataHeader> getMetadataHeaders() {
+        final DittoHeaders dittoHeaders = event.getDittoHeaders();
+        return dittoHeaders.getMetadataHeaders();
     }
 
-    private Metadata buildMetadata(final JsonValue entity, final List<MetadataHeader> metadataHeaders) {
+    private Metadata buildMetadata(final JsonValue entity, final SortedSet<MetadataHeader> metadataHeaders) {
         final MetadataBuilder metadataBuilder = getMetadataBuilder();
 
         final Consumer<MetadataHeader> addMetadataToBuilder = metadataHeader -> {
@@ -119,9 +121,6 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
             }
         };
 
-        // Sorting ensures that values for a key with specific path overwrite overlapping values for a key with wildcard
-        // path, i. e. specific > generic.
-        Collections.sort(metadataHeaders);
         metadataHeaders.forEach(addMetadataToBuilder);
 
         return metadataBuilder.build();

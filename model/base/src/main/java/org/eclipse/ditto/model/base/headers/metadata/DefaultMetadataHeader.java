@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistentactors.events;
+package org.eclipse.ditto.model.base.headers.metadata;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -23,48 +23,40 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Association between a {@link MetadataHeaderKey} and a {@link JsonValue}.
+ * Default implementation of {@link MetadataHeader}.
  *
  * @since 1.2.0
  */
 @Immutable
-final class MetadataHeader implements Comparable<MetadataHeader> {
+final class DefaultMetadataHeader implements MetadataHeader {
 
     private final MetadataHeaderKey key;
     private final JsonValue value;
 
-    private MetadataHeader(final MetadataHeaderKey key, final JsonValue value) {
+    private DefaultMetadataHeader(final MetadataHeaderKey key, final JsonValue value) {
         this.key = checkNotNull(key, "key");
         this.value = checkNotNull(value, "value");
     }
 
     /**
-     * Returns an instance of {@code MetadataHeader}.
+     * Returns an instance of {@code DefaultMetadataHeader}.
      *
      * @param key the key of the header.
      * @param value the value of the header.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static MetadataHeader of(final MetadataHeaderKey key, final JsonValue value) {
-        return new MetadataHeader(key, value);
+    static DefaultMetadataHeader of(final MetadataHeaderKey key, final JsonValue value) {
+        return new DefaultMetadataHeader(key, value);
     }
 
-    /**
-     * Returns the key of this header.
-     *
-     * @return the key.
-     */
-    MetadataHeaderKey getKey() {
+    @Override
+    public MetadataHeaderKey getKey() {
         return key;
     }
 
-    /**
-     * Returns the value of this header.
-     *
-     * @return the value.
-     */
-    JsonValue getValue() {
+    @Override
+    public JsonValue getValue() {
         return value;
     }
 
@@ -76,11 +68,11 @@ final class MetadataHeader implements Comparable<MetadataHeader> {
         if (equals(metadataHeader)) {
             result = 0;
         } else {
-            final int keyComparisonResult = key.compareTo(metadataHeader.key);
+            final int keyComparisonResult = key.compareTo(metadataHeader.getKey());
             if (0 == keyComparisonResult) {
 
                 // as both keys are equal the values determine the final result
-                result = compareValues(metadataHeader.value);
+                result = compareValues(metadataHeader.getValue());
             } else {
                 result = keyComparisonResult;
             }
@@ -105,8 +97,8 @@ final class MetadataHeader implements Comparable<MetadataHeader> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final MetadataHeader that = (MetadataHeader) o;
-        return key.equals(that.key) && value.equals(that.value);
+        final DefaultMetadataHeader that = (DefaultMetadataHeader) o;
+        return Objects.equals(key, that.key) && Objects.equals(value, that.value);
     }
 
     @Override
@@ -117,7 +109,7 @@ final class MetadataHeader implements Comparable<MetadataHeader> {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "key=" + key.asString() +
+                "key=" + key +
                 ", value=" + value +
                 "]";
     }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistentactors.events;
+package org.eclipse.ditto.model.base.headers.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -31,10 +31,10 @@ import org.junit.runners.Parameterized;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link MetadataHeaderTest}.
+ * Unit test for {@link DefaultMetadataHeader}.
  */
 @RunWith(Enclosed.class)
-public final class MetadataHeaderTest {
+public final class DefaultMetadataHeaderTest {
 
     public static final class GeneralFunctionalityTest {
 
@@ -43,14 +43,14 @@ public final class MetadataHeaderTest {
 
         @Test
         public void assertImmutability() {
-            assertInstancesOf(MetadataHeader.class,
+            assertInstancesOf(DefaultMetadataHeader.class,
                     areImmutable(),
                     provided(MetadataHeaderKey.class, JsonValue.class).areAlsoImmutable());
         }
 
         @Test
         public void testHashCodeAndEquals() {
-            EqualsVerifier.forClass(MetadataHeader.class)
+            EqualsVerifier.forClass(DefaultMetadataHeader.class)
                     .usingGetClass()
                     .verify();
         }
@@ -58,7 +58,7 @@ public final class MetadataHeaderTest {
         @Test
         public void tryToGetInstanceWithNullKey() {
             assertThatNullPointerException()
-                    .isThrownBy(() -> MetadataHeader.of(null, KNOWN_VALUE))
+                    .isThrownBy(() -> DefaultMetadataHeader.of(null, KNOWN_VALUE))
                     .withMessage("The key must not be null!")
                     .withNoCause();
         }
@@ -66,21 +66,21 @@ public final class MetadataHeaderTest {
         @Test
         public void tryToGetInstanceWithNullValue() {
             assertThatNullPointerException()
-                    .isThrownBy(() -> MetadataHeader.of(KNOWN_KEY, null))
+                    .isThrownBy(() -> DefaultMetadataHeader.of(KNOWN_KEY, null))
                     .withMessage("The value must not be null!")
                     .withNoCause();
         }
 
         @Test
         public void getKeyReturnsExpected() {
-            final MetadataHeader underTest = MetadataHeader.of(KNOWN_KEY, KNOWN_VALUE);
+            final DefaultMetadataHeader underTest = DefaultMetadataHeader.of(KNOWN_KEY, KNOWN_VALUE);
 
             assertThat(underTest.getKey()).isEqualTo(KNOWN_KEY);
         }
 
         @Test
         public void getValueReturnsExpected() {
-            final MetadataHeader underTest = MetadataHeader.of(KNOWN_KEY, KNOWN_VALUE);
+            final DefaultMetadataHeader underTest = DefaultMetadataHeader.of(KNOWN_KEY, KNOWN_VALUE);
 
             assertThat(underTest.getValue()).isEqualTo(KNOWN_VALUE);
         }
@@ -92,28 +92,28 @@ public final class MetadataHeaderTest {
 
         @Parameterized.Parameters(name = "{index}: Compare {0} to {1}, expecting {2}")
         public static Collection<Object[]> input() {
-            final MetadataHeaderKey keySpecificB = MetadataHeaderKey.of(JsonPointer.of("/foo/bar/baz"));
-            final MetadataHeaderKey keyWildcardB = MetadataHeaderKey.of(JsonPointer.of("/*/baz"));
-            final MetadataHeaderKey keySpecificC = MetadataHeaderKey.of(JsonPointer.of("/foo/bar/chumble"));
-            final MetadataHeaderKey keyWildcardC = MetadataHeaderKey.of(JsonPointer.of("/*/chumble"));
+            final MetadataHeaderKey keySpecificB = DefaultMetadataHeaderKey.of(JsonPointer.of("/foo/bar/baz"));
+            final MetadataHeaderKey keyWildcardB = DefaultMetadataHeaderKey.of(JsonPointer.of("/*/baz"));
+            final MetadataHeaderKey keySpecificC = DefaultMetadataHeaderKey.of(JsonPointer.of("/foo/bar/chumble"));
+            final MetadataHeaderKey keyWildcardC = DefaultMetadataHeaderKey.of(JsonPointer.of("/*/chumble"));
             final JsonValue value0 = JsonValue.of(0);
             final JsonValue valueRed = JsonValue.of("red");
 
             return Arrays.asList(new Object[][] {
-                    {MetadataHeader.of(keySpecificB, value0), MetadataHeader.of(keySpecificB, value0), 0},
-                    {MetadataHeader.of(keySpecificB, value0), MetadataHeader.of(keySpecificB, valueRed), -1},
-                    {MetadataHeader.of(keyWildcardB, value0), MetadataHeader.of(keyWildcardB, value0), 0},
-                    {MetadataHeader.of(keyWildcardB, valueRed), MetadataHeader.of(keyWildcardB, value0), 1},
-                    {MetadataHeader.of(keyWildcardC, value0), MetadataHeader.of(keySpecificB, value0), -1},
-                    {MetadataHeader.of(keySpecificB, valueRed), MetadataHeader.of(keySpecificC, value0), -1},
+                    {DefaultMetadataHeader.of(keySpecificB, value0), DefaultMetadataHeader.of(keySpecificB, value0), 0},
+                    {DefaultMetadataHeader.of(keySpecificB, value0), DefaultMetadataHeader.of(keySpecificB, valueRed), -1},
+                    {DefaultMetadataHeader.of(keyWildcardB, value0), DefaultMetadataHeader.of(keyWildcardB, value0), 0},
+                    {DefaultMetadataHeader.of(keyWildcardB, valueRed), DefaultMetadataHeader.of(keyWildcardB, value0), 1},
+                    {DefaultMetadataHeader.of(keyWildcardC, value0), DefaultMetadataHeader.of(keySpecificB, value0), -1},
+                    {DefaultMetadataHeader.of(keySpecificB, valueRed), DefaultMetadataHeader.of(keySpecificC, value0), -1},
             });
         }
 
         @Parameterized.Parameter(0)
-        public MetadataHeader left;
+        public DefaultMetadataHeader left;
 
         @Parameterized.Parameter(1)
-        public MetadataHeader right;
+        public DefaultMetadataHeader right;
 
         @Parameterized.Parameter(2)
         public int expected;

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -312,5 +314,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the command timeout.
      */
     Optional<Duration> getTimeout();
+
+    /**
+     * Returns the metadata headers subset of this headers.
+     * Sorting ensures that values for a key with specific path overwrite overlapping values for a key with wildcard
+     * path, i. e. specific > generic.
+     *
+     * @return a sorted set of the metadata headers.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 1.2.0
+     */
+    SortedSet<MetadataHeader> getMetadataHeaders();
 
 }

@@ -20,12 +20,14 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -226,7 +228,6 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      */
     B expectedResponseTypes(ResponseType... responseTypes);
 
-
     /**
      * Set the expected response types. In combination with {@link #replyTarget(Integer)} this decides which type
      * of responses are delivered to a reply target of a connection source.
@@ -299,6 +300,17 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @since 1.1.0
      */
     B timeout(@Nullable Duration timeout);
+
+    /**
+     * Puts the given metadata association to this builder.
+     * An existing entry with the same key will be replaced.
+     *
+     * @param key the metadata key.
+     * @param value the metadata value.
+     * @return this builder.
+     * @since 1.2.0
+     */
+    B metadata(MetadataHeaderKey key, JsonValue value);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
