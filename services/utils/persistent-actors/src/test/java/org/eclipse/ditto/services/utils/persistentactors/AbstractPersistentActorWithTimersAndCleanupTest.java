@@ -165,8 +165,8 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             // WHEN: concurrent cleanup is sent
             persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()), getRef());
             persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()), getRef());
-            final CleanupCommandResponse cleanupFailed =
-                    expectMsgClass(Duration.ofSeconds(10), CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupFailed =
+                    expectMsgClass(dilated(Duration.ofSeconds(15)), CleanupCommandResponse.class);
 
             // THEN: second command is rejected and only first command ist executed by plugin
             assertThat(cleanupFailed.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);

@@ -242,12 +242,12 @@ public final class PubSubFactoryTest {
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
-            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofMillis(1000));
+            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofSeconds(2));
             // give local subscriber a chance to receive most updated subscriptions
             TimeUnit.MILLISECONDS.sleep(sleepAmount.toMillis());
 
             pub.publish("hello", publisher.ref());
-            subscriber.expectMsg("hello");
+            subscriber.expectMsg(dilated(Duration.create(5, TimeUnit.SECONDS)), "hello");
         }};
     }
 
