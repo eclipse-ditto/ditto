@@ -313,7 +313,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof ThingModifyCommand && !isLiveSignal) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (signal instanceof MessageCommand || isLiveSignal && signal instanceof ThingCommand) {
+        } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {
             return false;

@@ -52,8 +52,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import akka.actor.ActorRef;
-
 /**
  * Enforces live commands (including message commands) and live events.
  */
@@ -128,11 +126,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     @Override
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
         final Signal<?> liveSignal = signal();
-        final ActorRef sender = sender();
         LogUtil.enhanceLogWithCorrelationIdOrRandom(liveSignal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
-                return doEnforce(liveSignal, sender, enforcerEntry)
+                return doEnforce(liveSignal, enforcerEntry)
                         .exceptionally(this::handleExceptionally);
             } catch (final RuntimeException e) {
                 return CompletableFuture.completedFuture(handleExceptionally(e));
@@ -140,25 +137,24 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         });
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal<?> liveSignal, final ActorRef sender,
+    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal<?> liveSignal,
             final Entry<Enforcer> enforcerEntry) {
 
         final Optional<String> correlationIdOpt = liveSignal.getDittoHeaders().getCorrelationId();
         if (enforcerEntry.exists() && correlationIdOpt.isPresent()) {
             final Enforcer enforcer = enforcerEntry.getValueOrThrow();
-            final String correlationId = correlationIdOpt.get();
 
             if (liveSignal instanceof SendClaimMessage) {
                 // claim messages require no enforcement, publish them right away:
                 return CompletableFuture.completedFuture(
-                        publishMessageCommand((SendClaimMessage<?>) liveSignal, enforcer, sender));
+                        publishMessageCommand((SendClaimMessage<?>) liveSignal, enforcer));
 
             } else if (liveSignal instanceof CommandResponse) {
-                return enforceLiveCommandResponse(liveSignal, correlationId);
+                return enforceLiveCommandResponse(liveSignal);
             } else {
                 final Optional<StreamingType> streamingType = StreamingType.fromSignal(liveSignal);
                 if (streamingType.isPresent()) {
-                    return enforceLiveSignal(streamingType.get(), liveSignal, sender, enforcer, correlationId);
+                    return enforceLiveSignal(streamingType.get(), liveSignal, enforcer);
                 } else {
                     log().error("Unsupported Signal in LiveSignalEnforcement: <{}>", liveSignal);
                     throw GatewayInternalErrorException.newBuilder()
@@ -178,19 +174,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal<?> liveSignal,
-            final String correlationId) {
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal<?> liveSignal) {
         log().warning("Got live response, should never happen: <{}>", liveSignal);
         return CompletableFuture.completedFuture(withMessageToReceiver(null, null));
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
-            final Signal<?> liveSignal, final ActorRef sender, final Enforcer enforcer, final String correlationId) {
+            final Signal<?> liveSignal, final Enforcer enforcer) {
 
         switch (streamingType) {
             case MESSAGES:
                 final Contextual<WithDittoHeaders> contextual =
-                        enforceMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer, sender);
+                        enforceMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer);
                 return CompletableFuture.completedFuture(contextual);
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer);
@@ -251,23 +246,21 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
      * @param signal the signal to test.
      * @return whether the signal belongs to the live channel.
      */
-    static boolean isLiveSignal(final Signal signal) {
+    static boolean isLiveSignal(final Signal<?> signal) {
         return StreamingType.isLiveSignal(signal);
     }
 
     private Contextual<WithDittoHeaders> enforceMessageCommand(final MessageCommand<?, ?> command,
-            final Enforcer enforcer,
-            final ActorRef sender) {
+            final Enforcer enforcer) {
         if (isAuthorized(command, enforcer)) {
-            return publishMessageCommand(command, enforcer, sender);
+            return publishMessageCommand(command, enforcer);
         } else {
             throw rejectMessageCommand(command);
         }
     }
 
     private Contextual<WithDittoHeaders> publishMessageCommand(final MessageCommand<?, ?> command,
-            final Enforcer enforcer,
-            final ActorRef sender) {
+            final Enforcer enforcer) {
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
         final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
