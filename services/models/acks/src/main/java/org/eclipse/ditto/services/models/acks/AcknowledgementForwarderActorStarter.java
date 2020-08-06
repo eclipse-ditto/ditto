@@ -192,12 +192,16 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                 dittoRuntimeException.toJson());
     }
 
-    static boolean isNotLiveResponse(final AcknowledgementRequest request) {
-        return !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(request.getLabel());
+    static boolean isNotBuiltIn(final AcknowledgementRequest request) {
+        return isNotLiveResponse(request) && isNotTwinPersisted(request);
     }
 
     static boolean isNotTwinPersisted(final AcknowledgementRequest request) {
         return !DittoAcknowledgementLabel.TWIN_PERSISTED.equals(request.getLabel());
+    }
+
+    static boolean isNotLiveResponse(final AcknowledgementRequest request) {
+        return !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(request.getLabel());
     }
 
     static boolean isLiveSignal(final Signal<?> signal) {
@@ -208,8 +212,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         final boolean isLiveSignal = isLiveSignal(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof ThingEvent && !isLiveSignal) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (signal instanceof MessageCommand || isLiveSignal && signal instanceof ThingCommand) {
+            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotBuiltIn);
+        } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {
             return false;
