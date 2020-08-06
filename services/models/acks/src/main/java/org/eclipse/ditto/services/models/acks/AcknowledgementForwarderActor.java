@@ -115,7 +115,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 .replyTarget(replyTarget)
                 .build();
         acknowledgementRequester.tell(acknowledgement.setDittoHeaders(enhancedHeaders), getSender());
-        getContext().stop(getSelf());
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {

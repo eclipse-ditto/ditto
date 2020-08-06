@@ -75,6 +75,9 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteDirectives;
 import akka.japi.pf.PFBuilder;
+import akka.pattern.Patterns;
+import akka.stream.KillSwitch;
+import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
@@ -100,6 +103,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private static final Counter THINGS_SSE_COUNTER = getCounterFor(PATH_THINGS);
     private static final Counter SEARCH_SSE_COUNTER = getCounterFor(PATH_SEARCH);
+
+    /**
+     * Timeout asking the local streaming actor.
+     */
+    private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
@@ -247,8 +255,10 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                     final Source<SessionedJsonifiable, ActorRef> publisherSource =
                             Source.actorPublisher(EventAndResponsePublisher.props(10));
 
-                    return publisherSource.mapMaterializedValue(
-                            publisherActor -> {
+                    return publisherSource.viaMat(KillSwitches.single(), Keep.both())
+                            .mapMaterializedValue(pair -> {
+                                final ActorRef publisherActor = pair.first();
+                                final KillSwitch killSwitch = pair.second();
                                 final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                         .orElseThrow(() -> new IllegalStateException(
                                                 "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
@@ -257,10 +267,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
                                         dittoHeaders);
-                                streamingActor.tell(
-                                        new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE,
-                                                jsonSchemaVersion, null),
-                                        null);
+                                final Connect connect = new Connect(publisherActor, connectionCorrelationId,
+                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null);
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                 dittoHeaders.getAuthorizationContext())
@@ -268,7 +276,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                 .withFilter(filterString)
                                                 .withExtraFields(extraFields)
                                                 .build();
-                                streamingActor.tell(startStreaming, null);
+                                Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
+                                        .thenApply(ActorRef.class::cast)
+                                        .thenAccept(streamingSessionActor ->
+                                                streamingSessionActor.tell(startStreaming, ActorRef.noSender()))
+                                        .exceptionally(e -> {
+                                            killSwitch.abort(e);
+                                            return null;
+                                        });
                                 return NotUsed.getInstance();
                             })
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->

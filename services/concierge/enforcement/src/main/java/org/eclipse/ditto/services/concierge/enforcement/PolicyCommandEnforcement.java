@@ -187,14 +187,20 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
-        final PolicyCommand policyCommand = signal();
-        final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
+        final PolicyCommand<?> policyCommand = signal();
+        final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
+                authorizePolicyCommand(policyCommand, enforcer);
         if (authorizedCommandOpt.isPresent()) {
-            final PolicyCommand authorizedCommand = authorizedCommandOpt.get();
+            final PolicyCommand<?> authorizedCommand = authorizedCommandOpt.get();
             if (authorizedCommand instanceof PolicyQueryCommand) {
-                final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) authorizedCommand;
-                return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
-                        () -> askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer));
+                final PolicyQueryCommand<?> policyQueryCommand = (PolicyQueryCommand<?>) authorizedCommand;
+                if (!policyQueryCommand.getDittoHeaders().isResponseRequired()) {
+                    // drop query command with response-required=false
+                    return withMessageToReceiver(null, ActorRef.noSender());
+                } else {
+                    return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
+                            () -> askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer));
+                }
             } else {
                 return forwardToPoliciesShardRegion(authorizedCommand);
             }
@@ -250,8 +256,8 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                 self());
     }
 
-    private CompletionStage<WithDittoHeaders> askPoliciesShardRegionAndBuildJsonView(
-            final PolicyQueryCommand commandWithReadSubjects,
+    private CompletionStage<WithDittoHeaders<?>> askPoliciesShardRegionAndBuildJsonView(
+            final PolicyQueryCommand<?> commandWithReadSubjects,
             final Enforcer enforcer) {
 
         return Patterns.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout())
@@ -271,7 +277,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     private PolicyUnavailableException reportTimeoutForPolicyQuery(
-            final PolicyQueryCommand command,
+            final PolicyQueryCommand<?> command,
             final AskTimeoutException askTimeoutException) {
         log(command).error(askTimeoutException, "Timeout before building JsonView");
         return PolicyUnavailableException.newBuilder(command.getEntityId())
@@ -279,7 +285,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                 .build();
     }
 
-    private PolicyQueryCommandResponse reportJsonViewForPolicyQuery(
+    private PolicyQueryCommandResponse<?> reportJsonViewForPolicyQuery(
             final PolicyQueryCommandResponse<?> thingQueryCommandResponse,
             final Enforcer enforcer) {
 

@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -317,6 +318,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
 
     private Receive createSelfTerminationBehavior() {
         return ReceiveBuilder.create()
+                .match(Jwt.class, this::refreshWebSocketSession)
                 .match(RefreshSession.class, refreshSession -> {
                     cancelSessionTimeout();
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
@@ -375,6 +377,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
 
     // precondition: signal has ack requests
     private Object startAckregatorAndForward(final Signal<?> signal) {
+        if (!signal.getDittoHeaders().isResponseRequired()) {
+            // remove requested-acks for WebSocket if response-required=false: There is no transport-layer ack.
+            return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
+                    .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
+                    .build());
+        }
         try {
             final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("");
             final String actorName = getActorNameFromCounter(++childCounter, correlationId);

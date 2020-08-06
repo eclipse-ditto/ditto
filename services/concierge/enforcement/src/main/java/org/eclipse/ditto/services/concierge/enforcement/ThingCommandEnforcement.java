@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -259,7 +260,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (authorizedCommand.isPresent()) {
             final ThingCommand<?> commandWithReadSubjects = authorizedCommand.get();
             if (commandWithReadSubjects instanceof RetrieveThing &&
-                    shouldRetrievePolicyWithThing(commandWithReadSubjects)) {
+                    shouldRetrievePolicyWithThing(commandWithReadSubjects) &&
+                    commandWithReadSubjects.getDittoHeaders().isResponseRequired()) {
                 final RetrieveThing retrieveThing = (RetrieveThing) commandWithReadSubjects;
                 return retrieveThingAclAndMigrateToPolicy(retrieveThing, enforcer);
             } else {
@@ -324,7 +326,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         return authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
                     if (commandWithReadSubjects instanceof ThingQueryCommand) {
-                        final ThingQueryCommand thingQueryCommand = (ThingQueryCommand) commandWithReadSubjects;
+                        final ThingQueryCommand<?> thingQueryCommand = (ThingQueryCommand<?>) commandWithReadSubjects;
+                        if (!thingQueryCommand.getDittoHeaders().isResponseRequired()) {
+                            // drop query command with response-required=false
+                            return withMessageToReceiver(null, ActorRef.noSender());
+                        }
                         if (thingQueryCommand instanceof RetrieveThing &&
                                 shouldRetrievePolicyWithThing(thingQueryCommand)) {
 
@@ -750,7 +756,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final PolicyId policyId) {
         final Map<String, String> enhancedMap = new HashMap<>(dittoHeaders());
-        enhancedMap.put(AbstractGraphActor.DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, "true");
+        final String trueString = "true";
+        enhancedMap.put(AbstractGraphActor.DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, trueString);
+        enhancedMap.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), trueString);
         final DittoHeaders adjustedHeaders = DittoHeaders.of(enhancedMap);
 
         return Patterns.ask(conciergeForwarder(), RetrievePolicy.of(policyId, adjustedHeaders), getAskTimeout())
@@ -985,12 +993,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
             if (policy.isPresent()) {
 
-                final DittoHeaders dittoHeadersWithoutPreconditionHeaders = createThing.getDittoHeaders()
+                final DittoHeaders dittoHeadersForCreatePolicy = createThing.getDittoHeaders()
                         .toBuilder()
                         .removePreconditionHeaders()
+                        .responseRequired(true)
                         .build();
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), dittoHeadersWithoutPreconditionHeaders);
+                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), dittoHeadersForCreatePolicy);
                 final Optional<CreatePolicy> authorizedCreatePolicy =
                         PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
 
@@ -1023,6 +1032,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 createThingWithoutPolicyId.getDittoHeaders());
 
         invalidatePolicyCache(createPolicy.getEntityId());
+
         return preEnforcer.apply(createPolicy)
                 .thenCompose(msg -> Patterns.ask(policiesShardRegion, msg, getAskTimeout()))
                 .thenApply(policyResponse -> {
