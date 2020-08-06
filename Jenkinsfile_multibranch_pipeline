@@ -11,7 +11,7 @@ pipeline {
         theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
         theVersion = "0-${theBranch}-SNAPSHOT"
         theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
-        JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave -Dlicense.skipAddThirdParty=true'
+        JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
