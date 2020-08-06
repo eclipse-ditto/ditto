@@ -38,12 +38,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -79,9 +81,12 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -857,6 +862,43 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
+    public void testAppendingConnectionIdToResponses() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+
+            // Acknowledgement
+            final AcknowledgementLabel label = AcknowledgementLabel.of("label");
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
+                            DittoHeaders.empty(), JsonValue.of("payload"));
+            messageMappingProcessorActor.tell(toExternalMessage(acknowledgement), getRef());
+            final Acknowledgement receivedAck = connectionActorProbe.expectMsgClass(Acknowledgement.class);
+            assertThat(receivedAck.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
+                    .isEqualTo(CONNECTION_ID.toString());
+
+            // Acknowledgements
+            final Signal<?> acknowledgements = Acknowledgements.of(List.of(acknowledgement), DittoHeaders.empty());
+            messageMappingProcessorActor.tell(toExternalMessage(acknowledgements), getRef());
+            final Acknowledgements receivedAcks = connectionActorProbe.expectMsgClass(Acknowledgements.class);
+            assertThat(receivedAcks.getAcknowledgement(label)
+                    .orElseThrow()
+                    .getDittoHeaders()
+                    .get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
+                    .isEqualTo(CONNECTION_ID.toString());
+
+            // Live response
+            final Signal<?> liveResponse = DeleteThingResponse.of(KNOWN_THING_ID, DittoHeaders.newBuilder()
+                    .channel(TopicPath.Channel.LIVE.getName())
+                    .build());
+            messageMappingProcessorActor.tell(toExternalMessage(liveResponse), getRef());
+            final DeleteThingResponse receivedResponse = connectionActorProbe.expectMsgClass(DeleteThingResponse.class);
+            assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
+            assertThat(receivedResponse.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
+                    .isEqualTo(CONNECTION_ID.toString());
+        }};
+    }
+
+    @Test
     public void forwardsSearchCommandsToConnectionActor() {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
@@ -914,6 +956,20 @@ public final class MessageMappingProcessorActorTest {
         Patterns.ask(actorSelection, recipient, Duration.ofSeconds(10L))
                 .toCompletableFuture()
                 .join();
+    }
+
+    private ExternalMessage toExternalMessage(final Signal<?> signal) {
+        final AuthorizationContext context =
+                AuthorizationModelFactory.newAuthContext(
+                        DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+        final JsonifiableAdaptable adaptable = ProtocolFactory
+                .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(signal));
+        return ExternalMessageFactory.newExternalMessageBuilder(Map.of())
+                .withTopicPath(adaptable.getTopicPath())
+                .withText(adaptable.toJsonString())
+                .withAuthorizationContext(context)
+                .build();
     }
 
     private static ModifyAttribute createModifyAttributeCommand() {
