@@ -34,10 +34,10 @@
 |com.typesafe.akka|akka-coordination_2.13|2.6.8| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
 |com.typesafe.akka|akka-discovery_2.13|2.6.8| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
 |com.typesafe.akka|akka-distributed-data_2.13|2.6.8| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
-|com.typesafe.akka|akka-http_2.13|10.2.0| TODO CQ once released |
-|com.typesafe.akka|akka-http-core_2.13|10.2.0| TODO CQ once released |
-|com.typesafe.akka|akka-http-spray-json_2.13|10.2.0| TODO CQ once released |
-|com.typesafe.akka|akka-parsing_2.13|10.2.0| TODO CQ once released |
+|com.typesafe.akka|akka-http_2.13|10.2.0| [22447](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22447) |
+|com.typesafe.akka|akka-http-core_2.13|10.2.0| [22447](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22447) |
+|com.typesafe.akka|akka-http-spray-json_2.13|10.2.0| [22447](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22447) |
+|com.typesafe.akka|akka-parsing_2.13|10.2.0| [22447](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22447) |
 |com.typesafe.akka|akka-persistence_2.13|2.6.8| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
 |com.typesafe.akka|akka-persistence-query_2.13|2.6.8| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
 |com.typesafe.akka|akka-pki_2.13|2.6.8| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |

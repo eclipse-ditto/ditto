@@ -38,7 +38,7 @@
         <typesafe-config.version>1.4.0</typesafe-config.version>
         <ssl-config-core.version>0.4.1</ssl-config-core.version>
         <akka.version>2.6.8</akka.version>
-        <akka-http.version>10.2.0-RC2</akka-http.version>
+        <akka-http.version>10.2.0</akka-http.version>
         <akka-persistence-mongo.version>3.0.3</akka-persistence-mongo.version>
         <akka-management.version>1.0.8</akka-management.version>
         <hivemq-mqtt-client.version>1.2.0</hivemq-mqtt-client.version>
