@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -31,7 +30,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -204,7 +202,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
                 .build();
 
         final Receive signalBehavior = ReceiveBuilder.create()
-                .match(CommandResponse.class, this::forwardCommandResponse)
+                .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(Signal.class, signal ->
                         // forward signals for which no reply is expected with self return address for downstream errors
@@ -283,11 +281,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
 
                     outstandingSubscriptionAcks.add(startStreaming.getStreamingType());
                     // In Cluster: Subscribe
-                    final AcknowledgeSubscription subscribeAck =
-                            new AcknowledgeSubscription(startStreaming.getStreamingType());
+                    final ConfirmSubscription subscribeConfirmation =
+                            new ConfirmSubscription(startStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     dittoProtocolSub.subscribe(currentStreamingTypes, authorizationContext.getAuthorizationSubjectIds(),
-                            getSelf()).thenAccept(ack -> getSelf().tell(subscribeAck, getSelf()));
+                            getSelf()).thenAccept(ack -> getSelf().tell(subscribeConfirmation, getSelf()));
                 })
                 .match(StopStreaming.class, stopStreaming -> {
                     logger.debug("Got 'StopStreaming' message in <{}> session, unsubscribing from <{}> in Cluster ...",
@@ -296,23 +294,21 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
                     streamingSessions.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
-                    final AcknowledgeUnsubscription unsubscribeAck =
-                            new AcknowledgeUnsubscription(stopStreaming.getStreamingType());
+                    final ConfirmUnsubscription unsubscribeConfirmation =
+                            new ConfirmUnsubscription(stopStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     if (stopStreaming.getStreamingType() != StreamingType.EVENTS) {
                         dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
                                 authorizationContext.getAuthorizationSubjectIds(), getSelf())
-                                .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                                .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                     } else {
                         dittoProtocolSub.removeTwinSubscriber(getSelf(),
                                 authorizationContext.getAuthorizationSubjectIds())
-                                .thenAccept(ack -> getSelf().tell(unsubscribeAck, getSelf()));
+                                .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                     }
                 })
-                .match(AcknowledgeSubscription.class, msg ->
-                        acknowledgeSubscription(msg.getStreamingType(), getSelf()))
-                .match(AcknowledgeUnsubscription.class, msg ->
-                        acknowledgeUnsubscription(msg.getStreamingType(), getSelf()))
+                .match(ConfirmSubscription.class, msg -> confirmSubscription(msg.getStreamingType(), getSelf()))
+                .match(ConfirmUnsubscription.class, msg -> confirmUnsubscription(msg.getStreamingType(), getSelf()))
                 .build();
     }
 
@@ -356,25 +352,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
         return signal.getDittoHeaders().getOrigin().stream().anyMatch(connectionCorrelationId::equals);
     }
 
-    private Object forwardToAckregator(final CommandResponse<?> ackOrLiveOrMessageResponse) {
-        return potentiallyForwardToAckregator(ackOrLiveOrMessageResponse, () -> {
-            logger.info("About to send Ack/Response but no AcknowledgementAggregatorActor was present: <{}>",
-                    ackOrLiveOrMessageResponse);
-            return Done.getInstance();
-        });
-    }
-
-    private Object potentiallyForwardToAckregator(final WithDittoHeaders<?> response,
-            final Supplier<Object> fallbackAction) {
-        final ActorContext context = getContext();
-        return context.findChild(AcknowledgementAggregatorActor.determineActorName(response.getDittoHeaders()))
-                .<Object>map(aggregator -> {
-                    aggregator.forward(response, context);
-                    return Done.getInstance();
-                })
-                .orElseGet(fallbackAction);
-    }
-
     // precondition: signal has ack requests
     private Object startAckregatorAndForward(final Signal<?> signal) {
         if (!signal.getDittoHeaders().isResponseRequired()) {
@@ -387,13 +364,16 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
             final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("");
             final String actorName = getActorNameFromCounter(++childCounter, correlationId);
             return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), actorName, signal,
-                    acknowledgementConfig, headerTranslator,
-                    response -> publishResponseThreadSafely(response, ActorRef.noSender()))
+                    acknowledgementConfig,
+                    headerTranslator,
+                    response -> publishResponseThreadSafely(response, ActorRef.noSender())
+            )
                     .<Object>map(actor -> {
                         // ackregator started; use ackregator as signal sender and prevent publication at later stages
                         commandRouter.tell(signal, actor);
                         return Done.getInstance();
-                    }).orElse(signal); // ackregator not started; signal will be published at a later stage
+                    })
+                    .orElse(signal); // ackregator not started; signal will be published at a later stage
         } catch (final DittoRuntimeException e) {
             logger.withCorrelationId(signal).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
                     e.getClass().getSimpleName(), e.getMessage());
@@ -436,15 +416,15 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
         }
     }
 
-    private void forwardCommandResponse(final CommandResponse<?> commandResponse) {
-        // the Acknowledgement is meant for someone else:
+    private void forwardAcknowledgementOrLiveCommandResponse(final CommandResponse<?> response) {
+        // the Acknowledgement / live CommandResponse is meant for someone else:
         final ActorContext context = getContext();
-        context.findChild(AcknowledgementForwarderActor.determineActorName(commandResponse.getDittoHeaders()))
+        context.findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                 .ifPresentOrElse(
-                        forwarder -> forwarder.forward(commandResponse, context),
-                        () -> logger.withCorrelationId(commandResponse)
-                                .info("Received CommandResponse but no AcknowledgementForwarderActor " +
-                                        "was present: <{}>", commandResponse)
+                        forwarder -> forwarder.forward(response, context),
+                        () -> logger.withCorrelationId(response)
+                                .info("Received Acknowledgement / live CommandResponse but no " +
+                                        "AcknowledgementForwarderActor was present: <{}>", response)
                 );
     }
 
@@ -516,21 +496,21 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
     }
 
     private void refreshWebSocketSession(final Jwt jwt) {
-        final String connectionCorrelationId = jwt.getConnectionCorrelationId();
+        final String jwtConnectionCorrelationId = jwt.getConnectionCorrelationId();
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
                 try {
                     final AuthenticationResult authorizationResult =
                             jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
-                    final AuthorizationContext authorizationContext =
+                    final AuthorizationContext jwtAuthorizationContext =
                             authorizationResult.getDittoHeaders().getAuthorizationContext();
 
-                    getSelf().tell(new RefreshSession(connectionCorrelationId, jsonWebToken.getExpirationTime(),
-                            authorizationContext), ActorRef.noSender());
+                    getSelf().tell(new RefreshSession(jwtConnectionCorrelationId, jsonWebToken.getExpirationTime(),
+                            jwtAuthorizationContext), ActorRef.noSender());
                 } catch (final Exception exception) {
                     logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
-                            connectionCorrelationId, exception.getMessage());
+                            jwtConnectionCorrelationId, exception.getMessage());
                     getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
                 }
             } else {
@@ -570,7 +550,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
-    private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {
+    private void confirmSubscription(final StreamingType streamingType, final ActorRef self) {
         if (outstandingSubscriptionAcks.contains(streamingType)) {
             outstandingSubscriptionAcks.remove(streamingType);
             eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, true, connectionCorrelationId),
@@ -581,7 +561,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
         }
     }
 
-    private void acknowledgeUnsubscription(final StreamingType streamingType, final ActorRef self) {
+    private void confirmUnsubscription(final StreamingType streamingType, final ActorRef self) {
         eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, false, connectionCorrelationId), self);
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session.", streamingType, type);
     }
@@ -603,17 +583,17 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
 
     }
 
-    private static final class AcknowledgeSubscription extends WithStreamingType {
+    private static final class ConfirmSubscription extends WithStreamingType {
 
-        private AcknowledgeSubscription(final StreamingType streamingType) {
+        private ConfirmSubscription(final StreamingType streamingType) {
             super(streamingType);
         }
 
     }
 
-    private static final class AcknowledgeUnsubscription extends WithStreamingType {
+    private static final class ConfirmUnsubscription extends WithStreamingType {
 
-        private AcknowledgeUnsubscription(final StreamingType streamingType) {
+        private ConfirmUnsubscription(final StreamingType streamingType) {
             super(streamingType);
         }
 

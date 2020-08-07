@@ -260,7 +260,7 @@ public final class MessageMappingProcessorActor
      * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
      * acknowledgement aggregators is not thread-safe.
      *
-     * @param ackRequestingSignal the command requesting acknowledgements together with its original sender,
+     * @param ackRequestingSignal the signal requesting acknowledgements together with its original sender,
      * the response collector actor.
      */
     private void handleAcksRequestingCommand(final AckRequestingSignal ackRequestingSignal) {
@@ -349,8 +349,11 @@ public final class MessageMappingProcessorActor
 
         final PartialFunction<Signal<?>, Source<Signal<?>, NotUsed>> dispatchSignal =
                 new PFBuilder<Signal<?>, Source<Signal<?>, NotUsed>>()
-                        .match(CommandResponse.class, ack -> forwardIncomingAckOrSearchCommand(ack, sender))
-                        .match(ThingSearchCommand.class, cmd -> forwardIncomingAckOrSearchCommand(cmd, sender))
+                        .match(Acknowledgement.class, ack -> forwardToConnectionActor(ack, sender))
+                        .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
+                                forwardToConnectionActor(liveResponse, sender)
+                        )
+                        .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .match(Signal.class, AcknowledgementAggregatorActor::shouldStartForIncoming, signal -> {
                             getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
                             return Source.<Signal<?>>single(signal);
@@ -364,8 +367,19 @@ public final class MessageMappingProcessorActor
         return appendConnectionId.orElse(setAckRequest).andThen(dispatchSignal);
     }
 
-    private Source<Signal<?>, NotUsed> forwardIncomingAckOrSearchCommand(final Object signal,
-            final ActorRef sender) {
+    /**
+     * Only special Signals must be forwarded to the {@code ConnectionPersistenceActor}:
+     * <ul>
+     * <li>{@code Acknowledgement}s which were received via an incoming connection source</li>
+     * <li>live {@code CommandReponse}s which were received via an incoming connection source</li>
+     * <li>{@code SearchCommand}s which were received via an incoming connection source</li>
+     * </ul>
+     *
+     * @param signal the Signal to forward to the connectionActor
+     * @param sender the sender which shall receive the response
+     * @return an empty source of Signals
+     */
+    private Source<Signal<?>, NotUsed> forwardToConnectionActor(final Signal<?> signal, final ActorRef sender) {
         connectionActor.tell(signal, sender);
         return Source.empty();
     }
@@ -887,17 +901,20 @@ public final class MessageMappingProcessorActor
     }
 
     /**
-     * Appends the ConnectionId to the processed acknowledgements payload.
+     * Appends the ConnectionId to the processed {@code commandResponse} payload.
      *
-     * @return the Acknowledgement with appended ConnectionId.
+     * @param commandResponse the CommandResponse (or Acknowledgement as subtype) to append the ConnectionId to
+     * @param connectionId the ConnectionId to append to the CommandResponse's DittoHeader
+     * @param <T> the type of the CommandResponse
+     * @return the CommandResponse with appended ConnectionId.
      */
-    static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T ack,
+    static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse,
             final ConnectionId connectionId) {
-        final DittoHeaders newHeaders = ack.getDittoHeaders()
+        final DittoHeaders newHeaders = commandResponse.getDittoHeaders()
                 .toBuilder()
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
                 .build();
-        return ack.setDittoHeaders(newHeaders);
+        return commandResponse.setDittoHeaders(newHeaders);
     }
 
     static Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements,
@@ -1021,10 +1038,6 @@ public final class MessageMappingProcessorActor
         return signal instanceof CommandResponse &&
                 !ProtocolAdapter.isLiveSignal(signal) &&
                 signal.getDittoHeaders().getReplyTarget().isPresent();
-    }
-
-    private static boolean containsAcknowledgementRequests(final Signal<?> signal) {
-        return !signal.getDittoHeaders().getAcknowledgementRequests().isEmpty();
     }
 
     private static final class AckRequestingSignal {

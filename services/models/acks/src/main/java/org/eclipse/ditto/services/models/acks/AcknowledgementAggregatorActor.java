@@ -14,11 +14,8 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.LIVE_RESPONSE;
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActorStarter.isLiveSignal;
 
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
@@ -39,7 +36,6 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.Signal;
@@ -65,11 +61,6 @@ import akka.actor.ReceiveTimeout;
  */
 public final class AcknowledgementAggregatorActor extends AbstractActor {
 
-    /**
-     * Prefix of the acknowledgement aggregator actor's name.
-     */
-    static final String ACTOR_NAME_PREFIX = "ackAggregator-";
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final String correlationId;
@@ -89,7 +80,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         correlationId = requestCommandHeaders.getCorrelationId()
                 .orElseGet(() ->
                         // fall back using the actor name which also contains the correlation-id
-                        getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
+                        getSelf().path().name()
                 );
 
         final Duration timeout =
@@ -134,24 +125,6 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     }
 
     /**
-     * Determines the actor name to use for the passed DittoHeaders.
-     *
-     * @param dittoHeaders the headers to extract the correlation-id from which is used as part of the actor name.
-     * @return the actor name to use.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws AcknowledgementCorrelationIdMissingException if no {@code correlation-id} was present in the passed
-     * {@code dittoHeaders}.
-     */
-    public static String determineActorName(final DittoHeaders dittoHeaders) {
-        checkNotNull(dittoHeaders, "dittoHeaders");
-        final String correlationId = dittoHeaders.getCorrelationId()
-                .orElseThrow(() -> AcknowledgementCorrelationIdMissingException.newBuilder()
-                        .dittoHeaders(dittoHeaders)
-                        .build());
-        return ACTOR_NAME_PREFIX + URLEncoder.encode(correlationId, Charset.defaultCharset());
-    }
-
-    /**
      * Creates and starts an {@code AcknowledgementAggregatorActor} actor in the passed {@code context} using the passed
      * arguments.
      * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code signal}'s
@@ -166,6 +139,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * </ul>
      *
      * @param context the context to start the aggregator actor in.
+     * @param actorName the name of the AcknowledgementAggregator to start with.
      * @param signal the signal which potentially includes {@code AcknowledgementRequests} based on which the
      * AggregatorActor is started.
      * @param ackConfig provides configuration setting regarding acknowledgement handling.
@@ -232,8 +206,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private static Optional<JsonValue> getPayload(final CommandResponse<?> response) {
         final Optional<JsonValue> result;
         if (response instanceof WithOptionalEntity) {
-            result = ((WithOptionalEntity) response).getEntity(
-                    response.getImplementedSchemaVersion());
+            result = ((WithOptionalEntity) response).getEntity(response.getImplementedSchemaVersion());
         } else if (response instanceof MessageCommandResponse) {
             result = response.toJson().getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE).map(x -> x);
         } else {
@@ -303,7 +276,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
     /**
      * Tests whether an incoming signal has effective acknowledgement requests and thereby warrants starting an
-     * acknowledgement forwarder.
+     * acknowledgement aggregator actor.
      *
      * @param signal the outgoing signal.
      * @return whether the signal has effective acknowledgement requests.

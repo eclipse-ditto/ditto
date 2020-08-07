@@ -107,7 +107,8 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
 
     private void forwardCommandResponse(final WithDittoHeaders<?> acknowledgement) {
         log.withCorrelationId(acknowledgement)
-                .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
+                .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester: " +
+                        "<{}>", acknowledgement);
         final DittoHeaders enhancedHeaders = acknowledgement.getDittoHeaders()
                 .toBuilder()
                 .expectedResponseTypes(expectedResponseTypes)
