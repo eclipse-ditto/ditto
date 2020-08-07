@@ -350,6 +350,7 @@ public final class MessageMappingProcessorActor
         final PartialFunction<Signal<?>, Source<Signal<?>, NotUsed>> dispatchSignal =
                 new PFBuilder<Signal<?>, Source<Signal<?>, NotUsed>>()
                         .match(Acknowledgement.class, ack -> forwardToConnectionActor(ack, sender))
+                        .match(Acknowledgements.class, acks -> forwardToConnectionActor(acks, sender))
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
                                 forwardToConnectionActor(liveResponse, sender)
                         )
@@ -371,7 +372,7 @@ public final class MessageMappingProcessorActor
      * Only special Signals must be forwarded to the {@code ConnectionPersistenceActor}:
      * <ul>
      * <li>{@code Acknowledgement}s which were received via an incoming connection source</li>
-     * <li>live {@code CommandReponse}s which were received via an incoming connection source</li>
+     * <li>live {@code CommandResponse}s which were received via an incoming connection source</li>
      * <li>{@code SearchCommand}s which were received via an incoming connection source</li>
      * </ul>
      *
