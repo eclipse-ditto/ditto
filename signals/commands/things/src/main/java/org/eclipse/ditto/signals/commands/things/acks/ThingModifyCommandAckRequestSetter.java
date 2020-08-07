@@ -62,8 +62,9 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
     }
 
     @Override
-    protected boolean isApplicable(final ThingModifyCommand<?> command) {
-        return true;
+    public boolean isApplicable(final ThingModifyCommand<?> command) {
+        checkNotNull(command, "command");
+        return !isLiveChannelCommand(command);
     }
 
 }

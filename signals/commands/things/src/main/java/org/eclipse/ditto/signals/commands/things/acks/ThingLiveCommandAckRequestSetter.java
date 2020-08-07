@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.things.acks;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
@@ -47,7 +49,8 @@ public final class ThingLiveCommandAckRequestSetter extends AbstractCommandAckRe
     }
 
     @Override
-    protected boolean isApplicable(final ThingCommand<?> command) {
+    public boolean isApplicable(final ThingCommand<?> command) {
+        checkNotNull(command, "command");
         return isLiveChannelCommand(command);
     }
 

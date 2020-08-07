@@ -512,11 +512,15 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static PartialFunction<Signal<?>, Signal<?>> createSetAckRequestFunction() {
+
+        final MessageCommandAckRequestSetter messageCommand = MessageCommandAckRequestSetter.getInstance();
+        final ThingLiveCommandAckRequestSetter thingLiveCommand = ThingLiveCommandAckRequestSetter.getInstance();
+        final ThingModifyCommandAckRequestSetter thingModifyCommand = ThingModifyCommandAckRequestSetter.getInstance();
+
         return new PFBuilder<Signal<?>, Signal<?>>()
-                .match(MessageCommand.class, MessageCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingCommand.class, StreamingType::isLiveSignal,
-                        ThingLiveCommandAckRequestSetter.getInstance()::apply)
-                .match(ThingModifyCommand.class, ThingModifyCommandAckRequestSetter.getInstance()::apply)
+                .match(MessageCommand.class, messageCommand::isApplicable, messageCommand::apply)
+                .match(ThingCommand.class, thingLiveCommand::isApplicable, thingLiveCommand::apply)
+                .match(ThingModifyCommand.class, thingModifyCommand::isApplicable, thingModifyCommand::apply)
                 .matchAny(x -> x)
                 .build();
     }

@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -76,8 +75,9 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
      *
      * @param command the command to check.
      * @return whether the command is applicable for adding the implicit acknowledgement label.
+     * @throws NullPointerException if the passed {@code command} was {@code null}.
      */
-    protected abstract boolean isApplicable(C command);
+    public abstract boolean isApplicable(C command);
 
     /**
      * Determines whether the passed {@code command} was sent via the "live" channel.
@@ -97,9 +97,8 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
                 dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
 
         if (ackRequests.isEmpty() && !requestedAcksHeaderPresent) {
-            final Set<AcknowledgementRequest> newAckRequests = new HashSet<>();
-            newAckRequests.add(AcknowledgementRequest.of(implicitAcknowledgementLabel));
-            return insertAcknowledgementRequestsToHeaders(command, dittoHeaders, newAckRequests);
+            return insertAcknowledgementRequestsToHeaders(command, dittoHeaders,
+                    Collections.singleton(AcknowledgementRequest.of(implicitAcknowledgementLabel)));
         } else if (!ackRequests.isEmpty()) {
             final Set<AcknowledgementRequest> filteredAckRequests = ackRequests.stream()
                     .filter(request -> !negatedDittoAcknowledgementLabels.contains(request.getLabel()))

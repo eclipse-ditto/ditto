@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.messages.acks;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
@@ -49,7 +51,8 @@ public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequ
     }
 
     @Override
-    protected boolean isApplicable(final MessageCommand<?, ?> command) {
-        return isLiveChannelCommand(command);
+    public boolean isApplicable(final MessageCommand<?, ?> command) {
+        checkNotNull(command, "command");
+        return true;
     }
 }
