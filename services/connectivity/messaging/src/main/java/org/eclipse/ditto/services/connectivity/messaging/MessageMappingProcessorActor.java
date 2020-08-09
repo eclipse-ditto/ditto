@@ -97,6 +97,7 @@ import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -326,15 +327,23 @@ public final class MessageMappingProcessorActor
                                 forwardToConnectionActor(liveResponse, sender)
                         )
                         .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
-                        .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal, (signal, shouldStart) -> {
-                            if (shouldStart) {
-                                getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
-                                return Source.<Signal<?>>single(signal);
-                            } else {
-                                proxyActor.tell(signal, getSelf());
-                                return Source.<Signal<?>>empty();
-                            }
-                        }))
+                        .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
+                                (signal, shouldStart) -> {
+                                    if (shouldStart) {
+                                        getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
+                                        return Source.<Signal<?>>single(signal);
+                                    } else {
+                                        proxyActor.tell(signal, getSelf());
+                                        return Source.<Signal<?>>empty();
+                                    }
+                                },
+                                headerInvalidException -> {
+                                    // tell the response collector to settle negatively without redelivery
+                                    sender.tell(headerInvalidException, ActorRef.noSender());
+                                    // tell self to publish the error response
+                                    getSelf().tell(ThingErrorResponse.of(headerInvalidException), ActorRef.noSender());
+                                    return Source.empty();
+                                }))
                         .build();
 
         return appendConnectionId.andThen(dispatchSignal);

@@ -387,8 +387,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         publishResponseThreadSafely(responseOrError, getSender());
     }
 
-    private void publishResponseWithoutSender(final Object responseOrError) {
+    private Object publishResponseWithoutSender(final Object responseOrError) {
         publishResponseThreadSafely(responseOrError, ActorRef.noSender());
+        return Done.getInstance();
     }
 
     private void publishResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {

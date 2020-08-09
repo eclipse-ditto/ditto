@@ -17,13 +17,18 @@ import static org.eclipse.ditto.services.models.acks.AcknowledgementForwarderAct
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.base.Signal;
@@ -93,13 +98,21 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param <T> type of the result.
      * @return the result.
      */
-    public <T> T start(final Signal<?> signal, final Consumer<Object> responseSignalConsumer,
+    public <T> T start(final Signal<?> signal,
+            final Function<Object, T> responseSignalConsumer,
             final BiFunction<Signal<?>, ActorRef, T> ackregatorStartedFunction,
             final Function<Signal<?>, T> ackregatorNotStartedFunction) {
 
-        return preprocess(signal, (s, shouldStart) -> shouldStart
-                ? doStart(s, responseSignalConsumer, ackregator -> ackregatorStartedFunction.apply(s, ackregator))
-                : ackregatorNotStartedFunction.apply(s)
+        return preprocess(signal,
+                (s, shouldStart) -> {
+                    if (shouldStart) {
+                        return doStart(s, responseSignalConsumer::apply,
+                                ackregator -> ackregatorStartedFunction.apply(s, ackregator));
+                    } else {
+                        return ackregatorNotStartedFunction.apply(s);
+                    }
+                },
+                responseSignalConsumer
         );
     }
 
@@ -109,12 +122,17 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param signal the signal for which an acknowledgement aggregator should start.
      * @param preprocessor what to do. The first parameter is the signal with requested-acks and response-required
      * set. The second parameter is whether an acknowledgement aggregator should start.
+     * @param onInvalidHeader what to do if the headers are invalid.
      * @param <T> the type of results.
      * @return the result.
      */
-    public <T> T preprocess(final Signal<?> signal, final BiFunction<Signal<?>, Boolean, T> preprocessor) {
+    public <T> T preprocess(final Signal<?> signal,
+            final BiFunction<Signal<?>, Boolean, T> preprocessor,
+            final Function<? super DittoHeaderInvalidException, T> onInvalidHeader) {
         final Signal<?> signalToForward = ackRequestSetter.apply(signal);
-        return preprocessor.apply(signalToForward, shouldStartForIncoming(signalToForward));
+        final Optional<DittoHeaderInvalidException> headerInvalid = getDittoHeaderInvalidException(signalToForward);
+        return headerInvalid.map(onInvalidHeader)
+                .orElseGet(() -> preprocessor.apply(signalToForward, shouldStartForIncoming(signalToForward)));
     }
 
     /**
@@ -158,6 +176,23 @@ public final class AcknowledgementAggregatorActorStarter {
                     s -> (Signal<?>) ackRequestSetter.apply(s));
         }
         return pfBuilder.matchAny(x -> x).build();
+    }
+
+    private static Optional<DittoHeaderInvalidException> getDittoHeaderInvalidException(final Signal<?> signal) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final boolean isTimeoutZero = dittoHeaders.getTimeout().map(Duration::isZero).orElse(false);
+        final boolean isTimeoutHeaderInvalid = isTimeoutZero &&
+                (dittoHeaders.isResponseRequired() || !dittoHeaders.getAcknowledgementRequests().isEmpty());
+        if (isTimeoutHeaderInvalid) {
+            final String message = String.format("The value of the header '%s' must not be zero if " +
+                    "response or acknowledgements are requested.", DittoHeaderDefinition.TIMEOUT.getKey());
+            return Optional.of(DittoHeaderInvalidException.newCustomMessageBuilder(message)
+                    .description("Please provide a positive timeout.")
+                    .dittoHeaders(dittoHeaders)
+                    .build());
+        } else {
+            return Optional.empty();
+        }
     }
 
     static boolean shouldStartForIncoming(final Signal<?> signal) {

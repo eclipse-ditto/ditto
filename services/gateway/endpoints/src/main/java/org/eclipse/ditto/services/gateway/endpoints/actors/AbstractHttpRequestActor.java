@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -49,6 +50,7 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
@@ -172,7 +174,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommand(final Command<?> command) {
-        // TODO: validate incorrect settings
         ackregatorStarter.start(command,
                 this::onAggregatedResponseOrError,
                 this::handleCommandWithAckregator,
@@ -184,8 +185,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         getContext().become(responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
     }
 
-    private void onAggregatedResponseOrError(final Object responseOrError) {
+    private Void onAggregatedResponseOrError(final Object responseOrError) {
         getSelf().tell(responseOrError, ActorRef.noSender());
+        return null;
     }
 
     private Void handleCommandWithAckregator(final Signal<?> command, final ActorRef aggregator) {
@@ -205,7 +207,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void completeAcknowledgements(final Acknowledgements acks) {
         completeWithResult(acks.getDittoHeaders(),
-                createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(), acks));
+                createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(),
+                        stripPayloadUnlessResponseRequired(acks)));
     }
 
     private void handleCommandAndAcceptImmediately(final Signal<?> command) {
@@ -587,6 +590,20 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private static boolean shallAcceptImmediately(final WithDittoHeaders<?> withDittoHeaders) {
         final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
         return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
+    }
+
+    private static Acknowledgements stripPayloadUnlessResponseRequired(final Acknowledgements acks) {
+        if (acks.getDittoHeaders().isResponseRequired()) {
+            return acks;
+        } else {
+            return Acknowledgements.of(
+                    acks.stream().map(ack ->
+                            Acknowledgement.of(ack.getLabel(), ack.getEntityId(), ack.getStatusCode(),
+                                    DittoHeaders.empty()))
+                            .collect(Collectors.toList()),
+                    acks.getDittoHeaders()
+            );
+        }
     }
 
     private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {
