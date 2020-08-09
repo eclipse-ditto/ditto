@@ -100,7 +100,7 @@ public final class ResponseCollectorActor extends AbstractActor {
     }
 
     private void reportIfAllCollected() {
-        if (querySender != null && error != null) {
+        if (querySender != null && error != null && expectedCount >= 0) {
             reportAndStop(error);
         } else if (querySender != null && expectedCount >= 0 && commandResponses.size() >= expectedCount) {
             reportOutputAndStop();

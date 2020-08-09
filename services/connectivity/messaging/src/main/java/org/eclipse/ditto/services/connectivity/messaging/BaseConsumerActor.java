@@ -103,7 +103,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
             final Reject reject) {
-        // TODO: settle right away if response-required=true but requested-acks=[]
         forwardAndAwaitAck(addSourceAndReplyTarget(message))
                 .handle((output, error) -> {
                     if (output != null) {

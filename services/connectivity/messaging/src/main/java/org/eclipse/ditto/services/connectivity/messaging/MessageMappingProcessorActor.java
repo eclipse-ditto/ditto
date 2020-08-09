@@ -289,8 +289,9 @@ public final class MessageMappingProcessorActor
         ackregatorStarter.doStart(signal,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
-                    // acks don't get send when no response-required by #handleCommandResponse
-                    getSelf().tell(responseSignal, getSelf());
+                    if (signal.getDittoHeaders().isResponseRequired()) {
+                        getSelf().tell(responseSignal, getSelf());
+                    }
 
                     // forward acks to the original sender for consumer settlement
                     sender.tell(responseSignal, ActorRef.noSender());

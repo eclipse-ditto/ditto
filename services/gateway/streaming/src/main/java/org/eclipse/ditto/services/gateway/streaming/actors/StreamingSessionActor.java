@@ -19,6 +19,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +28,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
@@ -356,10 +359,21 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     // precondition: signal has ack requests
     private Object startAckregatorAndForward(final Signal<?> signal) {
-        return ackregatorStarter.start(signal,
-                this::publishResponseWithoutSender,
-                this::forwardToCommandRouterAndReturnDone,
-                this::doNothing);
+
+        return ackregatorStarter.preprocess(signal,
+                (s, shouldStart) -> {
+                    if (shouldStart) {
+                        // websocket-specific header check: acks requested with response-required=false are forbidden
+                        final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
+                        return headerInvalid.map(this::publishResponseWithoutSender)
+                                .orElseGet(() -> ackregatorStarter.doStart(s, this::publishResponseWithoutSender,
+                                        ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
+                    } else {
+                        return doNothing(s);
+                    }
+                },
+                this::publishResponseWithoutSender
+        );
     }
 
     private Object forwardToCommandRouterAndReturnDone(final Signal<?> signalToForward, final ActorRef ackregator) {
@@ -513,7 +527,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         });
     }
 
-
     private static StreamingType determineStreamingType(final Signal<?> signal) {
         final String channel = signal.getDittoHeaders().getChannel().orElse(TopicPath.Channel.TWIN.getName());
         final StreamingType streamingType;
@@ -558,6 +571,24 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private void confirmUnsubscription(final StreamingType streamingType, final ActorRef self) {
         eventAndResponsePublisher.tell(SessionedJsonifiable.ack(streamingType, false, connectionCorrelationId), self);
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session.", streamingType, type);
+    }
+
+    private static Optional<DittoHeaderInvalidException> checkForAcksWithoutResponse(final Signal<?> signal) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        if (!dittoHeaders.isResponseRequired() && !dittoHeaders.getAcknowledgementRequests().isEmpty()) {
+            final String message = String.format("For websocket, it is forbidden to request acknowledgements while " +
+                            "'%s' is set to false.",
+                    DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
+            final String description = String.format("Please set '%s' to [] or '%s' to true.",
+                    DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                    DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
+            return Optional.of(DittoHeaderInvalidException.newCustomMessageBuilder(message)
+                    .description(description)
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build());
+        } else {
+            return Optional.empty();
+        }
     }
 
     /**
