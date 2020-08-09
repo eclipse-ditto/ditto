@@ -85,14 +85,8 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 
 import akka.NotUsed;
@@ -121,7 +115,6 @@ import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import scala.PartialFunction;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -149,8 +142,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      */
     private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
-    private static final PartialFunction<Signal<?>, Signal<?>> SET_ACK_REQUEST = createSetAckRequestFunction();
-
     private static final String STREAMING_MESSAGES = "streaming_messages";
     private static final String WS = "ws";
     private static final String DIRECTION = "direction";
@@ -167,6 +158,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
+    private final Materializer materializer;
 
     private EventSniffer<String> incomingMessageSniffer;
     private EventSniffer<String> outgoingMessageSniffer;
@@ -174,7 +166,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     private HeaderTranslator headerTranslator;
-    private Materializer materializer;
 
     private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
             final Materializer materializer) {
@@ -369,7 +360,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         final Flow<Either<StreamControlMessage, Signal<?>>, Object, NotUsed> setAckRequestThenMergeLeftAndRight =
                 Flow.fromFunction(either -> either.right()
-                        .map(SET_ACK_REQUEST::apply)
                         .map(IncomingSignal::of)
                         .getOrElse(either.left()::get)
                 );
@@ -509,20 +499,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         }));
 
         return Pair.create(connect, joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow));
-    }
-
-    private static PartialFunction<Signal<?>, Signal<?>> createSetAckRequestFunction() {
-
-        final MessageCommandAckRequestSetter messageCommand = MessageCommandAckRequestSetter.getInstance();
-        final ThingLiveCommandAckRequestSetter thingLiveCommand = ThingLiveCommandAckRequestSetter.getInstance();
-        final ThingModifyCommandAckRequestSetter thingModifyCommand = ThingModifyCommandAckRequestSetter.getInstance();
-
-        return new PFBuilder<Signal<?>, Signal<?>>()
-                .match(MessageCommand.class, messageCommand::isApplicable, messageCommand::apply)
-                .match(ThingCommand.class, thingLiveCommand::isApplicable, thingLiveCommand::apply)
-                .match(ThingModifyCommand.class, thingModifyCommand::isApplicable, thingModifyCommand::apply)
-                .matchAny(x -> x)
-                .build();
     }
 
     @SuppressWarnings("unchecked")

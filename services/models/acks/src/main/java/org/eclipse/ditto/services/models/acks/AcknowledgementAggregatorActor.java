@@ -14,10 +14,8 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.LIVE_RESPONSE;
 import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
-import static org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActorStarter.isLiveSignal;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -25,7 +23,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -41,14 +38,10 @@ import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 
@@ -122,49 +115,6 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final Consumer<Object> responseSignalConsumer) {
         return Props.create(AcknowledgementAggregatorActor.class, thingId, dittoHeaders,
                 acknowledgementConfig, headerTranslator, responseSignalConsumer);
-    }
-
-    /**
-     * Creates and starts an {@code AcknowledgementAggregatorActor} actor in the passed {@code context} using the passed
-     * arguments.
-     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code signal}'s
-     * {@code dittoHeaders} and in case that an Actor with this name already exists, a
-     * {@code AcknowledgementRequestDuplicateCorrelationIdException} will be thrown.
-     * <p>
-     * NOT thread-safe!
-     * <p>
-     * Only actually starts the actor if the passed {@code command}:
-     * <ul>
-     * <li>contains in its ditto headers that {@code response-required} is given</li>
-     * </ul>
-     *
-     * @param context the context to start the aggregator actor in.
-     * @param actorName the name of the AcknowledgementAggregator to start with.
-     * @param signal the signal which potentially includes {@code AcknowledgementRequests} based on which the
-     * AggregatorActor is started.
-     * @param ackConfig provides configuration setting regarding acknowledgement handling.
-     * @param headerTranslator translates headers from external sources or to external sources.
-     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
-     * response over a channel to the user.
-     * @return the optionally created ActorRef - empty when either no AcknowledgementRequests were contained in the
-     * {@code dittoHeaders} of the passed {@code command} or when a conflict caused by a re-used
-     * {@code correlation-id} was detected.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException in case that an
-     * aggregator actor with the same correlation-id is already running.
-     * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
-     * request could not be parsed.
-     */
-    public static Optional<ActorRef> startAcknowledgementAggregator(final akka.actor.ActorContext context,
-            final String actorName,
-            final Signal<?> signal,
-            final AcknowledgementConfig ackConfig,
-            final HeaderTranslator headerTranslator,
-            final Consumer<Object> responseSignalConsumer) {
-
-        return AcknowledgementAggregatorActorStarter
-                .getInstance(context, actorName, signal, ackConfig, headerTranslator, responseSignalConsumer)
-                .get();
     }
 
     @Override
@@ -272,25 +222,6 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                             return TWIN_PERSISTED.equals(label) ||
                                     LIVE_RESPONSE.equals(label);
                         });
-    }
-
-    /**
-     * Tests whether an incoming signal has effective acknowledgement requests and thereby warrants starting an
-     * acknowledgement aggregator actor.
-     *
-     * @param signal the outgoing signal.
-     * @return whether the signal has effective acknowledgement requests.
-     */
-    public static boolean shouldStartForIncoming(final Signal<?> signal) {
-        final boolean isLiveSignal = isLiveSignal(signal);
-        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (signal instanceof ThingModifyCommand && !isLiveSignal) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
-        } else {
-            return false;
-        }
     }
 
 }

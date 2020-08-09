@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <R> the type of the built DittoHeaders object.
  */
 @NotThreadSafe
-public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends DittoHeaders> {
+public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R extends DittoHeaders> {
 
     /**
      * Sets the specified correlation ID.

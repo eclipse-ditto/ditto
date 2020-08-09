@@ -55,4 +55,10 @@ public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequ
         checkNotNull(command, "command");
         return true;
     }
+
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Class<MessageCommand<?, ?>> getMatchedClass() {
+        return (Class) MessageCommand.class;
+    }
 }

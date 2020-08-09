@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -22,7 +24,6 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.akka.actors.GenerateActorNamesFromCounter;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -47,7 +48,7 @@ import akka.stream.ActorMaterializer;
  * Manages WebSocket configuration.
  */
 public final class StreamingActor extends AbstractActorWithTimers
-        implements RetrieveConfigBehavior, ModifyConfigBehavior, GenerateActorNamesFromCounter {
+        implements RetrieveConfigBehavior, ModifyConfigBehavior {
 
     /**
      * The name of this Actor.
@@ -166,7 +167,8 @@ public final class StreamingActor extends AbstractActorWithTimers
     }
 
     private String getUniqueChildActorName(final String suffix) {
-        return getActorNameFromCounter(++childCounter, suffix);
+        final int counter = ++childCounter;
+        return String.format("%x-%s", counter, URLEncoder.encode(suffix, StandardCharsets.UTF_8));
     }
 
     private void scheduleScrapeStreamSessionsCounter() {

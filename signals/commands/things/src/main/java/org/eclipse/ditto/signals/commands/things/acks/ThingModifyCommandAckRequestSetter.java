@@ -67,4 +67,10 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
         return !isLiveChannelCommand(command);
     }
 
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Class<ThingModifyCommand<?>> getMatchedClass() {
+        return (Class) ThingModifyCommand.class;
+    }
+
 }

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -148,9 +149,9 @@ public final class HttpRequestActorTest {
                     .toBuilder()
                     .responseRequired(false)
                     .build();
-            // headers shall be same as no implicit acknowledgement labels should be requested when
-            //  response-required=false:
+
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .acknowledgementRequests(Collections.emptySet())
                     .build();
 
             // no response is sent to the HttpRequestActor as none was required and "twin-persisted" ack label was not
@@ -232,9 +233,9 @@ public final class HttpRequestActorTest {
                     .responseRequired(false)
                     .channel("live")
                     .build();
-            // headers shall be same as no implicit acknowledgement labels should be requested when
-            //  response-required=false:
+
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .acknowledgementRequests(Collections.emptySet())
                     .build();
 
             final ModifyAttributeResponse probeResponse = null;
@@ -321,9 +322,12 @@ public final class HttpRequestActorTest {
             final ThingId thingId = ThingId.generateRandom();
             final String messageSubject = "sayPing";
 
-            final DittoHeaders dittoHeaders = createAuthorizedHeaders().toBuilder()
+            final DittoHeaders dittoHeaders = createAuthorizedHeaders()
+                    .toBuilder()
+                    .responseRequired(true)
                     .channel("live")
                     .build();
+
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
                     .responseRequired(true)
                     .channel("live")
@@ -378,7 +382,8 @@ public final class HttpRequestActorTest {
     }
 
     @Test
-    public void handlesMessageCommandNoResponseRequiredAndLiveResponseAckRequest() throws ExecutionException, InterruptedException {
+    public void handlesMessageCommandNoResponseRequiredAndLiveResponseAckRequest()
+            throws ExecutionException, InterruptedException {
         new TestKit(system) {{
             final ThingId thingId = ThingId.generateRandom();
             final String messageSubject = "sayPing";
@@ -387,9 +392,9 @@ public final class HttpRequestActorTest {
                     .channel("live")
                     .responseRequired(false)
                     .build();
-            // headers shall be same as no implicit acknowledgement labels should be requested when
-            //  response-required=false:
+
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .acknowledgementRequests(Collections.emptySet())
                     .build();
 
             final SendThingMessageResponse<?> probeResponse = null;

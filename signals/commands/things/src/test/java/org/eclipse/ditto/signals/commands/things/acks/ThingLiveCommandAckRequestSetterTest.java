@@ -68,6 +68,7 @@ public final class ThingLiveCommandAckRequestSetterTest {
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .responseRequired(true)
                 .build());
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
 
@@ -85,6 +86,7 @@ public final class ThingLiveCommandAckRequestSetterTest {
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .responseRequired(true)
                 .build();
         final CreateThing expected = CreateThing.of(Thing.newBuilder().build(), null, expectedHeaders);
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
@@ -100,6 +102,7 @@ public final class ThingLiveCommandAckRequestSetterTest {
                 .channel("live")
                 .acknowledgementRequest(ackRequest1, ackRequest2)
                 .randomCorrelationId()
+                .responseRequired(true)
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();

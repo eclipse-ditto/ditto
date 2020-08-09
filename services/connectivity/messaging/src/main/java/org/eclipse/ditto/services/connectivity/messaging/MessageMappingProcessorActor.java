@@ -81,15 +81,13 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
-import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.services.utils.akka.actors.GenerateActorNamesFromCounter;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -98,15 +96,10 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -132,8 +125,7 @@ import scala.util.Right;
  * This Actor processes incoming {@link Signal}s and dispatches them.
  */
 public final class MessageMappingProcessorActor
-        extends AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal>
-        implements GenerateActorNamesFromCounter {
+        extends AbstractGraphActor<MessageMappingProcessorActor.OutboundSignalWithId, OutboundSignal> {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -151,7 +143,6 @@ public final class MessageMappingProcessorActor
     private final ActorRef proxyActor;
     private final ActorRef connectionActor;
     private final MappingConfig mappingConfig;
-    private final AcknowledgementConfig acknowledgementConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
@@ -160,7 +151,7 @@ public final class MessageMappingProcessorActor
     private final int processorPoolSize;
     private final SourceQueue<ExternalMessageWithSender> inboundSourceQueue;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-    private int childCounter = -1;
+    private final AcknowledgementAggregatorActorStarter ackregatorStarter;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef proxyActor,
@@ -184,7 +175,6 @@ public final class MessageMappingProcessorActor
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
-        acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
@@ -196,6 +186,12 @@ public final class MessageMappingProcessorActor
         this.processorPoolSize = processorPoolSize;
         inboundSourceQueue = materializeInboundStream(processorPoolSize);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
+        ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
+                connectivityConfig.getConnectionConfig().getAcknowledgementConfig(),
+                messageMappingProcessor.getHeaderTranslator(),
+                ThingModifyCommandAckRequestSetter.getInstance(),
+                ThingLiveCommandAckRequestSetter.getInstance(),
+                MessageCommandAckRequestSetter.getInstance());
     }
 
     /**
@@ -289,27 +285,7 @@ public final class MessageMappingProcessorActor
     }
 
     private void startAckregatorAndForwardSignal(final Signal<?> signal, final ActorRef sender) {
-        final Optional<ActorRef> ackregator = doStartAckregator(signal, sender);
-        if (ackregator.isEmpty()) {
-            // command that I thought should be acknowledged did not start an ackregator actor---this is a bug.
-            // tell collector of the problem.
-            logger.withCorrelationId(signal)
-                    .error("Did not start Ackregator for command that should be acknowledged. sender=<{}>, command=<{}>",
-                            sender, signal);
-            sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
-        } else {
-            // ackregator started, set ackregator as sender of commands to receive replies directly
-            proxyActor.tell(signal, ackregator.orElseThrow());
-        }
-    }
-
-    // NOT thread-safe
-    private Optional<ActorRef> doStartAckregator(final Signal<?> signal, final ActorRef sender) {
-        return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                getActorNameFromCounter(++childCounter, signal.getDittoHeaders().getCorrelationId().orElse("")),
-                signal,
-                acknowledgementConfig,
-                messageMappingProcessor.getHeaderTranslator(),
+        ackregatorStarter.doStart(signal,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
                     // acks don't get send when no response-required by #handleCommandResponse
@@ -317,16 +293,21 @@ public final class MessageMappingProcessorActor
 
                     // forward acks to the original sender for consumer settlement
                     sender.tell(responseSignal, ActorRef.noSender());
+                },
+                ackregator -> {
+                    proxyActor.tell(signal, ackregator);
+                    return null;
                 });
     }
 
     private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
         final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
+        final Sink<Signal<?>, CompletionStage<Integer>> countingSink = Sink.fold(0, (i, x) -> i + 1);
         mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
-                .runWith(Sink.seq(), materializer)
-                .thenAccept(ackRequestingSignals ->
-                        sender.tell(ResponseCollectorActor.setCount(ackRequestingSignals.size()), getSelf())
+                .runWith(countingSink, materializer)
+                .thenAccept(ackRequestingSignalCount ->
+                        sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
                 );
     }
 
@@ -334,16 +315,6 @@ public final class MessageMappingProcessorActor
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
                 .match(CommandResponse.class, ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
-                .build();
-
-        final MessageCommandAckRequestSetter messageCommand = MessageCommandAckRequestSetter.getInstance();
-        final ThingLiveCommandAckRequestSetter thingLiveCommand = ThingLiveCommandAckRequestSetter.getInstance();
-        final ThingModifyCommandAckRequestSetter thingModifyCommand = ThingModifyCommandAckRequestSetter.getInstance();
-
-        final PartialFunction<Signal<?>, Signal<?>> setAckRequest = new PFBuilder<Signal<?>, Signal<?>>()
-                .match(MessageCommand.class, messageCommand::isApplicable, messageCommand::apply)
-                .match(ThingCommand.class, thingLiveCommand::isApplicable, thingLiveCommand::apply)
-                .match(ThingModifyCommand.class, thingModifyCommand::isApplicable, thingModifyCommand::apply)
                 .matchAny(x -> x)
                 .build();
 
@@ -355,17 +326,18 @@ public final class MessageMappingProcessorActor
                                 forwardToConnectionActor(liveResponse, sender)
                         )
                         .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
-                        .match(Signal.class, AcknowledgementAggregatorActor::shouldStartForIncoming, signal -> {
-                            getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
-                            return Source.<Signal<?>>single(signal);
-                        })
-                        .matchAny(signal -> {
-                            proxyActor.tell(signal, getSelf());
-                            return Source.empty();
-                        })
+                        .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal, (signal, shouldStart) -> {
+                            if (shouldStart) {
+                                getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
+                                return Source.<Signal<?>>single(signal);
+                            } else {
+                                proxyActor.tell(signal, getSelf());
+                                return Source.<Signal<?>>empty();
+                            }
+                        }))
                         .build();
 
-        return appendConnectionId.orElse(setAckRequest).andThen(dispatchSignal);
+        return appendConnectionId.andThen(dispatchSignal);
     }
 
     /**
@@ -1062,14 +1034,6 @@ public final class MessageMappingProcessorActor
             this.externalMessage = externalMessage;
             this.sender = sender;
         }
-    }
-
-    private static ThingErrorResponse failedToStartAckregator(final Signal<?> signal, final ConnectionId connectionId) {
-        final DittoRuntimeException error = ConnectionUnavailableException.newBuilder(connectionId)
-                .dittoHeaders(signal.getDittoHeaders())
-                .description("Please contact the service team.")
-                .build();
-        return ThingErrorResponse.of(error);
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {

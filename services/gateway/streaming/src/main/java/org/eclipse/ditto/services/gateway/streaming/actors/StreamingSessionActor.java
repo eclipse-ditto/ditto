@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
@@ -54,12 +53,11 @@ import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.RefreshSession;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.utils.akka.actors.GenerateActorNamesFromCounter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
@@ -69,6 +67,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
@@ -88,10 +89,8 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Actor handling a single streaming connection / session.
  */
-final class StreamingSessionActor extends AbstractActorWithTimers implements GenerateActorNamesFromCounter {
+final class StreamingSessionActor extends AbstractActorWithTimers {
 
-    private static final String START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE =
-            "Got 'DittoRuntimeException' <{}> session during 'startAcknowledgementAggregator': {}: <{}>";
     private final JsonSchemaVersion jsonSchemaVersion;
     private final String connectionCorrelationId;
     private final String type;
@@ -99,17 +98,16 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
     private final ActorRef eventAndResponsePublisher;
     private final ActorRef commandRouter;
     private final AcknowledgementConfig acknowledgementConfig;
-    private final HeaderTranslator headerTranslator;
     private final ActorRef subscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
     private final JwtValidator jwtValidator;
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
+    private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final DittoDiagnosticLoggingAdapter logger;
 
     @Nullable private Cancellable sessionTerminationCancellable;
     private AuthorizationContext authorizationContext;
-    private int childCounter = -1;
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect,
@@ -129,12 +127,17 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.commandRouter = commandRouter;
         this.acknowledgementConfig = acknowledgementConfig;
-        this.headerTranslator = headerTranslator;
         this.jwtValidator = jwtValidator;
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = AuthorizationModelFactory.emptyAuthContext();
         streamingSessions = new EnumMap<>(StreamingType.class);
+        ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
+                acknowledgementConfig,
+                headerTranslator,
+                ThingModifyCommandAckRequestSetter.getInstance(),
+                ThingLiveCommandAckRequestSetter.getInstance(),
+                MessageCommandAckRequestSetter.getInstance());
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         logger.setCorrelationId(connectionCorrelationId);
         connect.getSessionExpirationTime().ifPresent(expiration ->
@@ -195,9 +198,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
                 .match(IncomingSignal.class, IncomingSignal::getSignal)
                 .build();
 
-        final PartialFunction<Object, Object> startAckregator = new PFBuilder<>()
-                .match(Signal.class, AcknowledgementAggregatorActor::shouldStartForIncoming,
-                        this::startAckregatorAndForward)
+        final PartialFunction<Object, Object> setAckRequestAndStartAckregator = new PFBuilder<>()
+                .match(Signal.class, this::startAckregatorAndForward)
                 .matchAny(x -> x)
                 .build();
 
@@ -210,7 +212,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
                 .matchEquals(Done.getInstance(), done -> {})
                 .build();
 
-        return addPreprocessors(List.of(stripEnvelope, startAckregator), signalBehavior);
+        return addPreprocessors(List.of(stripEnvelope, setAckRequestAndStartAckregator), signalBehavior);
     }
 
     private Receive createOutgoingSignalBehavior() {
@@ -354,32 +356,19 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
 
     // precondition: signal has ack requests
     private Object startAckregatorAndForward(final Signal<?> signal) {
-        if (!signal.getDittoHeaders().isResponseRequired()) {
-            // remove requested-acks for WebSocket if response-required=false: There is no transport-layer ack.
-            return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
-                    .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
-                    .build());
-        }
-        try {
-            final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("");
-            final String actorName = getActorNameFromCounter(++childCounter, correlationId);
-            return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(), actorName, signal,
-                    acknowledgementConfig,
-                    headerTranslator,
-                    response -> publishResponseThreadSafely(response, ActorRef.noSender())
-            )
-                    .<Object>map(actor -> {
-                        // ackregator started; use ackregator as signal sender and prevent publication at later stages
-                        commandRouter.tell(signal, actor);
-                        return Done.getInstance();
-                    })
-                    .orElse(signal); // ackregator not started; signal will be published at a later stage
-        } catch (final DittoRuntimeException e) {
-            logger.withCorrelationId(signal).info(START_ACK_AGGREGATOR_ERROR_MSG_TEMPLATE, type,
-                    e.getClass().getSimpleName(), e.getMessage());
-            eventAndResponsePublisher.tell(SessionedJsonifiable.error(e), getSelf());
-        }
-        return signal;
+        return ackregatorStarter.start(signal,
+                this::publishResponseWithoutSender,
+                this::forwardToCommandRouterAndReturnDone,
+                this::doNothing);
+    }
+
+    private Object forwardToCommandRouterAndReturnDone(final Signal<?> signalToForward, final ActorRef ackregator) {
+        commandRouter.tell(signalToForward, ackregator);
+        return Done.getInstance();
+    }
+
+    private <T> Object doNothing(final T result) {
+        return result;
     }
 
     // no precondition; forwarder starter does not start for signals without ack requests, in contrast to ackregator
@@ -396,6 +385,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers implements Gen
     // NOT thread-safe
     private void publishResponseOrError(final Object responseOrError) {
         publishResponseThreadSafely(responseOrError, getSender());
+    }
+
+    private void publishResponseWithoutSender(final Object responseOrError) {
+        publishResponseThreadSafely(responseOrError, ActorRef.noSender());
     }
 
     private void publishResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {

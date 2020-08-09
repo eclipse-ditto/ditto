@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DefaultDittoHeadersBuilder.of;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -316,29 +315,6 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(dittoHeaders)
                 .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
     }
-
-    @Test
-    public void ensureResponseRequiredIsFalseForHeadersWithZeroTimeout() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .responseRequired(true)
-                .timeout(Duration.ZERO)
-                .build();
-
-        assertThat(dittoHeaders)
-                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
-    }
-
-    @Test
-    public void ensureResponseRequiredIsFalseEvenIfAcksAreRequestedWithTimeoutZero() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
-                .timeout("0ms")
-                .build();
-
-        assertThat(dittoHeaders)
-                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
-    }
-
 
     @Test
     public void removesDuplicatedAuthSubjects() {
