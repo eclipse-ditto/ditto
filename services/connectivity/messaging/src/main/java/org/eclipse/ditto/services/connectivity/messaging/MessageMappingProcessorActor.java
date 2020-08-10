@@ -94,6 +94,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
@@ -334,7 +335,7 @@ public final class MessageMappingProcessorActor
                                         getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
                                         return Source.<Signal<?>>single(signal);
                                     } else {
-                                        proxyActor.tell(signal, getSelf());
+                                        proxyActor.tell(signal, getReturnAddress(signal));
                                         return Source.<Signal<?>>empty();
                                     }
                                 },
@@ -365,6 +366,11 @@ public final class MessageMappingProcessorActor
     private Source<Signal<?>, NotUsed> forwardToConnectionActor(final Signal<?> signal, final ActorRef sender) {
         connectionActor.tell(signal, sender);
         return Source.empty();
+    }
+
+    private ActorRef getReturnAddress(final Signal<?> signal) {
+        final boolean publishResponse = signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired();
+        return publishResponse ? getSelf() : ActorRef.noSender();
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {

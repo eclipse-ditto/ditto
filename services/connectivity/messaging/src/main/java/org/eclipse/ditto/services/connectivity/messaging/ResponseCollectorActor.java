@@ -187,6 +187,20 @@ public final class ResponseCollectorActor extends AbstractActor {
         private SetCount(final int count) {
             this.count = count;
         }
-    }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "[" + count + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return count;
+        }
+
+        @Override
+        public boolean equals(final Object other) {
+            return other instanceof SetCount && ((SetCount) other).count == count;
+        }
+    }
 }

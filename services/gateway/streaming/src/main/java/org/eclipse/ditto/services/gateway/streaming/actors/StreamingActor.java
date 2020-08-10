@@ -141,7 +141,7 @@ public final class StreamingActor extends AbstractActorWithTimers
                     eventAndResponsePublisher.forward(connect, getContext());
                     final String sessionActorName = getUniqueChildActorName(connect.getConnectionCorrelationId());
                     final ActorRef streamingSessionActor = getContext().actorOf(
-                            StreamingSessionActor.props(connect, dittoProtocolSub, eventAndResponsePublisher,
+                            StreamingSessionActor.props(connect, dittoProtocolSub,
                                     commandRouter, streamingConfig.getAcknowledgementConfig(), headerTranslator,
                                     subscriptionManagerProps, jwtValidator, jwtAuthenticationResultProvider),
                             sessionActorName);

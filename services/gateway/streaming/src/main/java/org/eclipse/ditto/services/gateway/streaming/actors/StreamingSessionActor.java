@@ -66,6 +66,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
@@ -115,7 +116,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher,
             final ActorRef commandRouter,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
@@ -127,7 +127,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         connectionCorrelationId = connect.getConnectionCorrelationId();
         type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
-        this.eventAndResponsePublisher = eventAndResponsePublisher;
+        this.eventAndResponsePublisher = connect.getEventAndResponsePublisher();
         this.commandRouter = commandRouter;
         this.acknowledgementConfig = acknowledgementConfig;
         this.jwtValidator = jwtValidator;
@@ -157,7 +157,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
-     * @param eventAndResponsePublisher the {@link org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher} actor.
      * @param commandRouter the actor who distributes incoming commands in the Ditto cluster.
      * @param acknowledgementConfig the config to apply for Acknowledgements.
      * @param headerTranslator translates headers from external sources or to external sources.
@@ -168,7 +167,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef eventAndResponsePublisher,
             final ActorRef commandRouter,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
@@ -176,7 +174,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final JwtValidator jwtValidator,
             final JwtAuthenticationResultProvider jwtAuthenticationResultProvider) {
 
-        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub, eventAndResponsePublisher,
+        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub,
                 commandRouter, acknowledgementConfig, headerTranslator, subscriptionManagerProps, jwtValidator,
                 jwtAuthenticationResultProvider);
     }
@@ -211,7 +209,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(Signal.class, signal ->
                         // forward signals for which no reply is expected with self return address for downstream errors
-                        commandRouter.tell(signal, getSelf()))
+                        commandRouter.tell(signal, getReturnAddress(signal)))
                 .matchEquals(Done.getInstance(), done -> {})
                 .build();
 
@@ -351,6 +349,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .reduce(PartialFunction::andThen)
                 .map(preprocessor -> new Receive(preprocessor.andThen(receive.onMessage())))
                 .orElse(receive);
+    }
+
+    private ActorRef getReturnAddress(final Signal<?> signal) {
+        final boolean publishResponse = signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired();
+        return publishResponse ? getSelf() : ActorRef.noSender();
     }
 
     private boolean isSameOrigin(final Signal<?> signal) {
