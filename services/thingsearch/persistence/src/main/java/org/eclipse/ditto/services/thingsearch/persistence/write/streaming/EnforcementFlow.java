@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -251,10 +252,14 @@ final class EnforcementFlow {
         if (acl.isPresent()) {
             return Source.single(Entry.permanent(AclEnforcer.of(ThingsModelFactory.newAcl(acl.get()))));
         } else {
-            return thing.getValue(Thing.JsonFields.POLICY_ID)
-                    .map(PolicyId::of)
-                    .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
-                    .orElse(ENFORCER_NONEXISTENT);
+            try {
+                return thing.getValue(Thing.JsonFields.POLICY_ID)
+                        .map(PolicyId::of)
+                        .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
+                        .orElse(ENFORCER_NONEXISTENT);
+            } catch (PolicyIdInvalidException e) {
+                return ENFORCER_NONEXISTENT;
+            }
         }
     }
 
