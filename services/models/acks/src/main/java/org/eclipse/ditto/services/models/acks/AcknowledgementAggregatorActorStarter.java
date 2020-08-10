@@ -169,8 +169,8 @@ public final class AcknowledgementAggregatorActorStarter {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static PartialFunction<Signal<?>, Signal<?>> buildAckRequestSetter(
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
-
-        PFBuilder<Signal<?>, Signal<?>> pfBuilder = new PFBuilder();
+        PFBuilder<Signal<?>, Signal<?>> pfBuilder = new PFBuilder<>();
+        // unavoidable raw type due to the lack of existential type
         for (final AbstractCommandAckRequestSetter ackRequestSetter : ackRequestSetters) {
             pfBuilder = pfBuilder.match(ackRequestSetter.getMatchedClass(), ackRequestSetter::isApplicable,
                     s -> (Signal<?>) ackRequestSetter.apply(s));

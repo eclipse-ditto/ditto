@@ -46,7 +46,7 @@ public final class MessageCommandAckRequestSetterTest {
     private static final String KNOWN_RAW_PAYLOAD_STR = "<some>42</some>";
     private static final byte[] KNOWN_RAW_PAYLOAD_BYTES = KNOWN_RAW_PAYLOAD_STR.getBytes(StandardCharsets.UTF_8);
 
-    private static final Message<?> MESSAGE = MessagesModelFactory.newMessageBuilder(
+    static final Message<?> MESSAGE = MessagesModelFactory.newMessageBuilder(
             MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
                     .contentType(CONTENT_TYPE)
                     .build())

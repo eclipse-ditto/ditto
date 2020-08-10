@@ -46,7 +46,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
  * @since 1.2.0
  */
 @Immutable
-public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders> implements UnaryOperator<C> {
+public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders<? extends C>>
+        implements UnaryOperator<C> {
 
     private static final String LIVE_CHANNEL = "live";
 
@@ -62,12 +63,11 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public C apply(final C command) {
         checkNotNull(command, "command");
         if (isApplicable(command)) {
             return (C) setDefaultDittoHeaders(command.getDittoHeaders())
-                    .map(command::setDittoHeaders)
+                    .<C>map(command::setDittoHeaders)
                     .orElse(command);
         } else {
             return command;
@@ -103,10 +103,11 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     private Optional<DittoHeaders> setDefaultDittoHeaders(final DittoHeaders headers) {
         final DittoHeadersBuilder<?, ?> builder = headers.toBuilder();
         final Set<AcknowledgementRequest> requestedAcks = headers.getAcknowledgementRequests();
+        final boolean hasTimeoutZero = headers.getTimeout().filter(Duration::isZero).isPresent();
         // set acks-requested and/or response-required according to other headers, always
-        final boolean implicitAcksRequested = implicitAcksRequested(builder, headers);
+        final boolean implicitAcksRequested = implicitAcksRequested(builder, headers, hasTimeoutZero);
         final boolean explicitRequestedAcksFiltered = explicitRequestedAcksFiltered(builder, requestedAcks);
-        final boolean responseRequiredSet = responseRequiredSet(headers, builder);
+        final boolean responseRequiredSet = responseRequiredSet(headers, builder, hasTimeoutZero);
         // if any modification exists, return the new headers
         if (implicitAcksRequested || explicitRequestedAcksFiltered || responseRequiredSet) {
             return Optional.of(builder.build());
@@ -115,9 +116,11 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
         }
     }
 
-    private boolean implicitAcksRequested(final DittoHeadersBuilder<?, ?> builder, final DittoHeaders headers) {
+    private boolean implicitAcksRequested(final DittoHeadersBuilder<?, ?> builder,
+            final DittoHeaders headers,
+            final boolean hasTimeoutZero) {
         if (!headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
-            if (headers.isResponseRequired()) {
+            if (!hasTimeoutZero && headers.isResponseRequired()) {
                 builder.acknowledgementRequest(AcknowledgementRequest.of(implicitAcknowledgementLabel));
             } else {
                 builder.acknowledgementRequests(Collections.emptySet());
@@ -145,7 +148,9 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
         }
     }
 
-    private boolean responseRequiredSet(final DittoHeaders dittoHeaders, final DittoHeadersBuilder<?, ?> builder) {
+    private boolean responseRequiredSet(final DittoHeaders dittoHeaders,
+            final DittoHeadersBuilder<?, ?> builder,
+            final boolean hasTimeoutZero) {
         if (!dittoHeaders.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
             final boolean areAcksExplicit = dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
             final boolean areAcksEffective = dittoHeaders.getAcknowledgementRequests()
@@ -153,7 +158,6 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
                     .map(AcknowledgementRequest::getLabel)
                     .anyMatch(label -> !negatedDittoAcknowledgementLabels.contains(label));
             final boolean hasEmptyRequestedAcks = areAcksExplicit && !areAcksEffective;
-            final boolean hasTimeoutZero = dittoHeaders.getTimeout().filter(Duration::isZero).isPresent();
             final boolean isResponseRequired = !(hasEmptyRequestedAcks || hasTimeoutZero);
             builder.responseRequired(isResponseRequired);
             return true;
