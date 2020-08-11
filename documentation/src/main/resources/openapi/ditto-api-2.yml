@@ -5230,6 +5230,8 @@ components:
 
         * ```ge(thingId,"myThing1")```
 
+        * ```gt(_created,"2020-08-05T12:17")```
+
         * ```exists(features/featureId)```
 
         * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
