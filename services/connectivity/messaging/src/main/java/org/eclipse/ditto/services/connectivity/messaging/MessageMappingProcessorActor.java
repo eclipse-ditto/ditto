@@ -233,7 +233,7 @@ public final class MessageMappingProcessorActor
                 // Outgoing responses and signals go through the signal enrichment stream
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
-                .match(AckRequestingSignal.class, this::handleAcksRequestingCommand)
+                .match(IncomingSignal.class, this::dispatchIncomingSignal)
                 .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
     }
@@ -258,16 +258,20 @@ public final class MessageMappingProcessorActor
      * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
      * acknowledgement aggregators is not thread-safe.
      *
-     * @param ackRequestingSignal the signal requesting acknowledgements together with its original sender,
+     * @param incomingSignal the signal requesting acknowledgements together with its original sender,
      * the response collector actor.
      */
-    private void handleAcksRequestingCommand(final AckRequestingSignal ackRequestingSignal) {
-        final Signal<?> signal = ackRequestingSignal.signal;
-        final ActorRef sender = ackRequestingSignal.sender;
-        try {
-            startAckregatorAndForwardSignal(signal, sender);
-        } catch (final DittoRuntimeException e) {
-            handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
+    private void dispatchIncomingSignal(final IncomingSignal incomingSignal) {
+        final Signal<?> signal = incomingSignal.signal;
+        final ActorRef sender = incomingSignal.sender;
+        if (incomingSignal.isAckRequesting) {
+            try {
+                startAckregatorAndForwardSignal(signal, sender);
+            } catch (final DittoRuntimeException e) {
+                handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
+            }
+        } else {
+            proxyActor.tell(signal, sender);
         }
     }
 
@@ -306,23 +310,24 @@ public final class MessageMappingProcessorActor
     private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
         final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
-        final Sink<Signal<?>, CompletionStage<Integer>> countingSink = Sink.fold(0, (i, x) -> i + 1);
+        final Sink<IncomingSignal, CompletionStage<Integer>> countingSink = Sink.fold(0, (i, x) -> i + 1);
         mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
+                .wireTap(envelope -> getSelf().tell(envelope, ActorRef.noSender()))
                 .runWith(countingSink, materializer)
                 .thenAccept(ackRequestingSignalCount ->
                         sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
                 );
     }
 
-    private PartialFunction<Signal<?>, Source<Signal<?>, NotUsed>> onIncomingMappedSignal(final ActorRef sender) {
+    private PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> onIncomingMappedSignal(final ActorRef sender) {
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
                 .match(CommandResponse.class, ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
                 .matchAny(x -> x)
                 .build();
 
-        final PartialFunction<Signal<?>, Source<Signal<?>, NotUsed>> dispatchSignal =
-                new PFBuilder<Signal<?>, Source<Signal<?>, NotUsed>>()
+        final PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> dispatchSignal =
+                new PFBuilder<Signal<?>, Source<IncomingSignal, NotUsed>>()
                         .match(Acknowledgement.class, ack -> forwardToConnectionActor(ack, sender))
                         .match(Acknowledgements.class, acks -> forwardToConnectionActor(acks, sender))
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
@@ -330,15 +335,9 @@ public final class MessageMappingProcessorActor
                         )
                         .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
-                                (signal, shouldStart) -> {
-                                    if (shouldStart) {
-                                        getSelf().tell(new AckRequestingSignal(signal, sender), ActorRef.noSender());
-                                        return Source.<Signal<?>>single(signal);
-                                    } else {
-                                        proxyActor.tell(signal, getReturnAddress(signal));
-                                        return Source.<Signal<?>>empty();
-                                    }
-                                },
+                                (signal, isAckRequesting) -> Source.single(new IncomingSignal(signal,
+                                        isAckRequesting ? sender : getReturnAddress(signal),
+                                        isAckRequesting)),
                                 headerInvalidException -> {
                                     // tell the response collector to settle negatively without redelivery
                                     sender.tell(headerInvalidException, ActorRef.noSender());
@@ -361,9 +360,10 @@ public final class MessageMappingProcessorActor
      *
      * @param signal the Signal to forward to the connectionActor
      * @param sender the sender which shall receive the response
+     * @param <T> type of elements for the next step..
      * @return an empty source of Signals
      */
-    private Source<Signal<?>, NotUsed> forwardToConnectionActor(final Signal<?> signal, final ActorRef sender) {
+    private <T> Source<T, NotUsed> forwardToConnectionActor(final Signal<?> signal, final ActorRef sender) {
         connectionActor.tell(signal, sender);
         return Source.empty();
     }
@@ -1029,14 +1029,16 @@ public final class MessageMappingProcessorActor
                 signal.getDittoHeaders().getReplyTarget().isPresent();
     }
 
-    private static final class AckRequestingSignal {
+    private static final class IncomingSignal {
 
         private final Signal<?> signal;
         private final ActorRef sender;
+        private final boolean isAckRequesting;
 
-        private AckRequestingSignal(final Signal<?> signal, final ActorRef sender) {
+        private IncomingSignal(final Signal<?> signal, final ActorRef sender, final boolean isAckRequesting) {
             this.signal = signal;
             this.sender = sender;
+            this.isAckRequesting = isAckRequesting;
         }
     }
 
