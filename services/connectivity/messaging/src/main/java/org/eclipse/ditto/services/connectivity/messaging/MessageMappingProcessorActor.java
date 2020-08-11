@@ -310,10 +310,11 @@ public final class MessageMappingProcessorActor
     private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
         final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
-        final Sink<IncomingSignal, CompletionStage<Integer>> countingSink = Sink.fold(0, (i, x) -> i + 1);
+        final Sink<IncomingSignal, CompletionStage<Integer>> ackRequestingSignalCountingSink =
+                Sink.fold(0, (i, envelope) -> envelope.isAckRequesting ? i + 1 : i);
         mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
                 .wireTap(envelope -> getSelf().tell(envelope, ActorRef.noSender()))
-                .runWith(countingSink, materializer)
+                .runWith(ackRequestingSignalCountingSink, materializer)
                 .thenAccept(ackRequestingSignalCount ->
                         sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
                 );
