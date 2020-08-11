@@ -289,3 +289,84 @@ the [built-in "twin-persisted"](#built-in-acknowledgement-labels) acknowledgemen
 In order to ensure that a [create/modify command](protocol-specification-things-create-or-modify.html) resulted in an 
 event which was consumed by an application integrating with Ditto, 
 [request the acknowledgement](#requesting-acknowledgements) for a [custom acknowledgement label](#custom-acknowledgement-labels).
+
+## Interaction between headers
+
+3 headers control how Ditto responds to a command: `response-required`, `requested-acks`, `timeout`.
+- `response-required`: `true` or `false`. It governs whether the user gets a (detailed) reply.
+- `requested-acks`: JSON array of acknowledgement requests. It governs the content of the reply and transport-layer message settlement.
+- `timeout`: Duration. It governs how long Ditto waits for responses and acknowledgements.
+
+It is considered a client error if `timeout` is set to `0s` while `response-required` is `true` or
+`requested-acks` is nonempty.
+
+Each API interprets the 3 headers as follows.
+
+### HTTP
+
+Since an HTTP response always follows an HTTP request, the header `response-required` is interpreted as whether
+the user wants a detailed response. When it is set to `false`, the HTTP response consists of status line and headers
+without body, or with a minimal body containing other status codes. When acknowledgements are requested, the HTTP
+response is delayed until all requested acknowledgements are received.
+
+|API         |response-required|requested-acks|timeout|Outcome|
+|------------|-----------------|--------------|-------|-------|
+|HTTP        |false            |empty         |zero   |202 Accepted immediately|
+|HTTP        |false            |empty         |nonzero|202 Accepted immediately|
+|HTTP        |false            |nonempty      |zero   |400 Bad Request: timeout may not be zero when acknowledgements are requested|
+|HTTP        |false            |nonempty      |nonzero|202 Accepted after receiving the requested acknowledgements|
+|HTTP        |true             |empty         |zero   |400 Bad Request: timeout may not be zero when response is required|
+|HTTP        |true             |empty         |nonzero|Command response|
+|HTTP        |true             |nonempty      |zero   |400 Bad Request: timeout may not be zero when response is required|
+|HTTP        |true             |nonempty      |nonzero|Aggregated response and acknowledgements|
+
+### Websocket
+
+In the absence of client errors, a reply is sent for a command if and only if `response-required` is set to `true`.
+Ditto supports no transport-layer message settlement for Websocket; acknowledgements are only received as text frames.
+Consequently, it is considered a client error to have nonempty `requested-acks` while `response-required` is set to
+`false`.
+
+|API         |response-required|requested-acks|timeout|Outcome|
+|------------|-----------------|--------------|-------|-------|
+|Websocket   |false            |empty         |zero   |No reply|
+|Websocket   |false            |empty         |nonzero|No reply|
+|Websocket   |false            |nonempty      |zero   |Error: timeout may not be zero when acknowledgements are requested|
+|Websocket   |false            |nonempty      |nonzero|Error: Websocket cannot send acknowledgements without a response|
+|Websocket   |true             |empty         |zero   |Error: timeout may not be zero when response is required|
+|Websocket   |true             |empty         |nonzero|Command response|
+|Websocket   |true             |nonempty      |zero   |Error: timeout may not be zero when response is required|
+|Websocket   |true             |nonempty      |nonzero|Aggregated response and acknowledgements|
+
+### Connectivity
+
+For any incoming command through a connection source, the header `response-required` determines whether a reply message
+is published at the reply-target of the source. The header `requested-acks` determines the transport-layer
+message settlement and the content of any reply message published at the reply-target. Examples of transport-layer
+message settlement mechanisms are AMQP 0.9.1 consumer acknowledgement mode, AMQP 1.0 disposition frames,
+and MQTT PUBACK/PUBREC/PUBREL messages for incoming PUBLISH with QoS 1 or 2.
+
+|API         |response-required|requested-acks|timeout|Outcome|
+|------------|-----------------|--------------|-------|-------|
+|Connectivity|false            |empty         |zero   |Nothing published at reply-target; message settled immediately|
+|Connectivity|false            |empty         |nonzero|Nothing published; message settled immediately|
+|Connectivity|false            |nonempty      |zero   |Error published: timeout may not be zero when acknowledgements are requested; message settled negatively|
+|Connectivity|false            |nonempty      |nonzero|Nothing published; message settled after receiving the requested acknowledgements|
+|Connectivity|true             |empty         |zero   |Error published: timeout may not be zero when response is required; message settled negatively|
+|Connectivity|true             |empty         |nonzero|Command response published; message settled immediately|
+|Connectivity|true             |nonempty      |zero   |Error published: timeout may not be zero when response is required; message settled negatively|
+|Connectivity|true             |nonempty      |nonzero|Aggregated response and acknowledgements published; message settled after receiving the requested acknowledgements|
+
+### Default header values
+
+Ditto set each of the 3 headers `response-required`, `requested-acks`, `timeout` to a default value according to any
+values of the other 2 headers set by the user. The default values depend only on headers set by the user; they do not
+depend on each other. Setting the default header values this way never produces any combination considered a client
+error unless the headers set by the user already cause a client error.
+
+|Header           |Default value|Default value when all 3 headers are not set|
+|-----------------|-----------------|--------------|
+|response-required|`false` if `timeout` is zero or `requested-acks` is empty, `true` otherwise|empty         |
+|requested-acks   |`empty` if `timeout` is zero or `response-required` is `false`, the channel's default acknowledgement request otherwise|`["twin-persisted"]` for TWIN channel, `["live-response"]` for LIVE channel|
+|timeout          |`60s`|`60s`|
+
