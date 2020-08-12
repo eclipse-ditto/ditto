@@ -482,7 +482,7 @@ public interface ThingBuilder {
          *
          * @param created the created timestamp to be set.
          * @return this builder to allow method chaining.
-         * @since TODO
+         * @since 1.2.0
          */
         FromScratch setCreated(@Nullable Instant created);
 

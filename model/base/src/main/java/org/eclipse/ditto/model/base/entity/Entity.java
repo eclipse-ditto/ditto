@@ -69,7 +69,7 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
      * Returns the created timestamp of this entity.
      *
      * @return the timestamp.
-     * @since TODO
+     * @since 1.2.0
      */
     Optional<Instant> getCreated();
 

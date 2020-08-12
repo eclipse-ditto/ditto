@@ -459,7 +459,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
         /**
          * JSON field containing the Policy's created timestamp in ISO-8601 format.
          *
-         * @since TODO
+         * @since 1.2.0
          */
         public static final JsonFieldDefinition<String> CREATED =
                 JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,

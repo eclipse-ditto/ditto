@@ -523,7 +523,7 @@ public interface PolicyBuilder {
      *
      * @param created the created timestamp to be set.
      * @return this builder to allow method chaining.
-     * @since TODO
+     * @since 1.2.0
      */
     PolicyBuilder setCreated(@Nullable Instant created);
 

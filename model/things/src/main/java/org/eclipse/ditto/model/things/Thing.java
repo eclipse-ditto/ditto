@@ -616,7 +616,7 @@ public interface Thing extends Entity<ThingRevision> {
         /**
          * JSON field containing the Thing's created timestamp in ISO-8601 format.
          *
-         * @since TODO
+         * @since 1.2.0
          */
         public static final JsonFieldDefinition<String> CREATED =
                 JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
