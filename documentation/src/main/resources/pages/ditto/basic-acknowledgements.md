@@ -5,29 +5,37 @@ tags: [model]
 permalink: basic-acknowledgements.html
 ---
 
-Acknowledgements are a concept in Ditto used to signal that an [event](basic-signals-event.html) was successfully 
-received/processed by either an internal Ditto functionality or an external subscriber of that event.
+Acknowledgements are a concept in Ditto used to indicate that a signal
+([twin](protocol-twinlive.html) [event](basic-signals-event.html),
+[live](protocol-twinlive.html) [command](basic-signals-command.html) or
+[live message](protocol-specification-things-messages.html))
+was successfully 
+received or processed by either an internal Ditto functionality or an external subscriber of that signal.
 
-They can be seen as (potentially multiple) responses to a single event (e.g. after a Thing was modified). 
+They can be seen as (potentially multiple) responses to a single command.
 
 Acknowledgements can be used in order to solve the following cases:
 
 * postpone a response to an API request (e.g. block an HTTP request) until one or more specific actions were performed in 
   Ditto (e.g. a modification was successfully persisted).
-* postpone a response until an external subscriber connected to Ditto reports that he successfully processed an 
+* postpone a response until an external subscriber connected to Ditto reports that it successfully processed an 
   [event](basic-signals-event.html) which e.g. resulted by a persistence change of Ditto. 
 * provide a QoS (quality of service) guarantee of "at least once" when processing 
-  messages in an end-2-end manner by e.g. technically acknowledging/settling a processed message from a message broker 
+  messages in an end-to-end manner by e.g. technically acknowledging/settling a processed signal from a message broker 
   (e.g. [AMQP 1.0](connectivity-protocol-bindings-amqp10.html) or [MQTT](connectivity-protocol-bindings-mqtt.html)) only
   after it was successfully applied to Ditto and potentially also to 3rd parties.
 
 
 ## Acknowledgement requests
 
-For each Ditto API invocation *modifying the state of a twin* with a [command](basic-signals-command.html), it is 
-possible to define that certain "acknowledgements" are *requested*.<br/>
-This means that the Ditto collects all of those requested acknowledgements until the message is handled as successfully 
-processed, applying a specified timeout interval.
+For the following, it is possible to define that certain "acknowledgements" are *requested*.
+- Each Ditto API invocation *modifying the state of a twin* with a [command](basic-signals-command.html)
+  (i. e., twin commands),
+- Live commands,
+- Live messages.
+
+This means that the Ditto collects all of those requested acknowledgements until the command or live message
+is successfully processed within a specified timeout interval.
 
 Acknowledgement requests are expressed as protocol specific header fields of commands, more on that 
 [later](#requesting-acknowledgements).
@@ -43,23 +51,25 @@ and may therefore not be used when sending back a custom acknowledgement.
 
 ### Built-in acknowledgement labels
 
-Ditto provides built-in acknowledgements that are automatically issued on certain actions in the Ditto cluster:
-* **twin-persisted**: An acknowledgement with this label is issued, when a modifying command has successfully 
-updated the digital twin in Ditto's persistence.
+Ditto provides built-in acknowledgement requests that are automatically fulfilled on certain actions in the Ditto cluster:
+* **twin-persisted**: For acknowledgement requests of twin modifying commands. It is fulfilled when a modifying
+command has successfully updated the digital twin in Ditto's persistence. It is ignored for commands in the live
+channel.
+* **live-response**: For acknowledgement requests of live commands and live messages. It is fulfilled when a subscriber
+of the live command or message sends a corresponding response. It is ignored for commands in the twin channel.
 
 ### Custom acknowledgement labels
 
 In addition to the [built-in](#built-in-acknowledgement-labels) acknowledgement requests, 
-a received [event](basic-signals-event.html) can contain
-custom acknowledgement labels. 
-The event subscriber can detect that an acknowledgement was requested 
-(via the `"requested-acks"` header), and - as far as it feels responsible for handling it - it [issues an acknowledgement](#issuing-acknowledgements).
+a command or live message can contain custom acknowledgement requests. 
+The subscriber can detect that an acknowledgement was requested (via the `"requested-acks"` header),
+and - as far as it feels responsible for handling it - it [issues an acknowledgement](#issuing-acknowledgements).
 
 
 ## Acknowledgements
 
 A single acknowledgement contains the following information:
-* Acknowledgement label (one of the requested labels of the [ack requests](#acknowledgement-requests) of e.g. an event)
+* Acknowledgement label (one of the requested labels of the [ack requests](#acknowledgement-requests))
 * Header fields
     * mandatory: **correlation-id** the same correlation-id as the one of the event which requested the acknowledgement
     * optional: additional header fields
@@ -73,14 +83,16 @@ An example of how acknowledgements in Ditto Protocol look like can be found at t
 
 ## Requesting acknowledgements
 
-With every API call *modifying the state of a twin*, there is the option to provide requested acknowledgements.  
+With every API call *modifying the state of a twin* and with every live command or live message,
+there is the option to request acknowledgements.  
 
 ### Requesting acks via HTTP
 
 Either specify the following HTTP header fields:
   * **requested-acks**: a comma separated list of [acknowledgement labels](#acknowledgement-labels)<br/>
   Example: *requested-acks*: twin-persisted,my-custom-ack
-  * timeout: an optional time (in ms, s or m) of how long the HTTP request should wait for acknowledgements and block. Default: `60s`<br/>
+  * **timeout**: an optional time (in ms, s or m) of how long the HTTP request should wait for acknowledgements and block.
+  Default and maximum value: `60s`<br/>
   Examples: *timeout*: `42s`, *timeout*: `250ms`, *timeout*: `1m`
 
 Or specify the header fields as query parameters to the HTTP params, e.g.:
@@ -168,7 +180,8 @@ message.
 
 Acknowledgements for Ditto managed [connection sources](basic-connections.html#sources) can be requested in 2 ways: 
 
-* specifically for each consumed message as part of the [Ditto Protocol headers](protocol-specification.html#headers) `"requested-acks"` (as JsonArray of strings)
+* specifically for each consumed command or live message as part of
+  the [Ditto Protocol headers](protocol-specification.html#headers) `"requested-acks"` (as JsonArray of strings)
 * by configuring the managed connection source to [request acknowledgements for all consumed messages](basic-connections.html#source-acknowledgement-requests)
 
 #### Requesting acks via Ditto Protocol message
@@ -189,7 +202,7 @@ consumed message of the underlying physical connection (e.g. to a message broker
 
 This can be used in order to ensure that e.g. all messages consumed from a single source should be processed in an 
 "at least once" mode (QoS 1). E.g. if configured that the [built-in](#built-in-acknowledgement-labels) `twin-persisted`
-acknowledgement is requested, a received message (e.g. a [Ditto command](basic-signals-command.html)) will only be 
+acknowledgement is requested, a received twin-modifying command will only be 
 technically acknowledged to the connection channel if Ditto successfully applied and persisted the command.
 
 {% include note.html content="These requested acknowledgements will be appended after payload mapping is applied.<br/> 
@@ -209,29 +222,34 @@ those commands you like to request an acknowledgement.
 
 ## Issuing acknowledgements
 
-In order to issue a single acknowledgement when requested by a published event, a 
+Acknowledgements are issued by subscribers of events generated by twin-modifying commands, or by subscribers of
+live commands and live messages. In order to issue a single acknowledgement, a 
 [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message has to be built and sent 
-back, using the same `"correlation-id"` in the [protocol headers](protocol-specification.html#headers) as the event
-contained.
+back, using the same `"correlation-id"` in the [protocol headers](protocol-specification.html#headers) as contained
+in the received twin event, live command or live message.
 
 ### Issuing acks via HTTP
-The response of an HTTP request, which requested several acknowledgements, will differ from the response, where an HTTP request was not requesting acknowledgements.
-See examples above at [Requesting acks via HTTP](#requesting-acks-via-http)
+
+It is not possible to issue acknowledgements via HTTP, because it is not possible to subscribe for twin events,
+live commands or live messages via HTTP.
 
 ### Issuing acks via WebSocket
 
-Create and send the [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message over the
-established WebSocket in response to an event, which contained a `"requested-acks"` header.
+Create and send the [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message over an
+established WebSocket in response to a twin event, live command or live message that contains a `"requested-acks"`
+header.
 
 ### Issuing acks via connections
 
 Requested acknowledgements for Ditto managed [connection targets](basic-connections.html#targets) can be issued in 2 
 ways: 
 
-* specifically for each published message/event as a response to the event by sending a
-  [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) back via a source of the connection
+* specifically for each published twin event, live command or live message by sending a
+  [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) back,
+  via a source of the same connection;
 * by configuring the managed connection target to automatically
-  [issue acknowledgements for all successfully published messages](basic-connections.html#target-issued-acknowledgement-label)
+  [issue acknowledgements](basic-connections.html#target-issued-acknowledgement-label) for all published twin events,
+  live commands and live messages that request them.
 
 #### Issuing acks via Ditto Protocol acknowledgement message
 
@@ -242,9 +260,10 @@ source of the connection, in response to an event, which contained an `"requeste
 
 [Connection targets](basic-connections.html#targets) can be configured to 
 [issue certain acknowledgements automatically](basic-connections.html#target-issued-acknowledgement-label)
-for each published message of the underlying physical connection (e.g. to a message broker).
+for each twin event, live command or live message published to
+the underlying physical connection (e.g. to a message broker).
 
-This can be used in order to automatically issue technical acknowledgements once an [event](basic-signals-event.html)
+This can be used in order to automatically issue technical acknowledgements once an event, command or message
 was published to an HTTP endpoint or into a message broker. When this target guarantees having processed the event
 via its protocol (for HTTP for example when a status code `2xx` is returned), a successful acknowledgement is created
 and returned to the requester.
@@ -265,7 +284,7 @@ e.g. in order to guarantee that it was persisted in the digital twin or that an 
 connected to Ditto did successfully receive a [notification](basic-changenotifications.html) which resulted from a 
 [command](basic-signals-command.html) which Ditto received and processed.
 
-The "acknowledgements" concept documented on this page provides means by which messages (e.g. commands) consumed and 
+The "acknowledgements" concept documented on this page provides means by which commands and live messages consumed and
 processed by Ditto are treated with an "at least once" (or QoS 1) semantic.
 
 [Create/modify commands](protocol-specification-things-create-or-modify.html) will technically be acknowledged on the 
@@ -278,16 +297,24 @@ Based on the used channel, the acknowledgement will be translated to the capabil
 an HTTP response will be sent with the outcome as HTTP status (`2xx` for a successful acknowledgement, and `4xx` for a 
 non-successful one) together with additional details as HTTP response.
 
-### Assure QoS until persisted in Ditto - twin-persited label
+### Assure QoS until persisted in Ditto - twin-persisted
 
 In order to ensure that a [create/modify command](protocol-specification-things-create-or-modify.html) resulted in a 
 successful update of twin in Ditto's managed database, [request the acknowledgement](#requesting-acknowledgements) for
 the [built-in "twin-persisted"](#built-in-acknowledgement-labels) acknowledgement label.
 
-### Assure QoS until an event was published - custom label
+### Assure QoS until processing of a live command/message by a subscriber - live-response
+
+In order to ensure that a live command or live message is processed by a subscriber,
+[request the acknowledgement](#requesting-acknowledgements) for
+the [built-in "live-response"](#built-in-acknowledgement-labels) acknowledgement label. This acknowledgement request
+is fulfilled when the subscriber sends a live response or message response.
+
+### Assure QoS until processing of a twin event or live command/message by subscribers - custom label
 
 In order to ensure that a [create/modify command](protocol-specification-things-create-or-modify.html) resulted in an 
-event which was consumed by an application integrating with Ditto, 
+event which was consumed by an application integrating with Ditto, or that a live command or live message is consumed
+without any live or message response,
 [request the acknowledgement](#requesting-acknowledgements) for a [custom acknowledgement label](#custom-acknowledgement-labels).
 
 ## Interaction between headers
