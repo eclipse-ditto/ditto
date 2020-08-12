@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -375,6 +376,9 @@ public final class MessageMappingProcessorActor
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {
+        if (!canRequestAcks(signal)) {
+            return signal;
+        }
         final Set<AcknowledgementRequest> additionalAcknowledgementRequests = message.getSource()
                 .flatMap(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
                 .map(FilteredAcknowledgementRequest::getIncludes)
@@ -987,7 +991,6 @@ public final class MessageMappingProcessorActor
 
     }
 
-
     /**
      * Split the targets of an outbound signal into 2 parts: those without extra fields and those with.
      *
@@ -1028,6 +1031,18 @@ public final class MessageMappingProcessorActor
         return signal instanceof CommandResponse &&
                 !ProtocolAdapter.isLiveSignal(signal) &&
                 signal.getDittoHeaders().getReplyTarget().isPresent();
+    }
+
+    private static boolean canRequestAcks(final Signal<?> signal) {
+        return isApplicable(ThingModifyCommandAckRequestSetter.getInstance(), signal) ||
+                isApplicable(ThingLiveCommandAckRequestSetter.getInstance(), signal) ||
+                isApplicable(MessageCommandAckRequestSetter.getInstance(), signal);
+    }
+
+    private static <C extends WithDittoHeaders<? extends C>> boolean isApplicable(
+            final AbstractCommandAckRequestSetter<C> setter, final Signal<?> signal) {
+        return setter.getMatchedClass().isInstance(signal) &&
+                setter.isApplicable(setter.getMatchedClass().cast(signal));
     }
 
     private static final class IncomingSignal {

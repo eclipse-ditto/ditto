@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -208,7 +209,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private void completeAcknowledgements(final Acknowledgements acks) {
         completeWithResult(acks.getDittoHeaders(),
                 createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(),
-                        stripPayloadUnlessResponseRequired(acks)));
+                        mapAcknowledgementsForHttp(acks)));
     }
 
     private void handleCommandAndAcceptImmediately(final Signal<?> command) {
@@ -587,23 +588,47 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return supplier.get();
     }
 
-    private static boolean shallAcceptImmediately(final WithDittoHeaders<?> withDittoHeaders) {
-        final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
-        return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
-    }
-
-    private static Acknowledgements stripPayloadUnlessResponseRequired(final Acknowledgements acks) {
-        if (acks.getDittoHeaders().isResponseRequired()) {
-            return acks;
+    private Acknowledgements mapAcknowledgementsForHttp(final Acknowledgements acks) {
+        final boolean isResponseRequired = acks.getDittoHeaders().isResponseRequired();
+        if (!isResponseRequired) {
+            if (acks.getStatusCode().isSuccess()) {
+                // no need to minimize payload because the response will have no body
+                return acks;
+            } else {
+                // minimize payload to status codes
+                return Acknowledgements.of(
+                        acks.stream().map(ack ->
+                                Acknowledgement.of(ack.getLabel(), ack.getEntityId(), ack.getStatusCode(),
+                                        DittoHeaders.empty())
+                        ).collect(Collectors.toList()),
+                        acks.getDittoHeaders()
+                );
+            }
         } else {
             return Acknowledgements.of(
-                    acks.stream().map(ack ->
-                            Acknowledgement.of(ack.getLabel(), ack.getEntityId(), ack.getStatusCode(),
-                                    DittoHeaders.empty()))
-                            .collect(Collectors.toList()),
+                    acks.stream().map(this::setResponseLocationForAcknowledgement).collect(Collectors.toList()),
                     acks.getDittoHeaders()
             );
         }
+    }
+
+    private Acknowledgement setResponseLocationForAcknowledgement(final Acknowledgement acknowledgement) {
+        if (DittoAcknowledgementLabel.TWIN_PERSISTED.equals(acknowledgement.getLabel())) {
+            rememberResponseLocationUri(acknowledgement);
+            if (responseLocationUri != null) {
+                final Location location = Location.create(responseLocationUri);
+                return acknowledgement.setDittoHeaders(acknowledgement.getDittoHeaders()
+                        .toBuilder()
+                        .putHeader(location.lowercaseName(), location.value())
+                        .build());
+            }
+        }
+        return acknowledgement;
+    }
+
+    private static boolean shallAcceptImmediately(final WithDittoHeaders<?> withDittoHeaders) {
+        final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
+        return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
     }
 
     private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {

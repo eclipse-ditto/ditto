@@ -19,14 +19,19 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.junit.Test;
 
@@ -38,6 +43,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ResponseEntity;
 import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
+import akka.stream.SystemMaterializer;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
@@ -59,6 +65,59 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         underTest.tell(Whoami.of(dittoHeaders), ActorRef.noSender());
 
         assertThat(responseFuture.get()).isEqualTo(expectedResponse);
+    }
+
+    @Test
+    public void generateLocationHeaderInTwinPersistedAcknowledgementWithCreatedStatusCode() throws Exception {
+        new TestKit(system) {{
+            final ThingId thingId = ThingId.generateRandom();
+            final String attributeName = "foo";
+            final JsonValue attributeValue = JsonValue.of("bar");
+            final JsonPointer attributePointer = JsonPointer.of(attributeName);
+            final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom-ack");
+
+            final DittoHeaders dittoHeaders = createAuthorizedHeaders().toBuilder()
+                    .responseRequired(true)
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
+                            AcknowledgementRequest.of(customAckLabel))
+                    .build();
+
+            final ModifyAttribute command =
+                    ModifyAttribute.of(thingId, attributePointer, attributeValue, dittoHeaders);
+            final ModifyAttributeResponse createAttributeResponse =
+                    ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders);
+            final Acknowledgement customAcknowledgement =
+                    Acknowledgement.of(customAckLabel, thingId, HttpStatusCode.FORBIDDEN, DittoHeaders.empty());
+
+            final TestProbe proxyActorProbe = TestProbe.apply(system);
+
+            final HttpRequest request =
+                    HttpRequest.PUT("/api/2/things/" + thingId.toString() + "/attributes/" + attributeName);
+            final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+
+            final ActorRef underTest = createHttpRequestActor(proxyActorProbe.ref(), request, responseFuture);
+            underTest.tell(command, ActorRef.noSender());
+
+            proxyActorProbe.expectMsg(command);
+            proxyActorProbe.reply(createAttributeResponse);
+            proxyActorProbe.reply(customAcknowledgement);
+
+            final HttpResponse response = responseFuture.get();
+            assertThat(HttpStatusCode.forInt(response.status().intValue())).contains(HttpStatusCode.FAILED_DEPENDENCY);
+
+            final JsonObject responseBody = JsonObject.of(
+                    response.entity()
+                            .toStrict(1000L, SystemMaterializer.get(system).materializer())
+                            .toCompletableFuture()
+                            .join()
+                            .getData()
+                            .utf8String()
+            );
+            assertThat(responseBody.getValue("twin-persisted/status"))
+                    .contains(JsonValue.of(HttpStatusCode.CREATED.toInt()));
+            assertThat(responseBody.getValue("twin-persisted/headers/location"))
+                    .contains(JsonValue.of("/api/2/things/" + thingId + "/attributes/" + attributeName));
+        }};
     }
 
     @Test
