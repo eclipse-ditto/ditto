@@ -73,14 +73,15 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
      * @param jsonObject This exception in JSON format.
      * @param dittoHeaders Ditto headers.
      * @return Deserialized exception.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonObject} is empty.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static NamespaceBlockedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         // deserialize message and description for delivery to client.
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(jsonObject.getValue(JsonFields.MESSAGE).orElse(DEFAULT_MESSAGE))
-                .description(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(DEFAULT_DESCRIPTION))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**

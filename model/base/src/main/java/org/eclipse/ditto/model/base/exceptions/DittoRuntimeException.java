@@ -300,6 +300,29 @@ public class DittoRuntimeException extends RuntimeException
     }
 
     /**
+     * Creates a new {@code DittoRuntimeException} from a JSON object.
+     *
+     * @param jsonObject the JSON object of which the exception is to be created.
+     * @param dittoHeaders the headers of the exception.
+     * @param builder the builder for the exception
+     * @return the exception.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonObject} is empty.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
+     */
+    public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
+        readDescription(jsonObject).ifPresent(builder::description);
+        builder.dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .href(readHRef(jsonObject).orElse(null));
+
+        return builder.build();
+    }
+
+    /**
      * Allows to append exception-specific fields to the passed {@code jsonObjectBuilder}.
      *
      * @param jsonObjectBuilder the JsonObjectBuilder to add the fields to.

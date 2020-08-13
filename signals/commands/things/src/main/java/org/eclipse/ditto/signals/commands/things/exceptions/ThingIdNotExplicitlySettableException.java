@@ -106,12 +106,7 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      */
     public static ThingIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final String message = readMessage(jsonObject);
-        final String description = readDescription(jsonObject).orElse("");
-        return new Builder(message, description)
-                .dittoHeaders(dittoHeaders)
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
@@ -153,6 +148,9 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
         private Builder(final String message, final String description) {
             message(message);
             description(description);
+        }
+
+        private Builder() {
         }
 
         @Override

@@ -91,6 +91,7 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
      */
     public static SignalEnrichmentFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        // Implements own method instead of DittoRuntimeException.fromJson() because statusCode can be set.
         return new Builder()
                 .status(jsonObject.getValue(JsonFields.STATUS)
                         .flatMap(HttpStatusCode::forInt)

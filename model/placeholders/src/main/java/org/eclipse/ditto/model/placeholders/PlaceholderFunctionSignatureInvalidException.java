@@ -77,15 +77,16 @@ public final class PlaceholderFunctionSignatureInvalidException extends DittoRun
      * @param jsonObject This exception in JSON format.
      * @param dittoHeaders Ditto headers.
      * @return Deserialized exception.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonObject} is empty.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static PlaceholderFunctionSignatureInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         // deserialize message and description for delivery to client.
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(jsonObject.getValueOrThrow(JsonFields.MESSAGE))
-                .description(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(DESCRIPTION_TEMPLATE))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
