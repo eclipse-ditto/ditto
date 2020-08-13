@@ -14,12 +14,18 @@ package org.eclipse.ditto.model.base.headers.metadata;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Comparator;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -48,6 +54,55 @@ final class DefaultMetadataHeader implements MetadataHeader {
      */
     static DefaultMetadataHeader of(final MetadataHeaderKey key, final JsonValue value) {
         return new DefaultMetadataHeader(key, value);
+    }
+
+    /**
+     * Derives a DefaultMetadataHeader instance from the given JSON object.
+     *
+     * @param jsonObject the JSON object which provides the properties of a DefaultMetadataHeader.
+     * @return the instance.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} lacks either
+     * <ul>
+     *     <li>{@link JsonFields#METADATA_KEY} or</li>
+     *     <li>{@link JsonFields#METADATA_VALUE}.</li>
+     * </ul>
+     * @throws JsonParseException if {@code jsonObject} contained an invalid value for {@link JsonFields#METADATA_KEY}.
+     */
+    static DefaultMetadataHeader fromJson(final JsonObject jsonObject) {
+        checkNotNull(jsonObject, "jsonObject");
+        return of(tryToGetMetadataHeaderKey(tryToGetValue(jsonObject, JsonFields.METADATA_KEY)),
+                tryToGetMetadataHeaderValue(jsonObject));
+    }
+
+    private static <T> T tryToGetValue(final JsonObject metadataEntry, final JsonFieldDefinition<T> fieldDefinition) {
+        return metadataEntry.getValue(fieldDefinition)
+                .orElseThrow(() -> {
+                    final String msgPattern = "Metadata header entry JSON object did not include required <{0}> field!";
+                    return JsonMissingFieldException.newBuilder()
+                            .message(MessageFormat.format(msgPattern, fieldDefinition.getPointer()))
+                            .build();
+                });
+    }
+
+    private static MetadataHeaderKey tryToGetMetadataHeaderKey(final String metadataHeaderKeyPath) {
+        try {
+            return getMetadataHeaderKey(metadataHeaderKeyPath);
+        } catch (final IllegalArgumentException e) {
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format("The metadata header key <{0}> is invalid!", metadataHeaderKeyPath))
+                    .description(e.getMessage())
+                    .cause(e)
+                    .build();
+        }
+    }
+
+    private static MetadataHeaderKey getMetadataHeaderKey(final CharSequence metadataHeaderKeyPath) {
+        return MetadataHeaderKey.of(JsonPointer.of(metadataHeaderKeyPath));
+    }
+
+    private static JsonValue tryToGetMetadataHeaderValue(final JsonObject metadataEntry) {
+        return tryToGetValue(metadataEntry, JsonFields.METADATA_VALUE);
     }
 
     @Override
@@ -104,6 +159,14 @@ final class DefaultMetadataHeader implements MetadataHeader {
     @Override
     public int hashCode() {
         return Objects.hash(key, value);
+    }
+
+    @Override
+    public JsonObject toJson() {
+        return JsonObject.newBuilder()
+                .set(JsonFields.METADATA_KEY, key.toString())
+                .set(JsonFields.METADATA_VALUE, value)
+                .build();
     }
 
     @Override

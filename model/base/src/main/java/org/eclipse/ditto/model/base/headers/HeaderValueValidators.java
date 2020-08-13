@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.base.headers;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 
 /**
  * Provides validators for header values.
@@ -137,6 +138,16 @@ public final class HeaderValueValidators {
      */
     static ValueValidator getTimeoutValueValidator() {
         return TimeoutValueValidator.getInstance();
+    }
+
+    /**
+     * Returns a validator for checking if a CharSequence represents a {@link MetadataHeaders}.
+     *
+     * @return the validator.
+     * @since 1.2.0
+     */
+    static ValueValidator getMetadataValidator() {
+        return MetadataHeadersValueValidator.getInstance();
     }
 
 }

@@ -13,14 +13,19 @@
 package org.eclipse.ditto.model.base.headers.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
@@ -83,6 +88,64 @@ public final class DefaultMetadataHeaderTest {
             final DefaultMetadataHeader underTest = DefaultMetadataHeader.of(KNOWN_KEY, KNOWN_VALUE);
 
             assertThat(underTest.getValue()).isEqualTo(KNOWN_VALUE);
+        }
+
+        @Test
+        public void toJsonReturnsExpected() {
+            final JsonObject expected = JsonObject.newBuilder()
+                    .set(MetadataHeader.JsonFields.METADATA_KEY, KNOWN_KEY.toString())
+                    .set(MetadataHeader.JsonFields.METADATA_VALUE, KNOWN_VALUE)
+                    .build();
+
+            final DefaultMetadataHeader underTest = DefaultMetadataHeader.of(KNOWN_KEY, KNOWN_VALUE);
+
+            assertThat(underTest.toJson()).isEqualTo(expected);
+        }
+
+        @Test
+        public void getInstanceFromNullJsonObject() {
+            assertThatNullPointerException()
+                    .isThrownBy(() -> DefaultMetadataHeader.fromJson(null))
+                    .withMessage("The jsonObject must not be null!")
+                    .withNoCause();
+        }
+
+        @Test
+        public void getInstanceFromNullLiteral() {
+            assertThatExceptionOfType(JsonMissingFieldException.class)
+                    .isThrownBy(() -> DefaultMetadataHeader.fromJson(JsonObject.of("null")))
+                    .withMessage("Metadata header entry JSON object did not include required <%s> field!",
+                            MetadataHeader.JsonFields.METADATA_KEY.getPointer())
+                    .withNoCause();
+        }
+
+        @Test
+        public void getInstanceFromJsonObjectWithoutMetadataValue() {
+            final JsonObject jsonObject = JsonObject.newBuilder()
+                    .set(MetadataHeader.JsonFields.METADATA_KEY, KNOWN_KEY.toString())
+                    .build();
+
+            assertThatExceptionOfType(JsonMissingFieldException.class)
+                    .isThrownBy(() -> DefaultMetadataHeader.fromJson(jsonObject))
+                    .withMessage("Metadata header entry JSON object did not include required <%s> field!",
+                            MetadataHeader.JsonFields.METADATA_VALUE.getPointer())
+                    .withNoCause();
+        }
+
+        @Test
+        public void getInstanceFromJsonWithInvalidMetadataEntryKey() {
+            final String metadataKey = "*/*/issuedAt";
+            final JsonObject jsonObject = JsonObject.newBuilder()
+                    .set(MetadataHeader.JsonFields.METADATA_KEY, metadataKey)
+                    .set(MetadataHeader.JsonFields.METADATA_VALUE, JsonValue.of(String.valueOf(Instant.now())))
+                    .build();
+
+            assertThatExceptionOfType(JsonParseException.class)
+                    .isThrownBy(() -> DefaultMetadataHeader.fromJson(jsonObject))
+                    .withMessage("The metadata header key <%s> is invalid!", metadataKey)
+                    .satisfies(jsonParseException -> assertThat(jsonParseException.getDescription()).contains(
+                            "A wildcard path of a metadata header key must have exactly two levels but it had <3>!"))
+                    .withCauseInstanceOf(IllegalArgumentException.class);
         }
 
     }

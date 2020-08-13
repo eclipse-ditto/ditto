@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -48,8 +46,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
-import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -322,14 +319,9 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public SortedSet<MetadataHeader> getMetadataHeaders() {
-        final SortedSet<MetadataHeader> result = new TreeSet<>();
-        forEach((key, value) -> {
-            if (key.startsWith(MetadataHeaderKey.PREFIX)) {
-                result.add(MetadataHeader.of(MetadataHeaderKey.parse(key), JsonFactory.readFrom(value)));
-            }
-        });
-        return result;
+    public MetadataHeaders getMetadataHeaders() {
+        final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.METADATA.getKey(), "");
+        return MetadataHeaders.parseMetadataHeaders(metadataHeaderValue);
     }
 
     @Override

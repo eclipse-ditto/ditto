@@ -211,7 +211,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getTimeoutValueValidator()),
 
     /**
-     * Header definition for the entity id related to the command/event/response/error.
+     * Header definition for the entity ID related to the command/event/response/error.
      * <p>
      * Key: {@code "ditto-entity-id"}, Java type: {@link String}.
      * </p>
@@ -249,7 +249,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.2.0
      */
-    CONNECTION_ID("ditto-connection-id", String.class, false, true, HeaderValueValidators.getNoOpValidator());
+    CONNECTION_ID("ditto-connection-id", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header definition for setting metadata relatively to the resource of a modified entity.
+     * <p>
+     * Key {@code "metadata"}, Java type: {@link JsonArray}.
+     * </p>
+     *
+     * @since 1.2.0
+     */
+    METADATA("metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

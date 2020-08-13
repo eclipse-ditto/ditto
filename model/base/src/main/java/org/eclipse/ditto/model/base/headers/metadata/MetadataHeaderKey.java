@@ -17,9 +17,7 @@ import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Key of a Ditto metadata header that is associated with a metadata value within DittoHeaders.
- * The string representation of a metadata header key consists of two parts: the prefix {@value #PREFIX} followed by a
- * path.
- * This class provides access to the path as {@link JsonPointer}.
+ * The string representation of a metadata header key consists of a path that is represented as {@link JsonPointer}.
  * Furthermore a MetadataHeaderKey has knowledge about for which parts of a JSON value the associated header value is
  * applicable.
  * This knowledge is derived from the path.
@@ -27,11 +25,6 @@ import org.eclipse.ditto.json.JsonPointer;
  * @since 1.2.0
  */
 public interface MetadataHeaderKey extends Comparable<MetadataHeaderKey> {
-
-    /**
-     * Prefix of a DittoHeader key for metadata.
-     */
-    String PREFIX = "ditto-metadata:";
 
     /**
      * Parses the given char sequence to obtain an instance of MetadataHeaderKey.

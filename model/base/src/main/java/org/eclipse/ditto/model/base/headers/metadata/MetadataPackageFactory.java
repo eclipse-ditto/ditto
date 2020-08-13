@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.headers.metadata;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -35,12 +36,24 @@ final class MetadataPackageFactory {
         return DefaultMetadataHeader.of(key, value);
     }
 
+    static MetadataHeader metadataHeaderFromJson(final JsonObject jsonObject) {
+        return DefaultMetadataHeader.fromJson(jsonObject);
+    }
+
     static DefaultMetadataHeaderKey parseMetadataHeaderKey(final CharSequence key) {
         return DefaultMetadataHeaderKey.parse(key);
     }
 
     static DefaultMetadataHeaderKey getMetadataHeaderKey(final JsonPointer path) {
         return DefaultMetadataHeaderKey.of(path);
+    }
+
+    static MetadataHeaders parseMetadataHeaders(final CharSequence metadataHeaders) {
+        return DefaultMetadataHeaders.parseMetadataHeaders(metadataHeaders);
+    }
+
+    static MetadataHeaders newMetadataHeaders() {
+        return DefaultMetadataHeaders.newInstance();
     }
 
 }

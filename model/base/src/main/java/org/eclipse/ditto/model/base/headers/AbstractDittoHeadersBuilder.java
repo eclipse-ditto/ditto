@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -44,7 +44,9 @@ import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -68,6 +70,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     protected final S myself;
     private final Map<String, String> headers;
+    private MetadataHeaders metadataHeaders;
     private final Map<String, HeaderDefinition> definitions;
 
     /**
@@ -86,10 +89,22 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
+        validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
+        metadataHeaders = separateMetadataHeadersFromRegularHeaders(headers);
         this.definitions = getHeaderDefinitionsAsMap(definitions);
-        validateKnownHeaders(headers, this.definitions);
+    }
+
+    private static MetadataHeaders separateMetadataHeadersFromRegularHeaders(final Map<String, String> regularHeaders) {
+        final String metadataHeadersCharSequence = regularHeaders.remove(DittoHeaderDefinition.METADATA.getKey());
+        final MetadataHeaders result;
+        if (null != metadataHeadersCharSequence) {
+            result = MetadataHeaders.parseMetadataHeaders(metadataHeadersCharSequence);
+        } else {
+            result = MetadataHeaders.newInstance();
+        }
+        return result;
     }
 
     private static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
@@ -125,6 +140,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         checkNotNull(definitions, "definitions");
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
+        metadataHeaders = separateMetadataHeadersFromRegularHeaders(headers);
         this.definitions = getHeaderDefinitionsAsMap(definitions);
     }
 
@@ -137,24 +153,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     protected void validateValueTypes(final Map<String, String> headers,
             final Collection<? extends HeaderDefinition> definitions) {
 
-        final Map<String, HeaderDefinition> definitionsMap =
-                definitions.stream().collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity()));
-        validateKnownHeaders(headers, definitionsMap);
-    }
-
-    private static void validateKnownHeaders(final Map<String, String> headers,
-            final Map<String, ? extends HeaderDefinition> definitions) {
-
-        headers.forEach((headerKey, headerValue) -> {
-            if (isMetadataKey(headerKey)) {
-                validateMetadataHeader(headerKey, headerValue);
-            } else {
-                @Nullable final HeaderDefinition definition = definitions.get(headerKey);
-                if (null != definition) {
-                    definition.validateValue(headerValue);
-                }
+        for (final HeaderDefinition definition : definitions) {
+            final String value = headers.get(definition.getKey());
+            if (null != value) {
+                definition.validateValue(value);
             }
-        });
+        }
     }
 
     protected static Map<String, String> toMap(final JsonValueContainer<JsonField> jsonObject) {
@@ -443,9 +447,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S metadata(final MetadataHeaderKey key, final JsonValue value) {
-        checkNotNull(key, "key");
-        checkNotNull(value, "value");
-        headers.put(key.toString(), value.toString());
+        metadataHeaders.add(MetadataHeader.of(key, value));
         return myself;
     }
 
@@ -453,26 +455,21 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
+        validateValueType(key, value);
         if (isMetadataKey(key)) {
-            validateMetadataHeader(key, value);
+            metadataHeaders = MetadataHeaders.parseMetadataHeaders(value);
         } else {
-            validateValueType(key, value);
+            headers.put(key.toString(), value.toString());
         }
-        headers.put(key.toString(), value.toString());
         return myself;
+    }
+
+    private static boolean isMetadataKey(final CharSequence key) {
+        return Objects.equals(DittoHeaderDefinition.METADATA.getKey(), key.toString());
     }
 
     private static void validateKey(final CharSequence key) {
         argumentNotEmpty(key, "key");
-    }
-
-    private static boolean isMetadataKey(final CharSequence metadataHeaderKey) {
-        final String keyAsString = metadataHeaderKey.toString();
-        return keyAsString.startsWith(MetadataHeaderKey.PREFIX);
-    }
-
-    private static void validateMetadataHeader(final CharSequence key, final CharSequence value) {
-        MetadataHeaderValidator.of(key, value).validate();
     }
 
     protected void validateValueType(final CharSequence key, final CharSequence value) {
@@ -485,8 +482,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S putHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
-        validateKnownHeaders(headers, definitions);
+        validateValueTypes(headers, definitions.values());
         this.headers.putAll(headers);
+        metadataHeaders = separateMetadataHeadersFromRegularHeaders(this.headers);
         return myself;
     }
 
@@ -494,6 +492,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S removeHeader(final CharSequence key) {
         validateKey(key);
         headers.remove(key.toString());
+        if (isMetadataKey(key)) {
+            metadataHeaders.clear();
+        }
         return myself;
     }
 
@@ -508,8 +509,15 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public R build() {
         // do it here
         calculateIsResponseRequired();
+        putMetadataHeadersToRegularHeaders();
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
+    }
+
+    private void putMetadataHeadersToRegularHeaders() {
+        if (!metadataHeaders.isEmpty()) {
+            headers.put(DittoHeaderDefinition.METADATA.getKey(), metadataHeaders.toJsonString());
+        }
     }
 
     private void calculateIsResponseRequired() {
@@ -539,8 +547,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         }
     }
 
-    @Override
     public String toString() {
+        putMetadataHeadersToRegularHeaders();
         return headers.toString();
     }
 

@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +49,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
 
@@ -109,7 +109,13 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_LOCATION = "known:location";
     private static final String KNOWN_CONNECTION_ID = "known-connection-id";
     private static final MetadataHeaderKey KNOWN_METADATA_HEADER_KEY = MetadataHeaderKey.parse("/foo/bar");
-    private static final String KNOWN_METADATA_VALUE = "\"knownMetadata\"";
+    private static final JsonValue KNOWN_METADATA_VALUE = JsonValue.of("knownMetadata");
+    private static final MetadataHeaders KNOWN_METADATA_HEADERS;
+
+    static {
+        KNOWN_METADATA_HEADERS = MetadataHeaders.newInstance();
+        KNOWN_METADATA_HEADERS.add(MetadataHeader.of(KNOWN_METADATA_HEADER_KEY, KNOWN_METADATA_VALUE));
+    }
 
     @Test
     public void assertImmutability() {
@@ -149,7 +155,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
                 .putHeader(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
-                .metadata(KNOWN_METADATA_HEADER_KEY, JsonFactory.readFrom(KNOWN_METADATA_VALUE))
+                .metadata(KNOWN_METADATA_HEADER_KEY, KNOWN_METADATA_VALUE)
                 .timeout(KNOWN_TIMEOUT)
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
@@ -347,16 +353,15 @@ public final class ImmutableDittoHeadersTest {
         final MetadataHeaderKey wildcardMetadataKey = MetadataHeaderKey.parse("/*/aValue");
         final JsonValue metadataValue2 = JsonValue.of(2);
 
-        final Collection<MetadataHeader> expected = new ArrayList<>(2);
+        final MetadataHeaders expected = MetadataHeaders.newInstance();
         expected.add(MetadataHeader.of(wildcardMetadataKey, metadataValue2));
         expected.add(MetadataHeader.of(specificMetadataKey, metadataValue1));
 
         final Map<String, String> headerMap = new HashMap<>();
-        headerMap.put(specificMetadataKey.toString(), metadataValue1.toString());
-        headerMap.put(wildcardMetadataKey.toString(), metadataValue2.toString());
+        headerMap.put(DittoHeaderDefinition.METADATA.getKey(), expected.toJsonString());
         final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(headerMap);
 
-        assertThat(underTest.getMetadataHeaders()).containsExactlyElementsOf(expected);
+        assertThat(underTest.getMetadataHeaders()).isEqualTo(expected);
     }
 
     @Test
@@ -388,8 +393,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .set(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
                         expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
-                .set(KNOWN_METADATA_HEADER_KEY.toString(), KNOWN_METADATA_VALUE)
-
+                .set(DittoHeaderDefinition.METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -593,7 +597,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID);
         result.put(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
                 expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES).toString());
-        result.put(MetadataHeaderKey.parse("/foo/bar").toString(), KNOWN_METADATA_VALUE);
+        result.put(DittoHeaderDefinition.METADATA.getKey(), KNOWN_METADATA_HEADERS.toJsonString());
 
         return result;
     }

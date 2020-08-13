@@ -57,15 +57,7 @@ final class DefaultMetadataHeaderKey implements MetadataHeaderKey {
      * </ul>
      */
     public static DefaultMetadataHeaderKey parse(final CharSequence key) {
-        argumentNotEmpty(key, "key");
-        final String keyAsString = key.toString();
-        final CharSequence path;
-        if (keyAsString.startsWith(PREFIX)) {
-            path = keyAsString.substring(PREFIX.length());
-        } else {
-            path = keyAsString;
-        }
-        return of(JsonPointer.of(path));
+        return of(JsonPointer.of(argumentNotEmpty(key, "key")));
     }
 
     /**
@@ -185,7 +177,7 @@ final class DefaultMetadataHeaderKey implements MetadataHeaderKey {
 
     @Override
     public String toString() {
-        return PREFIX + path;
+        return path.toString();
     }
 
 }

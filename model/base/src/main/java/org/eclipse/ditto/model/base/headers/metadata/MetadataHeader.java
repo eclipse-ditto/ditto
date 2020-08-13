@@ -14,7 +14,11 @@ package org.eclipse.ditto.model.base.headers.metadata;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Association between a {@link MetadataHeaderKey} and a {@link JsonValue}.
@@ -22,7 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
  * @since 1.2.0
  */
 @Immutable
-public interface MetadataHeader extends Comparable<MetadataHeader> {
+public interface MetadataHeader extends Comparable<MetadataHeader>, Jsonifiable<JsonObject> {
 
     /**
      * Returns an instance of {@code MetadataHeader}.
@@ -34,6 +38,24 @@ public interface MetadataHeader extends Comparable<MetadataHeader> {
      */
     static MetadataHeader of(final MetadataHeaderKey key, final JsonValue value) {
         return MetadataPackageFactory.getMetadataHeader(key, value);
+    }
+
+    /**
+     * Derives a {@code MetadataHeader} instance from the given JSON object.
+     *
+     * @param jsonObject the JSON object which provides the properties of a MetadataHeader.
+     * @return the instance.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} lacks either
+     * <ul>
+     *     <li>{@link JsonFields#METADATA_KEY} or</li>
+     *     <li>{@link JsonFields#METADATA_VALUE}.</li>
+     * </ul>
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an invalid value for
+     * {@link JsonFields#METADATA_KEY}.
+     */
+    static MetadataHeader fromJson(final JsonObject jsonObject) {
+        return MetadataPackageFactory.metadataHeaderFromJson(jsonObject);
     }
 
     /**
@@ -62,5 +84,28 @@ public interface MetadataHeader extends Comparable<MetadataHeader> {
      */
     @Override
     int compareTo(MetadataHeader metadataHeader);
+
+    /**
+     * This class provides definitions of fields of a {@code MetadataHeader} JSON object representation.
+     */
+    final class JsonFields {
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
+        /**
+         * Defines a field of a JSON object whose value is a metadata key.
+         */
+        public static final JsonFieldDefinition<String> METADATA_KEY =
+                JsonFieldDefinition.ofString("key", FieldType.REGULAR);
+
+        /**
+         * Defines a field of a JSON object whose value is a metadata value.
+         */
+        public static final JsonFieldDefinition<JsonValue> METADATA_VALUE =
+                JsonFieldDefinition.ofJsonValue("value", FieldType.REGULAR);
+
+    }
 
 }

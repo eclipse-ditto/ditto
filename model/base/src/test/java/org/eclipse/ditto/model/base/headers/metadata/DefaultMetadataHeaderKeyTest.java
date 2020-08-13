@@ -111,20 +111,10 @@ public final class DefaultMetadataHeaderKeyTest {
     }
 
     @Test
-    public void parseStringWithoutMetadataHeaderKeyPrefix() {
+    public void parseValidString() {
         final JsonPointer path = JsonPointer.of("/foo/bar");
 
         final DefaultMetadataHeaderKey parsed = DefaultMetadataHeaderKey.parse(path);
-
-        assertThat(parsed).isEqualTo(DefaultMetadataHeaderKey.of(path));
-    }
-
-    @Test
-    public void parseStringWithMetadataHeaderKeyPrefix() {
-        final JsonPointer path = JsonPointer.of("/foo/bar");
-        final String key = MetadataHeaderKey.PREFIX + path;
-
-        final DefaultMetadataHeaderKey parsed = DefaultMetadataHeaderKey.parse(key);
 
         assertThat(parsed).isEqualTo(DefaultMetadataHeaderKey.of(path));
     }
@@ -163,11 +153,11 @@ public final class DefaultMetadataHeaderKeyTest {
     }
 
     @Test
-    public void asStringReturnsExpected() {
+    public void toStringReturnsExpected() {
         final JsonPointer path = JsonPointer.of("/foo/bar/baz");
         final DefaultMetadataHeaderKey underTest = DefaultMetadataHeaderKey.of(path);
 
-        assertThat(underTest.toString()).isEqualTo(DefaultMetadataHeaderKey.PREFIX + path);
+        assertThat(underTest).hasToString(path.toString());
     }
 
     @Test
