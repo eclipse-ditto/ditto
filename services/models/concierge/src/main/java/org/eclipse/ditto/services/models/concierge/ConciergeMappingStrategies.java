@@ -17,6 +17,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategies;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
@@ -25,7 +26,7 @@ import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 
 /**
  * {@link MappingStrategies} for the concierge service.
@@ -35,7 +36,7 @@ public final class ConciergeMappingStrategies extends MappingStrategies {
 
     @Nullable private static ConciergeMappingStrategies instance = null;
 
-    private ConciergeMappingStrategies(final Map<String, MappingStrategy> conciergeMappingStrategies) {
+    private ConciergeMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> conciergeMappingStrategies) {
         super(conciergeMappingStrategies);
     }
 
@@ -61,7 +62,7 @@ public final class ConciergeMappingStrategies extends MappingStrategies {
         return result;
     }
 
-    private static Map<String, MappingStrategy> getConciergeMappingStrategies() {
+    private static Map<String, JsonParsable<Jsonifiable<?>>> getConciergeMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
                 .putAll(ThingsMappingStrategies.getInstance())
                 .putAll(PoliciesMappingStrategies.getInstance())

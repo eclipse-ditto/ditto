@@ -40,7 +40,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -299,9 +299,9 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         @Nullable final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE)
                 .orElse(null);
-        final Consumer<MappingStrategy> action = mappingStrategy -> {
+        final Consumer<JsonParsable<Jsonifiable<?>>> action = mappingStrategy -> {
             try {
-                onSuccess.accept(mappingStrategy.map(piggybackCommandJson, command.getDittoHeaders()));
+                onSuccess.accept(mappingStrategy.parse(piggybackCommandJson, command.getDittoHeaders()));
             } catch (final DittoRuntimeException e) {
                 logger.withCorrelationId(command)
                         .warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!",

@@ -20,9 +20,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -109,8 +112,9 @@ public final class HttpRequestActorTest {
     }
 
     private HttpResponse createExpectedWhoamiResponse(final Whoami whoami) {
-        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(
-                whoami.getDittoHeaders().getAuthorizationContext());
+        final AuthorizationContext authContext =
+                getAuthContextWithPrefixedSubjectsFromHeaders(whoami.getDittoHeaders());
+        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(authContext);
         final List<HttpHeader> expectedHeaders = whoami.getDittoHeaders().entrySet()
                 .stream()
                 .map(e -> RawHeader.create(e.getKey(), e.getValue()))
@@ -118,6 +122,14 @@ public final class HttpRequestActorTest {
         return HttpResponse.create().withStatus(StatusCodes.OK)
                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(userInformation.toJsonString()))
                 .withHeaders(expectedHeaders);
+    }
+
+    private static AuthorizationContext getAuthContextWithPrefixedSubjectsFromHeaders(final DittoHeaders headers) {
+        final String authContextString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
+        final JsonObject authContextJson = authContextString == null ?
+                JsonObject.empty() :
+                JsonObject.of(authContextString);
+        return AuthorizationModelFactory.newAuthContext(authContextJson);
     }
 
 }

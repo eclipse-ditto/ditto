@@ -13,9 +13,12 @@
 
 package org.eclipse.ditto.services.gateway.endpoints.routes.whoami;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -71,10 +74,18 @@ public final class WhoamiRouteTest extends EndpointTestBase {
         final TestRouteResult result = underTest.run(HttpRequest.GET("/whoami"));
 
         final WhoamiResponse dummyResponse = WhoamiResponse.of(DefaultUserInformation.fromAuthorizationContext(
-                dittoHeaders.getAuthorizationContext()), dittoHeaders);
+                getAuthContextWithPrefixedSubjectsFromHeaders(dittoHeaders)), dittoHeaders);
 
         result.assertStatusCode(StatusCodes.OK);
         result.assertEntity(dummyResponse.getEntity(JsonSchemaVersion.V_2).toString());
+    }
+
+    private static AuthorizationContext getAuthContextWithPrefixedSubjectsFromHeaders(final DittoHeaders headers) {
+        final String authContextString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
+        final JsonObject authContextJson = authContextString == null ?
+                JsonObject.empty() :
+                JsonObject.of(authContextString);
+        return AuthorizationModelFactory.newAuthContext(authContextJson);
     }
 
 }

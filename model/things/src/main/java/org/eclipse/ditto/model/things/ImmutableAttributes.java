@@ -38,11 +38,8 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -73,7 +70,7 @@ final class ImmutableAttributes implements Attributes {
      * @param jsonObject provides the data to initialize the new attributes with.
      * @return the new attributes.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws JsonPointerInvalidException if an attribute name in the passed {@code jsonObject} was not valid
+     * @throws JsonKeyInvalidException if an attribute name in the passed {@code jsonObject} was not valid
      * according to pattern
      * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
@@ -83,24 +80,8 @@ final class ImmutableAttributes implements Attributes {
         if (jsonObject instanceof ImmutableAttributes) {
             return (Attributes) jsonObject;
         }
-        validateJsonKeys(jsonObject);
-        return new ImmutableAttributes(jsonObject);
-    }
 
-    private static void validateJsonKeys(final JsonObject jsonObject) {
-        for (final JsonField jsonField : jsonObject) {
-            final JsonKey key = jsonField.getKey();
-            final JsonValue value = jsonField.getValue();
-            final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(key);
-            if (!validator.isValid()) {
-                throw JsonKeyInvalidException.newBuilderWithDescription(key, validator.getReason().orElse(null))
-                        .build();
-            }
-            if (value.isObject()) {
-                // recurse!
-                validateJsonKeys(value.asObject());
-            }
-        }
+        return new ImmutableAttributes(JsonKeyValidator.validateJsonKeys(jsonObject));
     }
 
     @Override

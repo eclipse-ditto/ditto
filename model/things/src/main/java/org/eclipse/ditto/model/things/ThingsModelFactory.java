@@ -26,8 +26,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -539,6 +541,19 @@ public final class ThingsModelFactory {
         final FeaturesBuilder result = ImmutableFeaturesBuilder.newInstance();
         result.setAll(features);
         return result;
+    }
+
+    /**
+     * Validates the given {@link JsonPointer} to a feature property.
+     *
+     * @param jsonPointer {@code jsonPointer} that is validated
+     * @return the same {@code jsonPointer} if validation was successful
+     * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.2.0
+     */
+    public static JsonPointer validateFeaturePropertyPointer(final JsonPointer jsonPointer) {
+        return JsonKeyValidator.validate(jsonPointer);
     }
 
     /**
