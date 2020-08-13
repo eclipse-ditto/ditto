@@ -20,15 +20,10 @@ import java.util.function.BiConsumer;
  * Does also hold the type of the expected Message response.
  *
  * @param <R> the type of the expected message's payload.
+ * @deprecated Since 1.2.0. Use the more generic {@link org.eclipse.ditto.model.messages.ResponseConsumer} instead.
  */
-public interface MessageResponseConsumer<R> {
-
-    /**
-     * Returns the type of the expected Message response.
-     *
-     * @return the type of the expected Message response.
-     */
-    Class<R> getResponseType();
+@Deprecated
+public interface MessageResponseConsumer<R> extends ResponseConsumer<R, Message<R>> {
 
     /**
      * The BiConsumer which is notified about message responses with either the

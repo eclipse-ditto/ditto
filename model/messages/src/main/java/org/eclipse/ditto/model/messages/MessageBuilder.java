@@ -92,12 +92,12 @@ public interface MessageBuilder<T> {
     MessageBuilder<T> extra(@Nullable JsonObject extra);
 
     /**
-     * Adds a {@code responseConsumer} which is invoked with a potential response Message to the built Message.
+     * Adds a {@code responseConsumer} which is invoked with a potential response to the built Message.
      *
-     * @param responseConsumer Consumer to invoke for a potential response Message.
+     * @param responseConsumer Consumer to invoke for a potential response.
      * @return this builder to allow method chaining.
      */
-    MessageBuilder<T> responseConsumer(@Nullable MessageResponseConsumer<?> responseConsumer);
+    MessageBuilder<T> responseConsumer(@Nullable ResponseConsumer<?, ?> responseConsumer);
 
     /**
      * Creates a new immutable {@link Message} containing all properties which were set to this builder beforehand.

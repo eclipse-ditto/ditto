@@ -41,13 +41,13 @@ final class ImmutableMessage<T> implements Message<T> {
     @Nullable private final ByteBuffer rawPayload;
     @Nullable private final T payload;
     @Nullable private final JsonObject extra;
-    @Nullable private final MessageResponseConsumer<?> responseConsumer;
+    @Nullable private final ResponseConsumer<?, ?> responseConsumer;
 
     private ImmutableMessage(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
             @Nullable final JsonObject extra,
-            @Nullable final MessageResponseConsumer<?> responseConsumer) {
+            @Nullable final ResponseConsumer<?, ?> responseConsumer) {
 
         this.headers = checkNotNull(headers, "headers");
         this.rawPayload = rawPayload != null ? ByteBufferUtils.clone(rawPayload) : null;
@@ -84,14 +84,14 @@ final class ImmutableMessage<T> implements Message<T> {
      * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
      * provided no payload)
      * @param extra the extra (enriched) data of the message.
-     * @param responseConsumer MessageResponseConsumer which is invoked with a potential response message.
+     * @param responseConsumer ResponseConsumer which is invoked with a potential response.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
     public static <T> Message<T> of(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
             @Nullable final JsonObject extra,
-            @Nullable final MessageResponseConsumer<?> responseConsumer) {
+            @Nullable final ResponseConsumer<?,?> responseConsumer) {
 
         return new ImmutableMessage<>(headers, rawPayload, payload, extra, responseConsumer);
     }
@@ -122,6 +122,15 @@ final class ImmutableMessage<T> implements Message<T> {
 
     @Override
     public Optional<MessageResponseConsumer<?>> getResponseConsumer() {
+        if (responseConsumer instanceof MessageResponseConsumer<?>) {
+            return Optional.of((MessageResponseConsumer<?>) responseConsumer);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<ResponseConsumer<?,?>> getGenericResponseConsumer() {
         return Optional.ofNullable(responseConsumer);
     }
 
