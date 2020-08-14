@@ -33,7 +33,7 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
     @Nullable private ByteBuffer rawPayload;
     @Nullable private T payload;
     @Nullable private JsonObject extra;
-    @Nullable private ResponseConsumer<?, ?> responseConsumer;
+    @Nullable private MessageResponseConsumer<?> responseConsumer;
 
     private ImmutableMessageBuilder(final MessageHeaders theHeaders) {
         headers = theHeaders;
@@ -74,7 +74,7 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
     }
 
     @Override
-    public MessageBuilder<T> responseConsumer(@Nullable final ResponseConsumer<?, ?> responseConsumer) {
+    public MessageBuilder<T> responseConsumer(@Nullable final MessageResponseConsumer<?> responseConsumer) {
         this.responseConsumer = responseConsumer;
         return this;
     }

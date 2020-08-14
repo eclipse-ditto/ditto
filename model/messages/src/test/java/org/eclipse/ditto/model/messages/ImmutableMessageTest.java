@@ -36,7 +36,7 @@ public final class ImmutableMessageTest {
                 areImmutable(),
                 assumingFields("payload", "rawPayload").areNotModifiedAndDoNotEscape(),
                 provided(MessageHeaders.class, ByteBuffer.class, AuthorizationContext.class,
-                        ResponseConsumer.class, JsonObject.class).areAlsoImmutable());
+                        MessageResponseConsumer.class, JsonObject.class).areAlsoImmutable());
     }
 
     @Test

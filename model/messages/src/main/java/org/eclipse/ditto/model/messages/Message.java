@@ -75,20 +75,13 @@ public interface Message<T> {
     Optional<JsonObject> getExtra();
 
     /**
-     * Returns the MessageResponseConsumer which is invoked with a potential response message or an error.
+     * Returns the MessageResponseConsumer which is stored together with the message but never serialized.
      *
-     * @return the MessageResponseConsumer which is invoked with a potential response message or an error.
-     * @deprecated since 1.2.0. Use {@link #getGenericResponseConsumer()} instead.
+     * @return the MessageResponseConsumer stored locally with the message.
+     * @deprecated since 1.2.0.
      */
     @Deprecated
     Optional<MessageResponseConsumer<?>> getResponseConsumer();
-
-    /**
-     * Returns the ResponseConsumer which is invoked with a potential response or an error.
-     *
-     * @return the ResponseConsumer which is invoked with a potential response message or an error.
-     */
-    Optional<ResponseConsumer<?, ?>> getGenericResponseConsumer();
 
     /**
      * Returns the direction of the message, specifying if the message has been sent <em>FROM</em> a {@code Thing} (or

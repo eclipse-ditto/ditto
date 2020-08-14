@@ -35,10 +35,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-things</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-acks-base</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -67,6 +63,7 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>
