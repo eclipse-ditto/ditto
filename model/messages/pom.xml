@@ -67,13 +67,6 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <exclude>
-                                <!--
-                                Excluded because it was replaced with a superclass of MessageResponseConsumer.
-                                Therefore no compilation errors will occur.
-                                -->
-                                org.eclipse.ditto.model.messages.MessageBuilder#responseConsumer(org.eclipse.ditto.model.messages.MessageResponseConsumer)
-                            </exclude>
                         </excludes>
                     </parameter>
                 </configuration>

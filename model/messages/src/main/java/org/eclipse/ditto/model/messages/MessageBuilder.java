@@ -92,6 +92,18 @@ public interface MessageBuilder<T> {
     MessageBuilder<T> extra(@Nullable JsonObject extra);
 
     /**
+     * Adds a {@code responseConsumer} which is invoked with a potential response Message to the built Message.
+     *
+     * @param responseConsumer Consumer to invoke for a potential response Message.
+     * @return this builder to allow method chaining.
+     * @deprecated since 1.2.0. Use {@link #responseConsumer(ResponseConsumer)} instead
+     */
+    @Deprecated
+    default MessageBuilder<T> responseConsumer(@Nullable MessageResponseConsumer<?> responseConsumer) {
+        return this.responseConsumer((ResponseConsumer<?, ?>) responseConsumer);
+    }
+
+    /**
      * Adds a {@code responseConsumer} which is invoked with a potential response to the built Message.
      *
      * @param responseConsumer Consumer to invoke for a potential response.
