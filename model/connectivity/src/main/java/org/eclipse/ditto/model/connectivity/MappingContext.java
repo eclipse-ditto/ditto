@@ -13,9 +13,11 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -50,6 +52,12 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
     Map<String, String> getOptions();
 
     /**
+     * All conditions to be validated before mapping.
+     * @return the conditions
+     */
+    Set<String> getConditions();
+
+    /**
      * Returns all non hidden marked fields of this {@code MappingContext}.
      *
      * @return a JSON object representation of this MappingContext including only non hidden marked fields.
@@ -75,6 +83,13 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<String> MAPPING_ENGINE =
                 JsonFactory.newStringFieldDefinition("mappingEngine", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code conditions} to check before mapping.
+         */
+        public static final JsonFieldDefinition<JsonArray> CONDITIONS =
+                JsonFactory.newJsonArrayFieldDefinition("conditions", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
