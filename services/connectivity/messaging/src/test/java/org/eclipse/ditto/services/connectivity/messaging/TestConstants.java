@@ -891,6 +891,10 @@ public final class TestConstants {
     public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects) {
         return thingModified(readSubjects, Attributes.newBuilder().build());
     }
+    public static ThingModifiedEvent thingModifiedWithCor(final Collection<AuthorizationSubject> readSubjects) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).correlationId("testCor").build();
+        return ThingModified.of(Things.THING.toBuilder().setAttributes(Attributes.newBuilder().build()).build(), 1, dittoHeaders);
+    }
 
     public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects,
             final Attributes attributes) {

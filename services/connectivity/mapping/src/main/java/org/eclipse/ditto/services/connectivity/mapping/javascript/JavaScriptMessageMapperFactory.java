@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
+import java.util.Collections;
 import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
@@ -38,7 +39,7 @@ public final class JavaScriptMessageMapperFactory {
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMessageMapperConfigurationBuilder(
             final String id, final Map<String, String> properties) {
 
-        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, properties);
+        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, Collections.emptySet(), properties);
     }
 
     /**

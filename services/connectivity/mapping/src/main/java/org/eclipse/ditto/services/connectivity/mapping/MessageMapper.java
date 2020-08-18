@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -87,6 +88,14 @@ public interface MessageMapper {
     default Map<String, String> getDefaultOptions() {
         return Collections.emptyMap();
     }
+
+    /**
+     * Returns the conditions to be checked before mapping.
+     * @return the conditions.
+     *
+     * @since 1.2.0
+     */
+    Set<String> getConditions();
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

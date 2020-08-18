@@ -373,13 +373,28 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
-     * @param mappingEngine fully qualified classname of a mapping engine
-     * @param options the mapping options required to instantiate a mapper
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options) {
         return ImmutableMappingContext.of(mappingEngine, options);
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param conditions the conditions to be checked before mapping.
+     * @param options the mapping options required to instantiate a mapper.
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     *
+     * @since 1.2.0
+     */
+    public static MappingContext newMappingContext(final String mappingEngine, final Set<String> conditions, final Map<String, String> options) {
+        return ImmutableMappingContext.of(mappingEngine, conditions, options);
     }
 
     /**

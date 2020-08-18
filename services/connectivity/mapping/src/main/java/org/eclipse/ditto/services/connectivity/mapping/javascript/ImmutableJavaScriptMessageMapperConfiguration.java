@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -37,6 +38,11 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     @Override
     public String getId() {
         return delegationTarget.getId();
+    }
+
+    @Override
+    public Set<String> getConditions() {
+        return delegationTarget.getConditions();
     }
 
     @Override
@@ -64,6 +70,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
+                "conditions=" + getConditions().toString() +
                 "properties=" + getProperties() +
                 "]";
     }
@@ -75,10 +82,12 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     static final class Builder implements JavaScriptMessageMapperConfiguration.Builder {
 
         private final String id;
+        private final Set<String> conditions;
         private final Map<String, String> properties;
 
-        Builder(final String id, final Map<String, String> properties) {
+        Builder(final String id, final Set<String> conditions, final Map<String, String> properties) {
             this.id = id;
+            this.conditions = conditions;
             this.properties = new HashMap<>(properties); // mutable map!
         }
 
@@ -87,10 +96,14 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
             return properties;
         }
 
+        public Set<String> getConditions() {
+            return conditions;
+        }
+
         @Override
         public JavaScriptMessageMapperConfiguration build() {
             return new ImmutableJavaScriptMessageMapperConfiguration(
-                    DefaultMessageMapperConfiguration.of(id, properties));
+                    DefaultMessageMapperConfiguration.of(id, conditions, properties));
         }
 
     }

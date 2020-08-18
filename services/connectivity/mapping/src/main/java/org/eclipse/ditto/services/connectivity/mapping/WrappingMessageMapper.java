@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -65,6 +66,11 @@ final class WrappingMessageMapper implements MessageMapper {
     @Override
     public Map<String, String> getDefaultOptions() {
         return delegate.getDefaultOptions();
+    }
+
+    @Override
+    public Set<String> getConditions() {
+        return delegate.getConditions();
     }
 
     /**

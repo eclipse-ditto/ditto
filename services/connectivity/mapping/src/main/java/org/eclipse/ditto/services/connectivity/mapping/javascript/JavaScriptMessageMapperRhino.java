@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,7 +70,7 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     @Override
     public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
         configuration =
-                new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(),
+                new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(), Collections.emptySet(),
                         options.getProperties()).build();
 
         final JavaScriptConfig javaScriptConfig = mappingConfig.getJavaScriptConfig();

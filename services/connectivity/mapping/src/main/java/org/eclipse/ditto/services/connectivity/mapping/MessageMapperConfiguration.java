@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 
@@ -35,6 +36,15 @@ public interface MessageMapperConfiguration {
      * @return the ID of the mapping
      */
     String getId();
+
+    /**
+     * Returns the conditions to check before mapping.
+     *
+     * @return an unmodifiable Set containing the conditions.
+     *
+     * @since 1.2.0
+     */
+    Set<String> getConditions();
 
     /**
      * Returns the configuration properties as Map.

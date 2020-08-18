@@ -54,6 +54,8 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
     /**
      * All conditions to be validated before mapping.
      * @return the conditions
+     *
+     * @since 1.2.0
      */
     Set<String> getConditions();
 

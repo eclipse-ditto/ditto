@@ -35,6 +35,8 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -131,8 +133,8 @@ public final class MessageMappingProcessor {
      *
      * @param message the inbound {@link ExternalMessage} to be processed
      * @param resultHandler handles the 0..n results of the mapping(s).
-     * @return combined results of all message mappers.
      * @param <R> type of results.
+     * @return combined results of all message mappers.
      */
     <R> R process(final ExternalMessage message,
             final MappingResultHandler<MappedInboundExternalMessage, R> resultHandler) {
@@ -244,11 +246,8 @@ public final class MessageMappingProcessor {
         checkNotNull(message, "message");
         R result = handler.emptyResult();
         try {
-            final boolean shouldMapMessage = message.findContentType()
-                    .map(filterByContentTypeBlocklist(mapper))
-                    .orElse(true); // if no content-type was present, map the message!
 
-            if (shouldMapMessage) {
+            if (shouldMapMessageByContentType(message, mapper) && shouldMapMessageByConditions(message, mapper)) {
                 logger.withCorrelationId(message.getInternalHeaders())
                         .debug("Mapping message using mapper {}.", mapper.getId());
                 final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
@@ -273,8 +272,9 @@ public final class MessageMappingProcessor {
             } else {
                 result = handler.onMessageDropped();
                 logger.withCorrelationId(message.getInternalHeaders())
-                        .debug("Not mapping message with mapper <{}> as content-type <{}> was blocked.",
-                                mapper.getId(), message.findContentType());
+                        .debug("Not mapping message with mapper <{}> as content-type <{}> was " +
+                                        "blocked or MessageMapper conditions {} were not matched.",
+                                mapper.getId(), message.findContentType(), mapper.getConditions());
             }
         } catch (final DittoRuntimeException e) {
             // combining error result with any previously successfully mapped result
@@ -286,6 +286,36 @@ public final class MessageMappingProcessor {
             result = handler.combineResults(result, handler.onException(mappingFailedException));
         }
         return result;
+    }
+
+    private static boolean shouldMapMessageByContentType(final ExternalMessage message, final MessageMapper mapper) {
+        return message.findContentType()
+                .map(filterByContentTypeBlocklist(mapper))
+                .orElse(true);
+    }
+
+    private static boolean shouldMapMessageByConditions(final ExternalMessage message, final MessageMapper mapper) {
+        return validateMapperConditions(mapper, Resolvers.forExternalMessage(message));
+    }
+
+    private static boolean shouldMapMessageByConditions(final OutboundSignal.Mappable outboundSignal,
+            final MessageMapper mapper) {
+        return validateMapperConditions(mapper, Resolvers.forOutboundSignal(outboundSignal));
+    }
+
+    private static boolean validateMapperConditions(final MessageMapper mapper,
+            final ExpressionResolver expressionResolver) {
+        if (!mapper.getConditions().isEmpty()) {
+            boolean conditionBool = true;
+            ExpressionResolver resolver = expressionResolver;
+            for (String condition : mapper.getConditions()) {
+                conditionBool &= Boolean.parseBoolean(
+                        PlaceholderFilter.applyOrElseDelete("{{ fn:default('true') | " + condition + " }}", resolver)
+                                .orElse("false"));
+            }
+            return conditionBool;
+        }
+        return true;
     }
 
     private static Function<String, Boolean> filterByContentTypeBlocklist(final MessageMapper mapper) {
@@ -300,31 +330,39 @@ public final class MessageMappingProcessor {
 
         R result = resultHandler.emptyResult();
         try {
-            logger.withCorrelationId(adaptable)
-                    .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
+            if (shouldMapMessageByConditions(outboundSignal, mapper)) {
+                logger.withCorrelationId(adaptable)
+                        .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
 
-            final List<OutboundSignal.Mapped> messages = timer.payload(mapper.getId(),
-                    () -> toStream(mapper.map(adaptable))
-                            .map(em -> {
-                                final ExternalMessage externalMessage =
-                                        ExternalMessageFactory.newExternalMessageBuilder(em)
-                                                .withTopicPath(adaptable.getTopicPath())
-                                                .withInternalHeaders(outboundSignal.getSource().getDittoHeaders())
-                                                .build();
-                                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
-                                        externalMessage);
-                            })
-                            .collect(Collectors.toList()));
+                final List<OutboundSignal.Mapped> messages = timer.payload(mapper.getId(),
+                        () -> toStream(mapper.map(adaptable))
+                                .map(em -> {
+                                    final ExternalMessage externalMessage =
+                                            ExternalMessageFactory.newExternalMessageBuilder(em)
+                                                    .withTopicPath(adaptable.getTopicPath())
+                                                    .withInternalHeaders(outboundSignal.getSource().getDittoHeaders())
+                                                    .build();
+                                    return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
+                                            externalMessage);
+                                })
+                                .collect(Collectors.toList()));
 
-            logger.withCorrelationId(adaptable)
-                    .debug("Mapping <{}> produced <{}> messages.", mapper.getId(), messages.size());
+                logger.withCorrelationId(adaptable)
+                        .debug("Mapping <{}> produced <{}> messages.", mapper.getId(), messages.size());
 
-            if (messages.isEmpty()) {
-                result = resultHandler.combineResults(result, resultHandler.onMessageDropped());
-            } else {
-                for (final OutboundSignal.Mapped message : messages) {
-                    result = resultHandler.combineResults(result, resultHandler.onMessageMapped(message));
+                if (messages.isEmpty()) {
+                    result = resultHandler.combineResults(result, resultHandler.onMessageDropped());
+                } else {
+                    for (final OutboundSignal.Mapped message : messages) {
+                        result = resultHandler.combineResults(result, resultHandler.onMessageMapped(message));
+                    }
                 }
+            } else {
+                result = resultHandler.onMessageDropped();
+                logger.withCorrelationId(adaptable)
+                        .debug("Not mapping message with mapper <{}> as MessageMapper" +
+                                        " conditions {} were not matched.",
+                                mapper.getId(), mapper.getConditions());
             }
         } catch (final DittoRuntimeException e) {
             result = resultHandler.combineResults(result, resultHandler.onException(e));
@@ -355,7 +393,7 @@ public final class MessageMappingProcessor {
         if (mappings.isEmpty()) {
             logger.withCorrelationId(message.getInternalHeaders())
                     .debug("Falling back to Default MessageMapper for mapping ExternalMessage as no MessageMapper was"
-                                    + " present: {}", message);
+                            + " present: {}", message);
             return Collections.singletonList(registry.getDefaultMapper());
         } else {
             return mappings;
