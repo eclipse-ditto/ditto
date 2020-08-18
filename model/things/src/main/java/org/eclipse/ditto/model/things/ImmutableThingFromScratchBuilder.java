@@ -42,6 +42,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
+    @Nullable Instant created;
     @Nullable private JsonSchemaVersion schemaVersion;
     @Nullable private PolicyId policyId;
     @Nullable
@@ -65,6 +66,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         lifecycle = null;
         revision = null;
         modified = null;
+        created = null;
     }
 
     /**
@@ -337,6 +339,12 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    public FromScratch setCreated(@Nullable final Instant created) {
+        this.created = created;
+        return this;
+    }
+
+    @Override
     @Deprecated
     public FromScratch setPermissions(final JsonObject accessControlListJsonObject) {
         final AccessControlList accessControlList = ThingsModelFactory.newAcl(accessControlListJsonObject);
@@ -437,10 +445,10 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     public Thing build() {
         if (null != policyId) {
             return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified);
+                    revision, modified, created);
         } else {
             return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified);
+                    revision, modified, created);
         }
     }
 

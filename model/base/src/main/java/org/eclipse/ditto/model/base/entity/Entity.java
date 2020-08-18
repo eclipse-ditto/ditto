@@ -66,6 +66,14 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
     Optional<Instant> getModified();
 
     /**
+     * Returns the created timestamp of this entity.
+     *
+     * @return the timestamp.
+     * @since 1.2.0
+     */
+    Optional<Instant> getCreated();
+
+    /**
      * Returns whether this entity is deleted.
      *
      * @return {@code true}, if deleted; false, otherwise.

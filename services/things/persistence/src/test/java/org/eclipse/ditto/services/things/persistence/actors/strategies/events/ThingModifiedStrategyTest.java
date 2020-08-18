@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -27,6 +29,8 @@ import org.junit.Test;
  */
 public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
 
+    private static final Instant TIMESTAMP = Instant.now();
+
     @Test
     public void assertImmutability() {
         assertInstancesOf(ThingModifiedStrategy.class, areImmutable());
@@ -35,13 +39,14 @@ public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final ThingModifiedStrategy strategy = new ThingModifiedStrategy();
-        final ThingModified event = ThingModified.of(THING, REVISION, DittoHeaders.empty());
+        final ThingModified event = ThingModified.of(THING, REVISION, TIMESTAMP, DittoHeaders.empty());
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

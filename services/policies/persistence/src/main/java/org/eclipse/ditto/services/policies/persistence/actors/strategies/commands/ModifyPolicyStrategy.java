@@ -33,7 +33,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy} command for an already existing Policy.
+ * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy} command for an
+ * already existing Policy.
  */
 final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPolicy> {
 
@@ -44,7 +45,8 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
             final long nextRevision, final ModifyPolicy command) {
-        final Policy modifiedPolicy = command.getPolicy().toBuilder().setRevision(nextRevision).build();
+        final Policy modifiedPolicy =
+                command.getPolicy().toBuilder().setRevision(nextRevision).build();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final JsonObject modifiedPolicyJsonObject = modifiedPolicy.toJson();

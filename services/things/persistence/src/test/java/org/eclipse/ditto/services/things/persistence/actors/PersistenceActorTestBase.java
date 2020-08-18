@@ -81,8 +81,8 @@ public abstract class PersistenceActorTestBase {
 
     protected static final JsonFieldSelector ALL_FIELDS_SELECTOR = JsonFactory.newFieldSelector(
             Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.ACL,
-            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
-            Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.CREATED,
+            Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
 
     private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
     private static final FeatureProperties FEATURE_PROPERTIES =

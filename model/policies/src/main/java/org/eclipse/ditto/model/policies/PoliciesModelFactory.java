@@ -447,7 +447,8 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      */
-    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects, final Iterable<Resource> resources) {
+    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources));
     }
 
@@ -616,7 +617,7 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null,
+        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
                 allEntries);
     }
 
@@ -639,7 +640,7 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, allEntries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, allEntries);
     }
 
     /**
@@ -653,7 +654,7 @@ public final class PoliciesModelFactory {
      */
     @Deprecated
     public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null,
+        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
                 entries);
     }
 
@@ -666,7 +667,7 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, entries);
     }
 
     /**
