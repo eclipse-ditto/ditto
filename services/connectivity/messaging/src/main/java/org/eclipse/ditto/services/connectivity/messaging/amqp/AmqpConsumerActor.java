@@ -62,6 +62,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -274,6 +276,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     private void handleJmsMessage(final JmsMessage message) {
+        final StartedTimer timer = DittoMetrics.expiringTimer("amqp_receive_to_ack").build();
         Map<String, String> headers = null;
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
@@ -300,8 +303,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                         externalMessage.getTextPayload().orElse("binary"));
             }
             forwardToMappingActor(externalMessage,
-                    () -> acknowledge(message, true, false),
-                    redeliver -> acknowledge(message, false, redeliver)
+                    () -> acknowledge(message, true, false, timer),
+                    redeliver -> acknowledge(message, false, redeliver, timer)
             );
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
@@ -328,10 +331,12 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * Acknowledge an incoming message with a given acknowledgement type.
      *
      * @param message The incoming message.
-     * @param redeliver whether redelivery should be requested.
      * @param isSuccess Whether this ackType is considered a success.
+     * @param redeliver whether redelivery should be requested.
+     * @param timer timer to stop after acknowledging.
      */
-    private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver) {
+    private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver,
+            final StartedTimer timer) {
         try {
             final String messageId = message.getJMSMessageID();
             recordAckForRateLimit(messageId, isSuccess, redeliver);
@@ -348,6 +353,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             log.debug("Acking <{}> with isSuccess=<{}>, ackType=<{} {}>", messageId, isSuccess, ackType, ackTypeName);
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
+            timer.tag("success", isSuccess).stop();
             if (isSuccess) {
                 inboundAcknowledgedMonitor.getLogger().success("Sending acknowledgement {0}", ackTypeName);
             } else {
