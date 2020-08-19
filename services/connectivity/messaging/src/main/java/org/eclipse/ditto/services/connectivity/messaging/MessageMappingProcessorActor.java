@@ -251,7 +251,8 @@ public final class MessageMappingProcessorActor
                         () -> mapInboundMessage(externalMessage),
                         getContext().getDispatcher())
                 )
-                .toMat(Sink.foreach(this::handleIncomingMappedSignal), Keep.left())
+                .flatMapConcat(this::handleIncomingMappedSignal)
+                .toMat(Sink.foreach(incomingSignal -> getSelf().tell(incomingSignal, ActorRef.noSender())), Keep.left())
                 .run(materializer);
     }
 
@@ -308,17 +309,19 @@ public final class MessageMappingProcessorActor
                 });
     }
 
-    private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
+    private Source<IncomingSignal, ?> handleIncomingMappedSignal(
+            final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
         final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
-        final Sink<IncomingSignal, CompletionStage<Integer>> ackRequestingSignalCountingSink =
-                Sink.fold(0, (i, envelope) -> envelope.isAckRequesting ? i + 1 : i);
-        mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
-                .wireTap(envelope -> getSelf().tell(envelope, ActorRef.noSender()))
-                .runWith(ackRequestingSignalCountingSink, materializer)
-                .thenAccept(ackRequestingSignalCount ->
-                        sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
-                );
+        final Sink<IncomingSignal, CompletionStage<Integer>> wireTapSink =
+                Sink.fold(0, (i, s) -> i + (s.isAckRequesting ? 1 : 0));
+        return mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
+                .wireTapMat(wireTapSink, (otherMat, ackRequestingSignalCountFuture) -> {
+                    ackRequestingSignalCountFuture.thenAccept(ackRequestingSignalCount ->
+                            sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
+                    );
+                    return otherMat;
+                });
     }
 
     private PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> onIncomingMappedSignal(final ActorRef sender) {
