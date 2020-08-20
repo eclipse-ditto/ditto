@@ -276,7 +276,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     private void handleJmsMessage(final JmsMessage message) {
-        final StartedTimer timer = DittoMetrics.expiringTimer("amqp_receive_to_ack").build();
+        final StartedTimer timer = DittoMetrics.expiringTimer("receive_to_ack").tag("connection_type", "amqp10").build();
         Map<String, String> headers = null;
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
