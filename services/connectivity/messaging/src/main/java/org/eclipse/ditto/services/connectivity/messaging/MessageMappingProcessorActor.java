@@ -410,25 +410,6 @@ public final class MessageMappingProcessorActor
         }
     }
 
-    private Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter) {
-        if (filter != null) {
-            final String fullFilter =
-                    "{{ header:" + DittoHeaderDefinition.REQUESTED_ACKS.getKey() + " | " + filter + " }}";
-            final ExpressionResolver expressionResolver = Resolvers.forSignal(signal);
-            final Optional<String> resolvedFilter = PlaceholderFilter.applyOrElseDelete(fullFilter, expressionResolver);
-            if (resolvedFilter.isPresent()) {
-                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .putHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), resolvedFilter.orElseThrow())
-                        .build());
-            } else {
-                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .acknowledgementRequests(Collections.emptySet())
-                        .build());
-            }
-        }
-        return signal;
-    }
-
     @Override
     protected void handleDittoRuntimeException(final DittoRuntimeException exception) {
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(exception, null);
@@ -895,6 +876,39 @@ public final class MessageMappingProcessorActor
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
                 });
+    }
+
+    static Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter) {
+        if (filter != null) {
+            final String requestedAcks = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
+            final boolean headerDefined = signal.getDittoHeaders().containsKey(requestedAcks);
+            final String fullFilter = "header:" + requestedAcks + "|fn:default('[]')|" + filter;
+            final ExpressionResolver resolver = Resolvers.forSignal(signal);
+            final Optional<String> resolverResult = resolver.resolveAsPipelineElement(fullFilter).toOptional();
+            if (resolverResult.isEmpty()) {
+                // filter tripped: set requested-acks to []
+                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                        .acknowledgementRequests(Collections.emptySet())
+                        .build());
+            } else if (headerDefined) {
+                // filter not tripped, header defined
+                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                        .putHeader(requestedAcks, resolverResult.orElseThrow())
+                        .build());
+            } else {
+                // filter not tripped, header not defined:
+                // - evaluate filter again against unresolved and set requested-acks accordingly
+                // - if filter is not resolved, then keep requested-acks undefined for the default behavior
+                final Optional<String> unsetFilterResult =
+                        resolver.resolveAsPipelineElement(filter).toOptional();
+                return unsetFilterResult.<Signal<?>>map(newAckRequests ->
+                        signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                                .putHeader(requestedAcks, newAckRequests)
+                                .build()))
+                        .orElse(signal);
+            }
+        }
+        return signal;
     }
 
     /**
