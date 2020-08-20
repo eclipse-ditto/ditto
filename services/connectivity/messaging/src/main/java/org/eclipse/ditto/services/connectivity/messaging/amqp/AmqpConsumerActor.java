@@ -295,16 +295,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     .withPayloadMapping(consumerData.getSource().getPayloadMapping())
                     .build();
             inboundMonitor.success(externalMessage);
-
+            final Map<String, String> externalMessageHeaders = externalMessage.getHeaders();
             LogUtil.enhanceLogWithCorrelationId(log,
                     externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
-            if (log.isDebugEnabled()) {
-                log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
-                        externalMessage.getTextPayload().orElse("binary"));
-            }
+            log.info("Received message from AMQP 1.0 ({}): {}", externalMessageHeaders,
+                    externalMessage.getTextPayload().orElse("binary"));
             forwardToMappingActor(externalMessage,
-                    () -> acknowledge(message, true, false, timer),
-                    redeliver -> acknowledge(message, false, redeliver, timer)
+                    () -> acknowledge(message, true, false, timer, externalMessageHeaders),
+                    redeliver -> acknowledge(message, false, redeliver, timer, externalMessageHeaders)
             );
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
@@ -334,9 +332,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * @param isSuccess Whether this ackType is considered a success.
      * @param redeliver whether redelivery should be requested.
      * @param timer timer to stop after acknowledging.
+     * @param externalMessageHeaders used for logging to correlate ack with received log.
      */
     private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver,
-            final StartedTimer timer) {
+            final StartedTimer timer, final Map<String, String> externalMessageHeaders) {
         try {
             final String messageId = message.getJMSMessageID();
             recordAckForRateLimit(messageId, isSuccess, redeliver);
@@ -350,7 +349,11 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 ackType = redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE;
                 ackTypeName = redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]";
             }
-            log.debug("Acking <{}> with isSuccess=<{}>, ackType=<{} {}>", messageId, isSuccess, ackType, ackTypeName);
+            log.info("Acking <" + messageId +
+                            "> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
+                    externalMessageHeaders,
+                    isSuccess, ackType,
+                    ackTypeName);
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             timer.tag("success", isSuccess).stop();
