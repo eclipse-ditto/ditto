@@ -15,23 +15,18 @@ package org.eclipse.ditto.signals.commands.messages;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageBuilder;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
@@ -93,22 +88,7 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
      * @return the Message
      */
     protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
-        final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE);
-        final JsonObject messageHeadersObject =
-                messageObject.getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS)
-                        .filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                                .fieldName(
-                                        MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS.getPointer().toString())
-                                .build());
-        final Optional<JsonValue> messagePayloadOptional =
-                messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD);
-
-        final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
-        final MessageBuilder<T> messageBuilder = Message.<T>newBuilder(messageHeaders);
-        MessagePayloadSerializer.deserialize(messagePayloadOptional, messageBuilder, messageHeaders);
-        return messageBuilder.build();
+        return AbstractMessageCommand.deserializeMessageFromJson(jsonObject);
     }
 
     @Override

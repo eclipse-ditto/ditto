@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -25,12 +24,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageBuilder;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -101,7 +97,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
     }
 
     /**
-     * Deserializes the {@link Message} from the JSON representation - the {@code rawPayload} is decoded with Base64.
+     * Deserializes the {@link Message} from the JSON representation of the Command- the {@code rawPayload} is decoded with Base64.
      *
      * @param <T> the type of the message's payload.
      * @param jsonObject the JsonObjectReader to use for reading the message.
@@ -109,16 +105,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
      */
     protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
         final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE);
-        final JsonObject messageHeadersObject =
-                messageObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS);
-        final Optional<JsonValue> messagePayloadOptional =
-                messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD);
-
-        final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
-        final MessageBuilder<T> messageBuilder = Message.newBuilder(messageHeaders);
-        MessagePayloadSerializer.deserialize(messagePayloadOptional, messageBuilder,
-                messageHeaders);
-        return messageBuilder.build();
+        return MessageDeserializer.deserializeMessageFromJson(messageObject);
     }
 
     @Override
