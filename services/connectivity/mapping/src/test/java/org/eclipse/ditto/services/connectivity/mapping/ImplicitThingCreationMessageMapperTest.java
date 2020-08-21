@@ -106,7 +106,7 @@ public class ImplicitThingCreationMessageMapperTest {
                 .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
     }
 
-    @Test
+    @Test // TODO: Discuss the expected result.
     public void substitutePolicyIdWithThingIdIfEntityIdIsMissing() {
 
         underTest.configure(mappingConfig, createMapperConfig(null, null));
@@ -131,6 +131,29 @@ public class ImplicitThingCreationMessageMapperTest {
         assertThat(mappedThing.getPolicyEntityId())
                 .isEqualTo(expectedThing.getPolicyEntityId());
 
+    }
+
+    @Test
+    public void doForwardEvenWithoutAnyPlaceholders() {
+        final Map<String, String> headers = createValidHeaders();
+
+        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, null));
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+
+        final Thing expectedThing =
+                createExpectedThing("some:validThingId!", "some:validPolicyId!");
+
+        final Thing mappedThing =
+                ThingsModelFactory.newThing(mappingResult.get(0).getPayload().getValue().get().toString());
+
+        assertThat(mappedThing.getEntityId())
+                .isEqualTo(expectedThing.getEntityId());
+
+        assertThat(mappedThing.getPolicyEntityId())
+                .isEqualTo(expectedThing.getPolicyEntityId());
     }
 
     private Map<String, String> createValidHeaders() {
