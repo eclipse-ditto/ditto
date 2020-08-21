@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.akka;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -99,6 +98,7 @@ public final class LogUtil {
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
             final Optional<String> correlationId, final MdcField... additionalMdcFields) {
+
         if (correlationId.isPresent()) {
             enhanceLogWithCorrelationId(loggingAdapter, correlationId.get(), additionalMdcFields);
         } else {
@@ -112,7 +112,7 @@ public final class LogUtil {
      * @param mdcField the field to add to the MDC.
      */
     public static void enhanceLogWithCustomField(final MdcField mdcField) {
-        MDC.put(mdcField.getName(), mdcField.getValue());
+        MDC.put(mdcField.getName(), String.valueOf(mdcField.getValue()));
     }
 
     /**
@@ -124,7 +124,8 @@ public final class LogUtil {
      * @param additionalMdcFields additional fields to add to the MDC.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
-            final String correlationId, final MdcField... additionalMdcFields) {
+            final CharSequence correlationId, final MdcField... additionalMdcFields) {
+
         enhanceLogWithCustomField(loggingAdapter, X_CORRELATION_ID, correlationId, additionalMdcFields);
     }
 
@@ -138,7 +139,9 @@ public final class LogUtil {
      * @param additionalMdcFields additional fields to add to the MDC.
      */
     public static void enhanceLogWithCustomField(final DiagnosticLoggingAdapter loggingAdapter,
-            final String fieldName, @Nullable final String fieldValue, final MdcField... additionalMdcFields) {
+            final String fieldName,
+            @Nullable final CharSequence fieldValue,
+            final MdcField... additionalMdcFields) {
 
         final Map<String, Object> mdcMap = getMDC(loggingAdapter);
 
@@ -148,14 +151,19 @@ public final class LogUtil {
         loggingAdapter.setMDC(mdcMap);
     }
 
-    private static void enhanceMdcWithAdditionalFields(final Map<String, Object> mdc, final MdcField... additionalMdcFields) {
-        Arrays.stream(additionalMdcFields)
-                .forEach(field -> enhanceMdcWithAdditionalField(mdc, field.getName(), field.getValue()));
+    private static void enhanceMdcWithAdditionalFields(final Map<String, Object> mdc,
+            final MdcField... additionalMdcFields) {
+
+        for (final MdcField additionalMdcField : additionalMdcFields) {
+            enhanceMdcWithAdditionalField(mdc, additionalMdcField.getName(), additionalMdcField.getValue());
+        }
     }
 
-    private static void enhanceMdcWithAdditionalField(final Map<String, Object> mdc, final String fieldName, @Nullable final String fieldValue) {
-        if (fieldValue != null && !fieldValue.isEmpty()) {
-            mdc.put(fieldName, fieldValue);
+    private static void enhanceMdcWithAdditionalField(final Map<String, Object> mdc, final String fieldName,
+            @Nullable final CharSequence fieldValue) {
+
+        if (null != fieldValue && 0 < fieldValue.length()) {
+            mdc.put(fieldName, fieldValue.toString());
         } else {
             mdc.remove(fieldName);
         }
@@ -313,7 +321,7 @@ public final class LogUtil {
          * @return the value.
          */
         @Nullable
-        String getValue();
+        CharSequence getValue();
     }
 
     /**
@@ -323,9 +331,9 @@ public final class LogUtil {
     private static final class ImmutableMdcField implements MdcField  {
 
         private final String name;
-        @Nullable private final String value;
+        @Nullable private final CharSequence value;
 
-        private ImmutableMdcField(final String name, @Nullable final String value) {
+        private ImmutableMdcField(final String name, @Nullable final CharSequence value) {
             this.name = checkNotNull(name);
             this.value = value;
         }
@@ -338,7 +346,7 @@ public final class LogUtil {
 
         @Override
         @Nullable
-        public String getValue() {
+        public CharSequence getValue() {
             return value;
         }
 
