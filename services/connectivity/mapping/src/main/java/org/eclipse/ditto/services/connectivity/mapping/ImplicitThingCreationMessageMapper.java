@@ -44,7 +44,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
  * The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  *
- * @since TODO
+ * @since 1.2.0
  */
 @PayloadMapper(
         alias = "ImplicitThingCreation",
