@@ -20,6 +20,11 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 
+/**
+ * Responsible for deserializing a {@link Message} from a given {@link JsonObject}.
+ *
+ * @since 1.2.0
+ */
 public final class MessageDeserializer {
 
     private MessageDeserializer() {
