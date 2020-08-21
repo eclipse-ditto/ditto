@@ -27,7 +27,9 @@ import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -78,9 +80,11 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                 .orElseThrow(() -> MessageMapperConfigurationInvalidException.newBuilder(THING_ID).build())
                 .getValue();
 
-        final JsonValue policyId = thingTemplate.getField(POLICY_ID)
-                .orElseThrow(() -> MessageMapperConfigurationInvalidException.newBuilder(POLICY_ID).build())
-                .getValue();
+        // Do not throw an exception because policyId is not required in mapping config. But still needs to be valid if
+        // given.
+        final JsonValue policyId =
+                thingTemplate.getField(POLICY_ID).isPresent() ?
+                        thingTemplate.getField(POLICY_ID).get().getValue() : thingId;
 
         try {
 
@@ -113,9 +117,9 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         }
     }
 
-    private List<Adaptable> doMap(final ExternalMessage message) {
+    private List<Adaptable> doMap(final ExternalMessage externalMessage) {
 
-        final Map<String, String> externalHeaders = message.getHeaders();
+        final Map<String, String> externalHeaders = externalMessage.getHeaders();
 
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
 
@@ -123,8 +127,11 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
             mappingOptionThingTemplate = applyPlaceholderReplacement(mappingOptionThingTemplate, expressionResolver);
         }
 
-        final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(
-                CreateThing.fromJson(mappingOptionThingTemplate, message.getInternalHeaders()));
+        final Thing newThing = ThingsModelFactory.newThing(mappingOptionThingTemplate);
+
+        final CreateThing createThing = CreateThing.of(newThing, null, externalMessage.getInternalHeaders());
+
+        final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         return Collections.singletonList(adaptable);
     }
