@@ -78,7 +78,7 @@ Below an example is given for a successfully fulfilled ACK (status 202):
 }
 ```
 
-And here is an example for a failed ACK (status 400):
+And here is an example for a failed ACK (aka NACK, status 400):
 
 ```json
 {
