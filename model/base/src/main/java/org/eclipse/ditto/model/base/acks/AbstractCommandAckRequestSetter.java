@@ -66,7 +66,7 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     public C apply(final C command) {
         checkNotNull(command, "command");
         if (isApplicable(command)) {
-            return (C) setDefaultDittoHeaders(command.getDittoHeaders())
+            return setDefaultDittoHeaders(command.getDittoHeaders())
                     .<C>map(command::setDittoHeaders)
                     .orElse(command);
         } else {
