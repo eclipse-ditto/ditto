@@ -20,7 +20,6 @@ import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 /**
  * This UnaryOperator accepts a MessageCommand and checks whether its DittoHeaders should be extended by an
@@ -32,7 +31,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
  * @since 1.2.0
  */
 @Immutable
-@AllParametersAndReturnValuesAreNonnullByDefault
 public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequestSetter<MessageCommand<?, ?>> {
 
     private static final MessageCommandAckRequestSetter INSTANCE = new MessageCommandAckRequestSetter();
