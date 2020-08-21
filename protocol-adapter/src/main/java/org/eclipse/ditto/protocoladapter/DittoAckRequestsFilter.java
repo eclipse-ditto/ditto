@@ -53,30 +53,44 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
     @Override
     @Nullable
     public String filterValue(final String key, final String value) {
-        return Objects.equals(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), key)
-                ? parseAsJsonArrayAndFilter(value)
-                : value;
+        @Nullable final String result;
+        if (isRequestedAcks(key)) {
+            if (value.isEmpty()) {
+                result = null;
+            } else {
+                result = tryToParseAsJsonArrayAndFilter(value);
+            }
+        } else {
+           result = value;
+        }
+        return result;
+    }
+
+    private static boolean isRequestedAcks(final String key) {
+        return Objects.equals(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), key);
+    }
+
+    @Nullable
+    private static String tryToParseAsJsonArrayAndFilter(final String value) {
+        try {
+            return parseAsJsonArrayAndFilter(value);
+        } catch (final JsonParseException e) {
+            return null;
+        }
     }
 
     @Nullable
     private static String parseAsJsonArrayAndFilter(final String value) {
-        try {
-            if (value.isEmpty()) {
-                return null;
-            }
-            final JsonArray originalAckRequestsJsonArray = JsonArray.of(value);
-            final JsonArray filteredAckRequestsJsonArray = originalAckRequestsJsonArray.stream()
-                    .filter(JsonValue::isString)
-                    .filter(jsonValue -> !jsonValue.equals(EMPTY_JSON_STRING))
-                    .filter(jsonValue -> !isDittoInternal(jsonValue))
-                    .collect(JsonCollectors.valuesToArray());
+        final JsonArray originalAckRequestsJsonArray = JsonArray.of(value);
+        final JsonArray filteredAckRequestsJsonArray = originalAckRequestsJsonArray.stream()
+                .filter(JsonValue::isString)
+                .filter(jsonValue -> !jsonValue.equals(EMPTY_JSON_STRING))
+                .filter(jsonValue -> !isDittoInternal(jsonValue))
+                .collect(JsonCollectors.valuesToArray());
 
-            final boolean allElementsFiltered =
-                    filteredAckRequestsJsonArray.isEmpty() && !originalAckRequestsJsonArray.isEmpty();
-            return allElementsFiltered ? null : filteredAckRequestsJsonArray.toString();
-        } catch (final JsonParseException e) {
-            return null;
-        }
+        final boolean allElementsFiltered =
+                filteredAckRequestsJsonArray.isEmpty() && !originalAckRequestsJsonArray.isEmpty();
+        return allElementsFiltered ? null : filteredAckRequestsJsonArray.toString();
     }
 
     private static boolean isDittoInternal(final JsonValue ackRequestLabelJsonValue) {
