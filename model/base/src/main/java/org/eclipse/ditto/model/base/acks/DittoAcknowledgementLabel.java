@@ -35,6 +35,8 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
 
     /**
      * Label for Acknowledgements indicating that a response to a live message/command was received.
+     *
+     * @since 1.2.0
      */
     public static final DittoAcknowledgementLabel LIVE_RESPONSE = new DittoAcknowledgementLabel("live-response");
 
