@@ -38,9 +38,10 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
 /**
- * This mapper extracts the headers {@code device_id} and {@code entity_id} from the message and builds a
- * {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from it.
- * The policyId must not be set in the mapping configuration. If not set the policyId will be the same as the thingId.
+ * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
+ * a given thing template and may substitutes placeholders by given headers which can be {@code device_id},
+ * {@code entity_id} or {@code gateway_id}.
+ * The policyId must not be set in the mapping configuration. If not set, the policyId will be the same as the thingId.
  * The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  *
