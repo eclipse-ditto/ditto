@@ -349,11 +349,11 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 ackType = redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE;
                 ackTypeName = redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]";
             }
-            log.info("Acking <" + messageId +
-                            "> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
+            log.info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
+                    messageId,
                     externalMessageHeaders,
-                    isSuccess, ackType,
-                    ackTypeName);
+                    isSuccess,
+                    ackType, ackTypeName);
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             timer.tag("success", isSuccess).stop();
