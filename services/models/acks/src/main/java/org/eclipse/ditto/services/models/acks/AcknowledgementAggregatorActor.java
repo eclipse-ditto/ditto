@@ -38,8 +38,11 @@ import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -54,12 +57,15 @@ import akka.actor.ReceiveTimeout;
  */
 public final class AcknowledgementAggregatorActor extends AbstractActor {
 
+    private static final Duration REASONABLE_TIMEOUT_FOR_TWIN_PERSISTED = Duration.ofMillis(9999L);
+
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final String correlationId;
     private final DittoHeaders requestCommandHeaders;
     private final AcknowledgementAggregator ackregator;
     private final Consumer<Object> responseSignalConsumer;
+    private final Duration timeout;
 
     @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final ThingId thingId,
@@ -76,8 +82,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                         getSelf().path().name()
                 );
 
-        final Duration timeout =
-                requestCommandHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
+        timeout = requestCommandHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
         getContext().setReceiveTimeout(timeout);
 
         ackregator = AcknowledgementAggregator.getInstance(thingId, correlationId, timeout, headerTranslator);
@@ -198,9 +203,13 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final DittoHeaders dittoHeaders) {
 
         final Acknowledgements aggregatedAcknowledgements = ackregator.getAggregatedAcknowledgements(dittoHeaders);
-        if (null != response && containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements)) {
+        final boolean builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
+        if (null != response && builtInAcknowledgementOnly) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
+        } else if (builtInAcknowledgementOnly) {
+            // there is no response. send an error according to channel
+            handleSignal(asThingErrorResponse(aggregatedAcknowledgements));
         } else {
             log.withCorrelationId(dittoHeaders)
                     .debug("Completing with collected acknowledgements: {}", aggregatedAcknowledgements);
@@ -214,6 +223,30 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         responseSignalConsumer.accept(signal);
     }
 
+    /**
+     * Convert aggregated acknowledgements to a single error response in case only built-in acknowledgements
+     * are requested.
+     *
+     * @param aggregatedAcknowledgements the aggregated acknowledgements.
+     * @return the error response.
+     */
+    private ThingErrorResponse asThingErrorResponse(final Acknowledgements aggregatedAcknowledgements) {
+        final DittoRuntimeException dittoRuntimeException;
+        final ThingId thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
+        if (aggregatedAcknowledgements.getAcknowledgement(TWIN_PERSISTED).isPresent() && isReasonable(timeout)) {
+            // special check: if twin-persisted not answered within reasonable time limit then answer 503
+            dittoRuntimeException = ThingUnavailableException.newBuilder(thingId)
+                    .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
+                    .build();
+        } else {
+            // answer unreasonable timeouts or live response timeouts with 408
+            dittoRuntimeException = GatewayCommandTimeoutException.newBuilder(timeout)
+                    .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
+                    .build();
+        }
+        return ThingErrorResponse.of(thingId, dittoRuntimeException);
+    }
+
     private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
         return aggregatedAcknowledgements.getSize() == 1 &&
                 aggregatedAcknowledgements.stream()
@@ -222,6 +255,10 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                             return TWIN_PERSISTED.equals(label) ||
                                     LIVE_RESPONSE.equals(label);
                         });
+    }
+
+    private static boolean isReasonable(final Duration timeout) {
+        return REASONABLE_TIMEOUT_FOR_TWIN_PERSISTED.minus(timeout).isNegative();
     }
 
 }
