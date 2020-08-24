@@ -23,6 +23,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -106,9 +107,8 @@ public class ImplicitThingCreationMessageMapperTest {
                 .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
     }
 
-    @Test // TODO: Discuss the expected result.
-    public void substitutePolicyIdWithThingIdIfEntityIdIsMissing() {
-
+    @Test // TODO: resolve test
+    public void throwErrorIfHeaderForPlaceholderIsMissing() {
         underTest.configure(mappingConfig, createMapperConfig(null, null));
 
         final Map<String, String> missingEntityHeader = new HashMap<>();
@@ -117,20 +117,8 @@ public class ImplicitThingCreationMessageMapperTest {
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(missingEntityHeader).build();
 
-        final List<Adaptable> mappingResult = underTest.map(externalMessage);
-
-        final Thing expectedThing =
-                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerDeviceId");
-
-        final Thing mappedThing =
-                ThingsModelFactory.newThing(mappingResult.get(0).getPayload().getValue().get().toString());
-
-        assertThat(mappedThing.getEntityId())
-                .isEqualTo(expectedThing.getEntityId());
-
-        assertThat(mappedThing.getPolicyEntityId())
-                .isEqualTo(expectedThing.getPolicyEntityId());
-
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class)
+                .isThrownBy(() -> underTest.map(externalMessage));
     }
 
     @Test
