@@ -57,7 +57,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -276,18 +275,22 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     private void handleJmsMessage(final JmsMessage message) {
-        final StartedTimer timer = DittoMetrics.expiringTimer("receive_to_ack").tag("connection_type", "amqp10").build();
+        final StartedTimer timer =
+                DittoMetrics.expiringTimer("receive_to_ack").tag("connection_type", "amqp10").build();
         Map<String, String> headers = null;
+        String correlationId = null;
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {
                 log.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
                         message.toString(),
-                        message.getAllPropertyNames().toString(), message.getAcknowledgeCallback().getAckType());
+                        message.getAllPropertyNames().toString(),
+                        message.getAcknowledgeCallback().getAckType());
             }
             headers = extractHeadersMapFromJmsMessage(message);
+            correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
-            final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
+            final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder, correlationId)
                     .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(headers))
                     .withHeaderMapping(source.getHeaderMapping().orElse(null))
@@ -296,16 +299,20 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     .build();
             inboundMonitor.success(externalMessage);
             final Map<String, String> externalMessageHeaders = externalMessage.getHeaders();
-            LogUtil.enhanceLogWithCorrelationId(log,
-                    externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
-            log.info("Received message from AMQP 1.0 ({}): {}", externalMessageHeaders,
-                    externalMessage.getTextPayload().orElse("binary"));
+            log.withCorrelationId(correlationId).info("Received message from AMQP 1.0 with externalMessageHeaders: {}",
+                    externalMessageHeaders);
+            if (log.isDebugEnabled()) {
+                log.withCorrelationId(correlationId).debug("Received message from AMQP 1.0 with payload: {}",
+                        externalMessage.getTextPayload().orElse("binary"));
+            }
             forwardToMappingActor(externalMessage,
                     () -> acknowledge(message, true, false, timer, externalMessageHeaders),
                     redeliver -> acknowledge(message, false, redeliver, timer, externalMessageHeaders)
             );
         } catch (final DittoRuntimeException e) {
-            log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
+            log.withCorrelationId(e)
+                    .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
+                            e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
@@ -321,7 +328,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 inboundMonitor.exception(e);
             }
 
-            log.error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
+            log.withCorrelationId(correlationId)
+                    .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         }
     }
 
@@ -336,6 +344,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      */
     private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver,
             final StartedTimer timer, final Map<String, String> externalMessageHeaders) {
+
+        final String correlationId = externalMessageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         try {
             final String messageId = message.getJMSMessageID();
             recordAckForRateLimit(messageId, isSuccess, redeliver);
@@ -349,11 +359,12 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 ackType = redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE;
                 ackTypeName = redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]";
             }
-            log.info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
-                    messageId,
-                    externalMessageHeaders,
-                    isSuccess,
-                    ackType, ackTypeName);
+            log.withCorrelationId(correlationId)
+                    .info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
+                            messageId,
+                            externalMessageHeaders,
+                            isSuccess,
+                            ackType, ackTypeName);
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             timer.tag("success", isSuccess).stop();
@@ -363,12 +374,12 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 inboundAcknowledgedMonitor.exception("Sending negative acknowledgement {0}.", ackTypeName);
             }
         } catch (final JMSException e) {
-            log.error(e, "Failed to ack an AMQP message");
+            log.withCorrelationId(correlationId).error(e, "Failed to ack an AMQP message");
         }
     }
 
     private ExternalMessageBuilder extractPayloadFromMessage(final JmsMessage message,
-            final ExternalMessageBuilder builder) throws JMSException {
+            final ExternalMessageBuilder builder, @Nullable final String correlationId) throws JMSException {
         if (message instanceof TextMessage) {
             final String payload = ((TextMessage) message).getText();
             builder.withText(payload);
@@ -387,8 +398,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             if (log.isDebugEnabled()) {
                 final Destination destination = message.getJMSDestination();
                 final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
-                log.debug("Received message at '{}' of unsupported type ({}) with headers: {}",
-                        destination, message.getClass().getName(), headersMapFromJmsMessage);
+                log.withCorrelationId(correlationId)
+                        .debug("Received message at '{}' of unsupported type ({}) with headers: {}",
+                                destination, message.getClass().getName(), headersMapFromJmsMessage);
             }
         }
         return builder;
