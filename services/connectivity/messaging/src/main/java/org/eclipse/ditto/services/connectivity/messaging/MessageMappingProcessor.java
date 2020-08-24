@@ -295,27 +295,22 @@ public final class MessageMappingProcessor {
     }
 
     private static boolean shouldMapMessageByConditions(final ExternalMessage message, final MessageMapper mapper) {
-        return validateMapperConditions(mapper, Resolvers.forExternalMessage(message));
+        return resolveConditions(mapper, Resolvers.forExternalMessage(message));
     }
 
-    private static boolean shouldMapMessageByConditions(final OutboundSignal.Mappable outboundSignal,
+    private static boolean shouldMapMessageByConditions(final OutboundSignal.Mappable mappable,
             final MessageMapper mapper) {
-        return validateMapperConditions(mapper, Resolvers.forOutboundSignal(outboundSignal));
+        return resolveConditions(mapper, Resolvers.forOutboundSignal(mappable));
     }
 
-    private static boolean validateMapperConditions(final MessageMapper mapper,
-            final ExpressionResolver expressionResolver) {
-        if (!mapper.getConditions().isEmpty()) {
-            boolean conditionBool = true;
-            ExpressionResolver resolver = expressionResolver;
-            for (String condition : mapper.getConditions()) {
-                conditionBool &= Boolean.parseBoolean(
-                        PlaceholderFilter.applyOrElseDelete("{{ fn:default('true') | " + condition + " }}", resolver)
-                                .orElse("false"));
-            }
-            return conditionBool;
+    private static boolean resolveConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
+        boolean conditionBool = true;
+        for (String condition : mapper.getConditions()) {
+            final String template = "{{ fn:default('true') | " + condition + " }}";
+            final String resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
+            conditionBool &= Boolean.parseBoolean(resolvedCondition);
         }
-        return true;
+        return conditionBool;
     }
 
     private static Function<String, Boolean> filterByContentTypeBlocklist(final MessageMapper mapper) {
