@@ -207,7 +207,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         if (null != response && builtInAcknowledgementOnly) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
-        } else if (builtInAcknowledgementOnly) {
+        } else if (builtInAcknowledgementOnly && !ackregator.receivedAllRequestedAcknowledgements()) {
             // there is no response. send an error according to channel
             handleSignal(asThingErrorResponse(aggregatedAcknowledgements));
         } else {
