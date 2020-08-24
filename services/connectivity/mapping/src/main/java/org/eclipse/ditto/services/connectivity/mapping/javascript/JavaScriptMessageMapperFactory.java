@@ -39,7 +39,7 @@ public final class JavaScriptMessageMapperFactory {
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMessageMapperConfigurationBuilder(
             final String id, final Map<String, String> properties) {
 
-        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, Collections.emptySet(), properties);
+        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, properties, Collections.emptySet());
     }
 
     /**

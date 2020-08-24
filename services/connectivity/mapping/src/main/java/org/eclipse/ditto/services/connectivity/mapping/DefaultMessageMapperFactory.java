@@ -125,7 +125,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final Map<String, String> configuredAndDefaultOptions =
                 mergeMappingOptions(defaultOptions, mappingContext.getOptions());
         final MessageMapperConfiguration options =
-                DefaultMessageMapperConfiguration.of(mapperId, configuredConditions, configuredAndDefaultOptions);
+                DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions, configuredConditions);
         return mapper.flatMap(m -> configureInstance(m, options));
     }
 

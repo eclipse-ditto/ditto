@@ -30,13 +30,14 @@ import javax.annotation.concurrent.Immutable;
 public final class DefaultMessageMapperConfiguration implements MessageMapperConfiguration {
 
     private final String id;
-    private final Set<String> conditions;
     private final Map<String, String> properties;
+    private final Set<String> conditions;
 
-    private DefaultMessageMapperConfiguration(final String id, final Set<String> conditions, final Map<String, String> properties) {
+    private DefaultMessageMapperConfiguration(final String id, final Map<String, String> properties,
+            final Set<String> conditions) {
         this.id = id;
-        this.conditions = Collections.unmodifiableSet(new HashSet<>(conditions));
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
+        this.conditions = Collections.unmodifiableSet(new HashSet<>(conditions));
     }
 
     /**
@@ -45,29 +46,31 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      * @param id the id of the mapper
      * @param configuration the map holding configuration properties.
      * @return the instance.
-     * @throws NullPointerException if {@code configuration} is {@code null}.
+     * @throws NullPointerException if {@code id} or {@code configuration} is {@code null}.
      */
     public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration) {
         checkNotNull(id, "id");
-        checkNotNull(configuration, "configuration properties");
-        return new DefaultMessageMapperConfiguration(id, Collections.emptySet(), configuration);
+        checkNotNull(configuration, "configuration");
+        return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptySet());
     }
 
     /**
      * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
      *
      * @param id the id of the mapper.
-     * @param conditions the conditions to be checked before mapping.
      * @param configuration the map holding configuration properties.
+     * @param conditions the conditions to be checked before mapping.
      * @return the instance.
-     * @throws NullPointerException if {@code configuration} is {@code null}.
+     * @throws NullPointerException if {@code id}, {@code configuration} or {@code conditions} is {@code null}.
      *
      * @since 1.2.0
      */
-    public static DefaultMessageMapperConfiguration of(final String id, final Set<String> conditions, final Map<String, String> configuration) {
+    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration,
+            final Set<String> conditions) {
         checkNotNull(id, "id");
-        checkNotNull(configuration, "configuration properties");
-        return new DefaultMessageMapperConfiguration(id, conditions, configuration);
+        checkNotNull(configuration, "configuration");
+        checkNotNull("conditions");
+        return new DefaultMessageMapperConfiguration(id, configuration, conditions);
     }
 
     @Override
@@ -76,13 +79,13 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
-    public Set<String> getConditions() {
-        return conditions;
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
     @Override
-    public Map<String, String> getProperties() {
-        return properties;
+    public Set<String> getConditions() {
+        return conditions;
     }
 
     @Override
@@ -91,21 +94,21 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultMessageMapperConfiguration that = (DefaultMessageMapperConfiguration) o;
         return Objects.equals(id, that.id) &&
-                Objects.equals(conditions, that.conditions) &&
-                Objects.equals(properties, that.properties);
+                Objects.equals(properties, that.properties) &&
+                Objects.equals(conditions, that.conditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, conditions, properties);
+        return Objects.hash(id, properties, conditions);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
-                "conditions=" + conditions +
                 ", properties=" + properties +
+                ", conditions=" + conditions +
                 "]";
     }
 }

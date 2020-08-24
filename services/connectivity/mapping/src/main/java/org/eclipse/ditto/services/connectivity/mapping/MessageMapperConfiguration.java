@@ -38,6 +38,13 @@ public interface MessageMapperConfiguration {
     String getId();
 
     /**
+     * Returns the configuration properties as Map.
+     *
+     * @return an unmodifiable Map containing the configuration properties.
+     */
+    Map<String, String> getProperties();
+
+    /**
      * Returns the conditions to check before mapping.
      *
      * @return an unmodifiable Set containing the conditions.
@@ -45,13 +52,6 @@ public interface MessageMapperConfiguration {
      * @since 1.2.0
      */
     Set<String> getConditions();
-
-    /**
-     * Returns the configuration properties as Map.
-     *
-     * @return an unmodifiable Map containing the configuration properties.
-     */
-    Map<String, String> getProperties();
 
     /**
      * Searches the configuration for a specific property.
@@ -100,6 +100,13 @@ public interface MessageMapperConfiguration {
          * @return the configuration properties as mutable map.
          */
         Map<String, String> getProperties();
+
+        /**
+         * @return the conditions as mutable set.
+         *
+         * @since 1.2.0
+         */
+        Set<String> getConditions();
 
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}

@@ -70,8 +70,9 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     @Override
     public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
         configuration =
-                new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(), Collections.emptySet(),
-                        options.getProperties()).build();
+                new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(), options.getProperties(),
+                        Collections.emptySet()
+                ).build();
 
         final JavaScriptConfig javaScriptConfig = mappingConfig.getJavaScriptConfig();
         final int maxScriptSizeBytes = javaScriptConfig.getMaxScriptSizeBytes();

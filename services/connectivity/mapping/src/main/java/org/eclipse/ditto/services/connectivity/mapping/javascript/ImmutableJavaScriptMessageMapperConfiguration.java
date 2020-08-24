@@ -41,13 +41,13 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     }
 
     @Override
-    public Set<String> getConditions() {
-        return delegationTarget.getConditions();
+    public Map<String, String> getProperties() {
+        return delegationTarget.getProperties();
     }
 
     @Override
-    public Map<String, String> getProperties() {
-        return delegationTarget.getProperties();
+    public Set<String> getConditions() {
+        return delegationTarget.getConditions();
     }
 
     @Override
@@ -70,8 +70,8 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "conditions=" + getConditions().toString() +
                 "properties=" + getProperties() +
+                ", conditions=" + getConditions().toString() +
                 "]";
     }
 
@@ -82,13 +82,13 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     static final class Builder implements JavaScriptMessageMapperConfiguration.Builder {
 
         private final String id;
-        private final Set<String> conditions;
         private final Map<String, String> properties;
+        private final Set<String> conditions;
 
-        Builder(final String id, final Set<String> conditions, final Map<String, String> properties) {
+        Builder(final String id, final Map<String, String> properties, final Set<String> conditions) {
             this.id = id;
-            this.conditions = conditions;
             this.properties = new HashMap<>(properties); // mutable map!
+            this.conditions = conditions;
         }
 
         @Override
@@ -96,6 +96,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
             return properties;
         }
 
+        @Override
         public Set<String> getConditions() {
             return conditions;
         }
@@ -103,7 +104,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
         @Override
         public JavaScriptMessageMapperConfiguration build() {
             return new ImmutableJavaScriptMessageMapperConfiguration(
-                    DefaultMessageMapperConfiguration.of(id, conditions, properties));
+                    DefaultMessageMapperConfiguration.of(id, properties, conditions));
         }
 
     }
