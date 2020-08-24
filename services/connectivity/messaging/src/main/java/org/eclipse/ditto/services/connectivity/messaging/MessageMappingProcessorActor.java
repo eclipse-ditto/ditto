@@ -573,7 +573,11 @@ public final class MessageMappingProcessorActor
 
     private void handleInboundMessage(final ExternalMessage externalMessage) {
         ConditionChecker.checkNotNull(externalMessage);
-        inboundSourceQueue.offer(new ExternalMessageWithSender(externalMessage, getSender()));
+        logger.debug("Received inbound Message to map: {}", externalMessage);
+        inboundSourceQueue.offer(new ExternalMessageWithSender(externalMessage, getSender()))
+                .whenComplete((result, error) -> logger.debug(
+                        "Result of inbound source queue offer: <{}>, Error of inbound source queue offer: <{}>",
+                        result, error));
     }
 
     private Pair<Source<Signal<?>, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
