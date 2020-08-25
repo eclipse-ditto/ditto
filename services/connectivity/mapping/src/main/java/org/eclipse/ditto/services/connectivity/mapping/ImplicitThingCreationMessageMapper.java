@@ -63,6 +63,8 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
     static final String THING_ID = "thingId";
     static final String POLICY_ID = "policyId";
 
+    static final String INLINE_POLICY_ID = "_policy";
+
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
     private String mappingOptionThingTemplate;
@@ -138,7 +140,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     private Optional<JsonObject> getInlinePolicy(final String thingTemplate) {
         final JsonObject thingJsonRepresentation = JsonObject.of(thingTemplate);
-        return thingJsonRepresentation.getValue("_policy").map(JsonValue::asObject);
+        return thingJsonRepresentation.getValue(INLINE_POLICY_ID).map(JsonValue::asObject);
     }
 
     @Override
