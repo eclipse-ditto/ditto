@@ -32,12 +32,12 @@ public interface MetadataBuilder extends JsonObjectBuilder {
      * Sets a new {@code int} metadate to the {@code Metadata} to be built if the specified predicate evaluates to
      * {@code true}.
      *
-     * @param key the name of the metadate to be set.
+     * @param key the key of the metadate to be set.
      * @param value the value of the metadate to be set.
      * @param predicate the predicate which finally determines if the metadate is to be set.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code name} is {@code null}.
-     * @throws IllegalArgumentException if {@code name} is empty.
+     * @throws NullPointerException if {@code key} or {@code predicate} is {@code null}.
+     * @throws IllegalArgumentException if {@code key} is empty.
      */
     @Override
     MetadataBuilder set(CharSequence key, int value, Predicate<JsonField> predicate);

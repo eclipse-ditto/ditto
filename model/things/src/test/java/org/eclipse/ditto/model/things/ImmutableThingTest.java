@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -1197,11 +1196,8 @@ public final class ImmutableThingTest {
     public void serializeMetadata() {
         final JsonObject json = KNOWN_THING_V2.toJson(JsonSchemaVersion.V_2, field -> true);
 
-        final Optional<JsonField> metadataOptional = json.getField("_metadata");
+        final Optional<JsonObject> metadataOptional = json.getValue(Thing.JsonFields.METADATA);
 
-        assertThat(metadataOptional).isNotEmpty();
-
-        assertThat(metadataOptional.get().getValue())
-            .isEqualTo(JsonObject.newBuilder().set("_issuedAt", JsonValue.of(0)).build());
+        assertThat(metadataOptional).contains(JsonObject.newBuilder().set("issuedAt", JsonValue.of(0)).build());
     }
 }

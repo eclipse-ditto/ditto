@@ -225,7 +225,7 @@ public final class TestConstants {
          */
         public static final org.eclipse.ditto.model.base.entity.metadata.Metadata METADATA =
                 ThingsModelFactory.newMetadataBuilder()
-                        .set("_issuedAt", 0L)
+                        .set("issuedAt", 0L)
                         .build();
     }
 

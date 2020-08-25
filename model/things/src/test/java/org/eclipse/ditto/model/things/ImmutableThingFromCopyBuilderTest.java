@@ -880,8 +880,8 @@ public final class ImmutableThingFromCopyBuilderTest {
 
         final JsonObject serializedThing = thing.toJson(JsonSchemaVersion.V_2, field -> true);
 
-        assertThat(serializedThing.getField("_metadata"))
-            .isNotEmpty();
+        assertThat(serializedThing.getField("_metadata").get().getValue())
+                .isEqualTo(METADATA.asObject());
 
     }
 }

@@ -73,7 +73,7 @@ final class ImmutableMetadata implements Metadata {
         if (jsonObject instanceof ImmutableMetadata) {
             return (Metadata) jsonObject;
         }
-        return new ImmutableMetadata(checkNotNull(jsonObject, "JSON object"));
+        return new ImmutableMetadata(checkNotNull(jsonObject, "jsonObject"));
     }
 
     @Override
