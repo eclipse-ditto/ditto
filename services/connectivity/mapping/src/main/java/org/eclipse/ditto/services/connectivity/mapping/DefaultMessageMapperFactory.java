@@ -119,7 +119,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     @Override
     public Optional<MessageMapper> mapperOf(final String mapperId, final MappingContext mappingContext) {
         final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext.getMappingEngine());
-        final Set<String> configuredConditions = mappingContext.getConditions();
+        final Map<String, String> configuredConditions = mappingContext.getConditions();
         final Map<String, String> defaultOptions =
                 mapper.map(MessageMapper::getDefaultOptions).orElse(Collections.emptyMap());
         final Map<String, String> configuredAndDefaultOptions =

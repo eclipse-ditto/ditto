@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -42,13 +43,13 @@ final class ImmutableMappingContext implements MappingContext {
 
     private final String mappingEngine;
     private final Map<String, String> options;
-    private final Set<String> conditions;
+    private final Map<String, String> conditions;
 
     private ImmutableMappingContext(final String mappingEngine, final Map<String, String> options,
-            final Set<String> conditions) {
+            final Map<String, String> conditions) {
         this.mappingEngine = mappingEngine;
         this.options = Collections.unmodifiableMap(new HashMap<>(options));
-        this.conditions = Collections.unmodifiableSet(new HashSet<>(conditions));
+        this.conditions = Collections.unmodifiableMap(new HashMap<>(conditions));
     }
 
     /**
@@ -63,7 +64,7 @@ final class ImmutableMappingContext implements MappingContext {
         checkNotNull(mappingEngine, "mappingEngine");
         checkNotNull(options, "options");
 
-        return new ImmutableMappingContext(mappingEngine, options, Collections.emptySet());
+        return new ImmutableMappingContext(mappingEngine, options, Collections.emptyMap());
     }
 
     /**
@@ -78,7 +79,7 @@ final class ImmutableMappingContext implements MappingContext {
      * @since 1.2.0
      */
     public static ImmutableMappingContext of(final String mappingEngine, final Map<String, String> options,
-            final Set<String> conditions) {
+            final Map<String, String> conditions) {
         checkNotNull(mappingEngine, "mappingEngine");
         checkNotNull(options, "options");
         checkNotNull(conditions, "conditions");
@@ -101,12 +102,12 @@ final class ImmutableMappingContext implements MappingContext {
                         e -> e.getKey().toString(),
                         e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
                 );
-        final Set<String> conditions = jsonObject.getValue(JsonFields.CONDITIONS)
-                .map(array -> array.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
+
+        final Map<String, String> conditions = jsonObject.getValue(JsonFields.CONDITIONS).orElse(JsonObject.empty()).stream()
+                .collect(Collectors.toMap(
+                        e -> e.getKey().toString(),
+                        e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
+                );
 
         return of(mappingEngine, options, conditions);
     }
@@ -123,7 +124,9 @@ final class ImmutableMappingContext implements MappingContext {
                 .collect(JsonCollectors.fieldsToObject()), predicate);
 
         if (!conditions.isEmpty()) {
-            jsonObjectBuilder.set(JsonFields.CONDITIONS, JsonArray.of(conditions), predicate);
+            jsonObjectBuilder.set(JsonFields.CONDITIONS, conditions.entrySet().stream()
+                    .map(e -> JsonField.newInstance(e.getKey(), JsonValue.of(e.getValue())))
+                    .collect(JsonCollectors.fieldsToObject()), predicate);
         }
 
         return jsonObjectBuilder.build();
@@ -140,7 +143,7 @@ final class ImmutableMappingContext implements MappingContext {
     }
 
     @Override
-    public Set<String> getConditions() {
+    public Map<String, String> getConditions() {
         return conditions;
     }
 

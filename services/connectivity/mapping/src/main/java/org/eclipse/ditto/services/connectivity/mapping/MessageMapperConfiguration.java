@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 
@@ -48,10 +47,9 @@ public interface MessageMapperConfiguration {
      * Returns the conditions to check before mapping.
      *
      * @return an unmodifiable Set containing the conditions.
-     *
      * @since 1.2.0
      */
-    Set<String> getConditions();
+    Map<String, String> getConditions();
 
     /**
      * Searches the configuration for a specific property.
@@ -103,10 +101,9 @@ public interface MessageMapperConfiguration {
 
         /**
          * @return the conditions as mutable set.
-         *
          * @since 1.2.0
          */
-        Set<String> getConditions();
+        Map<String, String> getConditions();
 
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}

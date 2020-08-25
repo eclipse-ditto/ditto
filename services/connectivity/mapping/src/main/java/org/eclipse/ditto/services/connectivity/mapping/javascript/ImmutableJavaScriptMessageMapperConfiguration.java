@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -46,7 +45,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     }
 
     @Override
-    public Set<String> getConditions() {
+    public Map<String, String> getConditions() {
         return delegationTarget.getConditions();
     }
 
@@ -83,9 +82,9 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
 
         private final String id;
         private final Map<String, String> properties;
-        private final Set<String> conditions;
+        private final Map<String, String> conditions;
 
-        Builder(final String id, final Map<String, String> properties, final Set<String> conditions) {
+        Builder(final String id, final Map<String, String> properties, final Map<String, String> conditions) {
             this.id = id;
             this.properties = new HashMap<>(properties); // mutable map!
             this.conditions = conditions;
@@ -97,7 +96,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
         }
 
         @Override
-        public Set<String> getConditions() {
+        public Map<String, String> getConditions() {
             return conditions;
         }
 
