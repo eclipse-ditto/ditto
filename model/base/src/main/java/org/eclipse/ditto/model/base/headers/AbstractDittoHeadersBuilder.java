@@ -241,7 +241,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S expectedResponseTypes(final Collection<ResponseType> responseTypes) {
         checkNotNull(responseTypes, "responseTypes");
-        if(!responseTypes.isEmpty()) {
+        if (!responseTypes.isEmpty()) {
             final List<String> expectedResponseTypes = responseTypes.stream()
                     .map(ResponseType::getName)
                     .collect(Collectors.toList());

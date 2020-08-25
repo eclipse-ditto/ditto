@@ -51,6 +51,7 @@ final class ImmutableThing implements Thing {
     @Nullable private final ThingLifecycle lifecycle;
     @Nullable private final ThingRevision revision;
     @Nullable private final Instant modified;
+    @Nullable private final Instant created;
     @Nullable private final Metadata metadata;
 
     private ImmutableThing(@Nullable final ThingId thingId,
@@ -62,6 +63,7 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified,
+            @Nullable final Instant created,
             @Nullable final Metadata metadata) {
 
         this.thingId = thingId;
@@ -74,6 +76,7 @@ final class ImmutableThing implements Thing {
         this.lifecycle = lifecycle;
         this.revision = revision;
         this.modified = modified;
+        this.created = created;
         this.metadata = metadata;
     }
 
@@ -87,10 +90,12 @@ final class ImmutableThing implements Thing {
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the Thing to be created.
+     * @param created the created timestamp of the thing to be created.
      * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated ThingId is now typed. Use
-     * {@link #of(ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant, Metadata)}
+     * {@link #of(ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant,
+     * java.time.Instant, Metadata)}
      * instead.
      */
     @Deprecated
@@ -101,10 +106,11 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified,
+            @Nullable final Instant created,
             @Nullable final Metadata metadata) {
 
         return of(ThingId.of(thingId), accessControlList, attributes, features, lifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     /**
@@ -117,6 +123,7 @@ final class ImmutableThing implements Thing {
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the Thing to be created.
+     * @param created the created timestamp of the thing to be created.
      * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated deprecated API version 1. Use API version 2 instead.
@@ -129,10 +136,11 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified,
+            @Nullable final Instant created,
             @Nullable final Metadata metadata) {
 
         return new ImmutableThing(thingId, accessControlList, null, null, attributes, features, lifecycle,
-                revision, modified, metadata);
+                revision, modified, created, metadata);
     }
 
     /**
@@ -147,6 +155,7 @@ final class ImmutableThing implements Thing {
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the thing to be created.
+     * @param created the created timestamp of the thing to be created.
      * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
@@ -161,10 +170,11 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified,
+            @Nullable final Instant created,
             @Nullable final Metadata metadata) {
 
         return new ImmutableThing(thingId, accessControlList, policyId, definition, attributes, features, lifecycle,
-                revision, modified, metadata);
+                revision, modified, created, metadata);
     }
 
     /**
@@ -178,6 +188,7 @@ final class ImmutableThing implements Thing {
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the Thing to be created.
+     * @param created the created timestamp of the Thing to be created.
      * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
@@ -189,10 +200,11 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified,
+            @Nullable final Instant created,
             @Nullable final Metadata metadata) {
 
         return new ImmutableThing(thingId, null, policyId, definition, attributes, features, lifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     @Override
@@ -203,6 +215,11 @@ final class ImmutableThing implements Thing {
     @Override
     public Optional<Instant> getModified() {
         return Optional.ofNullable(modified);
+    }
+
+    @Override
+    public Optional<Instant> getCreated() {
+        return Optional.ofNullable(created);
     }
 
     @Override
@@ -232,7 +249,7 @@ final class ImmutableThing implements Thing {
         }
 
         return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, lifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     @Override
@@ -282,6 +299,7 @@ final class ImmutableThing implements Thing {
                     lifecycle,
                     revision,
                     modified,
+                    created,
                     metadata);
         } else {
             return new ImmutableThing(thingId, acl, policyId,
@@ -291,6 +309,7 @@ final class ImmutableThing implements Thing {
                     lifecycle,
                     revision,
                     modified,
+                    created,
                     metadata);
         }
     }
@@ -301,7 +320,7 @@ final class ImmutableThing implements Thing {
             return this;
         }
         return new ImmutableThing(thingId, acl, policyId, null, attributes, features, lifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     @Override
@@ -325,7 +344,7 @@ final class ImmutableThing implements Thing {
         }
 
         return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, lifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     @Override
@@ -413,7 +432,7 @@ final class ImmutableThing implements Thing {
         }
 
         return new ImmutableThing(thingId, accessControlList, null, definition, attributes, features, lifecycle,
-                revision, modified, metadata);
+                revision, modified, created, metadata);
     }
 
     @Override
@@ -447,7 +466,7 @@ final class ImmutableThing implements Thing {
     @Override
     public Thing setPolicyId(@Nullable final PolicyId policyId) {
         return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, lifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     @Override
@@ -460,7 +479,7 @@ final class ImmutableThing implements Thing {
         ConditionChecker.checkNotNull(newLifecycle, "lifecycle to be set");
 
         return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, newLifecycle, revision,
-                modified, metadata);
+                modified, created, metadata);
     }
 
     @Override
@@ -485,6 +504,10 @@ final class ImmutableThing implements Thing {
 
         if (null != modified) {
             jsonObjectBuilder.set(JsonFields.MODIFIED, modified.toString(), predicate);
+        }
+
+        if (null != created) {
+            jsonObjectBuilder.set(JsonFields.CREATED, created.toString(), predicate);
         }
 
         if (null != thingId) {
@@ -527,8 +550,8 @@ final class ImmutableThing implements Thing {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, policyId, acl, definition, attributes, features, lifecycle, revision,
-                modified, metadata);
+        return Objects.hash(thingId, policyId, acl, definition, attributes, features, lifecycle, revision, modified,
+                created, metadata);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
@@ -553,15 +576,25 @@ final class ImmutableThing implements Thing {
                 Objects.equals(lifecycle, other.lifecycle) &&
                 Objects.equals(revision, other.revision) &&
                 Objects.equals(modified, other.modified) &&
+                Objects.equals(created, other.created) &&
                 Objects.equals(metadata, other.metadata);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [thingId=" + thingId + ", acl=" + acl +
-                ", policyId=" + policyId + ", definition=" + definition + ", attributes=" + attributes +
-                ", features=" + features + ", lifecycle=" + lifecycle + ", revision=" + revision +
-                ", modified=" + modified + ", metadata=" + metadata + "]";
+        return getClass().getSimpleName() + " ["
+                + "thingId=" + thingId +
+                ", acl=" + acl +
+                ", policyId=" + policyId +
+                ", definition=" + definition +
+                ", attributes=" + attributes +
+                ", features=" + features +
+                ", lifecycle=" + lifecycle +
+                ", revision=" + revision +
+                ", modified=" + modified +
+                ", created=" + created +
+                ", metadata=" + metadata
+                + "]";
     }
 
 }

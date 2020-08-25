@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link ModifyPolicyIdStrategy}.
+ * Unit test for {@link ModifyThingDefinitionStrategy}.
  */
 public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStrategyTest {
 

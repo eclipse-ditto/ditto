@@ -99,7 +99,8 @@ public interface ThingBuilder {
          * @param accessControlListJsonObject the JSON object representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code accessControlListJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject}
+         * cannot be parsed
          * to {@link AccessControlList}.
          * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
@@ -112,7 +113,8 @@ public interface ThingBuilder {
          *
          * @param accessControlListJsonString the JSON string representation of an Access Control List.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString}
+         * cannot be parsed
          * to {@link AccessControlList}.
          * @see #setPermissions(JsonObject)
          * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
@@ -205,7 +207,8 @@ public interface ThingBuilder {
          *
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a valid JSON
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * valid JSON
          * object.
          */
         FromScratch setAttributes(String attributesJsonString);
@@ -395,7 +398,8 @@ public interface ThingBuilder {
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featuresJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be parsed to
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
+         * parsed to
          * {@link Features}.
          */
         FromScratch setFeatures(JsonObject featuresJsonObject);
@@ -405,7 +409,8 @@ public interface ThingBuilder {
          *
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be parsed to
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
+         * parsed to
          * {@link Features}.
          */
         FromScratch setFeatures(String featuresJsonString);
@@ -466,12 +471,21 @@ public interface ThingBuilder {
         FromScratch setRevision(long revisionNumber);
 
         /**
-         * Sets the given modified to this builder.
+         * Sets the given modified timestamp to this builder.
          *
-         * @param modified the modified to be set.
+         * @param modified the modified timestamp to be set.
          * @return this builder to allow method chaining.
          */
         FromScratch setModified(@Nullable Instant modified);
+
+        /**
+         * Sets the given created timestamp to this builder.
+         *
+         * @param created the created timestamp to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromScratch setCreated(@Nullable Instant created);
 
         /**
          * Sets the given Metadata to this builder.
@@ -628,8 +642,8 @@ public interface ThingBuilder {
          * @param accessControlListJsonObject the JSON object representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code accessControlListJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
-         * to {@link AccessControlList}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject}
+         * cannot be parsed to {@link AccessControlList}.
          * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
         @Deprecated
@@ -646,7 +660,8 @@ public interface ThingBuilder {
          * @param accessControlListJsonObject the JSON object representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject}
+         * cannot be parsed
          * to {@link AccessControlList}.
          * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
@@ -659,8 +674,8 @@ public interface ThingBuilder {
          *
          * @param accessControlListJsonString the JSON string representation of an Access Control List.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
-         * to {@link AccessControlList}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString}
+         * cannot be parsed to {@link AccessControlList}.
          * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
         @Deprecated
@@ -676,8 +691,8 @@ public interface ThingBuilder {
          * @param accessControlListJsonString the JSON string representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAclPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
-         * to {@link AccessControlList}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString}
+         * cannot be parsed to {@link AccessControlList}.
          * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
         @Deprecated
@@ -843,8 +858,8 @@ public interface ThingBuilder {
          *
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a valid JSON
-         * object.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * valid JSON object.
          */
         default FromCopy setAttributes(final String attributesJsonString) {
             return setAttributes(existingAttributes -> true, attributesJsonString);
@@ -859,8 +874,8 @@ public interface ThingBuilder {
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAttributesPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a valid JSON
-         * object.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * valid JSON object.
          */
         FromCopy setAttributes(Predicate<Attributes> existingAttributesPredicate, String attributesJsonString);
 
@@ -1401,15 +1416,40 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets the given modified to this builder.
+         * Sets the given modified timestamp to this builder.
          *
-         * @param existingModifiedPredicate a predicate to decide whether the given modified is set. The predicate
-         * receives the currently set modified.
-         * @param modified the modified to be set.
+         * @param existingModifiedPredicate a predicate to decide whether the given modified timestamp is set. The
+         * predicate
+         * receives the currently set modified timestamp.
+         * @param modified the modified timestamp to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingModifiedPredicate} is {@code null}.
          */
         FromCopy setModified(Predicate<Instant> existingModifiedPredicate, @Nullable Instant modified);
+
+
+        /**
+         * Sets the given created timestamp to this builder.
+         *
+         * @param created the created timestamp to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        default FromCopy setCreated(@Nullable final Instant created) {
+            return setCreated(existingCreated -> true, created);
+        }
+
+        /**
+         * Sets the given created timestamp to this builder.
+         *
+         * @param existingCreatedPredicate a predicate to decide whether the given created timestamp is set. The
+         * predicate receives the currently set created timestamp.
+         * @param created the created to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code existingCreatedPredicate} is {@code null}.
+         * @since 1.2.0
+         */
+        FromCopy setCreated(Predicate<Instant> existingCreatedPredicate, @Nullable Instant created);
 
         /**
          * Sets the given metadata to this builder.
@@ -1418,7 +1458,20 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @since 1.2.0
          */
-        FromCopy setMetadata(@Nullable Metadata metadata);
+        default FromCopy setMetadata(@Nullable final Metadata metadata) {
+            return setMetadata(existingMetadata -> true, metadata);
+        }
+
+        /**
+         * Sets the given metadata to this builder.
+         *
+         * @param existingMetadataPredicate a predicate to decide whether the given metadata is set. The
+         * predicate receives the currently set metadata.
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromCopy setMetadata(Predicate<Metadata> existingMetadataPredicate, @Nullable Metadata metadata);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.

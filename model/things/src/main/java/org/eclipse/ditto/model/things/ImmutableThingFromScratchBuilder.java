@@ -43,6 +43,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
+    @Nullable Instant created;
+    @Nullable Metadata metadata;
     @Nullable private JsonSchemaVersion schemaVersion;
     @Nullable private PolicyId policyId;
     @Nullable
@@ -53,7 +55,6 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable private ThingDefinition definition;
     @Nullable private FeaturesBuilder featuresBuilder;
     @Nullable private Features features;
-    @Nullable private Metadata metadata;
 
     private ImmutableThingFromScratchBuilder() {
         id = null;
@@ -67,6 +68,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         lifecycle = null;
         revision = null;
         modified = null;
+        created = null;
+        metadata = null;
     }
 
     /**
@@ -339,6 +342,12 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    public FromScratch setCreated(@Nullable final Instant created) {
+        this.created = created;
+        return this;
+    }
+
+    @Override
     public FromScratch setMetadata(@Nullable final Metadata metadata) {
         this.metadata = metadata;
         return this;
@@ -445,10 +454,10 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     public Thing build() {
         if (null != policyId) {
             return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified, metadata);
+                    revision, modified, created, metadata);
         } else {
             return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified, metadata);
+                    revision, modified, created, metadata);
         }
     }
 

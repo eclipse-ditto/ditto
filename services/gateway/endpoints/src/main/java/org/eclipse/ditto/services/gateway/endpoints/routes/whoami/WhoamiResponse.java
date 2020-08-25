@@ -38,6 +38,7 @@ import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
 
 /**
  * Response on a {@link Whoami} command.
+ *
  * @since 1.2.0
  */
 @Immutable
@@ -49,7 +50,8 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
      */
     public static final String TYPE = TYPE_PREFIX + Whoami.NAME;
 
-    private static final JsonFieldDefinition<JsonObject> JSON_USER_INFO = JsonFactory.newJsonObjectFieldDefinition("userInformation");
+    private static final JsonFieldDefinition<JsonObject> JSON_USER_INFO =
+            JsonFactory.newJsonObjectFieldDefinition("userInformation");
     // intentionally a JsonObject to be able to use different implementations of UserInformation
     private final JsonObject userInformation;
 
@@ -60,6 +62,7 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
 
     /**
      * Build a new {@link WhoamiResponse}.
+     *
      * @param userInformation the user information to respond.
      * @param dittoHeaders the headers for the reponse.
      * @return the response.
@@ -133,6 +136,12 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
                 super.toString() +
                 "userInformation=" + userInformation +
                 "]";
+    }
+
+    @Override
+    @Nonnull
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
 }

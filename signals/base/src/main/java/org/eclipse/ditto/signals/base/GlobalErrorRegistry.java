@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFieldSelectorInvalidException;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -100,6 +101,14 @@ public final class GlobalErrorRegistry
             dittoJsonParseRegistries.put(JsonPointerInvalidException.ERROR_CODE,
                     (jsonObject, dittoHeaders) -> new DittoJsonException(
                             JsonPointerInvalidException.newBuilder()
+                                    .message(getMessage(jsonObject))
+                                    .description(getDescription(jsonObject))
+                                    .build(),
+                            dittoHeaders));
+
+            dittoJsonParseRegistries.put(JsonKeyInvalidException.ERROR_CODE,
+                    (jsonObject, dittoHeaders) -> new DittoJsonException(
+                            JsonKeyInvalidException.newBuilder()
                                     .message(getMessage(jsonObject))
                                     .description(getDescription(jsonObject))
                                     .build(),

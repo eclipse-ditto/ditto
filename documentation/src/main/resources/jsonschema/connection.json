@@ -200,7 +200,9 @@
                 ]
               }
             },
-            "required": [ "includes" ]
+            "required": [
+              "includes"
+            ]
           },
           "payloadMapping": {
             "$id": "/properties/sources/items/properties/payloadMapping",
@@ -267,11 +269,17 @@
                 "items": {
                   "type": "string",
                   "title": "Response types",
-                  "enum": [ "response", "error", "nack" ]
+                  "enum": [
+                    "response",
+                    "error",
+                    "nack"
+                  ]
                 }
               }
             },
-            "required": [ "address" ]
+            "required": [
+              "address"
+            ]
           }
         }
       }

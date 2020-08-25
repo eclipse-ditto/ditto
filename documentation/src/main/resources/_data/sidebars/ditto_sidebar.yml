@@ -1,576 +1,579 @@
 # This is your sidebar TOC. The sidebar code loops through sections here and provides the appropriate formatting.
 
 entries:
-- title: sidebar
-  product: Eclipse Ditto
-  folders:
+  - title: sidebar
+    product: Eclipse Ditto
+    folders:
 
-  - title: Introduction
-    output: web
-
-    folderitems:
-    - title: Overview
-      url: /intro-overview.html
-      output: web
-      type: homepage
-    - title: Digital twins
-      url: /intro-digitaltwins.html
-      output: web
-    - title: Hello world
-      url: /intro-hello-world.html
-      output: web
-
-  - title: Release Notes
-    output: web
-    folderitems:
-    - title: 1.1.3
-      url: /release_notes_113.html
-      output: web
-    - title: 1.1.2
-      url: /release_notes_112.html
-      output: web
-    - title: 1.1.1
-      url: /release_notes_111.html
-      output: web
-    - title: 1.1.0
-      url: /release_notes_110.html
-      output: web
-    - title: 1.0.0
-      url: /release_notes_100.html
-      output: web
-    - title: 0.9.0
-      url: /release_notes_090.html
-      output: web
-    - title: 0.8.0
-      url: /release_notes_080.html
-      output: web
-
-      subfolders:
-      - title: Milestone releases
+      - title: Introduction
         output: web
-        subfolderitems:
-        - title: 1.0.0-M2
-          url: /release_notes_100-M2.html
-          output: web
-        - title: 1.0.0-M1a
-          url: /release_notes_100-M1a.html
-          output: web
-        - title: 0.9.0-M2
-          url: /release_notes_090-M2.html
-          output: web
-        - title: 0.9.0-M1
-          url: /release_notes_090-M1.html
-          output: web
-        - title: 0.8.0-M3
-          url: /release_notes_080-M3.html
-          output: web
-        - title: 0.8.0-M2
-          url: /release_notes_080-M2.html
-          output: web
-        - title: 0.8.0-M1
-          url: /release_notes_080-M1.html
-          output: web
-        - title: 0.3.0-M2
-          url: /release_notes_030-M2.html
-          output: web
-        - title: 0.3.0-M1
-          url: /release_notes_030-M1.html
-          output: web
-        - title: 0.2.0-M1
-          url: /release_notes_020-M1.html
-          output: web
-        - title: 0.1.0-M3
-          url: /release_notes_010-M3.html
-          output: web
-        - title: 0.1.0-M1
-          url: /release_notes_010-M1.html
-          output: web
 
-  - title: Installation
-    output: web
-    folderitems:
+        folderitems:
+          - title: Overview
+            url: /intro-overview.html
+            output: web
+            type: homepage
+          - title: Digital twins
+            url: /intro-digitaltwins.html
+            output: web
+          - title: Hello world
+            url: /intro-hello-world.html
+            output: web
 
-    - title: Building Ditto
-      url: /installation-building.html
-      output: web
-    - title: Running Ditto
-      url: /installation-running.html
-      output: web
-    - title: Operating Ditto
-      url: /installation-operating.html
-      output: web
-
-  - title: Basic concepts
-    output: web
-
-    folderitems:
-    - title: Overview
-      url: /basic-overview.html
-      output: web
-
-      subfolders:
-      - title: Model entities
+      - title: Release Notes
         output: web
-        subfolderitems:
-        - title: Thing
-          url: /basic-thing.html
-          output: web
-        - title: Access Control List (ACL)
-          url: /basic-acl.html
-          output: web
-        - title: Feature
-          url: /basic-feature.html
-          output: web
-        - title: Policy
-          url: /basic-policy.html
-          output: web
-        - title: Namespaces and Names
-          url: /basic-namespaces-and-names.html
-          output: web
-        - title: Errors
-          url: /basic-errors.html
-          output: web
+        folderitems:
+          - title: 1.1.4
+            url: /release_notes_114.html
+            output: web
+          - title: 1.1.3
+            url: /release_notes_113.html
+            output: web
+          - title: 1.1.2
+            url: /release_notes_112.html
+            output: web
+          - title: 1.1.1
+            url: /release_notes_111.html
+            output: web
+          - title: 1.1.0
+            url: /release_notes_110.html
+            output: web
+          - title: 1.0.0
+            url: /release_notes_100.html
+            output: web
+          - title: 0.9.0
+            url: /release_notes_090.html
+            output: web
+          - title: 0.8.0
+            url: /release_notes_080.html
+            output: web
 
-    - title: Authentication and Authorization
-      url: /basic-auth.html
-      output: web
-    - title: Messages
-      url: /basic-messages.html
-      output: web
-    - title: Signals
-      url: /basic-signals.html
-      output: web
+            subfolders:
+              - title: Milestone releases
+                output: web
+                subfolderitems:
+                  - title: 1.0.0-M2
+                    url: /release_notes_100-M2.html
+                    output: web
+                  - title: 1.0.0-M1a
+                    url: /release_notes_100-M1a.html
+                    output: web
+                  - title: 0.9.0-M2
+                    url: /release_notes_090-M2.html
+                    output: web
+                  - title: 0.9.0-M1
+                    url: /release_notes_090-M1.html
+                    output: web
+                  - title: 0.8.0-M3
+                    url: /release_notes_080-M3.html
+                    output: web
+                  - title: 0.8.0-M2
+                    url: /release_notes_080-M2.html
+                    output: web
+                  - title: 0.8.0-M1
+                    url: /release_notes_080-M1.html
+                    output: web
+                  - title: 0.3.0-M2
+                    url: /release_notes_030-M2.html
+                    output: web
+                  - title: 0.3.0-M1
+                    url: /release_notes_030-M1.html
+                    output: web
+                  - title: 0.2.0-M1
+                    url: /release_notes_020-M1.html
+                    output: web
+                  - title: 0.1.0-M3
+                    url: /release_notes_010-M3.html
+                    output: web
+                  - title: 0.1.0-M1
+                    url: /release_notes_010-M1.html
+                    output: web
 
-      subfolders:
-      - title: Signal types
+      - title: Installation
         output: web
-        subfolderitems:
-        - title: Command
-          url: /basic-signals-command.html
-          output: web
-        - title: Command response
-          url: /basic-signals-commandresponse.html
-          output: web
-        - title: Error response
-          url: /basic-signals-errorresponse.html
-          output: web
-        - title: Event
-          url: /basic-signals-event.html
-          output: web
+        folderitems:
 
-    - title: APIs
-      url: /basic-apis.html
-      output: web
-    - title: Connections
-      url: /basic-connections.html
-      output: web
-    - title: Placeholders
-      url: /basic-placeholders.html
-      output: web
-    - title: Change notifications
-      url: /basic-changenotifications.html
-      output: web
-    - title: RQL expressions
-      url: /basic-rql.html
-      output: web
-    - title: Signal enrichment
-      url: /basic-enrichment.html
-      output: web
-    - title: Search
-      url: /basic-search.html
-      output: web
-    - title: Acknowledgements / QoS
-      url: /basic-acknowledgements.html
-      output: web
-
-  - title: Architecture
-    output: web
-
-    folderitems:
-    - title: Overview
-      url: /architecture-overview.html
-      output: web
-
-      subfolders:
-        - title: Services
-          output: web
-          subfolderitems:
-          - title: Policies
-            url: /architecture-services-policies.html
+          - title: Building Ditto
+            url: /installation-building.html
             output: web
-          - title: Things
-            url: /architecture-services-things.html
+          - title: Running Ditto
+            url: /installation-running.html
             output: web
-          - title: Things-Search
-            url: /architecture-services-things-search.html
-            output: web
-          - title: Connectivity
-            url: /architecture-services-connectivity.html
-            output: web
-          - title: Concierge
-            url: /architecture-services-concierge.html
-            output: web
-          - title: Gateway
-            url: /architecture-services-gateway.html
+          - title: Operating Ditto
+            url: /installation-operating.html
             output: web
 
-  - title: HTTP API
-    output: web
-
-    folderitems:
-    - title: Overview
-      url: /httpapi-overview.html
-      output: web
-    - title: Concepts
-      url: /httpapi-concepts.html
-      output: web
-    - title: Search
-      url: /httpapi-search.html
-      output: web
-    - title: Messages
-      url: /httpapi-messages.html
-      output: web
-    - title: WebSocket protocol binding
-      url: /httpapi-protocol-bindings-websocket.html
-      output: web
-    - title: Server sent events
-      url: /httpapi-sse.html
-      output: web
-
-  - title: Connectivity API
-    output: web
-    folderitems:
-    - title: Overview
-      url: /connectivity-overview.html
-      output: web
-    - title: Manage connections
-      url: /connectivity-manage-connections.html
-      output: web
-    - title: AMQP 0.9.1 protocol binding
-      url: /connectivity-protocol-bindings-amqp091.html
-      output: web
-    - title: AMQP 1.0 protocol binding
-      url: /connectivity-protocol-bindings-amqp10.html
-      output: web
-    - title: MQTT 3.1.1 protocol binding
-      url: /connectivity-protocol-bindings-mqtt.html
-      output: web
-    - title: MQTT 5 protocol binding
-      url: /connectivity-protocol-bindings-mqtt5.html
-      output: web
-    - title: HTTP 1.1 protocol binding
-      url: /connectivity-protocol-bindings-http.html
-      output: web
-    - title: Kafka 2.x protocol binding
-      url: /connectivity-protocol-bindings-kafka2.html
-      output: web
-    - title: Payload mapping
-      url: /connectivity-mapping.html
-      output: web
-    - title: Header mapping
-      url: /connectivity-header-mapping.html
-      output: web
-    - title: TLS certificates
-      url: /connectivity-tls-certificates.html
-      output: web
-
-  - title: Client SDK
-    output: web
-    folderitems:
-    - title: Overview
-      url: /client-sdk-overview.html
-      output: web
-    - title: Java
-      url: /client-sdk-java.html
-      output: web
-    - title: JavaScript
-      url: /client-sdk-javascript.html
-      output: web
-
-  - title: Ditto Protocol
-    output: web
-
-    folderitems:
-    - title: Overview
-      url: /protocol-overview.html
-      output: web
-    - title: Twin/live channel
-      url: /protocol-twinlive.html
-      output: web
-    - title: Specification
-      url: /protocol-specification.html
-      output: web
-    - title: Protocol topic
-      url: /protocol-specification-topic.html
-      output: web
-    - title: Things group
-      url: /protocol-specification-things.html
-      output: web
-
-      subfolders:
-      - title: → commands/events
+      - title: Basic concepts
         output: web
-        subfolderitems:
-        - title: Create/Modify
-          url: /protocol-specification-things-create-or-modify.html
-          output: web
-        - title: Retrieve
-          url: /protocol-specification-things-retrieve.html
-          output: web
-        - title: Delete
-          url: /protocol-specification-things-delete.html
-          output: web
-        - title: Acknowledgements
-          url: /protocol-specification-acks.html
-          output: web
-        - title: Errors
-          url: /protocol-specification-errors.html
-          output: web
 
-      - title: → search/messages
-        output: web
-        subfolderitems:
-          - title: Search
-            url: /protocol-specification-things-search.html
+        folderitems:
+          - title: Overview
+            url: /basic-overview.html
+            output: web
+
+            subfolders:
+              - title: Model entities
+                output: web
+                subfolderitems:
+                  - title: Thing
+                    url: /basic-thing.html
+                    output: web
+                  - title: Access Control List (ACL)
+                    url: /basic-acl.html
+                    output: web
+                  - title: Feature
+                    url: /basic-feature.html
+                    output: web
+                  - title: Policy
+                    url: /basic-policy.html
+                    output: web
+                  - title: Namespaces and Names
+                    url: /basic-namespaces-and-names.html
+                    output: web
+                  - title: Errors
+                    url: /basic-errors.html
+                    output: web
+
+          - title: Authentication and Authorization
+            url: /basic-auth.html
             output: web
           - title: Messages
-            url: /protocol-specification-things-messages.html
+            url: /basic-messages.html
+            output: web
+          - title: Signals
+            url: /basic-signals.html
             output: web
 
-    - title: Policies group
-      url: /protocol-specification-policies.html
-      output: web
+            subfolders:
+              - title: Signal types
+                output: web
+                subfolderitems:
+                  - title: Command
+                    url: /basic-signals-command.html
+                    output: web
+                  - title: Command response
+                    url: /basic-signals-commandresponse.html
+                    output: web
+                  - title: Error response
+                    url: /basic-signals-errorresponse.html
+                    output: web
+                  - title: Event
+                    url: /basic-signals-event.html
+                    output: web
 
-      subfolders:
-        - title: → commands/events
-          output: web
-          subfolderitems:
-            - title: Create/Modify
-              url: /protocol-specification-policies-create-or-modify.html
-              output: web
-            - title: Retrieve
-              url: /protocol-specification-policies-retrieve.html
-              output: web
-            - title: Delete
-              url: /protocol-specification-policies-delete.html
-              output: web
+          - title: APIs
+            url: /basic-apis.html
+            output: web
+          - title: Connections
+            url: /basic-connections.html
+            output: web
+          - title: Placeholders
+            url: /basic-placeholders.html
+            output: web
+          - title: Change notifications
+            url: /basic-changenotifications.html
+            output: web
+          - title: RQL expressions
+            url: /basic-rql.html
+            output: web
+          - title: Signal enrichment
+            url: /basic-enrichment.html
+            output: web
+          - title: Search
+            url: /basic-search.html
+            output: web
+          - title: Acknowledgements / QoS
+            url: /basic-acknowledgements.html
+            output: web
 
-    - title: Bindings
-      url: /protocol-bindings.html
-      output: web
-
-    - title: Examples
-      url: /protocol-examples.html
-      output: web
-
-      subfolders:
-      - title: → Things examples
+      - title: Architecture
         output: web
-        subfolderitems:
-        - title: Create a Thing
-          url: /protocol-examples-creatething.html
-          output: web
-        - title: Delete a Thing
-          url: /protocol-examples-deletething.html
-          output: web
-        - title: Modify a Thing
-          url: /protocol-examples-modifything.html
-          output: web
-        - title: Retrieve a Thing
-          url: /protocol-examples-retrievething.html
-          output: web
-        - title: Retrieve multiple Things
-          url: /protocol-examples-retrievethings.html
-          output: web
-        - title: Modify the Policy ID of a Thing
-          url: /protocol-examples-modifypolicyid.html
-          output: web
-        - title: Create Attributes
-          url: /protocol-examples-createattributes.html
-          output: web
-        - title: Delete Attributes
-          url: /protocol-examples-deleteattributes.html
-          output: web
-        - title: Modify Attributes
-          url: /protocol-examples-modifyattributes.html
-          output: web
-        - title: Retrieve Attributes
-          url: /protocol-examples-retrieveattributes.html
-          output: web
-        - title: Create a single Attribute
-          url: /protocol-examples-createattribute.html
-          output: web
-        - title: Delete a single Attribute
-          url: /protocol-examples-deleteattribute.html
-          output: web
-        - title: Modify a single Attribute
-          url: /protocol-examples-modifyattribute.html
-          output: web
-        - title: Retrieve a single Attribute
-          url: /protocol-examples-retrieveattribute.html
-          output: web
-        - title: Create a Definition
-          url: /protocol-examples-createthingdefinition.html
-          output: web
-        - title: Delete a Definition
-          url: /protocol-examples-deletethingdefinition.html
-          output: web
-        - title: Modify a Definition
-          url: /protocol-examples-modifythingdefinition.html
-          output: web
-        - title: Retrieve a Definition
-          url: /protocol-examples-retrievethingdefinition.html
-          output: web
-        - title: Create Features
-          url: /protocol-examples-createfeatures.html
-          output: web
-        - title: Delete Features
-          url: /protocol-examples-deletefeatures.html
-          output: web
-        - title: Modify Features
-          url: /protocol-examples-modifyfeatures.html
-          output: web
-        - title: Retrieve Features
-          url: /protocol-examples-retrievefeatures.html
-          output: web
-        - title: Create a single Feature
-          url: /protocol-examples-createfeature.html
-          output: web
-        - title: Delete a single Feature
-          url: /protocol-examples-deletefeature.html
-          output: web
-        - title: Modify a single Feature
-          url: /protocol-examples-modifyfeature.html
-          output: web
-        - title: Retrieve a single Feature
-          url: /protocol-examples-retrievefeature.html
-          output: web
-        - title: Create Feature Definition
-          url: /protocol-examples-createdefinition.html
-          output: web
-        - title: Delete Feature Definition
-          url: /protocol-examples-deletedefinition.html
-          output: web
-        - title: Modify Feature Definition
-          url: /protocol-examples-modifydefinition.html
-          output: web
-        - title: Retrieve Feature Definition
-          url: /protocol-examples-retrievedefinition.html
-          output: web
-        - title: Create Feature Properties
-          url: /protocol-examples-createproperties.html
-          output: web
-        - title: Delete Feature Properties
-          url: /protocol-examples-deleteproperties.html
-          output: web
-        - title: Modify Feature Properties
-          url: /protocol-examples-modifyproperties.html
-          output: web
-        - title: Retrieve Feature Properties
-          url: /protocol-examples-retrieveproperties.html
-          output: web
-        - title: Create a single Property
-          url: /protocol-examples-createproperty.html
-          output: web
-        - title: Delete a single Property
-          url: /protocol-examples-deleteproperty.html
-          output: web
-        - title: Modify a single Property
-          url: /protocol-examples-modifyproperty.html
-          output: web
-        - title: Retrieve a single Property
-          url: /protocol-examples-retrieveproperty.html
-          output: web
-        - title: Error responses
-          url: /protocol-examples-errorresponses.html
-          output: web
-      - title: → Policies examples
+
+        folderitems:
+          - title: Overview
+            url: /architecture-overview.html
+            output: web
+
+            subfolders:
+              - title: Services
+                output: web
+                subfolderitems:
+                  - title: Policies
+                    url: /architecture-services-policies.html
+                    output: web
+                  - title: Things
+                    url: /architecture-services-things.html
+                    output: web
+                  - title: Things-Search
+                    url: /architecture-services-things-search.html
+                    output: web
+                  - title: Connectivity
+                    url: /architecture-services-connectivity.html
+                    output: web
+                  - title: Concierge
+                    url: /architecture-services-concierge.html
+                    output: web
+                  - title: Gateway
+                    url: /architecture-services-gateway.html
+                    output: web
+
+      - title: HTTP API
         output: web
-        subfolderitems:
-        - title: Create a Policy
-          url: /protocol-examples-policies-createpolicy.html
-          output: web
-        - title: Delete a Policy
-          url: /protocol-examples-policies-deletepolicy.html
-          output: web
-        - title: Modify a Policy
-          url: /protocol-examples-policies-modifypolicy.html
-          output: web
-        - title: Retrieve a Policy
-          url: /protocol-examples-policies-retrievepolicy.html
-          output: web
-        - title: Modify entries
-          url: /protocol-examples-policies-modifypolicyentries.html
-          output: web
-        - title: Retrieve entries
-          url: /protocol-examples-policies-retrievepolicyentries.html
-          output: web
-        - title: Create a single entry
-          url: /protocol-examples-policies-createpolicyentry.html
-          output: web
-        - title: Delete a single entry
-          url: /protocol-examples-policies-deletepolicyentry.html
-          output: web
-        - title: Modify a single entry
-          url: /protocol-examples-policies-modifypolicyentry.html
-          output: web
-        - title: Retrieve a single entry
-          url: /protocol-examples-policies-retrievepolicyentry.html
-          output: web
-        - title: Modify subjects
-          url: /protocol-examples-policies-modifysubjects.html
-          output: web
-        - title: Retrieve subjects
-          url: /protocol-examples-policies-retrievesubjects.html
-          output: web
-        - title: Create a single subject
-          url: /protocol-examples-policies-createsubject.html
-          output: web
-        - title: Delete a single subject
-          url: /protocol-examples-policies-deletesubject.html
-          output: web
-        - title: Modify a single subject
-          url: /protocol-examples-policies-modifysubject.html
-          output: web
-        - title: Retrieve a single subject
-          url: /protocol-examples-policies-retrievesubject.html
-          output: web
-        - title: Modify resources
-          url: /protocol-examples-policies-modifyresources.html
-          output: web
-        - title: Retrieve resources
-          url: /protocol-examples-policies-retrieveresources.html
-          output: web
-        - title: Create a single resource
-          url: /protocol-examples-policies-createresource.html
-          output: web
-        - title: Delete a single resource
-          url: /protocol-examples-policies-deleteresource.html
-          output: web
-        - title: Modify a single resource
-          url: /protocol-examples-policies-modifyresource.html
-          output: web
-        - title: Retrieve a single resource
-          url: /protocol-examples-policies-retrieveresource.html
-          output: web
-        - title: Error responses
-          url: /protocol-examples-policies-errorresponses.html
-          output: web
-    - title: → Search examples
-      url: /protocol-examples-search.html
-      output: web
-  - title: Sandbox
-    url: /sandbox.html
-    output: web
 
-  - title: Presentations
-    url: /presentations.html
-    output: web
+        folderitems:
+          - title: Overview
+            url: /httpapi-overview.html
+            output: web
+          - title: Concepts
+            url: /httpapi-concepts.html
+            output: web
+          - title: Search
+            url: /httpapi-search.html
+            output: web
+          - title: Messages
+            url: /httpapi-messages.html
+            output: web
+          - title: WebSocket protocol binding
+            url: /httpapi-protocol-bindings-websocket.html
+            output: web
+          - title: Server sent events
+            url: /httpapi-sse.html
+            output: web
 
-  - title: Glossary
-    url: /glossary.html
-    output: web
+      - title: Connectivity API
+        output: web
+        folderitems:
+          - title: Overview
+            url: /connectivity-overview.html
+            output: web
+          - title: Manage connections
+            url: /connectivity-manage-connections.html
+            output: web
+          - title: AMQP 0.9.1 protocol binding
+            url: /connectivity-protocol-bindings-amqp091.html
+            output: web
+          - title: AMQP 1.0 protocol binding
+            url: /connectivity-protocol-bindings-amqp10.html
+            output: web
+          - title: MQTT 3.1.1 protocol binding
+            url: /connectivity-protocol-bindings-mqtt.html
+            output: web
+          - title: MQTT 5 protocol binding
+            url: /connectivity-protocol-bindings-mqtt5.html
+            output: web
+          - title: HTTP 1.1 protocol binding
+            url: /connectivity-protocol-bindings-http.html
+            output: web
+          - title: Kafka 2.x protocol binding
+            url: /connectivity-protocol-bindings-kafka2.html
+            output: web
+          - title: Payload mapping
+            url: /connectivity-mapping.html
+            output: web
+          - title: Header mapping
+            url: /connectivity-header-mapping.html
+            output: web
+          - title: TLS certificates
+            url: /connectivity-tls-certificates.html
+            output: web
 
-  - title: Feedback
-    url: /feedback.html
-    output: web
+      - title: Client SDK
+        output: web
+        folderitems:
+          - title: Overview
+            url: /client-sdk-overview.html
+            output: web
+          - title: Java
+            url: /client-sdk-java.html
+            output: web
+          - title: JavaScript
+            url: /client-sdk-javascript.html
+            output: web
+
+      - title: Ditto Protocol
+        output: web
+
+        folderitems:
+          - title: Overview
+            url: /protocol-overview.html
+            output: web
+          - title: Twin/live channel
+            url: /protocol-twinlive.html
+            output: web
+          - title: Specification
+            url: /protocol-specification.html
+            output: web
+          - title: Protocol topic
+            url: /protocol-specification-topic.html
+            output: web
+          - title: Things group
+            url: /protocol-specification-things.html
+            output: web
+
+            subfolders:
+              - title: → commands/events
+                output: web
+                subfolderitems:
+                  - title: Create/Modify
+                    url: /protocol-specification-things-create-or-modify.html
+                    output: web
+                  - title: Retrieve
+                    url: /protocol-specification-things-retrieve.html
+                    output: web
+                  - title: Delete
+                    url: /protocol-specification-things-delete.html
+                    output: web
+                  - title: Acknowledgements
+                    url: /protocol-specification-acks.html
+                    output: web
+                  - title: Errors
+                    url: /protocol-specification-errors.html
+                    output: web
+
+              - title: → search/messages
+                output: web
+                subfolderitems:
+                  - title: Search
+                    url: /protocol-specification-things-search.html
+                    output: web
+                  - title: Messages
+                    url: /protocol-specification-things-messages.html
+                    output: web
+
+          - title: Policies group
+            url: /protocol-specification-policies.html
+            output: web
+
+            subfolders:
+              - title: → commands/events
+                output: web
+                subfolderitems:
+                  - title: Create/Modify
+                    url: /protocol-specification-policies-create-or-modify.html
+                    output: web
+                  - title: Retrieve
+                    url: /protocol-specification-policies-retrieve.html
+                    output: web
+                  - title: Delete
+                    url: /protocol-specification-policies-delete.html
+                    output: web
+
+          - title: Bindings
+            url: /protocol-bindings.html
+            output: web
+
+          - title: Examples
+            url: /protocol-examples.html
+            output: web
+
+            subfolders:
+              - title: → Things examples
+                output: web
+                subfolderitems:
+                  - title: Create a Thing
+                    url: /protocol-examples-creatething.html
+                    output: web
+                  - title: Delete a Thing
+                    url: /protocol-examples-deletething.html
+                    output: web
+                  - title: Modify a Thing
+                    url: /protocol-examples-modifything.html
+                    output: web
+                  - title: Retrieve a Thing
+                    url: /protocol-examples-retrievething.html
+                    output: web
+                  - title: Retrieve multiple Things
+                    url: /protocol-examples-retrievethings.html
+                    output: web
+                  - title: Modify the Policy ID of a Thing
+                    url: /protocol-examples-modifypolicyid.html
+                    output: web
+                  - title: Create Attributes
+                    url: /protocol-examples-createattributes.html
+                    output: web
+                  - title: Delete Attributes
+                    url: /protocol-examples-deleteattributes.html
+                    output: web
+                  - title: Modify Attributes
+                    url: /protocol-examples-modifyattributes.html
+                    output: web
+                  - title: Retrieve Attributes
+                    url: /protocol-examples-retrieveattributes.html
+                    output: web
+                  - title: Create a single Attribute
+                    url: /protocol-examples-createattribute.html
+                    output: web
+                  - title: Delete a single Attribute
+                    url: /protocol-examples-deleteattribute.html
+                    output: web
+                  - title: Modify a single Attribute
+                    url: /protocol-examples-modifyattribute.html
+                    output: web
+                  - title: Retrieve a single Attribute
+                    url: /protocol-examples-retrieveattribute.html
+                    output: web
+                  - title: Create a Definition
+                    url: /protocol-examples-createthingdefinition.html
+                    output: web
+                  - title: Delete a Definition
+                    url: /protocol-examples-deletethingdefinition.html
+                    output: web
+                  - title: Modify a Definition
+                    url: /protocol-examples-modifythingdefinition.html
+                    output: web
+                  - title: Retrieve a Definition
+                    url: /protocol-examples-retrievethingdefinition.html
+                    output: web
+                  - title: Create Features
+                    url: /protocol-examples-createfeatures.html
+                    output: web
+                  - title: Delete Features
+                    url: /protocol-examples-deletefeatures.html
+                    output: web
+                  - title: Modify Features
+                    url: /protocol-examples-modifyfeatures.html
+                    output: web
+                  - title: Retrieve Features
+                    url: /protocol-examples-retrievefeatures.html
+                    output: web
+                  - title: Create a single Feature
+                    url: /protocol-examples-createfeature.html
+                    output: web
+                  - title: Delete a single Feature
+                    url: /protocol-examples-deletefeature.html
+                    output: web
+                  - title: Modify a single Feature
+                    url: /protocol-examples-modifyfeature.html
+                    output: web
+                  - title: Retrieve a single Feature
+                    url: /protocol-examples-retrievefeature.html
+                    output: web
+                  - title: Create Feature Definition
+                    url: /protocol-examples-createdefinition.html
+                    output: web
+                  - title: Delete Feature Definition
+                    url: /protocol-examples-deletedefinition.html
+                    output: web
+                  - title: Modify Feature Definition
+                    url: /protocol-examples-modifydefinition.html
+                    output: web
+                  - title: Retrieve Feature Definition
+                    url: /protocol-examples-retrievedefinition.html
+                    output: web
+                  - title: Create Feature Properties
+                    url: /protocol-examples-createproperties.html
+                    output: web
+                  - title: Delete Feature Properties
+                    url: /protocol-examples-deleteproperties.html
+                    output: web
+                  - title: Modify Feature Properties
+                    url: /protocol-examples-modifyproperties.html
+                    output: web
+                  - title: Retrieve Feature Properties
+                    url: /protocol-examples-retrieveproperties.html
+                    output: web
+                  - title: Create a single Property
+                    url: /protocol-examples-createproperty.html
+                    output: web
+                  - title: Delete a single Property
+                    url: /protocol-examples-deleteproperty.html
+                    output: web
+                  - title: Modify a single Property
+                    url: /protocol-examples-modifyproperty.html
+                    output: web
+                  - title: Retrieve a single Property
+                    url: /protocol-examples-retrieveproperty.html
+                    output: web
+                  - title: Error responses
+                    url: /protocol-examples-errorresponses.html
+                    output: web
+              - title: → Policies examples
+                output: web
+                subfolderitems:
+                  - title: Create a Policy
+                    url: /protocol-examples-policies-createpolicy.html
+                    output: web
+                  - title: Delete a Policy
+                    url: /protocol-examples-policies-deletepolicy.html
+                    output: web
+                  - title: Modify a Policy
+                    url: /protocol-examples-policies-modifypolicy.html
+                    output: web
+                  - title: Retrieve a Policy
+                    url: /protocol-examples-policies-retrievepolicy.html
+                    output: web
+                  - title: Modify entries
+                    url: /protocol-examples-policies-modifypolicyentries.html
+                    output: web
+                  - title: Retrieve entries
+                    url: /protocol-examples-policies-retrievepolicyentries.html
+                    output: web
+                  - title: Create a single entry
+                    url: /protocol-examples-policies-createpolicyentry.html
+                    output: web
+                  - title: Delete a single entry
+                    url: /protocol-examples-policies-deletepolicyentry.html
+                    output: web
+                  - title: Modify a single entry
+                    url: /protocol-examples-policies-modifypolicyentry.html
+                    output: web
+                  - title: Retrieve a single entry
+                    url: /protocol-examples-policies-retrievepolicyentry.html
+                    output: web
+                  - title: Modify subjects
+                    url: /protocol-examples-policies-modifysubjects.html
+                    output: web
+                  - title: Retrieve subjects
+                    url: /protocol-examples-policies-retrievesubjects.html
+                    output: web
+                  - title: Create a single subject
+                    url: /protocol-examples-policies-createsubject.html
+                    output: web
+                  - title: Delete a single subject
+                    url: /protocol-examples-policies-deletesubject.html
+                    output: web
+                  - title: Modify a single subject
+                    url: /protocol-examples-policies-modifysubject.html
+                    output: web
+                  - title: Retrieve a single subject
+                    url: /protocol-examples-policies-retrievesubject.html
+                    output: web
+                  - title: Modify resources
+                    url: /protocol-examples-policies-modifyresources.html
+                    output: web
+                  - title: Retrieve resources
+                    url: /protocol-examples-policies-retrieveresources.html
+                    output: web
+                  - title: Create a single resource
+                    url: /protocol-examples-policies-createresource.html
+                    output: web
+                  - title: Delete a single resource
+                    url: /protocol-examples-policies-deleteresource.html
+                    output: web
+                  - title: Modify a single resource
+                    url: /protocol-examples-policies-modifyresource.html
+                    output: web
+                  - title: Retrieve a single resource
+                    url: /protocol-examples-policies-retrieveresource.html
+                    output: web
+                  - title: Error responses
+                    url: /protocol-examples-policies-errorresponses.html
+                    output: web
+          - title: → Search examples
+            url: /protocol-examples-search.html
+            output: web
+      - title: Sandbox
+        url: /sandbox.html
+        output: web
+
+      - title: Presentations
+        url: /presentations.html
+        output: web
+
+      - title: Glossary
+        url: /glossary.html
+        output: web
+
+      - title: Feedback
+        url: /feedback.html
+        output: web

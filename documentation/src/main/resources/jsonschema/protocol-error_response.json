@@ -54,7 +54,9 @@
         }
       },
       "required": [
-        "status", "error", "message"
+        "status",
+        "error",
+        "message"
       ]
     },
     "status": {

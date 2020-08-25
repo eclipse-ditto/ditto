@@ -154,14 +154,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         receiveBuilder.match(OutboundSignal.MultiMapped.class, this::sendMultiMappedOutboundSignal)
                 .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
-                        getSender().tell(rs, getSelf())))
-                .matchAny(m -> {
-                    log().warning("Unknown message: {}", m);
-                    unhandled(m);
-                });
+                        getSender().tell(rs, getSelf())));
 
         postEnhancement(receiveBuilder);
-        return receiveBuilder.build();
+        return receiveBuilder.matchAny(m -> {
+            log().warning("Unknown message: {}", m);
+            unhandled(m);
+        }).build();
     }
 
     /**
@@ -525,10 +524,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ConnectionMonitor publishedMonitor =
                 connectionMonitorRegistry.forOutboundPublished(connectionId, target.getOriginalAddress());
         @Nullable final ConnectionMonitor acknowledgedMonitor =
-                isTargetAckRequested(outboundSignal, target) ? connectionMonitorRegistry.forInboundAcknowledged(connectionId, target.getOriginalAddress()) : null;
+                isTargetAckRequested(outboundSignal, target) ?
+                        connectionMonitorRegistry.forInboundAcknowledged(connectionId, target.getOriginalAddress()) :
+                        null;
         @Nullable final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
-        return new SendingContext(outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor, publishedMonitor, autoAckTarget);
+        return new SendingContext(outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor,
+                publishedMonitor, autoAckTarget);
     }
 
     @Nullable
@@ -586,7 +588,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }
 
         private SendingContext setExternalMessage(final ExternalMessage externalMessage) {
-            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor, acknowledgedMonitor, droppedMonitor,
+            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor,
+                    acknowledgedMonitor, droppedMonitor,
                     autoAckTarget);
         }
     }
@@ -618,10 +621,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                     context.publishedMonitor.success(context.externalMessage);
                                     return context.shouldAcknowledge() ? ack : null;
                                 } else if (ack != null) {
-                                   if (context.acknowledgedMonitor != null) {
-                                       context.acknowledgedMonitor.failure(context.externalMessage,
-                                               ackToException(ack));
-                                   }
+                                    if (context.acknowledgedMonitor != null) {
+                                        context.acknowledgedMonitor.failure(context.externalMessage,
+                                                ackToException(ack));
+                                    }
                                     return ack;
                                 } else {
                                     // ack == null; report error.

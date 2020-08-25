@@ -33,6 +33,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementsFactory;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 
@@ -48,7 +49,7 @@ public final class MappingStrategiesBuilder {
      */
     private static final String ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION = "JSON deserialization function";
 
-    private final Map<String, MappingStrategy> strategies;
+    private final Map<String, JsonParsable<Jsonifiable<?>>> strategies;
 
     private MappingStrategiesBuilder() {
         strategies = new HashMap<>();
@@ -174,7 +175,8 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if {@code mappingStrategies} is {@code null}.
      */
-    public <T extends Map<String, MappingStrategy>> MappingStrategiesBuilder putAll(final T mappingStrategies) {
+    public <T extends Map<String, JsonParsable<Jsonifiable<?>>>> MappingStrategiesBuilder putAll(
+            final T mappingStrategies) {
         checkNotNull(mappingStrategies, "mappingStrategies");
         strategies.putAll(mappingStrategies);
         return this;

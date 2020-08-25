@@ -89,7 +89,6 @@ public final class Resolvers {
      *
      * @param signal the signal.
      * @return the expression resolver.
-     *
      * @since 1.2.0
      */
     public static ExpressionResolver forSignal(final Signal<?> signal) {

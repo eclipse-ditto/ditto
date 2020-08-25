@@ -26,8 +26,8 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
@@ -41,7 +41,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
 
     @Nullable private static ConnectivityMappingStrategies instance = null;
 
-    private ConnectivityMappingStrategies(final Map<String, MappingStrategy> strategies) {
+    private ConnectivityMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
         super(strategies);
     }
 

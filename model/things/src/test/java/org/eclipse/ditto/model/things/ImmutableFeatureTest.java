@@ -25,9 +25,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.lang.ref.SoftReference;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -44,8 +44,11 @@ public final class ImmutableFeatureTest {
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
 
     private static final String KNOWN_FEATURE_ID = "myFeature";
-    private static final String LEADING_SLASH_FEATURE_ID = "/wrongFeature";
-    private static final String ENDING_SLASH_FEATURE_ID = "wrongFeature/";
+    private static final String LEADING_SLASH_FEATURE_ID = "/myFeature";
+    private static final String ENDING_SLASH_FEATURE_ID = "myFeature/";
+    private static final String SLASH_INBETWEEN_ID = "myFea/ture";
+
+
 
     private static final JsonObject KNOWN_JSON_OBJECT = JsonFactory.newObjectBuilder()
             .set(Feature.JsonFields.SCHEMA_VERSION, KNOWN_SCHEMA_VERSION.toInt())
@@ -92,15 +95,21 @@ public final class ImmutableFeatureTest {
 
     @Test
     public void createInstanceWithLeadingSlash() {
-        assertThatExceptionOfType(JsonPointerInvalidException.class)
+        assertThatExceptionOfType(JsonKeyInvalidException.class)
                 .isThrownBy(() -> ImmutableFeature.of(LEADING_SLASH_FEATURE_ID, null));
 
     }
 
     @Test
     public void createInstanceWithEndingSlash() {
-        assertThatExceptionOfType(JsonPointerInvalidException.class)
+        assertThatExceptionOfType(JsonKeyInvalidException.class)
                 .isThrownBy(() -> ImmutableFeature.of(ENDING_SLASH_FEATURE_ID, null));
+    }
+
+    @Test
+    public void createInstanceWithInbetweenSlash() {
+        assertThatExceptionOfType(JsonKeyInvalidException.class)
+                .isThrownBy(() -> ImmutableFeature.of(SLASH_INBETWEEN_ID, null));
     }
 
     @Test
@@ -306,8 +315,7 @@ public final class ImmutableFeatureTest {
     @Test
     public void removeDefinitionWorksAsExpected() {
         final ImmutableFeature expected = ImmutableFeature.of(KNOWN_FEATURE_ID);
-        final FeatureDefinition definition = FLUX_CAPACITOR_DEFINITION;
-        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, definition, null);
+        final ImmutableFeature underTest = ImmutableFeature.of(KNOWN_FEATURE_ID, FLUX_CAPACITOR_DEFINITION, null);
 
         final Feature actual = underTest.removeDefinition();
 

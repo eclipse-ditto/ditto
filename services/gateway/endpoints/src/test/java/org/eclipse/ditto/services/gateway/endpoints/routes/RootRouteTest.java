@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
@@ -436,6 +437,22 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result = rootTestRoute.run(request);
 
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
+    }
+
+    /**
+     * Make sure header is RFC 7230 conform
+     */
+    @Test
+    public void getExceptionDueToInvalidHeaderKey() {
+        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+            akka.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");}
+        );
+    }
+    @Test
+    public void getExceptionDueToInvalidHeaderValue() {
+        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+            akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");}
+            );
     }
 
     private static HttpRequest withHttps(final HttpRequest httpRequest) {

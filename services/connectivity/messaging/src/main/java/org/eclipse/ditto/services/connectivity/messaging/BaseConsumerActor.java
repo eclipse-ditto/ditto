@@ -83,8 +83,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
                 .forInboundConsumed(connectionId, sourceAddress);
 
-        inboundAcknowledgedMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
-                .forInboundAcknowledged(connectionId, sourceAddress);
+        inboundAcknowledgedMonitor =
+                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
+                        .forInboundAcknowledged(connectionId, sourceAddress);
     }
 
     /**
@@ -228,7 +229,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     }
 
     private static boolean someFailedResponseRequiresRedelivery(final Collection<CommandResponse<?>> failedResponses) {
-        return failedResponses.stream()
+        return failedResponses.isEmpty() || failedResponses.stream()
                 .flatMap(BaseConsumerActor::extractAggregatedResponses)
                 .map(CommandResponse::getStatusCode)
                 .anyMatch(BaseConsumerActor::requiresRedelivery);

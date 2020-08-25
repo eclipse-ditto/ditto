@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.slf4j.Logger;
@@ -70,7 +70,7 @@ final class UnmappedOutboundSignal implements OutboundSignal {
         final JsonObject readSourceObj = jsonObject.getValueOrThrow(JsonFields.SOURCE);
         final String commandType = readSourceObj.getValueOrThrow(Command.JsonFields.TYPE);
 
-        final MappingStrategy mappingStrategy = mappingStrategies.getMappingStrategy(commandType)
+        final JsonParsable<Jsonifiable<?>> mappingStrategy = mappingStrategies.getMappingStrategy(commandType)
                 .orElseThrow(() -> {
                     final String msgPattern = "There is no mapping strategy available for the signal of type <{0}>!";
                     final String message = MessageFormat.format(msgPattern, commandType);
@@ -81,7 +81,7 @@ final class UnmappedOutboundSignal implements OutboundSignal {
                 .map(DittoHeaders::newBuilder)
                 .orElseGet(DittoHeaders::newBuilder)
                 .build();
-        final Jsonifiable<?> signalJsonifiable = mappingStrategy.map(readSourceObj, dittoHeaders);
+        final Jsonifiable<?> signalJsonifiable = mappingStrategy.parse(readSourceObj, dittoHeaders);
 
         final JsonArray readTargetsArr = jsonObject.getValueOrThrow(JsonFields.TARGETS);
         final List<Target> targets = readTargetsArr.stream()

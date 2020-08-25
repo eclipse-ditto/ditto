@@ -40,9 +40,11 @@ public class PolicyCreatedStrategyTest extends AbstractPolicyEventStrategyTest<P
     @Override
     protected void additionalAssertions(final Policy policyWithEventApplied) {
         assertThat(policyWithEventApplied.getLifecycle()).contains(PolicyLifecycle.ACTIVE);
+        assertThat(policyWithEventApplied.getCreated()).contains(getInstant());
     }
 
     @Test
+    @Override
     public void testHandleReturnsNullForNullEntity() {
         // makes no sense for PolicyCreatedStrategy
     }

@@ -88,6 +88,12 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
+    public ImmutablePolicyBuilderLabelScoped setCreated(@Nullable final Instant created) {
+        delegate.setCreated(created);
+        return this;
+    }
+
+    @Override
     public ImmutablePolicyBuilderLabelScoped set(final PolicyEntry entry) {
         delegate.set(entry);
         return this;

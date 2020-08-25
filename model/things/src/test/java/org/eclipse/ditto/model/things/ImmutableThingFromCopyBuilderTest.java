@@ -19,6 +19,7 @@ import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITO
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
 import static org.eclipse.ditto.model.things.TestConstants.Metadata.METADATA;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.CREATED;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.DEFINITION;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.LIFECYCLE;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.MODIFIED;
@@ -871,7 +872,7 @@ public final class ImmutableThingFromCopyBuilderTest {
     @Test
     public void parseThingWithMetadata() {
         final Thing testThing = ImmutableThing.of(THING_ID, TestConstants.Thing.POLICY_ID,
-            DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, METADATA);
+            DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, CREATED, METADATA);
 
         final Thing thing = ImmutableThingFromCopyBuilder
             .of(testThing.toJson(JsonSchemaVersion.V_2, field -> true))

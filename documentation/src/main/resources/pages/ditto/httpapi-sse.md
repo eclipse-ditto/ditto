@@ -95,6 +95,13 @@ This can be used in combination with the below mentioned [RQL filter](#filtering
 http://localhost:8080/api/<1|2>/things?extraFields=attributes/location&filter=eq(attributes/location,"kitchen")
 ```
 
+For combined usage of `fields` and `extraFields` one needs to specify all fields, selected as extra fields, for the field projection, too.
+This is required to allow filtering based on extra fields but still omit them in the payload.
+An example without filtering would look like this:
+```
+http://localhost:8080/api/<1|2>/things?fields=thingId,attributes&extraFields=attributes
+```
+
 #### Filtering by namespaces
 
 As described in [change notifications](basic-changenotifications.html#by-namespaces), it is possible to subscribe only

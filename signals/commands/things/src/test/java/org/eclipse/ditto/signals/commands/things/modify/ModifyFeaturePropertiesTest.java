@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -99,7 +100,6 @@ public final class ModifyFeaturePropertiesTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final ModifyFeatureProperties underTest =
@@ -111,15 +111,29 @@ public final class ModifyFeaturePropertiesTest {
         Assertions.assertThat(underTest.getProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromJsonWithInvalidPropertiesPath() {
+
+        final FeatureProperties featurePropertiesWithInvalidPath =
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue("valid",
+                        JsonFactory.newObjectBuilder().set("invälid", JsonValue.of(42)).build());
+        final JsonObject invalidJson = KNOWN_JSON.toBuilder()
+                .set(ModifyFeatureProperties.JSON_PROPERTIES, featurePropertiesWithInvalidPath)
+                .build();
+
+        ModifyFeatureProperties.fromJson(invalidJson.toString(), TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
     @Test
     public void modifyTooLargeFeatureProperties() {
         final StringBuilder sb = new StringBuilder();
-        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
             sb.append('a');
         }
         sb.append('b');
 
-        final FeatureProperties featureProperties = FeatureProperties.newBuilder().set("a", JsonValue.of(sb.toString())).build();
+        final FeatureProperties featureProperties =
+                FeatureProperties.newBuilder().set("a", JsonValue.of(sb.toString())).build();
 
         assertThatThrownBy(() -> ModifyFeatureProperties.of(ThingId.of("foo", "bar"), "foo", featureProperties,
                 DittoHeaders.empty()))

@@ -91,13 +91,6 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     STATUS_CODE("status", int.class, true, false, HttpStatusCodeValueValidator.getInstance());
 
     /**
-     * The regex pattern a Subject has to conform to.
-     * Defined by <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a>.
-     */
-    static final String SUBJECT_REGEX =
-            "(([a-zA-Z][0-9a-zA-Z+\\-\\.]*:)?/{0,2}[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?(#[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?";
-
-    /**
      * Map to speed up lookup of header definition by key.
      */
     private static final Map<CharSequence, MessageHeaderDefinition> VALUES_BY_KEY = Arrays.stream(values())

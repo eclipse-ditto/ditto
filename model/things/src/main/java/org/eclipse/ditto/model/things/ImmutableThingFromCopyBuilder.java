@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
@@ -63,6 +64,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         thing.getLifecycle().ifPresent(result::setLifecycle);
         thing.getRevision().ifPresent(result::setRevision);
         thing.getModified().ifPresent(result::setModified);
+        thing.getCreated().ifPresent(result::setCreated);
         thing.getMetadata().ifPresent(result::setMetadata);
 
         return result;
@@ -125,6 +127,10 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
                 .map(ImmutableThingFromCopyBuilder::tryToParseModified)
                 .ifPresent(result::setModified);
 
+        jsonObject.getValue(Thing.JsonFields.CREATED)
+                .map(ImmutableThingFromCopyBuilder::tryToParseCreated)
+                .ifPresent(result::setCreated);
+
         jsonObject.getValue(Thing.JsonFields.METADATA)
                 .map(ThingsModelFactory::newMetadata)
                 .ifPresent(result::setMetadata);
@@ -133,12 +139,20 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
+        return tryToParseDate(dateTime, Thing.JsonFields.MODIFIED);
+    }
+
+    private static Instant tryToParseCreated(final CharSequence dateTime) {
+        return tryToParseDate(dateTime, Thing.JsonFields.CREATED);
+    }
+
+    private static Instant tryToParseDate(final CharSequence dateTime, final JsonFieldDefinition<String> field) {
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
             final String msgPattern = "The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
             throw JsonParseException.newBuilder()
-                    .message(MessageFormat.format(msgPattern, Thing.JsonFields.MODIFIED.getPointer()))
+                    .message(MessageFormat.format(msgPattern, field.getPointer()))
                     .cause(e)
                     .build();
         }
@@ -697,8 +711,31 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    public FromCopy setCreated(@Nullable final Instant created) {
+        fromScratchBuilder.setCreated(created);
+        return this;
+    }
+
+    @Override
+    public FromCopy setCreated(final Predicate<Instant> existingCreatedPredicate, @Nullable final Instant created) {
+        if (existingCreatedPredicate.test(fromScratchBuilder.created)) {
+            setCreated(created);
+        }
+        return this;
+    }
+
+    @Override
     public FromCopy setMetadata(@Nullable final Metadata metadata) {
         fromScratchBuilder.setMetadata(metadata);
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(final Predicate<Metadata> existingMetadataPredicate,
+            @Nullable final Metadata metadata) {
+        if (existingMetadataPredicate.test(fromScratchBuilder.metadata)) {
+            setMetadata(metadata);
+        }
         return this;
     }
 
@@ -708,6 +745,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         return this;
     }
 
+    @Override
     public FromCopy setId(@Nullable final ThingId thingId) {
         fromScratchBuilder.setId(thingId);
         return this;
