@@ -16,6 +16,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -55,7 +56,6 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
 
-    private static final List<Adaptable> EMPTY_RESULT = Collections.emptyList();
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     static final String THING_TEMPLATE = "thing";
@@ -107,19 +107,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public List<Adaptable> map(final ExternalMessage message) {
-        try {
-            return doMap(message);
-        } catch (final Exception e) {
-            // we don't want to throw an exception in case something went wrong during the mapping
-            LOGGER.withCorrelationId(message.getInternalHeaders())
-                    .info("Error occurred during mapping: <{}>: {}", e.getClass().getSimpleName(), e.getMessage());
-            return EMPTY_RESULT;
-        }
-    }
-
-    private List<Adaptable> doMap(final ExternalMessage externalMessage) {
-
+    public List<Adaptable> map(final ExternalMessage externalMessage) {
         final Map<String, String> externalHeaders = externalMessage.getHeaders();
 
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
@@ -128,9 +116,12 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
             mappingOptionThingTemplate = applyPlaceholderReplacement(mappingOptionThingTemplate, expressionResolver);
         }
 
+        final Optional<JsonObject> inlinePolicy = getInlinePolicy(mappingOptionThingTemplate);
+
         final Thing newThing = ThingsModelFactory.newThing(mappingOptionThingTemplate);
 
-        final CreateThing createThing = CreateThing.of(newThing, null, externalMessage.getInternalHeaders());
+        final CreateThing createThing =
+                CreateThing.of(newThing, inlinePolicy.orElse(null), externalMessage.getInternalHeaders());
 
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
@@ -144,6 +135,11 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {
         return PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
+    }
+
+    private Optional<JsonObject> getInlinePolicy(final String thingTemplate) {
+        final JsonObject thingJsonRepresentation = JsonObject.of(thingTemplate);
+        return thingJsonRepresentation.getValue("_policy").map(JsonValue::asObject);
     }
 
     @Override

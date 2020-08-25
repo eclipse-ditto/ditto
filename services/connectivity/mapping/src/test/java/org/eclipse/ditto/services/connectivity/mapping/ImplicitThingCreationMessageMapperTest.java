@@ -37,16 +37,27 @@ import com.typesafe.config.ConfigFactory;
 public class ImplicitThingCreationMessageMapperTest {
 
     private static final String HEADER_HONO_DEVICE_ID = "device_id";
+    private static final String HEADER_HONO_GATEWAY_ID = "gateway_id";
     private static final String OPTIONAL_HEADER_HONO_ENTITY_ID = "entity_id";
 
     private static final String THING_TEMPLATE = "{" +
             "\"thingId\": \"{{ header:device_id }}\"," +
-            "\"policyId\": \"{{ header:entity_id }}\"" +
+            "\"policyId\": \"{{ header:entity_id }}\"," +
+            "\"attributes\": {" +
+            "\"info\": {" +
+            "\"gatewayId\": \"{{ header:gateway_id }}\"" +
+            "}" +
+            "}" +
             "}";
 
     private static final String THING_TEMPLATE_WITHOUT_PLACEHOLDERS = "{" +
             "\"thingId\": \"some:validThingId!\"," +
-            "\"policyId\": \"some:validPolicyId!\"" +
+            "\"policyId\": \"some:validPolicyId!\"," +
+            "\"attributes\": {" +
+            "\"info\": {" +
+            "\"gatewayId\": \"some:validGatewayId!\"" +
+            "}" +
+            "}" +
             "}";
 
     private static MappingConfig mappingConfig;
@@ -71,7 +82,8 @@ public class ImplicitThingCreationMessageMapperTest {
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
 
         final Thing expectedThing =
-                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerEntityId");
+                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerEntityId",
+                        "headerNamespace:headerGatewayId");
 
         assertThat(mappingResult.get(0).getPayload().getValue().isPresent()).isEqualTo(true);
 
@@ -83,12 +95,16 @@ public class ImplicitThingCreationMessageMapperTest {
 
         assertThat(mappedThing.getPolicyEntityId())
                 .isEqualTo(expectedThing.getPolicyEntityId());
+
+        assertThat(mappedThing.getAttributes())
+                .isEqualTo(expectedThing.getAttributes());
+
     }
 
     @Test
     public void throwErrorIfMappingConfigIsMissing() {
 
-        final DefaultMessageMapperConfiguration invalidMapperConfig =createMapperConfig("{}", null);
+        final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig("{}", null);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
@@ -107,7 +123,7 @@ public class ImplicitThingCreationMessageMapperTest {
                 .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
     }
 
-    @Test // TODO: resolve test
+    @Test
     public void throwErrorIfHeaderForPlaceholderIsMissing() {
         underTest.configure(mappingConfig, createMapperConfig(null, null));
 
@@ -132,7 +148,7 @@ public class ImplicitThingCreationMessageMapperTest {
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
 
         final Thing expectedThing =
-                createExpectedThing("some:validThingId!", "some:validPolicyId!");
+                createExpectedThing("some:validThingId!", "some:validPolicyId!", "some:validGatewayId!");
 
         final Thing mappedThing =
                 ThingsModelFactory.newThing(mappingResult.get(0).getPayload().getValue().get().toString());
@@ -147,14 +163,20 @@ public class ImplicitThingCreationMessageMapperTest {
     private Map<String, String> createValidHeaders() {
         final Map<String, String> validHeader = new HashMap<>();
         validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
+        validHeader.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
         validHeader.put(OPTIONAL_HEADER_HONO_ENTITY_ID, "headerNamespace:headerEntityId");
         return validHeader;
     }
 
-    private Thing createExpectedThing(final String thingId, final String policyId) {
+    private Thing createExpectedThing(final String thingId, final String policyId, final String gatewayId) {
         return ThingsModelFactory.newThing("{" +
                 "\"thingId\": \"" + thingId + "\"," +
-                "\"policyId\": \"" + policyId + "\"" +
+                "\"policyId\": \"" + policyId + "\"," +
+                "\"attributes\": {" +
+                "\"info\": {" +
+                "\"gatewayId\": \"" + gatewayId + "\"" +
+                "}" +
+                "}" +
                 "}");
     }
 
