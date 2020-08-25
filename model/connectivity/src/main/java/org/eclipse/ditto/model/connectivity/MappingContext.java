@@ -13,11 +13,9 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -41,23 +39,25 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
      *     <li>JavaScript</li>
      *     <li><pre>org.eclipse.ditto.services.connectivity.mapping.mapper.javascript.JavaScriptMessageMapperRhino</pre></li>
      * </ul>
+     *
      * @return the mapping engine name
      */
     String getMappingEngine();
 
     /**
      * All configuration options for mapping engine instantiation.
+     *
      * @return the options
      */
     Map<String, String> getOptions();
 
     /**
      * All conditions to be validated before mapping.
-     * @return the conditions
      *
+     * @return the conditions
      * @since 1.2.0
      */
-    Set<String> getConditions();
+    Map<String, String> getConditions();
 
     /**
      * Returns all non hidden marked fields of this {@code MappingContext}.
@@ -88,18 +88,18 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code conditions} to check before mapping.
-         */
-        public static final JsonFieldDefinition<JsonArray> CONDITIONS =
-                JsonFactory.newJsonArrayFieldDefinition("conditions", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
-
-        /**
          * JSON field containing the options for the mapping.
          */
         public static final JsonFieldDefinition<JsonObject> OPTIONS =
                 JsonFactory.newJsonObjectFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code conditions} to check before mapping.
+         */
+        public static final JsonFieldDefinition<JsonObject> CONDITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("conditions", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

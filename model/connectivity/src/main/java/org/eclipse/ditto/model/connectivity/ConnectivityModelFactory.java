@@ -390,11 +390,10 @@ public final class ConnectivityModelFactory {
      * @param conditions the conditions to be checked before mapping.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
-     *
      * @since 1.2.0
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options,
-            final Set<String> conditions) {
+            final Map<String, String> conditions) {
         return ImmutableMappingContext.of(mappingEngine, options, conditions);
     }
 
@@ -600,8 +599,7 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-
-     /**
+     * /**
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published

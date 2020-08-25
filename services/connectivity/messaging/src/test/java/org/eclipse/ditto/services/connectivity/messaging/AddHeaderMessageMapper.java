@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -86,8 +85,8 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Set<String> getConditions() {
-        return Collections.emptySet();
+    public Map<String, String> getConditions() {
+        return Collections.emptyMap();
     }
 
 }

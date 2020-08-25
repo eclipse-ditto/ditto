@@ -73,9 +73,9 @@ public final class MessageMappingProcessorTest {
     private MessageMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
-    private static final Set<String> DITTO_MAPPER_CONDITIONS = new HashSet<>(
-            Arrays.asList("fn:filter(header:correlation-id,'ne','testCor')",
-                    "fn:filter(header:correlation-id,'ne','testCor2')"));
+    private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of("testCondition",
+            "fn:filter(header:correlation-id,'ne','testCor')",
+            "testCondition2", "fn:filter(header:correlation-id,'ne','testCor2')");
     private static final String DITTO_MAPPER_BY_ALIAS = "ditto-by-alias";
     private static final String DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST = "ditto-cust-header";
     private static final String DROPPING_MAPPER = "dropping";

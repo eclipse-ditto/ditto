@@ -17,7 +17,7 @@ import static java.util.Collections.emptyList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -69,8 +69,8 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
-    public Set<String> getConditions() {
-        return Collections.emptySet();
+    public Map<String, String> getConditions() {
+        return Collections.emptyMap();
     }
 
 }

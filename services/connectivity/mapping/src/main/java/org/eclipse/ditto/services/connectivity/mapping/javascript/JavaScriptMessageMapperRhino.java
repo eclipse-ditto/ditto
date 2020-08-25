@@ -71,7 +71,7 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
         configuration =
                 new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(), options.getProperties(),
-                        Collections.emptySet()
+                        Collections.emptyMap()
                 ).build();
 
         final JavaScriptConfig javaScriptConfig = mappingConfig.getJavaScriptConfig();

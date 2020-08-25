@@ -31,13 +31,13 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
 
     private final String id;
     private final Map<String, String> properties;
-    private final Set<String> conditions;
+    private final Map<String, String> conditions;
 
     private DefaultMessageMapperConfiguration(final String id, final Map<String, String> properties,
-            final Set<String> conditions) {
+    final Map<String, String> conditions) {
         this.id = id;
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
-        this.conditions = Collections.unmodifiableSet(new HashSet<>(conditions));
+        this.conditions = Collections.unmodifiableMap(new HashMap<>(conditions));
     }
 
     /**
@@ -51,7 +51,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration");
-        return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptySet());
+        return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptyMap());
     }
 
     /**
@@ -66,7 +66,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      * @since 1.2.0
      */
     public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration,
-            final Set<String> conditions) {
+            final Map<String, String> conditions) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration");
         checkNotNull("conditions");
@@ -84,7 +84,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
-    public Set<String> getConditions() {
+    public Map<String, String> getConditions() {
         return conditions;
     }
 

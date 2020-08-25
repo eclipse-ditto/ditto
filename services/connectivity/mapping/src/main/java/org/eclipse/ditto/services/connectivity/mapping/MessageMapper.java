@@ -95,7 +95,7 @@ public interface MessageMapper {
      *
      * @since 1.2.0
      */
-    Set<String> getConditions();
+    Map<String, String> getConditions();
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

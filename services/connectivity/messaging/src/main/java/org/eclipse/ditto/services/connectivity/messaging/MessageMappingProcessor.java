@@ -305,7 +305,7 @@ public final class MessageMappingProcessor {
 
     private static boolean resolveConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
         boolean conditionBool = true;
-        for (String condition : mapper.getConditions()) {
+        for (String condition : mapper.getConditions().values()) {
             final String template = "{{ fn:default('true') | " + condition + " }}";
             final String resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
             conditionBool &= Boolean.parseBoolean(resolvedCondition);
