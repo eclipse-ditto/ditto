@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * A {@link SortedSet} of {@link MetadataHeader}s.
  * The sort order is determined by {@link MetadataHeader#compareTo(MetadataHeader)}.
  * Sorting metadata headers ensures that values for a key with specific path overwrite overlapping values for a key with
- * wildcard path, i. e. specific > generic.
+ * wildcard path, i.e. specific "is greater" than generic.
  *
  * @since 1.2.0
  */
