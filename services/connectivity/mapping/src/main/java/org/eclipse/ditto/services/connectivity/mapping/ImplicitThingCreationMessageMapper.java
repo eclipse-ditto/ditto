@@ -13,10 +13,15 @@
 
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
@@ -26,6 +31,7 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -33,10 +39,9 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 
 /**
  * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
@@ -54,95 +59,106 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 )
 public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
-
-    private static final List<Adaptable> EMPTY_RESULT = Collections.emptyList();
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-
-    static final String THING_TEMPLATE = "thing";
-    static final String THING_ID = "thingId";
-    static final String POLICY_ID = "policyId";
-
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
+    private static final String THING_TEMPLATE = "thing";
+    private static final String THING_ID = "thingId";
+    private static final String THING_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + THING_ID;
+    private static final String POLICY_ID = "policyId";
+    private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
 
-    private String mappingOptionThingTemplate;
+    private String thingTemplate;
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        thingTemplate = configuration.findProperty(THING_TEMPLATE).orElseThrow(
+                () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build());
 
-        mappingOptionThingTemplate = configuration.findProperty(THING_TEMPLATE)
-                .orElseThrow(
-                        () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build()
-                );
+        final JsonObject thingJson = JsonObject.of(thingTemplate);
 
-        // Check if thing and policy ID are present and valid if they are not placeholders.
-        final JsonObject thingTemplate = JsonObject.of(mappingOptionThingTemplate);
+        thingJson.getValue(THING_ID)
+                .map(JsonValue::asString)
+                .ifPresentOrElse(ImplicitThingCreationMessageMapper::validateThingEntityId, () -> {
+                    throw MessageMapperConfigurationInvalidException.newBuilder(THING_ID_CONFIGURATION_PROPERTY)
+                            .build();
+                });
 
-        final JsonValue thingId = thingTemplate.getField(THING_ID)
-                .orElseThrow(() -> MessageMapperConfigurationInvalidException.newBuilder(THING_ID).build())
-                .getValue();
+        // PolicyId is not required in mapping config. Still needs to be valid if present.
+        thingJson.getValue(POLICY_ID)
+                .map(JsonValue::asString)
+                .ifPresent(ImplicitThingCreationMessageMapper::validatePolicyEntityId);
 
-        // Do not throw an exception because policyId is not required in mapping config. But still needs to be valid if
-        // given.
-        final JsonValue policyId = thingTemplate.getValue(POLICY_ID).orElse(thingId);
+    }
 
+    private static void validateThingEntityId(final String thingId) {
         try {
-
-            if (!Placeholders.containsAnyPlaceholder(thingId.asString())) {
-                ThingId.of(thingId.asString());
+            if (!Placeholders.containsAnyPlaceholder(thingId)) {
+                ThingId.of(thingId);
             }
-
-            if (!Placeholders.containsAnyPlaceholder(policyId.asString())) {
-                PolicyId.of(policyId.asString());
-            }
-
-        } catch (final NamespacedEntityIdInvalidException e) {
-            throw MessageMapperConfigurationInvalidException.newBuilder("device/entity_id")
+        } catch (NamespacedEntityIdInvalidException e) {
+            throw MessageMapperConfigurationInvalidException.newBuilder(THING_ID_CONFIGURATION_PROPERTY)
                     .message(e.getMessage())
-                    .description(e.getDescription().orElse("Make sure to use valid thing and/or policy ID."))
+                    .description(e.getDescription().orElse("Make sure to use a valid Thing ID."))
                     .build();
         }
+    }
 
+    private static void validatePolicyEntityId(final String policyId) {
+        try {
+            if (!Placeholders.containsAnyPlaceholder(policyId)) {
+                PolicyId.of(policyId);
+            }
+        } catch (NamespacedEntityIdInvalidException e) {
+            throw MessageMapperConfigurationInvalidException.newBuilder(POLICY_ID_CONFIGURATION_PROPERTY)
+                    .message(e.getMessage())
+                    .description(e.getDescription().orElse("Make sure to use a valid Policy ID."))
+                    .build();
+        }
     }
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
-        try {
-            return doMap(message);
-        } catch (final Exception e) {
-            // we don't want to throw an exception in case something went wrong during the mapping
-            LOGGER.withCorrelationId(message.getInternalHeaders())
-                    .info("Error occurred during mapping: <{}>: {}", e.getClass().getSimpleName(), e.getMessage());
-            return EMPTY_RESULT;
-        }
-    }
-
-    private List<Adaptable> doMap(final ExternalMessage externalMessage) {
-
-        final Map<String, String> externalHeaders = externalMessage.getHeaders();
-
+        final Map<String, String> externalHeaders = message.getHeaders();
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
 
-        if (Placeholders.containsAnyPlaceholder(mappingOptionThingTemplate)) {
-            mappingOptionThingTemplate = applyPlaceholderReplacement(mappingOptionThingTemplate, expressionResolver);
+        if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
+            thingTemplate = applyPlaceholderReplacement(thingTemplate, expressionResolver);
         }
 
-        final Thing newThing = ThingsModelFactory.newThing(mappingOptionThingTemplate);
-
-        final Signal<CreateThing> createThing = CreateThing.of(newThing, null, externalMessage.getInternalHeaders());
-
+        final Signal<CreateThing> createThing = getCreateThingSignal(message);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         return Collections.singletonList(adaptable);
     }
 
-    private String applyPlaceholderReplacement(final String template, final ExpressionResolver expressionResolver) {
-        return PlaceholderFilter.apply(template, expressionResolver);
-    }
-
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {
         return PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
+    }
+
+    private static String applyPlaceholderReplacement(final String template, final ExpressionResolver resolver) {
+        return PlaceholderFilter.apply(template, resolver);
+    }
+
+    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message) {
+        final JsonObject thingJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(thingTemplate));
+        final Thing newThing = ThingsModelFactory.newThing(thingJson);
+        final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
+        final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
+        return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, message.getInternalHeaders());
+    }
+
+    @Nullable
+    private static JsonObject createInlinePolicyJson(final JsonObject thingJson) {
+        return thingJson.getValue(Policy.INLINED_FIELD_NAME)
+                .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asObject))
+                .orElse(null);
+    }
+
+    @Nullable
+    private static String getCopyPolicyFrom(final JsonObject thingJson) {
+        return thingJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
+                .orElse(null);
     }
 
     @Override
