@@ -104,7 +104,7 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     private void putCorrelationIdToMdc() {
         if (null != correlationId) {
-            LogUtil.enhanceLogWithCustomField(loggingAdapter, LogUtil.X_CORRELATION_ID, correlationId.toString());
+            LogUtil.enhanceLogWithCustomField(loggingAdapter, LogUtil.X_CORRELATION_ID, correlationId);
         }
     }
 

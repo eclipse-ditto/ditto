@@ -154,14 +154,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         receiveBuilder.match(OutboundSignal.MultiMapped.class, this::sendMultiMappedOutboundSignal)
                 .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
-                        getSender().tell(rs, getSelf())))
-                .matchAny(m -> {
-                    log().warning("Unknown message: {}", m);
-                    unhandled(m);
-                });
+                        getSender().tell(rs, getSelf())));
 
         postEnhancement(receiveBuilder);
-        return receiveBuilder.build();
+        return receiveBuilder.matchAny(m -> {
+            log().warning("Unknown message: {}", m);
+            unhandled(m);
+        }).build();
     }
 
     /**
