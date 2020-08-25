@@ -1282,10 +1282,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
     }
 
-    private static SupervisorStrategy createSupervisorStrategy(final ActorRef self) {
+    private SupervisorStrategy createSupervisorStrategy(final ActorRef self) {
         return new OneForOneStrategy(
                 DeciderBuilder.matchAny(error -> {
-                    self.tell(new ImmutableConnectionFailure(null, error, "exception in child"), ActorRef.noSender());
+                    self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
                     return SupervisorStrategy.stop();
                 }).build()
         );
