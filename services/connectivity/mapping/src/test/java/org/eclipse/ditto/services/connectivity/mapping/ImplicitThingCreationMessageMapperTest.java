@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -134,9 +135,8 @@ public class ImplicitThingCreationMessageMapperTest {
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(missingEntityHeader).build();
 
-        final List<Adaptable> mappingResult = underTest.map(externalMessage);
-
-        assertThat(mappingResult).isEmpty();
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class)
+                .isThrownBy(() -> underTest.map(externalMessage));
     }
 
     @Test
