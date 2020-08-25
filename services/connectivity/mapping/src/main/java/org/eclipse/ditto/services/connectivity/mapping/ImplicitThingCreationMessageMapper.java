@@ -36,6 +36,7 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
 /**
@@ -54,7 +55,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 )
 public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
@@ -83,9 +84,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
         // Do not throw an exception because policyId is not required in mapping config. But still needs to be valid if
         // given.
-        final JsonValue policyId =
-                thingTemplate.getField(POLICY_ID).isPresent() ?
-                        thingTemplate.getField(POLICY_ID).get().getValue() : thingId;
+        final JsonValue policyId = thingTemplate.getValue(POLICY_ID).orElse(thingId);
 
         try {
 
@@ -120,7 +119,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
         final Thing newThing = ThingsModelFactory.newThing(mappingOptionThingTemplate);
 
-        final CreateThing createThing =
+        final Signal<CreateThing> createThing =
                 CreateThing.of(newThing, inlinePolicy.orElse(null), externalMessage.getInternalHeaders());
 
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
