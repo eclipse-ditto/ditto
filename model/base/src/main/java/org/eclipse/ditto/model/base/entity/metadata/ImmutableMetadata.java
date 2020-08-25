@@ -40,6 +40,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
+/**
+ * Immutable implementation of {@link Metadata}.
+ */
 @Immutable
 final class ImmutableMetadata implements Metadata {
 

@@ -63,7 +63,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         thing.getLifecycle().ifPresent(result::setLifecycle);
         thing.getRevision().ifPresent(result::setRevision);
         thing.getModified().ifPresent(result::setModified);
-        thing.getMetadata().ifPresent(metadata -> result.setMetadata(metadata));
+        thing.getMetadata().ifPresent(result::setMetadata);
 
         return result;
     }
@@ -127,7 +127,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         jsonObject.getValue(Thing.JsonFields.METADATA)
                 .map(ThingsModelFactory::newMetadata)
-                .ifPresent(json -> result.setMetadata(json));
+                .ifPresent(result::setMetadata);
 
         return result;
     }

@@ -311,18 +311,17 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * </p>
      *
      * @return the command timeout.
+     * @since 1.1.0
      */
     Optional<Duration> getTimeout();
 
     /**
-     * Returns the metadata headers subset of this headers.
-     * Sorting ensures that values for a key with specific path overwrite overlapping values for a key with wildcard
-     * path, i. e. specific > generic.
+     * Returns the metadata headers to put/set for the (modifying) command they were added to.
      *
-     * @return a sorted set of the metadata headers.
+     * @return the MetadataHeaders to put being a sorted set of {@code MetadataHeader}s.
      * Changes on the returned set are not reflected back to this DittoHeaders instance.
      * @since 1.2.0
      */
-    MetadataHeaders getMetadataHeaders();
+    MetadataHeaders getMetadataHeadersToPut();
 
 }

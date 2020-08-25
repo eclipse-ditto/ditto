@@ -607,6 +607,13 @@ public interface Thing extends Entity<ThingRevision> {
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the Thing's modified timestamp in ISO-8601 format.
+         */
+        public static final JsonFieldDefinition<String> MODIFIED =
+                JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
@@ -645,13 +652,6 @@ public interface Thing extends Entity<ThingRevision> {
         public static final JsonFieldDefinition<JsonObject> FEATURES =
                 JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the Thing's modified timestamp in ISO-8601 format.
-         */
-        public static final JsonFieldDefinition<String> MODIFIED =
-            JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
-                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's metadata.

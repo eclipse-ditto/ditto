@@ -375,9 +375,9 @@ public final class DefaultDittoHeadersBuilderTest {
         final MetadataHeaders expected = MetadataHeaders.newInstance();
         expected.add(MetadataHeader.of(metadataKey, metadataValue));
 
-        final DittoHeaders dittoHeaders = underTest.metadata(metadataKey, metadataValue).build();
+        final DittoHeaders dittoHeaders = underTest.putMetadata(metadataKey, metadataValue).build();
 
-        assertThat(dittoHeaders.getMetadataHeaders()).isEqualTo(expected);
+        assertThat(dittoHeaders.getMetadataHeadersToPut()).isEqualTo(expected);
     }
 
     @Test
@@ -387,10 +387,10 @@ public final class DefaultDittoHeadersBuilderTest {
                 MetadataHeader.of(MetadataHeaderKey.parse("*/issuedAt"), JsonValue.of(String.valueOf(Instant.now()))));
 
         final DittoHeaders dittoHeaders = underTest
-                .putHeader(DittoHeaderDefinition.METADATA.getKey(), metadataHeaders.toJsonString())
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
                 .build();
 
-        assertThat(dittoHeaders.getMetadataHeaders()).isEqualTo(metadataHeaders);
+        assertThat(dittoHeaders.getMetadataHeadersToPut()).isEqualTo(metadataHeaders);
     }
 
     @Test
@@ -417,12 +417,12 @@ public final class DefaultDittoHeadersBuilderTest {
                 .build());
         final Map<String, String> headerMap = new HashMap<>();
         headerMap.put("foo", "bar");
-        headerMap.put(DittoHeaderDefinition.METADATA.getKey(), metadataHeaderEntries.toString());
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaderEntries.toString());
         headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(headerMap))
-                .withMessage("The value '%s' of the header 'metadata' is not a valid MetadataHeaders.",
+                .withMessage("The value '%s' of the header 'put-metadata' is not a valid MetadataHeaders.",
                         metadataHeaderEntries)
                 .satisfies(dittoHeaderInvalidException -> assertThat(
                         dittoHeaderInvalidException.getDescription())
@@ -458,7 +458,7 @@ public final class DefaultDittoHeadersBuilderTest {
         final JsonArray metadataHeaderEntries = JsonArray.of(metadataHeaderEntry);
         final Map<String, String> headerMap = new HashMap<>();
         headerMap.put("foo", "bar");
-        headerMap.put(DittoHeaderDefinition.METADATA.getKey(), metadataHeaderEntries.toString());
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaderEntries.toString());
         headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
@@ -475,13 +475,13 @@ public final class DefaultDittoHeadersBuilderTest {
         final String invalidValue = String.valueOf(Instant.now());
         final Map<String, String> headerMap = new HashMap<>();
         headerMap.put("foo", "bar");
-        headerMap.put(DittoHeaderDefinition.METADATA.getKey(), invalidValue);
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), invalidValue);
         headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> DefaultDittoHeadersBuilder.of(headerMap))
                 .withMessage("The value '%s' of the header '%s' is not a valid MetadataHeaders.", invalidValue,
-                        DittoHeaderDefinition.METADATA.getKey())
+                        DittoHeaderDefinition.PUT_METADATA.getKey())
                 .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
                         .hasValueSatisfying(description -> assertThat(description)
                                 .startsWith("Failed to parse JSON string '" + invalidValue + "'!")))

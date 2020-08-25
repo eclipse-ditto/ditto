@@ -310,7 +310,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @return this builder.
      * @since 1.2.0
      */
-    B metadata(MetadataHeaderKey key, JsonValue value);
+    B putMetadata(MetadataHeaderKey key, JsonValue value);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

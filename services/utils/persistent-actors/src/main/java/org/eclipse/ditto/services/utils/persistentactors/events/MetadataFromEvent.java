@@ -36,7 +36,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of an Event's DittoHeaders.
- * See <a href="https://github.com/eclipse/ditto/issues/680#issuecomment-654165747">Github issue #680.</a>.
  *
  * @since 1.2.0
  */
@@ -91,7 +90,7 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
         final Metadata result;
         final Optional<JsonValue> entityOptional = event.getEntity(event.getImplementedSchemaVersion());
         if (entityOptional.isPresent()) {
-            final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeaders();
+            final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
             if (metadataHeaders.isEmpty()) {
                 result = existingMetadata;
             } else {
@@ -103,9 +102,9 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
         return result;
     }
 
-    private SortedSet<MetadataHeader> getMetadataHeaders() {
+    private SortedSet<MetadataHeader> getMetadataHeadersToPut() {
         final DittoHeaders dittoHeaders = event.getDittoHeaders();
-        return dittoHeaders.getMetadataHeaders();
+        return dittoHeaders.getMetadataHeadersToPut();
     }
 
     private Metadata buildMetadata(final JsonValue entity, final SortedSet<MetadataHeader> metadataHeaders) {

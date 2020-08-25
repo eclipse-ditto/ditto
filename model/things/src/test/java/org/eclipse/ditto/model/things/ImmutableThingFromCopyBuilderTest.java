@@ -31,7 +31,6 @@ import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -878,9 +877,9 @@ public final class ImmutableThingFromCopyBuilderTest {
             .of(testThing.toJson(JsonSchemaVersion.V_2, field -> true))
             .build();
 
-        final JsonObject serializedTHing = thing.toJson(JsonSchemaVersion.V_2, field -> true);
+        final JsonObject serializedThing = thing.toJson(JsonSchemaVersion.V_2, field -> true);
 
-        assertThat(serializedTHing.getField("_metadata"))
+        assertThat(serializedThing.getField("_metadata"))
             .isNotEmpty();
 
     }

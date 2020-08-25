@@ -86,8 +86,8 @@ final class ImmutableThing implements Thing {
      * @param features the features of the Thing to be created.
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
-     * @param modified the modified timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing
+     * @param modified the modified timestamp of the Thing to be created.
+     * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated ThingId is now typed. Use
      * {@link #of(ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant, Metadata)}
@@ -116,8 +116,8 @@ final class ImmutableThing implements Thing {
      * @param features the features of the Thing to be created.
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
-     * @param modified the modified timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing
+     * @param modified the modified timestamp of the Thing to be created.
+     * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated deprecated API version 1. Use API version 2 instead.
      */
@@ -142,12 +142,12 @@ final class ImmutableThing implements Thing {
      * @param policyId the Policy ID for the Thing to be created.
      * @param accessControlList the Access Control List of the Thing to be created.
      * @param attributes the attributes of the Thing to be created.
-     * @param definition the definition of the thing
+     * @param definition the definition of the Thing to be created.
      * @param features the features of the Thing to be created.
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing
+     * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
 
@@ -172,13 +172,13 @@ final class ImmutableThing implements Thing {
      *
      * @param thingId the ID of the Thing to be created.
      * @param policyId the Policy ID for the Thing to be created.
-     * @param definition the definition of the Thing.
+     * @param definition the definition of the Thing to be created.
      * @param attributes the attributes of the Thing to be created.
      * @param features the features of the Thing to be created.
      * @param lifecycle the lifecycle of the Thing to be created.
      * @param revision the revision of the Thing to be created.
-     * @param modified the modified timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing
+     * @param modified the modified timestamp of the Thing to be created.
+     * @param metadata the metadata of the Thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      */
     static Thing of(@Nullable final ThingId thingId,

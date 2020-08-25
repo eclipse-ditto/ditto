@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.model.base.headers.metadata;
 
 import org.eclipse.ditto.json.JsonPointer;

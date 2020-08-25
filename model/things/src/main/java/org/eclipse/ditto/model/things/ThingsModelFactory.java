@@ -548,6 +548,7 @@ public final class ThingsModelFactory {
      * Returns a new immutable empty {@link Metadata}.
      *
      * @return the new immutable empty {@code Metadata}.
+     * @since 1.2.0
      */
     public static Metadata emptyMetadata() {
         return MetadataModelFactory.emptyMetadata();
@@ -557,6 +558,7 @@ public final class ThingsModelFactory {
      * Returns a new immutable {@link Metadata} which represents {@code null}.
      *
      * @return the new {@code null}-like {@code Metadata}.
+     * @since 1.2.0
      */
     public static Metadata nullMetadata() {
         return MetadataModelFactory.nullMetadata();
@@ -568,6 +570,7 @@ public final class ThingsModelFactory {
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code Metadata}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 1.2.0
      */
     public static Metadata newMetadata(final JsonObject jsonObject) {
         return MetadataModelFactory.newMetadata(jsonObject);
@@ -580,6 +583,7 @@ public final class ThingsModelFactory {
      * @param jsonString provides the initial values of the result;
      * @return the new immutable initialised {@code Metadata}.
      * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code Metadata}.
+     * @since 1.2.0
      */
     public static Metadata newMetadata(final String jsonString) {
         return MetadataModelFactory.newMetadata(jsonString);
@@ -589,6 +593,7 @@ public final class ThingsModelFactory {
      * Returns a new empty builder for a {@link Metadata}.
      *
      * @return the builder.
+     * @since 1.2.0
      */
     public static MetadataBuilder newMetadataBuilder() {
         return MetadataModelFactory.newMetadataBuilder();
@@ -600,6 +605,7 @@ public final class ThingsModelFactory {
      * @param metadata provides the initial values of the result.
      * @return the builder.
      * @throws NullPointerException if {@code metadata} is {@code null}.
+     * @since 1.2.0
      */
     public static MetadataBuilder newMetadataBuilder(final Metadata metadata) {
         return MetadataModelFactory.newMetadataBuilder(metadata);

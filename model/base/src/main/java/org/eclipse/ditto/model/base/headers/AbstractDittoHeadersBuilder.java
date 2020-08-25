@@ -98,7 +98,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     private static MetadataHeaders extractMetadataHeaders(final Map<String, String> headers) {
-        final String metadataHeadersCharSequence = headers.remove(DittoHeaderDefinition.METADATA.getKey());
+        final String metadataHeadersCharSequence = headers.remove(DittoHeaderDefinition.PUT_METADATA.getKey());
         final MetadataHeaders result;
         if (null != metadataHeadersCharSequence) {
             result = MetadataHeaders.parseMetadataHeaders(metadataHeadersCharSequence);
@@ -448,7 +448,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S metadata(final MetadataHeaderKey key, final JsonValue value) {
+    public S putMetadata(final MetadataHeaderKey key, final JsonValue value) {
         metadataHeaders.add(MetadataHeader.of(key, value));
         return myself;
     }
@@ -478,7 +478,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     private static boolean isMetadataKey(final CharSequence key) {
-        return Objects.equals(DittoHeaderDefinition.METADATA.getKey(), key.toString());
+        return Objects.equals(DittoHeaderDefinition.PUT_METADATA.getKey(), key.toString());
     }
 
     @Override
@@ -516,7 +516,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     private void putMetadataHeadersToRegularHeaders() {
         if (!metadataHeaders.isEmpty()) {
-            headers.put(DittoHeaderDefinition.METADATA.getKey(), metadataHeaders.toJsonString());
+            headers.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString());
         }
     }
 

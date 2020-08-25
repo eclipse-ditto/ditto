@@ -146,7 +146,7 @@ public final class HeaderValueValidators {
      * @return the validator.
      * @since 1.2.0
      */
-    static ValueValidator getMetadataValidator() {
+    static ValueValidator getMetadataHeadersValidator() {
         return MetadataHeadersValueValidator.getInstance();
     }
 

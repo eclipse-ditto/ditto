@@ -47,7 +47,7 @@ public final class MetadataHeadersValueValidatorTest {
 
         final MetadataHeadersValueValidator underTest = MetadataHeadersValueValidator.getInstance();
 
-        assertThatCode(() -> underTest.accept(DittoHeaderDefinition.METADATA, metadataHeaders.toJsonString()))
+        assertThatCode(() -> underTest.accept(DittoHeaderDefinition.PUT_METADATA, metadataHeaders.toJsonString()))
                 .doesNotThrowAnyException();
     }
 
@@ -63,9 +63,9 @@ public final class MetadataHeadersValueValidatorTest {
         final MetadataHeadersValueValidator underTest = MetadataHeadersValueValidator.getInstance();
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.METADATA, invalidMetadataHeadersCharSequence))
+                .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.PUT_METADATA, invalidMetadataHeadersCharSequence))
                 .withMessage("The value '%s' of the header '%s' is not a valid MetadataHeaders.",
-                        invalidMetadataHeadersCharSequence, DittoHeaderDefinition.METADATA.getKey())
+                        invalidMetadataHeadersCharSequence, DittoHeaderDefinition.PUT_METADATA.getKey())
                 .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
                         .contains("Metadata header entry JSON object did not include required </value> field!" +
                                 " Check if all required JSON fields were set."))
@@ -85,9 +85,9 @@ public final class MetadataHeadersValueValidatorTest {
         final MetadataHeadersValueValidator underTest = MetadataHeadersValueValidator.getInstance();
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.METADATA, invalidMetadataHeadersCharSequence))
+                .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.PUT_METADATA, invalidMetadataHeadersCharSequence))
                 .withMessage("The value '%s' of the header '%s' is not a valid MetadataHeaders.",
-                        invalidMetadataHeadersCharSequence, DittoHeaderDefinition.METADATA.getKey())
+                        invalidMetadataHeadersCharSequence, DittoHeaderDefinition.PUT_METADATA.getKey())
                 .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
                         .contains("The metadata header key </*/*/foo> is invalid!" +
                                 " A wildcard path of a metadata header key must have exactly two levels but it had" +

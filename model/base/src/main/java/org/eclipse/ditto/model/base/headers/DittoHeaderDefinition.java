@@ -254,12 +254,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for setting metadata relatively to the resource of a modified entity.
      * <p>
-     * Key {@code "metadata"}, Java type: {@link JsonArray}.
+     * Key {@code "put-metadata"}, Java type: {@link JsonArray}.
      * </p>
      *
      * @since 1.2.0
      */
-    METADATA("metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataValidator());
+    PUT_METADATA("put-metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataHeadersValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

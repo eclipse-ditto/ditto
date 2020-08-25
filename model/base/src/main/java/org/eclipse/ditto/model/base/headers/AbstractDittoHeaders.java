@@ -319,8 +319,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public MetadataHeaders getMetadataHeaders() {
-        final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.METADATA.getKey(), "");
+    public MetadataHeaders getMetadataHeadersToPut() {
+        final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.PUT_METADATA.getKey(), "");
         return MetadataHeaders.parseMetadataHeaders(metadataHeaderValue);
     }
 
