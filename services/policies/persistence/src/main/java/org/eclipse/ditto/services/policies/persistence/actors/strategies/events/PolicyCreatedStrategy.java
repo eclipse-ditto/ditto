@@ -30,6 +30,7 @@ final class PolicyCreatedStrategy implements EventStrategy<PolicyCreated, Policy
                 .setLifecycle(PolicyLifecycle.ACTIVE)
                 .setRevision(revision)
                 .setModified(event.getTimestamp().orElse(null))
+                .setCreated(event.getTimestamp().orElse(null))
                 .build();
     }
 }

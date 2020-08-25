@@ -33,6 +33,7 @@ final class ThingCreatedStrategy implements EventStrategy<ThingCreated, Thing> {
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(revision)
                 .setModified(event.getTimestamp().orElse(null))
+                .setCreated(event.getTimestamp().orElse(null))
                 .build();
     }
 

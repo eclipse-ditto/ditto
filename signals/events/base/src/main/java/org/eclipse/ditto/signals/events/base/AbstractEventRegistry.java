@@ -20,7 +20,6 @@ import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
 /**
- * @param <T>
  * @deprecated no longer used in any of Ditto's classes
  */
 @Deprecated

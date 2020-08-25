@@ -175,7 +175,8 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if {@code mappingStrategies} is {@code null}.
      */
-    public <T extends Map<String, JsonParsable<Jsonifiable<?>>>> MappingStrategiesBuilder putAll(final T mappingStrategies) {
+    public <T extends Map<String, JsonParsable<Jsonifiable<?>>>> MappingStrategiesBuilder putAll(
+            final T mappingStrategies) {
         checkNotNull(mappingStrategies, "mappingStrategies");
         strategies.putAll(mappingStrategies);
         return this;

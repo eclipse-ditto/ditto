@@ -10,7 +10,7 @@ pipeline {
         // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
         theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
         theVersion = "0-${theBranch}-SNAPSHOT"
-        theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
+        theMvnRepo = "$WORKSPACE/../../.m2/feature-repository-${theBranch}"
         JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
     options {
@@ -19,10 +19,12 @@ pipeline {
         timeout(time: 1, unit: 'HOURS')
     }
     stages {
-        stage('Clean workspace') {
+        stage('Clean workspace and create local maven repository') {
             steps {
                 echo 'Clean workspace'
                 cleanWs()
+                echo "Create local maven repository"
+                sh "mkdir -p ${theMvnRepo}"
             }
         }
         stage('Checkout scm') {
@@ -34,7 +36,7 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    args "$DITTO_DOCKER_ARGS"
+                    args "$DITTO_DOCKER_ARGUMENTS"
                     image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
                     reuseNode true
                 }

@@ -63,12 +63,18 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${javac.source}</source>
+                    <target>${javac.target}</target>
+                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <configuration>
+                    <source>${javac.source}</source>
+                    <target>${javac.target}</target>
                     <scalaVersion>${scala.full.version}</scalaVersion>
                 </configuration>
                 <executions>

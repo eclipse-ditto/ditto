@@ -97,8 +97,7 @@ public final class ThingsJsonTest {
                 .build();
 
         final Thing thing = ImmutableThing.of(thingId, acl, thingAttributes, features, ThingLifecycle.ACTIVE,
-                TestConstants.Thing.REVISION,
-                TestConstants.Thing.MODIFIED);
+                TestConstants.Thing.REVISION, TestConstants.Thing.MODIFIED, TestConstants.Thing.CREATED);
 
         assertThat(thing.toJsonString()).isEqualTo(expectedJson);
     }
@@ -312,6 +311,7 @@ public final class ThingsJsonTest {
                 .set(Thing.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
                 .set(Thing.JsonFields.NAMESPACE, "example.com")
                 .set(Thing.JsonFields.MODIFIED, TestConstants.Thing.MODIFIED.toString())
+                .set(Thing.JsonFields.CREATED, TestConstants.Thing.CREATED.toString())
                 .build();
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.SPECIAL);

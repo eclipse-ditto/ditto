@@ -100,9 +100,12 @@ import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.FSM;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
@@ -138,6 +141,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ActorRef messageMappingProcessorActor;
     private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
+    private final SupervisorStrategy supervisorStrategy;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -181,9 +185,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         messageMappingProcessorActor = startMessageMappingProcessorActor(connection);
         subscriptionManager = startSubscriptionManager(this.proxyActor);
+        supervisorStrategy = createSupervisorStrategy(getSelf());
 
         // Send init message to allow for unsafe initialization of subclasses.
         getSelf().tell(Init.INSTANCE, getSelf());
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return supervisorStrategy;
     }
 
     @Override
@@ -1270,6 +1280,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         } else {
             return describeEventualCause(cause);
         }
+    }
+
+    private static SupervisorStrategy createSupervisorStrategy(final ActorRef self) {
+        return new OneForOneStrategy(
+                DeciderBuilder.matchAny(error -> {
+                    self.tell(new ImmutableConnectionFailure(null, error, "exception in child"), ActorRef.noSender());
+                    return SupervisorStrategy.stop();
+                }).build()
+        );
     }
 
     /**

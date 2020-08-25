@@ -106,7 +106,8 @@ public final class GatewayMappingStrategiesTest {
     }
 
     private static final class StrategyAssert
-            extends AbstractMapAssert<StrategyAssert, Map<String, JsonParsable<Jsonifiable<?>>>, String, JsonParsable<Jsonifiable<?>>> {
+            extends
+            AbstractMapAssert<StrategyAssert, Map<String, JsonParsable<Jsonifiable<?>>>, String, JsonParsable<Jsonifiable<?>>> {
 
         StrategyAssert(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
             super(strategies, StrategyAssert.class);
