@@ -251,9 +251,9 @@ The following example connection defines `conditions` for the ConnectionStatus m
   "mappingDefinitions": {
     "status": {
       "mappingEngine": "ConnectionStatus",
-      "conditions": [
-      "fn:filter(header:mapping-required,'eq','true')"
-      ],
+      "conditions": {
+        "sampleCondition": "fn:filter(header:mapping-required,'eq','true')"
+      },
       "options": {
         "thingId": "{%raw%}{{ header:device_id }}{%endraw%}"
       }
