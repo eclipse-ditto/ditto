@@ -41,7 +41,6 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 
 /**
  * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
@@ -157,7 +156,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     @Nullable
     private static String getCopyPolicyFrom(final JsonObject thingJson) {
-        return thingJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
+        return thingJson.getValue(CreateThing.JSON_COPY_POLICY_FROM)
                 .orElse(null);
     }
 
