@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommandResponse<T extends ThingCommandResponse> extends CommandResponse<T>, WithThingId {
+public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends CommandResponse<T>, WithThingId {
 
     /**
      * Type Prefix of Thing command responses.

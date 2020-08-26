@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingQueryCommand<T extends ThingQueryCommand> extends ThingCommand<T> {
+public interface ThingQueryCommand<T extends ThingQueryCommand<T>> extends ThingCommand<T> {
 
     /**
      * Returns the selected fields which are to be included in the JSON of the retrieved entity.

@@ -31,8 +31,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -99,16 +99,16 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(Acknowledgement.class, this::handleAcknowledgement)
-                .match(Acknowledgements.class, this::handleAcknowledgement)
+                .match(CommandResponse.class, this::forwardCommandResponse)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
 
-    private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
+    private void forwardCommandResponse(final WithDittoHeaders<?> acknowledgement) {
         log.withCorrelationId(acknowledgement)
-                .debug("Received Acknowledgement, forwarding to original requester: <{}>", acknowledgement);
+                .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester: " +
+                        "<{}>", acknowledgement);
         final DittoHeaders enhancedHeaders = acknowledgement.getDittoHeaders()
                 .toBuilder()
                 .expectedResponseTypes(expectedResponseTypes)
@@ -152,7 +152,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      *
      * @param context the context ({@code getContext()} of the Actor to start the AcknowledgementForwarderActor in.
      * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
-     * @param dittoHeaders the dittoHeaders of the {@code Signal} which requested the Acknowledgements.
+     * @param signal the dittoHeaders of the {@code Signal} which requested the Acknowledgements.
      * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
      * @return the optionally created ActorRef - empty when either no AcknowledgementRequests were contained in the
      * {@code dittoHeaders} or when a conflict caused by a re-used {@code correlation-id} was detected.
@@ -160,12 +160,11 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      */
     public static Optional<ActorRef> startAcknowledgementForwarder(final akka.actor.ActorContext context,
             final EntityIdWithType entityId,
-            final DittoHeaders dittoHeaders,
+            final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
         final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(context, entityId, dittoHeaders,
-                        acknowledgementConfig);
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig);
         return starter.get();
     }
 
@@ -189,8 +188,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
             final AcknowledgementConfig acknowledgementConfig) {
 
         final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal.getDittoHeaders(),
-                        acknowledgementConfig);
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig);
         final Optional<String> newCorrelationId = starter.getConflictFree();
         if (newCorrelationId.isPresent()) {
             // signal requires acks. set new correlation ID and return.

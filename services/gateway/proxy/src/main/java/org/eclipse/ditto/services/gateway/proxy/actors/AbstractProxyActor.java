@@ -56,7 +56,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
         statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
     }
 
-    static boolean isLiveSignal(final Signal<?> signal) {
+    static boolean isLiveCommandOrEvent(final Signal<?> signal) {
         return StreamingType.isLiveSignal(signal);
     }
 

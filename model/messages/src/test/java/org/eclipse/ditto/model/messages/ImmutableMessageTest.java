@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,11 +40,9 @@ public final class ImmutableMessageTest {
     }
 
     @Test
-    @Ignore("Somehow EqualsVerifier has a problem with this class")
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableMessage.class)
                 .usingGetClass()
-                // actually equals() and hashCode() both use rawPayload.
                 .withIgnoredFields("responseConsumer")
                 .verify();
     }

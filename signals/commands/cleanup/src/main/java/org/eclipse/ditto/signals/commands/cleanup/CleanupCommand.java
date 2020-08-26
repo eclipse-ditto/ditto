@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface CleanupCommand<T extends CleanupCommand> extends Command<T> {
+public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T> {
 
     /**
      * Type Prefix of Thing commands.

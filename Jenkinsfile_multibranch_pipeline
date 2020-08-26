@@ -3,6 +3,9 @@ pipeline {
     agent {
         label "$DITTO_BUILD_NODE"
     }
+    parameters {
+        string(name: 'EXTRA_MAVEN_ARGS', defaultValue: '', description: 'Additional maven arguments.')
+    }
     environment {
         // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
         theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
@@ -40,7 +43,11 @@ pipeline {
             }
             steps {
                 configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    sh "mvn -s $MVN_SETTINGS clean deploy source:jar -T1C --batch-mode --errors -Pbuild-documentation,ditto -Drevision=${theVersion}"
+                    sh "mvn -s $MVN_SETTINGS clean deploy source:jar " +
+                               "-T1C --batch-mode --errors " +
+                               "-Pbuild-documentation,ditto " +
+                               "-Drevision=${theVersion} " +
+                               "${params.EXTRA_MAVEN_ARGS ?: ''}"
                 }
             }
             post {

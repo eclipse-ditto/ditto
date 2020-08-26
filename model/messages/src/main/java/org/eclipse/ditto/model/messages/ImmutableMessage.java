@@ -84,7 +84,7 @@ final class ImmutableMessage<T> implements Message<T> {
      * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
      * provided no payload)
      * @param extra the extra (enriched) data of the message.
-     * @param responseConsumer MessageResponseConsumer which is invoked with a potential response message.
+     * @param responseConsumer MessageResponseConsumer which is stored together with the message but never serialized.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
     public static <T> Message<T> of(final MessageHeaders headers,

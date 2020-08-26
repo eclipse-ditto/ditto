@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractThingEvent<T extends AbstractThingEvent> implements ThingEvent<T> {
+public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implements ThingEvent<T> {
 
     private final String type;
     private final ThingId thingId;

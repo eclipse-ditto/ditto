@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 @Immutable
 final class IntValueValidator extends AbstractHeaderValueValidator {
 
+    private static final IntValueValidator INSTANCE = new IntValueValidator();
+
     private IntValueValidator() {
         super(valueType -> int.class.equals(valueType) || Integer.class.equals(valueType));
     }
 
     static IntValueValidator getInstance() {
-        return new IntValueValidator();
+        return INSTANCE;
     }
 
     @Override

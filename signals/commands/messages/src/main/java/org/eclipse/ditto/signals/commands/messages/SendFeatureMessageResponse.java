@@ -40,7 +40,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @JsonParsableCommandResponse(type = SendFeatureMessageResponse.TYPE)
-public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandResponse<T, SendFeatureMessageResponse>
+public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandResponse<T, SendFeatureMessageResponse<T>>
         implements WithFeatureId {
 
     /**

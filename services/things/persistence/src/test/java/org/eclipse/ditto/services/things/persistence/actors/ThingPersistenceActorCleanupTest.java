@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.appendETagToDittoHeaders;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -71,7 +72,8 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 // create a thing...
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 persistenceActorUnderTest.tell(createThing, getRef());
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final CreateThingResponse createThingResponse = expectMsgClass(dilated(Duration.ofSeconds(5)),
+                        CreateThingResponse.class);
                 final Thing thingCreated = createThingResponse.getThingCreated()
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
@@ -151,7 +153,8 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 // create a thing...
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 persistenceActorUnderTest.tell(createThing, getRef());
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final CreateThingResponse createThingResponse = expectMsgClass(dilated(Duration.ofSeconds(5)),
+                        CreateThingResponse.class);
                 final Thing thingCreated = createThingResponse.getThingCreated()
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);

@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = SendThingMessage.TYPE_PREFIX, name = SendThingMessage.NAME)
-public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThingMessage> {
+public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThingMessage<T>> {
 
     /**
      * The name of the {@code Message} wrapped by this {@code MessageCommand}.

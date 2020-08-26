@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 @Immutable
 final class BooleanValueValidator extends AbstractHeaderValueValidator {
 
+    private static final BooleanValueValidator INSTANCE = new BooleanValueValidator();
+
     private BooleanValueValidator() {
         super(valueType -> boolean.class.equals(valueType) || Boolean.class.equals(valueType));
     }
 
     static BooleanValueValidator getInstance() {
-        return new BooleanValueValidator();
+        return INSTANCE;
     }
 
     @Override

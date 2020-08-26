@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractCommandResponse<T extends AbstractCommandResponse> implements CommandResponse<T> {
+public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<T>> implements CommandResponse<T> {
 
     private final String responseType;
     private final HttpStatusCode statusCode;

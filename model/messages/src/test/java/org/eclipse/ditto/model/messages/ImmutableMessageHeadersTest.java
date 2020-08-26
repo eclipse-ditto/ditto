@@ -280,7 +280,7 @@ public final class ImmutableMessageHeadersTest {
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);
         result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(STATUS_CODE.toInt()));
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
+        result.put(DittoHeaderDefinition.TIMEOUT.getKey(), TIMEOUT.toMillis() + "ms");
 
         return result;
     }
