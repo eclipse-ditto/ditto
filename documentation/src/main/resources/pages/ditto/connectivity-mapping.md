@@ -187,15 +187,14 @@ The created thing contains the values defined in the template, configured in the
  ```json
  {
    "thing": {
-   "thingId": "{{header:device_id}}",
-   "policyId": "{{header:entity.id}}",
+   "thingId": "{{ header:device_id }}",
+   "policyId": "{{ entity:policy_id }}",
    "attributes": {
      "CreatedBy": "ImplicitThingCreation"
    }
   }
  }
  ```
-
 
 
 ## Example connection with multiple mappers
