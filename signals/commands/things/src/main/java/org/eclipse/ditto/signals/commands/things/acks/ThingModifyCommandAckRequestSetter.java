@@ -50,7 +50,10 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
     }
 
     /**
-     * @deprecated as of 1.2.0: use {@link #apply(ThingModifyCommand)} instead.
+     * @param command the command that will be checked for adding an {@link AcknowledgementRequest}
+     * for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
+     * @return the command with the correct headers.
+     * @deprecated as of 1.2.0: use {@link AbstractCommandAckRequestSetter#apply} instead.
      */
     @Deprecated
     public Command<?> apply(final Command<?> command) {
