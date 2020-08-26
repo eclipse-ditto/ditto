@@ -75,6 +75,8 @@ import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
@@ -108,8 +110,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
@@ -120,7 +120,7 @@ import akka.pattern.Patterns;
  */
 public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThingCommandEnforcement.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingCommandEnforcement.class);
 
     /**
      * Label of default policy entry in default policy.
@@ -217,7 +217,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final ThingId thingId = signal().getThingEntityId();
             final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(signal(), thingId, policyId);
-            log().info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
+            LOGGER.withCorrelationId(dittoHeaders())
+                    .info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
             throw error;
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
@@ -231,16 +232,18 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     .exceptionally(throwable -> {
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(throwable, cause -> {
-                                    LOGGER.warn("Error during thing by itself enforcement - {}: {}",
-                                            cause.getClass().getSimpleName(), cause.getMessage());
+                                    LOGGER.withCorrelationId(dittoHeaders())
+                                            .warn("Error during thing by itself enforcement - {}: {}",
+                                                    cause.getClass().getSimpleName(), cause.getMessage());
                                     throw GatewayInternalErrorException.newBuilder()
                                             .cause(cause)
                                             .build();
                                 });
 
-                        LOGGER.debug(
-                                "DittoRuntimeException during enforceThingCommandByNonexistentEnforcer - {}: {}",
-                                dittoRuntimeException.getClass().getSimpleName(), dittoRuntimeException.getMessage());
+                        LOGGER.withCorrelationId(dittoHeaders())
+                                .debug("DittoRuntimeException during enforceThingCommandByNonexistentEnforcer - {}: {}",
+                                        dittoRuntimeException.getClass().getSimpleName(),
+                                        dittoRuntimeException.getMessage());
                         throw dittoRuntimeException;
                     });
         }
@@ -459,14 +462,31 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     if (response instanceof RetrievePolicyResponse) {
                         return Optional.of((RetrievePolicyResponse) response);
                     } else if (error != null) {
-                        log(error).error(error, "retrieving inlined policy after RetrieveThing");
+                        LOGGER.withCorrelationId(getCorrelationIdOrNull(error, retrieveThing))
+                                .error("Retrieving inlined policy after RetrieveThing", error);
                     } else {
-                        log(response).info(
-                                "No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
-                                retrievePolicy.getEntityId(), retrieveThing.getThingEntityId(), response);
+                        LOGGER.withCorrelationId(getCorrelationIdOrNull(response, retrieveThing))
+                                .info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
+                                        retrievePolicy.getEntityId(), retrieveThing.getThingEntityId(), response);
                     }
                     return Optional.empty();
                 });
+    }
+
+    @Nullable
+    private static CharSequence getCorrelationIdOrNull(final Object signal, final WithDittoHeaders<?> fallBackSignal) {
+        final WithDittoHeaders<?> withDittoHeaders;
+        if (isWithDittoHeaders(signal)) {
+            withDittoHeaders = (WithDittoHeaders<?>) signal;
+        } else {
+            withDittoHeaders = fallBackSignal;
+        }
+        final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
+        return dittoHeaders.getCorrelationId().orElse(null);
+    }
+
+    private static boolean isWithDittoHeaders(final Object o) {
+        return o instanceof WithDittoHeaders;
     }
 
     /**
@@ -512,7 +532,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private ThingUnavailableException reportTimeoutForThingQuery(final ThingQueryCommand command,
             final AskTimeoutException askTimeoutException) {
 
-        log(command).error(askTimeoutException, "Timeout before building JsonView");
+        LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeoutException);
         return ThingUnavailableException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
@@ -709,12 +729,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     });
         } else {
             // Other commands cannot be authorized by ACL or policy contained in self.
-            final DittoRuntimeException error =
-                    ThingNotAccessibleException.newBuilder(thingCommand.getThingEntityId())
-                            .dittoHeaders(thingCommand.getDittoHeaders())
-                            .build();
-            log().info("Enforcer was not existing for Thing <{}> and no auth info was inlined, " +
-                    "responding with: {}", thingCommand.getThingEntityId(), error);
+            final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(thingCommand.getThingEntityId())
+                    .dittoHeaders(thingCommand.getDittoHeaders())
+                    .build();
+            LOGGER.withCorrelationId(dittoHeaders())
+                    .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {}",
+                            thingCommand.getThingEntityId(), error);
             throw error;
         }
     }
@@ -730,19 +750,20 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         return createThing.getPolicyIdOrPlaceholder()
                 .flatMap(ReferencePlaceholder::fromCharSequence)
                 .map(referencePlaceholder -> {
-                    log(createThing).debug(
-                            "CreateThing command contains a reference placeholder for the policy it wants to copy: {}",
-                            referencePlaceholder);
+                    LOGGER.withCorrelationId(createThing).debug("CreateThing command contains a reference placeholder" +
+                            " for the policy it wants to copy: {}", referencePlaceholder);
                     return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder, dittoHeaders());
                 })
                 .orElseGet(() -> CompletableFuture.completedFuture(createThing.getPolicyIdOrPlaceholder().orElse(null)))
                 .thenCompose(policyId -> {
                     if (policyId != null) {
-                        log().debug("CreateThing command wants to use a copy of Policy <{}>", policyId);
+                        LOGGER.withCorrelationId(createThing)
+                                .debug("CreateThing command wants to use a copy of Policy <{}>", policyId);
                         return retrievePolicyWithEnforcement(PolicyId.of(policyId))
                                 .thenApply(policy -> policy.toJson(JsonSchemaVersion.V_2).remove("policyId"));
                     } else {
-                        log().debug("CreateThing command did not contain a policy that should be copied.");
+                        LOGGER.withCorrelationId(createThing)
+                                .debug("CreateThing command did not contain a policy that should be copied.");
                         return CompletableFuture.completedFuture(createThing.getInitialPolicy().orElse(null));
                     }
                 });
@@ -762,9 +783,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     } else if (response instanceof DittoRuntimeException) {
                         throw (DittoRuntimeException) response;
                     } else {
-                        log().error(
-                                "Got an unexpected response while retrieving a Policy that should be copied" +
-                                        " during Thing creation: {}", response);
+                        LOGGER.withCorrelationId(dittoHeaders())
+                                .error("Got an unexpected response while retrieving a Policy that should be copied" +
+                                                " during Thing creation: {}", response);
                         throw GatewayInternalErrorException.newBuilder().build();
                     }
                 });
@@ -1065,9 +1086,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private ThingNotCreatableException reportInitialPolicyCreationFailure(final PolicyId policyId,
             final CreateThing command) {
 
-        log(command).info("Failed to create Policy with ID '{}' is already existing, the CreateThing " +
-                "command which would have created a Policy for the Thing with ID '{}' " +
-                "is therefore not handled", policyId, command.getThingEntityId());
+        LOGGER.withCorrelationId(command)
+                .info("Failed to create Policy with ID <{}> because it already exists." +
+                                " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
+                                " is therefore not handled.", policyId, command.getThingEntityId());
         return ThingNotCreatableException.newBuilderForPolicyExisting(command.getThingEntityId(), policyId)
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
