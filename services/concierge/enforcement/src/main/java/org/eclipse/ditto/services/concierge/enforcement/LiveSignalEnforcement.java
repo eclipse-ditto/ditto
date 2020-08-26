@@ -216,29 +216,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer);
             case LIVE_COMMANDS:
-                final boolean authorized;
                 if (enforcer instanceof AclEnforcer) {
-                    authorized = ThingCommandEnforcement.authorizeByAcl(enforcer, (ThingCommand<?>) liveSignal)
-                            .isPresent();
+                    ThingCommandEnforcement.authorizeByAclOrThrow(enforcer, (ThingCommand<?>) liveSignal);
                 } else {
-                    authorized =
-                            ThingCommandEnforcement.authorizeByPolicy(enforcer, (ThingCommand<?>) liveSignal)
-                                    .isPresent();
+                    ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
                 }
-
-                if (authorized) {
-                    final Command<?> withReadSubjects =
-                            addEffectedReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
-                    log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
-                    if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                        responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
-                    }
-                    return CompletableFuture.completedFuture(
-                            publishLiveSignal(withReadSubjects, liveSignalPub.command()));
-                } else {
-                    log(liveSignal).info("Live Command was NOT authorized: <{}>", liveSignal);
-                    throw ThingCommandEnforcement.errorForThingCommand((ThingCommand) liveSignal);
+                final Command<?> withReadSubjects =
+                        addEffectedReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
+                log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
+                if (liveSignal.getDittoHeaders().isResponseRequired()) {
+                    responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
                 }
+                return CompletableFuture.completedFuture(publishLiveSignal(withReadSubjects, liveSignalPub.command()));
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
                 throw UnknownCommandException.newBuilder(liveSignal.getName())
@@ -341,6 +330,5 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                     .build();
         }
     }
-
 
 }
