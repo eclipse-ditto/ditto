@@ -42,7 +42,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutE
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -56,8 +55,6 @@ import akka.actor.ReceiveTimeout;
  * @since 1.1.0
  */
 public final class AcknowledgementAggregatorActor extends AbstractActor {
-
-    private static final Duration REASONABLE_TIMEOUT_FOR_TWIN_PERSISTED = Duration.ofMillis(9999L);
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -231,19 +228,11 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @return the error response.
      */
     private ThingErrorResponse asThingErrorResponse(final Acknowledgements aggregatedAcknowledgements) {
-        final DittoRuntimeException dittoRuntimeException;
         final ThingId thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
-        if (aggregatedAcknowledgements.getAcknowledgement(TWIN_PERSISTED).isPresent() && isReasonable(timeout)) {
-            // special check: if twin-persisted not answered within reasonable time limit then answer 503
-            dittoRuntimeException = ThingUnavailableException.newBuilder(thingId)
-                    .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
-                    .build();
-        } else {
-            // answer unreasonable timeouts or live response timeouts with 408
-            dittoRuntimeException = GatewayCommandTimeoutException.newBuilder(timeout)
-                    .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
-                    .build();
-        }
+        final DittoRuntimeException dittoRuntimeException = GatewayCommandTimeoutException.newBuilder(timeout)
+                .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
+                .build();
+
         return ThingErrorResponse.of(thingId, dittoRuntimeException);
     }
 
@@ -255,10 +244,6 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                             return TWIN_PERSISTED.equals(label) ||
                                     LIVE_RESPONSE.equals(label);
                         });
-    }
-
-    private static boolean isReasonable(final Duration timeout) {
-        return REASONABLE_TIMEOUT_FOR_TWIN_PERSISTED.minus(timeout).isNegative();
     }
 
 }
