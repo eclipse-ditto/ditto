@@ -210,7 +210,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void completeAcknowledgements(final Acknowledgements acks) {
         completeWithResult(createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(),
-                        mapAcknowledgementsForHttp(acks)));
+                mapAcknowledgementsForHttp(acks)));
     }
 
     private void handleCommandAndAcceptImmediately(final Signal<?> command) {
@@ -337,7 +337,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     rememberResponseLocationUri(commandResponse);
-                    completeWithResult(createCommandResponse(commandResponse.getDittoHeaders(), commandResponse.getStatusCode(),
+                    completeWithResult(
+                            createCommandResponse(commandResponse.getDittoHeaders(), commandResponse.getStatusCode(),
                                     (WithOptionalEntity) commandResponse));
                 })
                 .match(ErrorResponse.class,
@@ -477,8 +478,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void completeWithResult(final HttpResponse response) {
         final HttpResponse completionResponse;
-        if (incomingCommandHeaders == null || incomingCommandHeaders.isResponseRequired() ||
-                !response.status().isSuccess()) {
+        if (isResponseRequired() || !response.status().isSuccess()) {
             // if either response was required or the response was not a success, respond with the custom response:
             completionResponse = response;
         } else {
@@ -581,8 +581,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private Acknowledgements mapAcknowledgementsForHttp(final Acknowledgements acks) {
-        final boolean isResponseRequired = acks.getDittoHeaders().isResponseRequired();
-        if (!isResponseRequired) {
+        if (!isResponseRequired()) {
             if (acks.getStatusCode().isSuccess()) {
                 // no need to minimize payload because the response will have no body
                 return acks;
@@ -602,6 +601,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     acks.getDittoHeaders()
             );
         }
+    }
+
+    private boolean isResponseRequired() {
+        return incomingCommandHeaders == null || incomingCommandHeaders.isResponseRequired();
     }
 
     private Acknowledgement setResponseLocationForAcknowledgement(final Acknowledgement acknowledgement) {
