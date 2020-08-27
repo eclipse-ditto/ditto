@@ -30,9 +30,6 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
  */
 class MessagePayloadSerializer {
 
-    private static final String TEXT_PLAIN = "text/plain";
-    private static final String APPLICATION_JSON = "application/json";
-
     private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
     private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
 
@@ -47,7 +44,7 @@ class MessagePayloadSerializer {
         if (rawPayloadOptional.isPresent() && !payloadOptional.filter(p -> p instanceof JsonValue).isPresent()) {
             final ByteBuffer rawPayload = rawPayloadOptional.get();
             final String encodedString;
-            if (shouldBeInterpretedAsText(message.getContentType().orElse(""))) {
+            if (MessageDeserializer.shouldBeInterpretedAsText(message.getContentType().orElse(""))) {
                 encodedString = new String(rawPayload.array());
             } else {
                 final ByteBuffer base64Encoded = BASE64_ENCODER.encode(rawPayload);
@@ -83,7 +80,7 @@ class MessagePayloadSerializer {
         final String contentType = messageHeaders.getContentType().orElse("");
         if (messagePayloadOptional.isPresent()) {
             final JsonValue payload = messagePayloadOptional.get();
-            if (shouldBeInterpretedAsText(contentType)) {
+            if (MessageDeserializer.shouldBeInterpretedAsText(contentType)) {
                 messageBuilder.payload(payload.isString() ? payload.asString() : payload);
             } else {
                 final String payloadStr = payload.isString()
@@ -97,7 +94,4 @@ class MessagePayloadSerializer {
         }
     }
 
-    private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON);
-    }
 }

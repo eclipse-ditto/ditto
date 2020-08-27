@@ -27,6 +27,11 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
  */
 public final class MessageDeserializer {
 
+    private static final String TEXT_PLAIN = "text/plain";
+    private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_VND = "application/vnd.";
+    private static final String VND_JSON_SUFFIX = "+json";
+
     private MessageDeserializer() {
         // Empty because this is a utility class.
     }
@@ -51,6 +56,17 @@ public final class MessageDeserializer {
         return messageBuilder.build();
     }
 
+    /**
+     * Check if a content type header value indicates that the message payload should be interpreted as text.
+     *
+     * @param contentTypeHeader the content type header.
+     * @return whether the message payload should be interpreted as text.
+     */
+    public static boolean shouldBeInterpretedAsText(final String contentTypeHeader) {
+        final String contentType = contentTypeHeader.toLowerCase();
+        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON) ||
+                (contentType.startsWith(APPLICATION_VND) && contentType.endsWith(VND_JSON_SUFFIX));
+    }
 }
 
 
