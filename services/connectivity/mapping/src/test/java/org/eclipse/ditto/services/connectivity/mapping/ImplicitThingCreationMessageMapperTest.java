@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.services.models.things.Permission.READ;
 import static org.eclipse.ditto.services.models.things.Permission.WRITE;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,17 +43,18 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
+/**
+ * Unit test for {@link org.eclipse.ditto.services.connectivity.mapping.ImplicitThingCreationMessageMapper}.
+ */
 public class ImplicitThingCreationMessageMapperTest {
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private static final String HEADER_HONO_DEVICE_ID = "device_id";
     private static final String HEADER_HONO_GATEWAY_ID = "gateway_id";
-    private static final String HEADER_POLICY_ID = "policy_id";
 
-    private static final String THING_TEMPLATE_WITH_POLICY_ID = "{" +
+    private static final String THING_TEMPLATE = "{" +
             "\"thingId\": \"{{ header:device_id }}\"," +
-            "\"policyId\": \"{{ header:policy_id }}\"," +
             "\"attributes\": {" +
             "\"info\": {" +
             "\"gatewayId\": \"{{ header:gateway_id }}\"" +
@@ -71,7 +73,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
     private static final String THING_TEMPLATE_WITH_POLICY = JsonObject.newBuilder()
             .set("thingId", "{{ header:device_id }}")
-            .set("policyId", "{{ header:policy_id }}")
+            .set("policyId", "{{ header:device_id }}")
             .set("_policy", INITIAL_POLICY)
             .set("attributes", JsonObject.newBuilder()
                     .set("info", JsonObject.newBuilder()
@@ -101,9 +103,9 @@ public class ImplicitThingCreationMessageMapperTest {
     }
 
     @Test
-    public void doForwardMappingContextWithPolicyIdPlaceholder() {
+    public void doForwardMappingContextWithDeviceIdPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITH_POLICY_ID));
+        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE));
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -113,10 +115,10 @@ public class ImplicitThingCreationMessageMapperTest {
         final CreateThing createThing = (CreateThing) firstMappedSignal;
 
         final Thing expectedThing =
-                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerPolicyId",
+                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerDeviceId",
                         "headerNamespace:headerGatewayId");
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
-        assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
+        assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
     }
 
@@ -133,7 +135,7 @@ public class ImplicitThingCreationMessageMapperTest {
         final CreateThing createThing = (CreateThing) firstMappedSignal;
 
         final Thing expectedThing =
-                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerPolicyId",
+                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerDeviceId",
                         "headerNamespace:headerGatewayId");
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
@@ -181,7 +183,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void throwErrorIfHeaderForPlaceholderIsMissing() {
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITH_POLICY_ID));
+        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE));
 
         final Map<String, String> missingEntityHeader = new HashMap<>();
         missingEntityHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
@@ -203,7 +205,6 @@ public class ImplicitThingCreationMessageMapperTest {
         final Map<String, String> validHeader = new HashMap<>();
         validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
         validHeader.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
-        validHeader.put(HEADER_POLICY_ID, "headerNamespace:headerPolicyId");
         return validHeader;
     }
 
@@ -220,9 +221,10 @@ public class ImplicitThingCreationMessageMapperTest {
     }
 
     private DefaultMessageMapperConfiguration createMapperConfig(final String thingTemplate) {
-        final Map<String, String> configPropsWithoutPolicyId = new HashMap<>();
-        configPropsWithoutPolicyId.put("thing", thingTemplate);
-        return DefaultMessageMapperConfiguration.of("valid", configPropsWithoutPolicyId);
+        final Map<String, String> options = Collections.singletonMap("thing", thingTemplate);
+        final Map<String, String> conditions = Collections.singletonMap("implicitThingCreation",
+                "{{ header:hono_registration_status | fn:filter(header:hono_registration_status,'eq','NEW') }}");
+        return DefaultMessageMapperConfiguration.of("valid", options, conditions);
     }
 
 }

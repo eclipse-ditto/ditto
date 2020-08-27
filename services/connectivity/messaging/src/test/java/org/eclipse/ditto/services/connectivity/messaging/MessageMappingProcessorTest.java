@@ -21,11 +21,9 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,8 +71,8 @@ public final class MessageMappingProcessorTest {
     private MessageMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
-    private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of("testCondition",
-            "fn:filter(header:correlation-id,'ne','testCor')",
+    private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of(
+            "testCondition", "fn:filter(header:correlation-id,'ne','testCor')",
             "testCondition2", "fn:filter(header:correlation-id,'ne','testCor2')");
     private static final String DITTO_MAPPER_BY_ALIAS = "ditto-by-alias";
     private static final String DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST = "ditto-cust-header";
@@ -313,7 +311,8 @@ public final class MessageMappingProcessorTest {
     }
 
     private void testOutboundWithCor(final int mapped, final int dropped, final int failed, final Target... targets) {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()), mapped, dropped, failed, true, targets);
+        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()), mapped, dropped, failed, true,
+                targets);
     }
 
     private void testOutbound(final ThingModifiedEvent<?> signal, final int mapped, final int dropped, final int failed,

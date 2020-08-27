@@ -39,6 +39,8 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
@@ -46,17 +48,20 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
  * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
  * a given thing template and may substitutes placeholders by given headers which can be {@code device_id},
  * {@code entity_id} or {@code gateway_id}.
- * The policyId must not be set in the mapping configuration. If not set, the policyId will be the same as the thingId.
  * The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
+ * The policyId is not required to be set in the mapping configuration. If not set, the policyId will be the same as
+ * the thingId.
  *
- * @since 1.2.0
+ * @since 1.3.0
  */
 @PayloadMapper(
         alias = "ImplicitThingCreation",
         requiresMandatoryConfiguration = true // "thing" is mandatory configuration
 )
 public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
+
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
@@ -87,6 +92,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                 .map(JsonValue::asString)
                 .ifPresent(ImplicitThingCreationMessageMapper::validatePolicyEntityId);
 
+        LOGGER.debug("Configured with Thing template: {}", thingTemplate);
     }
 
     private static void validateThingEntityId(final String thingId) {
@@ -117,6 +123,8 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
+        LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
+
         final Map<String, String> externalHeaders = message.getHeaders();
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
 
@@ -126,6 +134,9 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
         final Signal<CreateThing> createThing = getCreateThingSignal(message);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
+
+        LOGGER.withCorrelationId(message.getInternalHeaders())
+                .debug("Mapped ExternalMessage to Adaptable: {}", adaptable);
 
         return Collections.singletonList(adaptable);
     }

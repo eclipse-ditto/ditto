@@ -390,7 +390,7 @@ public final class ConnectivityModelFactory {
      * @param conditions the conditions to be checked before mapping.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options,
             final Map<String, String> conditions) {

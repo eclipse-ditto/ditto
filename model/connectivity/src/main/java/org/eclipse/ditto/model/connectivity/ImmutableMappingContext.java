@@ -76,7 +76,7 @@ final class ImmutableMappingContext implements MappingContext {
      * @param conditions the conditions to be checked before mapping.
      * @return a new instance of ImmutableMappingContext.
      *
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static ImmutableMappingContext of(final String mappingEngine, final Map<String, String> options,
             final Map<String, String> conditions) {
