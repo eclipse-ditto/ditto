@@ -113,6 +113,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     @Nullable private Uri responseLocationUri;
 
+    @Nullable private DittoHeaders incomingCommandHeaders = null;
+
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
@@ -151,11 +153,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                         logger.warning("Got EntityStreamSizeException when a 'Command' was expected which means that" +
                                 " the max. allowed http payload size configured in Akka was overstepped in this" +
                                 " request.");
-                        completeWithResult(DittoHeaders.empty(),
+                        completeWithResult(
                                 HttpResponse.create().withStatus(HttpStatusCode.REQUEST_ENTITY_TOO_LARGE.toInt()));
                     } else {
                         logger.error(cause, "Got unknown Status.Failure when a 'Command' was expected.");
-                        completeWithResult(DittoHeaders.empty(),
+                        completeWithResult(
                                 HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                     }
                 })
@@ -168,13 +170,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(Command.class, this::handleCommand)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
-                    completeWithResult(DittoHeaders.empty(),
-                            HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .build();
     }
 
     private void handleCommand(final Command<?> command) {
+        incomingCommandHeaders = command.getDittoHeaders();
         ackregatorStarter.start(command,
                 this::onAggregatedResponseOrError,
                 this::handleCommandWithAckregator,
@@ -207,16 +209,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void completeAcknowledgements(final Acknowledgements acks) {
-        completeWithResult(acks.getDittoHeaders(),
-                createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(),
-                        mapAcknowledgementsForHttp(acks)));
+        completeWithResult(createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(),
+                mapAcknowledgementsForHttp(acks)));
     }
 
     private void handleCommandAndAcceptImmediately(final Signal<?> command) {
         logger.withCorrelationId(command)
                 .debug("Received <{}> that doesn't expect a response. Answering with status code 202 ..", command);
         proxyActor.tell(command, getSelf());
-        completeWithResult(command, HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
+        completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
     }
 
     private Supplier<DittoRuntimeException> getTimeoutExceptionSupplier(final WithDittoHeaders<?> command) {
@@ -308,9 +309,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's <{}> message.", COMPLETE_MESSAGE))
 
                 // If an actor downstream replies with an HTTP response, simply forward it.
-                .match(HttpResponse.class, response -> completeWithResult(DittoHeaders.empty(), response))
-                .match(MessageCommandResponse.class, cmd -> completeWithResult(cmd.getDittoHeaders(),
-                        handleMessageResponseMessage(cmd)))
+                .match(HttpResponse.class, this::completeWithResult)
+                .match(MessageCommandResponse.class, cmd -> completeWithResult(handleMessageResponseMessage(cmd)))
                 .match(CommandResponse.class, cR -> cR instanceof WithEntity, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     rememberResponseLocationUri(commandResponse);
@@ -332,12 +332,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
                                 commandResponse.getDittoHeaders());
                     }
-                    completeWithResult(commandResponse, response);
+                    completeWithResult(response);
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     rememberResponseLocationUri(commandResponse);
-                    completeWithResult(commandResponse,
+                    completeWithResult(
                             createCommandResponse(commandResponse.getDittoHeaders(), commandResponse.getStatusCode(),
                                     (WithOptionalEntity) commandResponse));
                 })
@@ -347,15 +347,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     logger.withCorrelationId(commandResponse)
                             .error("Got 'CommandResponse' message which did neither implement 'WithEntity' nor" +
                                     " 'WithOptionalEntity': <{}>!", commandResponse);
-                    completeWithResult(commandResponse,
-                            HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     final Throwable cause = failure.cause();
                     logger.error(cause, "Got <{}> when a command response was expected: <{}>!",
                             cause.getClass().getSimpleName(), cause.getMessage());
-                    completeWithResult(DittoHeaders.empty(),
-                            HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
 
                 // wrap JsonRuntimeExceptions
@@ -368,13 +366,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     final Throwable cause = failure.cause();
                     logger.error(cause.fillInStackTrace(),
                             "Got <Status.Failure> when a command response was expected: <{}>!", cause.getMessage());
-                    completeWithResult(DittoHeaders.empty(),
-                            HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .matchAny(m -> {
                     logger.error("Got unknown message when a command response was expected: <{}>!", m);
-                    completeWithResult(DittoHeaders.empty(),
-                            HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .build();
     }
@@ -448,7 +444,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final HttpResponse response =
                 enhanceResponseWithExternalDittoHeaders(responseWithoutHeaders, exception.getDittoHeaders());
 
-        completeWithResult(exception, response);
+        completeWithResult(response);
     }
 
     private static HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(
@@ -480,13 +476,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return response.withHeaders(externalHttpHeaders);
     }
 
-    private void completeWithResult(final WithDittoHeaders<?> withDittoHeaders, final HttpResponse response) {
-        completeWithResult(withDittoHeaders.getDittoHeaders(), response);
-    }
-
-    private void completeWithResult(final DittoHeaders dittoHeaders, final HttpResponse response) {
+    private void completeWithResult(final HttpResponse response) {
         final HttpResponse completionResponse;
-        if (dittoHeaders.isResponseRequired() || !response.status().isSuccess()) {
+        if (isResponseRequired() || !response.status().isSuccess()) {
             // if either response was required or the response was not a success, respond with the custom response:
             completionResponse = response;
         } else {
@@ -589,8 +581,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private Acknowledgements mapAcknowledgementsForHttp(final Acknowledgements acks) {
-        final boolean isResponseRequired = acks.getDittoHeaders().isResponseRequired();
-        if (!isResponseRequired) {
+        if (!isResponseRequired()) {
             if (acks.getStatusCode().isSuccess()) {
                 // no need to minimize payload because the response will have no body
                 return acks;
@@ -610,6 +601,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     acks.getDittoHeaders()
             );
         }
+    }
+
+    private boolean isResponseRequired() {
+        return incomingCommandHeaders == null || incomingCommandHeaders.isResponseRequired();
     }
 
     private Acknowledgement setResponseLocationForAcknowledgement(final Acknowledgement acknowledgement) {

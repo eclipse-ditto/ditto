@@ -172,6 +172,37 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     }
 
     @Test
+    public void liveResponseHeadersDoNotCauseSpurious202Accepted() throws Exception {
+        new TestKit(system) {{
+            final ThingId thingId = ThingId.generateRandom();
+            final String attributeName = "foo";
+            final JsonPointer attributePointer = JsonPointer.of(attributeName);
+
+            final DittoHeaders dittoHeaders = createAuthorizedHeaders().toBuilder()
+                    .channel("live")
+                    .build();
+            final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .responseRequired(true)
+                    .channel("live")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+            final DittoHeaders responseRequiredFalseHeaders = expectedHeaders.toBuilder()
+                    .responseRequired(false)
+                    .build();
+
+            final ModifyAttributeResponse probeResponse =
+                    ModifyAttributeResponse.modified(thingId, attributePointer, responseRequiredFalseHeaders);
+
+            final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
+            final boolean expectHttpResponseHeaders = false; // response headers are different
+
+            testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
+                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders);
+        }};
+
+    }
+
+    @Test
     public void handlesThingModifyCommandLiveNoResponseRequired() throws ExecutionException, InterruptedException {
         new TestKit(system) {{
             final ThingId thingId = ThingId.generateRandom();
