@@ -47,23 +47,19 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 public final class DittoMessageMapper extends AbstractMessageMapper {
 
 
-    private static final Map<String, String> DEFAULT_OPTIONS;
+    private static final Map<String, String> DEFAULT_OPTIONS = Map.of(
+            MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
+            String.join(",", "application/vnd.eclipse-hono-empty-notification",
+                    "application/vnd.eclipse-hono-dc-notification+json")
+    );
 
     /**
      * The context representing this mapper
      */
-    public static final MappingContext CONTEXT;
-
-    static {
-        DEFAULT_OPTIONS = new HashMap<>();
-        DEFAULT_OPTIONS.put(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
-                String.join(",", "application/vnd.eclipse-hono-empty-notification",
-                        "application/vnd.eclipse-hono-dc-notification+json"));
-        CONTEXT = ConnectivityModelFactory.newMappingContext(
-                DittoMessageMapper.class.getCanonicalName(),
-                DEFAULT_OPTIONS
-        );
-    }
+    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
+            DittoMessageMapper.class.getCanonicalName(),
+            DEFAULT_OPTIONS
+    );
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
