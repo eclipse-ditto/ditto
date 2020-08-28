@@ -62,7 +62,7 @@ public final class DefaultMappingConfigTest {
 
         softly.assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
-                .contains("javaScriptConfig", "mapperLimitsConfig", "bufferSize", "parallelism");
+                .contains("javaScriptConfig", "mapperLimitsConfig", "bufferSize", "parallelism", "maxPoolSize");
     }
 
     @Test
@@ -76,6 +76,10 @@ public final class DefaultMappingConfigTest {
         softly.assertThat(underTest.getParallelism())
                 .describedAs(MappingConfig.MappingConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(67890);
+
+        softly.assertThat(underTest.getMaxPoolSize())
+                .describedAs(MappingConfig.MappingConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(37);
     }
 
 }

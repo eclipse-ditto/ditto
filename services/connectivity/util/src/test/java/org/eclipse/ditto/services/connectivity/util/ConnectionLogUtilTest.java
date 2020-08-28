@@ -66,6 +66,22 @@ public final class ConnectionLogUtilTest {
     }
 
     @Test
+    public void removeLogWithConnectionId() {
+        final String connectionId = "theConnection";
+        final Map<String, Object> expectedMap = new HashMap<>(DEFAULT_MDC);
+
+        expectedMap.put("connection-id", connectionId);
+
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+
+        Mockito.verify(log).setMDC(expectedMap);
+
+        ConnectionLogUtil.removeConnectionId(log);
+
+        Mockito.verify(log).setMDC(new HashMap<>(DEFAULT_MDC));
+    }
+
+    @Test
     public void enhanceLogWithCorrelationIdAndConnectionId() {
         final String connectionId = "theConnection";
         final String correlationId = "theCorrelationId";
