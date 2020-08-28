@@ -186,8 +186,8 @@ public final class MessageMappingProcessorActor
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
         signalEnrichmentFacade =
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
-        this.processorPoolSize = processorPoolSize;
-        inboundSourceQueue = materializeInboundStream(processorPoolSize);
+        this.processorPoolSize = this.determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
+        inboundSourceQueue = materializeInboundStream(this.processorPoolSize);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 connectivityConfig.getConnectionConfig().getAcknowledgementConfig(),
@@ -195,6 +195,17 @@ public final class MessageMappingProcessorActor
                 ThingModifyCommandAckRequestSetter.getInstance(),
                 ThingLiveCommandAckRequestSetter.getInstance(),
                 MessageCommandAckRequestSetter.getInstance());
+    }
+
+    private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
+        if (connectionPoolSize > maxPoolSize) {
+            ConnectionLogUtil.enhanceLogWithConnectionId(logger, connectionId);
+            logger.info("Configured pool size <{}> is greater than the configured max pool size <{}>." +
+                    " Will use max pool size <{}>.", connectionPoolSize, maxPoolSize, maxPoolSize);
+            ConnectionLogUtil.removeConnectionId(logger);
+            return maxPoolSize;
+        }
+        return connectionPoolSize;
     }
 
     /**
