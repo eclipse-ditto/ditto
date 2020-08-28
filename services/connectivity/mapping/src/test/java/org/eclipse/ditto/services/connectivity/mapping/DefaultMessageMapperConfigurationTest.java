@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
+import org.mutabilitydetector.unittesting.AllowedReason;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -26,7 +27,9 @@ public final class DefaultMessageMapperConfigurationTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultMessageMapperConfiguration.class, areImmutable());
+        assertInstancesOf(DefaultMessageMapperConfiguration.class, areImmutable(),
+                AllowedReason.assumingFields("properties")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

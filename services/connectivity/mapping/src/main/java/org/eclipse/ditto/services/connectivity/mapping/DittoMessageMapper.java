@@ -17,12 +17,12 @@ import static java.util.Collections.singletonList;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -47,11 +47,11 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 public final class DittoMessageMapper extends AbstractMessageMapper {
 
 
-    private static final Map<String, String> DEFAULT_OPTIONS = Map.of(
-            MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
-            String.join(",", "application/vnd.eclipse-hono-empty-notification",
-                    "application/vnd.eclipse-hono-dc-notification+json")
-    );
+    private static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder()
+            .set(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
+                    String.join(",", "application/vnd.eclipse-hono-empty-notification",
+                            "application/vnd.eclipse-hono-dc-notification+json"))
+            .build();
 
     /**
      * The context representing this mapper
@@ -89,7 +89,7 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public Map<String, String> getDefaultOptions() {
+    public JsonObject getDefaultOptions() {
         return DEFAULT_OPTIONS;
     }
 

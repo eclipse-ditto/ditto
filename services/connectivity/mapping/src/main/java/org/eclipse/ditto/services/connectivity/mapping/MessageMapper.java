@@ -15,11 +15,11 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -84,8 +84,8 @@ public interface MessageMapper {
     /**
      * @return a map of default options for this mapper
      */
-    default Map<String, String> getDefaultOptions() {
-        return Collections.emptyMap();
+    default JsonObject getDefaultOptions() {
+        return JsonObject.empty();
     }
 
     /**

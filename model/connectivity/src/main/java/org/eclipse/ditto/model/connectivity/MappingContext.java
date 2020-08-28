@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -39,15 +40,30 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
      *     <li>JavaScript</li>
      *     <li><pre>org.eclipse.ditto.services.connectivity.mapping.mapper.javascript.JavaScriptMessageMapperRhino</pre></li>
      * </ul>
+     *
      * @return the mapping engine name
      */
     String getMappingEngine();
 
     /**
-     * All configuration options for mapping engine instantiation.
-     * @return the options
+     * Get options as string key-value pairs. Note that non-string configuration values are converted to JSON string.
+     *
+     * @return the configuration options as key-value pairs.
+     * @deprecated since 1.2.0. Use {@code getOptionsAsJson()} instead.
      */
-    Map<String, String> getOptions();
+    @Deprecated
+    default Map<String, String> getOptions() {
+        return getOptionsAsJson().stream()
+                .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().formatAsString()));
+    }
+
+    /**
+     * All configuration options for mapping engine instantiation.
+     *
+     * @return the options
+     * @since 1.2.0
+     */
+    JsonObject getOptionsAsJson();
 
     /**
      * Returns all non hidden marked fields of this {@code MappingContext}.

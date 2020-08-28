@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.util.Collections;
+import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
@@ -159,7 +159,7 @@ public final class NormalizedMessageMapperTest {
 
     @Test
     public void withFieldSelection() {
-        final FeaturePropertyModified event = FeaturePropertyModified.of(
+        final Signal<?> event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
                 "featureId",
                 JsonPointer.of("/the/quick/brown/fox/jumps/over/the/lazy/dog"),
@@ -170,8 +170,8 @@ public final class NormalizedMessageMapperTest {
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
                 DefaultMessageMapperConfiguration.of("normalizer",
-                        Collections.singletonMap(NormalizedMessageMapper.FIELDS,
-                                "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer")));
+                        Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
+                                "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer"))));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
@@ -200,9 +200,9 @@ public final class NormalizedMessageMapperTest {
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
                 DefaultMessageMapperConfiguration.of("normalizer",
-                        Collections.singletonMap(NormalizedMessageMapper.FIELDS,
+                        Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                                 "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
-                                        "_context/headers/correlation-id")));
+                                        "_context/headers/correlation-id"))));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
@@ -229,8 +229,8 @@ public final class NormalizedMessageMapperTest {
 
         underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
                 DefaultMessageMapperConfiguration.of("normalizer",
-                        Collections.singletonMap(NormalizedMessageMapper.FIELDS,
-                                "thingId,policyId,attributes/foo,features,_modified,_revision")));
+                        Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
+                                "thingId,policyId,attributes/foo,features,_modified,_revision"))));
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setId(thingId)

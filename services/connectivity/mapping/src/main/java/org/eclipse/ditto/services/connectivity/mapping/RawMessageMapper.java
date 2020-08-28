@@ -17,13 +17,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
+import org.eclipse.ditto.model.messages.MessagesModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.MessagePath;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
@@ -38,8 +45,13 @@ import akka.http.javadsl.model.ContentTypes;
 @PayloadMapper(alias = {"RawMessage"})
 public final class RawMessageMapper extends AbstractMessageMapper {
 
-    private static final String OUTGOING_CONTENT_TYPE_KEY = "outgoing-content-type";
-    private static final String INCOMING_CONTENT_TYPE_KEY = "incoming-content-type";
+    // TODO: delete these 2
+    private static final String OUTGOING_CONTENT_TYPE_KEY = "outgoingContentType";
+    private static final String INCOMING_CONTENT_TYPE_KEY = "incomingContentType";
+
+    // TODO: also delete these 2 if needed
+    private static final String OUTGOING_FALLBACK_HEADERS = "outgoingFallbackHeaders";
+    private static final String INCOMING_FALLBACK_HEADERS = "incomingFallbackHeaders";
 
     /**
      * Default outgoing content type is text/plain because binary requires base64 encoded string as payload.
@@ -51,15 +63,25 @@ public final class RawMessageMapper extends AbstractMessageMapper {
      */
     private static final String DEFAULT_INCOMING_CONTENT_TYPE = ContentTypes.APPLICATION_OCTET_STREAM.toString();
 
+    // TODO: need both? can have both?
+    private static final Map<String, String> DEFAULT_OUTGOING_FALLBACK_HEADERS = Map.of(
+
+    );
+
+    private static final Map<String, String> DEFAULT_INCOMING_FALLBACK_HEADERS = Map.of(
+
+    );
+
     private String fallbackOutgoingContentType = DEFAULT_OUTGOING_CONTENT_TYPE;
     private String fallbackIncomingContentType = DEFAULT_INCOMING_CONTENT_TYPE;
 
     /**
-     * The context representing this mapper
+     * The context representing this mapper.
+     * TODO: reconsider default config
      */
     public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
             RawMessageMapper.class.getCanonicalName(),
-            Map.of()
+            JsonObject.empty()
     );
 
     @Override
@@ -70,12 +92,13 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         if (isMessageCommandOrResponse(adaptable)) {
-            final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
-                    .withInternalHeaders(adaptable.getDittoHeaders());
+            final String contentType = adaptable.getDittoHeaders()
+                    .getContentType()
+                    .orElse(fallbackOutgoingContentType);
+            final ExternalMessageBuilder builder =
+                    ExternalMessageFactory.newExternalMessageBuilder(getAllMessageHeaders(adaptable, contentType))
+                            .withInternalHeaders(adaptable.getDittoHeaders());
             adaptable.getPayload().getValue().ifPresent(payloadValue -> {
-                final String contentType = adaptable.getDittoHeaders()
-                        .getContentType()
-                        .orElse(fallbackOutgoingContentType);
                 if (isTextOrJson(contentType)) {
                     builder.withText(toOutgoingText(payloadValue));
                 } else {
@@ -94,8 +117,9 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public Map<String, String> getDefaultOptions() {
-        return Map.of();
+    public JsonObject getDefaultOptions() {
+        // TODO: replace with default
+        return JsonObject.empty();
     }
 
     @Override
@@ -134,5 +158,19 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     private static boolean isMessageCommandOrResponse(final Adaptable adaptable) {
         return adaptable.getTopicPath().getCriterion() == TopicPath.Criterion.MESSAGES;
+    }
+
+    private static Map<String, String> getAllMessageHeaders(final Adaptable adaptable,
+            @Nullable final String contentType) {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final MessagePath messagePath = adaptable.getPayload().getPath();
+        final MessageDirection direction = messagePath.getDirection().orElseThrow();
+        final ThingId thingId = ThingId.of(topicPath.getNamespace(), topicPath.getId());
+        final String subject = topicPath.getSubject().orElseThrow();
+        return MessagesModelFactory.newHeadersBuilder(direction, thingId, subject)
+                .contentType(contentType)
+                .statusCode(adaptable.getPayload().getStatus().orElse(null))
+                .featureId(messagePath.getFeatureId().orElse(null))
+                .build();
     }
 }

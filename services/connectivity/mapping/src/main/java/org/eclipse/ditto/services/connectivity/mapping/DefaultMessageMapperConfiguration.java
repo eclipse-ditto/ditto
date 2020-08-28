@@ -14,12 +14,12 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Default implementation for a message mapper configuration.
@@ -28,22 +28,23 @@ import javax.annotation.concurrent.Immutable;
 public final class DefaultMessageMapperConfiguration implements MessageMapperConfiguration {
 
     private final String id;
-    private final Map<String, String> properties;
+    private final Map<CharSequence, JsonValue> properties;
 
-    private DefaultMessageMapperConfiguration(final String id, final Map<String, String> properties) {
+    private DefaultMessageMapperConfiguration(final String id, final Map<CharSequence, JsonValue> properties) {
         this.id = id;
-        this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
+        this.properties = properties;
     }
 
     /**
      * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
      *
      * @param id the id of the mapper
-     * @param configuration the map holding configuration properties.
+     * @param configuration the map holding configuration properties. Must be immutable.
      * @return the instance.
      * @throws NullPointerException if {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration) {
+    public static DefaultMessageMapperConfiguration of(final String id,
+            final Map<CharSequence, JsonValue> configuration) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration properties");
         return new DefaultMessageMapperConfiguration(id, configuration);
@@ -55,7 +56,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
-    public Map<String, String> getProperties() {
+    public Map<CharSequence, JsonValue> getProperties() {
         return properties;
     }
 
