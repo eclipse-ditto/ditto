@@ -27,7 +27,6 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -42,6 +41,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.messages.MessageDeserializer;
 
 /**
  * Provides helper methods to map from {@link Adaptable}s to MessageCommands or MessageCommandResponses.
@@ -52,9 +52,6 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
         extends AbstractMappingStrategies<T> {
 
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
-
-    private static final String TEXT_PREFIX = "text/";
-    private static final String APPLICATION_JSON = "application/json";
 
     protected AbstractMessageMappingStrategies(final Map<String, JsonifiableMapper<T>> mappingStrategies) {
         super(mappingStrategies);
@@ -157,8 +154,7 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return isAnyText(contentType) || contentType.toLowerCase().startsWith(APPLICATION_JSON) ||
-                DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType);
+        return MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType);
     }
 
     /**
@@ -173,7 +169,7 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
     }
 
     private static boolean isAnyText(final String contentType) {
-        return contentType.toLowerCase().startsWith(TEXT_PREFIX);
+        return MessageDeserializer.shouldBeInterpretedAsText(contentType);
     }
 
 }

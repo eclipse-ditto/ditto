@@ -174,7 +174,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @param contentType the contentType value to be set.
      * @return this builder for Method Chaining.
      */
-    B contentType(CharSequence contentType);
+    B contentType(@Nullable CharSequence contentType);
 
     /**
      * Sets the ETag value.

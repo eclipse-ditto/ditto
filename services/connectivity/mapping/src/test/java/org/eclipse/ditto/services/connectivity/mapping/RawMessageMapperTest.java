@@ -17,10 +17,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
@@ -33,8 +35,11 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,7 +61,7 @@ public final class RawMessageMapperTest {
     }
 
     @Test
-    public void mapMessageWithoutPayloadWithoutContentType() {
+    public void mapFromMessageWithoutPayloadWithoutContentType() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final Message<Object> messageWithoutPayload = messageBuilder(null).build();
         final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
@@ -67,7 +72,7 @@ public final class RawMessageMapperTest {
     }
 
     @Test
-    public void mapMessageWithTextPayload() {
+    public void mapFromMessageWithTextPayload() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final Message<Object> messageWithoutPayload = messageBuilder("application/vnd.eclipse.ditto+json")
                 .payload("hello world")
@@ -80,7 +85,7 @@ public final class RawMessageMapperTest {
     }
 
     @Test
-    public void mapMessageWithBinaryPayload() {
+    public void mapFromMessageWithBinaryPayload() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final Message<Object> messageWithoutPayload = messageBuilder("application/whatever")
                 .rawPayload(ByteBuffer.wrap(new byte[]{1, 2, 3, 4}))
@@ -97,7 +102,7 @@ public final class RawMessageMapperTest {
     }
 
     @Test
-    public void mapJsonMessageWithBinaryContentType() {
+    public void mapFromJsonMessageWithBinaryContentType() {
         final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of("{\n" +
                 "  \"topic\": \"x/1/things/live/messages/subject\",\n" +
                 "  \"headers\": {\n" +
@@ -112,7 +117,7 @@ public final class RawMessageMapperTest {
     }
 
     @Test
-    public void mapTextMessageWithBinaryContentType() {
+    public void mapFromTextMessageWithBinaryContentType() {
         final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of("{\n" +
                 "  \"topic\": \"x/1/things/live/messages/subject\",\n" +
                 "  \"headers\": {\n" +
@@ -122,6 +127,129 @@ public final class RawMessageMapperTest {
                 "  \"value\": \"This is not a base64-encoded octet stream.\"" +
                 "}"));
         assertThatExceptionOfType(MessageFormatInvalidException.class).isThrownBy(() -> underTest.map(adaptable));
+    }
+
+    @Test
+    public void mapToMessageWithoutHeadersOrConfig() {
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(Map.of()).build())
+        );
+    }
+
+    @Test
+    public void mapToMessageWithoutThingId() {
+        final Map<String, String> headers = Map.of(
+                "ditto-message-subject", "hello/world"
+        );
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers).build())
+        );
+    }
+
+    @Test
+    public void mapToBinaryMessagePerDefault() {
+        final Map<String, String> headers = Map.of(
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id"
+        );
+        final ByteString payload = ByteString.copyFrom(new byte[]{1, 2, 3, 4, 5, 6});
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withBytes(payload.toByteArray())
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(SendThingMessage.class);
+        final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
+        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(ByteString.copyFrom(sendThingMessage.getMessage().getRawPayload().orElseThrow())).isEqualTo(payload);
+    }
+
+    @Test
+    public void mapToTextMessage() {
+        final Map<String, String> headers = Map.of(
+                "content-type", "text/plain",
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id"
+        );
+        final String payload = "lorem ipsum dolor sit amet";
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withText(payload)
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(SendThingMessage.class);
+        final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
+        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(payload);
+    }
+
+    @Test
+    public void mapToJsonMessage() {
+        final Map<String, String> headers = Map.of(
+                "content-type", "application/vnd.hello.world+json",
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id"
+        );
+        final String payload = "{\"lorem\":\"ipsum\"}";
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withText(payload)
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        assertThat(adaptables.get(0).getPayload().getValue()).contains(JsonObject.of(payload));
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(SendThingMessage.class);
+        final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
+        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(JsonObject.of(payload));
+    }
+
+    @Test
+    public void mapToDittoProtocolMessage() {
+        final Map<String, String> headers = Map.of(
+                "content-type", "application/vnd.eclipse.ditto+json",
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id"
+        );
+        final String payload = "{\n" +
+                "  \"topic\": \"com.acme/xdk_53/things/twin/commands/delete\",\n" +
+                "  \"headers\": {},\n" +
+                "  \"path\": \"/\",\n" +
+                "  \"status\": 204\n" +
+                "}";
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withText(payload)
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(DeleteThingResponse.class);
+    }
+
+    @Test
+    public void mapToSendFeatureMessageResponse() {
+        final Map<String, String> headers = Map.of(
+                "content-type", "application/json",
+                "status", "418",
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id",
+                "ditto-message-feature-id", "accelerometer"
+        );
+        final String payload = "{\"lorem\":\"ipsum\"}";
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withText(payload)
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(SendFeatureMessageResponse.class);
+        final SendFeatureMessageResponse<?> response = (SendFeatureMessageResponse<?>) signal;
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatusCode.IM_A_TEAPOT);
+        assertThat(response.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(response.getFeatureId()).isEqualTo("accelerometer");
+        assertThat(response.getMessage().getPayload().orElseThrow()).isEqualTo(JsonObject.of(payload));
     }
 
     private MessageBuilder<Object> messageBuilder(@Nullable final String contentType) {

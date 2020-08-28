@@ -33,8 +33,6 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 final class ImmutableMessagePath implements MessagePath {
 
     private static final JsonKey FEATURES = JsonKey.of("features");
-    private static final JsonKey INBOX = JsonKey.of("inbox");
-    private static final JsonKey OUTBOX = JsonKey.of("outbox");
 
     private final JsonPointer jsonPointer;
 
@@ -74,11 +72,7 @@ final class ImmutableMessagePath implements MessagePath {
     }
 
     private static Optional<MessageDirection> jsonKeyToDirection(final JsonKey jsonKey) {
-        return INBOX.equals(jsonKey)
-                ? Optional.of(MessageDirection.TO)
-                : OUTBOX.equals(jsonKey)
-                ? Optional.of(MessageDirection.FROM)
-                : Optional.empty();
+        return MessageDirection.fromJsonKey(jsonKey);
     }
 
     @Override

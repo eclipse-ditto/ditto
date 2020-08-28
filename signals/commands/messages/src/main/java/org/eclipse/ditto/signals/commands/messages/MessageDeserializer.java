@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
  */
 public final class MessageDeserializer {
 
-    private static final String TEXT_PLAIN = "text/plain";
+    private static final String TEXT_ANY = "text/";
     private static final String APPLICATION_JSON = "application/json";
     private static final String APPLICATION_VND = "application/vnd.";
     private static final String VND_JSON_SUFFIX = "+json";
@@ -57,15 +57,38 @@ public final class MessageDeserializer {
     }
 
     /**
+     * Check if a content type header value indicates that the message payload should be interpreted as text or JSON.
+     *
+     * @param contentTypeHeader the content type header.
+     * @return whether the message payload should be interpreted as text or JSON.
+     * @since 1.2.0
+     */
+    public static boolean shouldBeInterpretedAsTextOrJson(final String contentTypeHeader) {
+        return shouldBeInterpretedAsText(contentTypeHeader) || shouldBeInterpretedAsJson(contentTypeHeader);
+    }
+
+    /**
+     * Check if a content type header value indicates that the message payload should be interpreted as JSON.
+     *
+     * @param contentTypeHeader the content type header.
+     * @return whether the message payload should be interpreted as JSON.
+     * @since 1.2.0
+     */
+    public static boolean shouldBeInterpretedAsJson(final String contentTypeHeader) {
+        final String contentType = contentTypeHeader.toLowerCase();
+        return contentType.startsWith(APPLICATION_JSON) ||
+                (contentType.startsWith(APPLICATION_VND) && contentType.endsWith(VND_JSON_SUFFIX));
+    }
+
+    /**
      * Check if a content type header value indicates that the message payload should be interpreted as text.
      *
      * @param contentTypeHeader the content type header.
      * @return whether the message payload should be interpreted as text.
+     * @since 1.2.0
      */
     public static boolean shouldBeInterpretedAsText(final String contentTypeHeader) {
-        final String contentType = contentTypeHeader.toLowerCase();
-        return contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON) ||
-                (contentType.startsWith(APPLICATION_VND) && contentType.endsWith(VND_JSON_SUFFIX));
+        return contentTypeHeader.toLowerCase().startsWith(TEXT_ANY);
     }
 }
 

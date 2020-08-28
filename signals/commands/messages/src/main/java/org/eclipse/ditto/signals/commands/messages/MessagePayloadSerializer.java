@@ -44,7 +44,7 @@ class MessagePayloadSerializer {
         if (rawPayloadOptional.isPresent() && !payloadOptional.filter(p -> p instanceof JsonValue).isPresent()) {
             final ByteBuffer rawPayload = rawPayloadOptional.get();
             final String encodedString;
-            if (MessageDeserializer.shouldBeInterpretedAsText(message.getContentType().orElse(""))) {
+            if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(message.getContentType().orElse(""))) {
                 encodedString = new String(rawPayload.array());
             } else {
                 final ByteBuffer base64Encoded = BASE64_ENCODER.encode(rawPayload);
@@ -80,7 +80,7 @@ class MessagePayloadSerializer {
         final String contentType = messageHeaders.getContentType().orElse("");
         if (messagePayloadOptional.isPresent()) {
             final JsonValue payload = messagePayloadOptional.get();
-            if (MessageDeserializer.shouldBeInterpretedAsText(contentType)) {
+            if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
                 messageBuilder.payload(payload.isString() ? payload.asString() : payload);
             } else {
                 final String payloadStr = payload.isString()
@@ -88,7 +88,8 @@ class MessagePayloadSerializer {
                         : payload.toString();
                 final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
 
-                MessageCommandSizeValidator.getInstance().ensureValidSize(() -> payloadBytes.length, () -> messageHeaders);
+                MessageCommandSizeValidator.getInstance()
+                        .ensureValidSize(() -> payloadBytes.length, () -> messageHeaders);
                 messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
             }
         }

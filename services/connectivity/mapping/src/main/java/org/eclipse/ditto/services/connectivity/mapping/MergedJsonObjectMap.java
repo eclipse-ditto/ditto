@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
  * Merge 2 JSON objects and present them as a map.
  */
 @Immutable
-public final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
+final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
 
     private final JsonObject jsonObject;
     private final JsonObject fallbackObject;
@@ -45,10 +45,9 @@ public final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
         return new MergedJsonObjectMap(jsonObject, fallbackObject);
     }
 
-    // size is just a hint
     @Override
     public int size() {
-        return Math.max(jsonObject.getSize(), fallbackObject.getSize());
+        return entrySet().size();
     }
 
     @Override
@@ -102,20 +101,20 @@ public final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
 
     @Override
     public Set<CharSequence> keySet() {
-        return Stream.concat(jsonObject.getKeys().stream(), fallbackObject.getKeys().stream())
+        return Stream.concat(fallbackObject.getKeys().stream(), jsonObject.getKeys().stream())
                 .collect(Collectors.toSet());
     }
 
     @Override
     public Collection<JsonValue> values() {
-        return Stream.concat(jsonObject.stream(), fallbackObject.stream())
+        return Stream.concat(fallbackObject.stream(), jsonObject.stream())
                 .map(JsonField::getValue)
                 .collect(Collectors.toSet());
     }
 
     @Override
     public Set<Entry<CharSequence, JsonValue>> entrySet() {
-        return Stream.concat(jsonObject.stream(), fallbackObject.stream())
+        return Stream.concat(fallbackObject.stream(), jsonObject.stream())
                 .map(field -> new AbstractMap.SimpleEntry<CharSequence, JsonValue>(field.getKey(), field.getValue()))
                 .collect(Collectors.toSet());
     }
