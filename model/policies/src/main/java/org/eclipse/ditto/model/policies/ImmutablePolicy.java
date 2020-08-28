@@ -44,6 +44,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -219,6 +220,12 @@ final class ImmutablePolicy implements Policy {
     @Override
     public Optional<Instant> getCreated() {
         return Optional.ofNullable(created);
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
+        // TODO Add real implementation.
+        return Optional.empty();
     }
 
     @Override

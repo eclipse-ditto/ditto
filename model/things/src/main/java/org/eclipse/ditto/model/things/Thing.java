@@ -662,6 +662,15 @@ public interface Thing extends Entity<ThingRevision> {
                 JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+        /**
+         * JSON field containing the Thing's metadata.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+            JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
         private JsonFields() {
             throw new AssertionError();
         }

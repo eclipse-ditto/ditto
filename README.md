@@ -39,21 +39,33 @@ docker-compose logs -f
 Open following URL to get started: [http://localhost:8080](http://localhost:8080)<br/>
 Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-world.html)
 
-### Build and start Ditto
+### Build and start Ditto locally
 
 In order to build Ditto, you'll need
-* JDK 11 >= 11.0.5
-* Apache Maven 3.x installed
+* JDK 11 >= 11.0.5 and
+* Apache Maven 3.x installed.
 
-In order to first build Ditto and then start the built Docker images
+In order to first build Ditto and then start the built Docker images.
 
+#### 1. Build Ditto with Maven
 ```bash
-# if you have the docker daemon running with remote access enabled (e.g. in a Vagrant box or on localhost):
-mvn clean install -Pdocker-build-image -Ddocker.daemon.hostname=<ip/host of your docker daemon>
-# if you have the docker daemon running on your machine and you are running on Unix, you can also connect against the docker socket:
-mvn clean install -Pdocker-build-image -Ddocker.daemon.url=unix:///var/run/docker.sock
+mvn clean install
+```
 
-cd deployment/docker/
+#### 2. Build local Ditto Docker snapshot images
+```bash
+cd services/
+./build-images.sh
+```
+If your infrastructure requires a proxy, its host and port can be set using the `-p` option like for example:
+```bash
+./build-images.sh -p 172.17.0.1:3128
+```
+Please note that the given host and port automatically applies for HTTP and HTTPS.
+
+#### 3. Start Ditto with local snapshot images
+```bash
+cd ../deployment/docker/
 # the "dev.env" file contains the SNAPSHOT number of Ditto, copy it to ".env" so that docker compose uses it:
 cp dev.env .env
 docker-compose up -d
@@ -69,7 +81,7 @@ You have now running:
 * Ditto microservices:
    * Policies
    * Things
-   * Thing-Search
+   * Things-Search
    * Gateway
    * Connectivity
    * Concierge

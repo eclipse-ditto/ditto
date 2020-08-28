@@ -97,7 +97,8 @@ public final class ThingsJsonTest {
                 .build();
 
         final Thing thing = ImmutableThing.of(thingId, acl, thingAttributes, features, ThingLifecycle.ACTIVE,
-                TestConstants.Thing.REVISION, TestConstants.Thing.MODIFIED, TestConstants.Thing.CREATED);
+                TestConstants.Thing.REVISION, TestConstants.Thing.MODIFIED, TestConstants.Thing.CREATED,
+                TestConstants.Metadata.METADATA);
 
         assertThat(thing.toJsonString()).isEqualTo(expectedJson);
     }

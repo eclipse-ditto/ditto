@@ -23,6 +23,10 @@ import org.eclipse.ditto.signals.events.things.AttributeModified;
 @Immutable
 final class AttributeModifiedStrategy extends AbstractThingEventStrategy<AttributeModified> {
 
+    protected AttributeModifiedStrategy() {
+        super();
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AttributeModified event,
             final ThingBuilder.FromCopy thingBuilder) {
