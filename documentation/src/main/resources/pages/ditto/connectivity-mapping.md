@@ -188,7 +188,6 @@ The created thing contains the values defined in the template, configured in the
  {
    "thing": {
    "thingId": "{{ header:device_id }}",
-   "policyId": "{{ entity:policy_id }}",
    "attributes": {
      "CreatedBy": "ImplicitThingCreation"
    }
@@ -206,7 +205,6 @@ The following example connection defines a `ConnectionStatus` mapping with the I
 
 ```json
 { 
-  ...  
   "name": "exampleConnection",
   "sources": [{
       "addresses": ["<source>"],
@@ -239,7 +237,6 @@ The following example connection defines `conditions` for the ConnectionStatus m
 
 ```json
 { 
-  ...  
   "name": "exampleConnection",
   "sources": [{
       "addresses": ["<source>"],
