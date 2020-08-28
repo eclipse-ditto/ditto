@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -22,7 +20,6 @@ import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
@@ -33,8 +30,6 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerB
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -90,8 +85,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.policyEnforcerCache = policyEnforcerCache;
 
         contextual = Contextual.forActor(getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger,
-                createResponseReceiversCache());
+                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger
+        );
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
@@ -156,10 +151,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {
         return contextual.withReceivedMessage(message, getSender());
-    }
-
-    private static Cache<String, ResponseReceiver> createResponseReceiversCache() {
-        return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS));
     }
 
 }

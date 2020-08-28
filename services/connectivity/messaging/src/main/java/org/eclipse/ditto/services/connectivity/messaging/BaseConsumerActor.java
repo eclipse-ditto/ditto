@@ -110,7 +110,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
                             settle.run();
                         } else {
-                            final boolean shouldRedeliver = someFailedResponseRequiresRedelivery(failedResponses);
+                            // empty failed responses indicate that SetCount was missing
+                            final boolean shouldRedeliver = failedResponses.isEmpty() ||
+                                    someFailedResponseRequiresRedelivery(failedResponses);
                             log().debug("Rejecting [redeliver={}] due to failed responses <{}>",
                                     shouldRedeliver, failedResponses);
                             reject.reject(shouldRedeliver);

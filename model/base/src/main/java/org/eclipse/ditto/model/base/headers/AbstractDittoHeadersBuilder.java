@@ -54,7 +54,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * most of the work including header value validation.
  */
 @NotThreadSafe
-public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder, R extends DittoHeaders>
+public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder<S, R>, R extends DittoHeaders>
         implements DittoHeadersBuilder<S, R> {
 
     private static final Map<String, HeaderDefinition> BUILT_IN_DEFINITIONS;
@@ -508,7 +508,6 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public R build() {
         // do it here
-        calculateIsResponseRequired();
         putMetadataHeadersToRegularHeaders();
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
@@ -520,33 +519,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         }
     }
 
-    private void calculateIsResponseRequired() {
-        // The order is important. A timeout of zero eventually determines response-required to be false.
-        calculateIsResponseRequiredViaRequestedAcks();
-        calculateIsResponseRequiredViaTimeout();
-    }
-
-    private void calculateIsResponseRequiredViaRequestedAcks() {
-        @Nullable final String ackRequests = headers.get(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
-        if (null != ackRequests && !headers.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
-            // only if "response-required" was not already set, assume the default
-            final boolean containsAckRequests = !JsonArray.of(ackRequests).isEmpty();
-            responseRequired(containsAckRequests);
-        }
-    }
-
-    private void calculateIsResponseRequiredViaTimeout() {
-        @Nullable final String timeoutValue = headers.get(DittoHeaderDefinition.TIMEOUT.getKey());
-        if (null != timeoutValue) {
-            final DittoDuration dittoDuration = DittoDuration.parseDuration(timeoutValue);
-
-            // sets response-required explicitly to false, which is desired in that case
-            if (dittoDuration.isZero()) {
-                responseRequired(false);
-            }
-        }
-    }
-
+    @Override
     public String toString() {
         putMetadataHeadersToRegularHeaders();
         return headers.toString();

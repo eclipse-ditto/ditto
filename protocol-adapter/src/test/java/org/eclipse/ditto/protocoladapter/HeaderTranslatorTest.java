@@ -194,6 +194,7 @@ public final class HeaderTranslatorTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(correlationId)
                 .acknowledgementRequests(allAcknowledgementRequests)
+                .responseRequired(true)
                 .build();
         final JsonArray allAcknowledgementRequestsJsonArray = allAcknowledgementRequests.stream()
                 .map(AcknowledgementRequest::toString)

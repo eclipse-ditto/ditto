@@ -52,18 +52,15 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import akka.actor.ActorRef;
-
 /**
  * Enforces live commands (including message commands) and live events.
  */
-public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
+public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> {
 
     private final EnforcerRetriever enforcerRetriever;
-    private final Cache<String, ResponseReceiver> responseReceivers;
     private final LiveSignalPub liveSignalPub;
 
-    private LiveSignalEnforcement(final Contextual<Signal> context,
+    private LiveSignalEnforcement(final Contextual<Signal<?>> context,
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
@@ -75,14 +72,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         requireNonNull(aclEnforcerCache);
         enforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
-        responseReceivers = context.getResponseReceivers();
         this.liveSignalPub = liveSignalPub;
     }
 
     /**
      * {@link EnforcementProvider} for {@link LiveSignalEnforcement}.
      */
-    public static final class Provider implements EnforcementProvider<Signal> {
+    public static final class Provider implements EnforcementProvider<Signal<?>> {
 
         private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
@@ -109,17 +105,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
 
         @Override
-        public Class<Signal> getCommandClass() {
-            return Signal.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<Signal<?>> getCommandClass() {
+            return (Class) Signal.class;
         }
 
         @Override
-        public boolean isApplicable(final Signal signal) {
+        public boolean isApplicable(final Signal<?> signal) {
             return LiveSignalEnforcement.isLiveSignal(signal);
         }
 
         @Override
-        public AbstractEnforcement<Signal> createEnforcement(final Contextual<Signal> context) {
+        public AbstractEnforcement<Signal<?>> createEnforcement(final Contextual<Signal<?>> context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache,
                     liveSignalPub);
         }
@@ -128,13 +125,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     @Override
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
-
-        final Signal liveSignal = signal();
-        final ActorRef sender = sender();
+        final Signal<?> liveSignal = signal();
         LogUtil.enhanceLogWithCorrelationIdOrRandom(liveSignal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
-                return doEnforce(liveSignal, sender, enforcerEntry)
+                return doEnforce(liveSignal, enforcerEntry)
                         .exceptionally(this::handleExceptionally);
             } catch (final RuntimeException e) {
                 return CompletableFuture.completedFuture(handleExceptionally(e));
@@ -142,28 +137,24 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         });
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal liveSignal, final ActorRef sender,
+    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal<?> liveSignal,
             final Entry<Enforcer> enforcerEntry) {
 
         final Optional<String> correlationIdOpt = liveSignal.getDittoHeaders().getCorrelationId();
         if (enforcerEntry.exists() && correlationIdOpt.isPresent()) {
             final Enforcer enforcer = enforcerEntry.getValueOrThrow();
-            final String correlationId = correlationIdOpt.get();
 
             if (liveSignal instanceof SendClaimMessage) {
-                if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                    responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
-                }
                 // claim messages require no enforcement, publish them right away:
                 return CompletableFuture.completedFuture(
-                        publishMessageCommand((SendClaimMessage) liveSignal, enforcer));
+                        publishMessageCommand((SendClaimMessage<?>) liveSignal, enforcer));
 
             } else if (liveSignal instanceof CommandResponse) {
-                return enforceLiveCommandResponse(liveSignal, correlationId);
+                return enforceLiveCommandResponse(liveSignal);
             } else {
                 final Optional<StreamingType> streamingType = StreamingType.fromSignal(liveSignal);
                 if (streamingType.isPresent()) {
-                    return enforceLiveSignal(streamingType.get(), liveSignal, sender, enforcer, correlationId);
+                    return enforceLiveSignal(streamingType.get(), liveSignal, enforcer);
                 } else {
                     log().error("Unsupported Signal in LiveSignalEnforcement: <{}>", liveSignal);
                     throw GatewayInternalErrorException.newBuilder()
@@ -183,35 +174,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal liveSignal,
-            final String correlationId) {
-        // no enforcement for responses required - the original sender will get the answer:
-        return responseReceivers.get(correlationId)
-                .thenApply(responseReceiver -> {
-                    if (responseReceiver.isPresent()) {
-                        responseReceivers.invalidate(correlationId);
-                        log().debug("Scheduling CommandResponse <{}> to original sender: <{}>", liveSignal,
-                                responseReceiver.get());
-                        final ResponseReceiver receiver = responseReceiver.get();
-                        return withMessageToReceiver(receiver.enhance(liveSignal), receiver.ref());
-                    } else {
-                        log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
-                                liveSignal.getType());
-                        return withoutReceiver(liveSignal);
-                    }
-                });
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal<?> liveSignal) {
+        log().warning("Got live response, should never happen: <{}>", liveSignal);
+        return CompletableFuture.completedFuture(withMessageToReceiver(null, null));
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
-            final Signal liveSignal, final ActorRef sender, final Enforcer enforcer, final String correlationId) {
+            final Signal<?> liveSignal, final Enforcer enforcer) {
 
         switch (streamingType) {
             case MESSAGES:
                 final Contextual<WithDittoHeaders> contextual =
-                        enforceMessageCommand((MessageCommand) liveSignal, enforcer);
-                if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                    responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
-                }
+                        enforceMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer);
                 return CompletableFuture.completedFuture(contextual);
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer);
@@ -230,14 +204,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                     final Command<?> withReadSubjects =
                             addEffectedReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
                     log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
-                    if (liveSignal.getDittoHeaders().isResponseRequired()) {
-                        responseReceivers.put(correlationId, ResponseReceiver.of(sender, liveSignal.getDittoHeaders()));
-                    }
                     return CompletableFuture.completedFuture(
                             publishLiveSignal(withReadSubjects, liveSignalPub.command()));
                 } else {
                     log(liveSignal).info("Live Command was NOT authorized: <{}>", liveSignal);
-                    throw ThingCommandEnforcement.errorForThingCommand((ThingCommand) liveSignal);
+                    throw ThingCommandEnforcement.errorForThingCommand((ThingCommand<?>) liveSignal);
                 }
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
@@ -248,7 +219,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
             final Enforcer enforcer) {
         // enforce Live Events
         final boolean authorized = enforcer.hasUnrestrictedPermissions(
@@ -259,11 +230,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
         if (authorized) {
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
-            final Event withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
+            final Event<?> withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
             return CompletableFuture.completedFuture(publishLiveSignal(withReadSubjects, liveSignalPub.event()));
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
-            throw EventSendNotAllowedException.newBuilder(((ThingEvent) liveSignal).getThingEntityId())
+            throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getThingEntityId())
                     .dittoHeaders(liveSignal.getDittoHeaders())
                     .build();
         }
@@ -275,11 +246,12 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
      * @param signal the signal to test.
      * @return whether the signal belongs to the live channel.
      */
-    static boolean isLiveSignal(final Signal signal) {
+    static boolean isLiveSignal(final Signal<?> signal) {
         return StreamingType.isLiveSignal(signal);
     }
 
-    private Contextual<WithDittoHeaders> enforceMessageCommand(final MessageCommand command, final Enforcer enforcer) {
+    private Contextual<WithDittoHeaders> enforceMessageCommand(final MessageCommand<?, ?> command,
+            final Enforcer enforcer) {
         if (isAuthorized(command, enforcer)) {
             return publishMessageCommand(command, enforcer);
         } else {
@@ -287,7 +259,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
     }
 
-    private Contextual<WithDittoHeaders> publishMessageCommand(final MessageCommand command, final Enforcer enforcer) {
+    private Contextual<WithDittoHeaders> publishMessageCommand(final MessageCommand<?, ?> command,
+            final Enforcer enforcer) {
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
         final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
@@ -300,7 +273,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         return publishLiveSignal(commandWithReadSubjects, liveSignalPub.message());
     }
 
-    private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand command) {
+    private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
         final MessageSendNotAllowedException error =
                 MessageSendNotAllowedException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
@@ -314,7 +287,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Signal> Contextual<WithDittoHeaders> publishLiveSignal(final T signal,
+    private <T extends Signal<?>> Contextual<WithDittoHeaders> publishLiveSignal(final T signal,
             final DistributedPub<T> pub) {
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub");
@@ -322,14 +295,14 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         return withMessageToReceiver(signal, pub.getPublisher(), obj -> pub.wrapForPublication((T) obj));
     }
 
-    private boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {
+    private boolean isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {
         return enforcer.hasUnrestrictedPermissions(
                 extractMessageResourceKey(command),
                 command.getDittoHeaders().getAuthorizationContext(),
                 WRITE);
     }
 
-    private ResourceKey extractMessageResourceKey(final MessageCommand command) {
+    private ResourceKey extractMessageResourceKey(final MessageCommand<?, ?> command) {
         try {
             final JsonPointer resourcePath = command.getResourcePath();
             return PoliciesResourceType.messageResource(resourcePath);

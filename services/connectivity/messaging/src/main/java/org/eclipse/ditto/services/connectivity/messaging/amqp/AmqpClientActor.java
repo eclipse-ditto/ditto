@@ -65,7 +65,6 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
@@ -164,11 +163,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .cause(e)
                     .build();
         }
-    }
-
-    @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return SupervisorStrategy.stoppingStrategy();
     }
 
     @Override
@@ -318,6 +312,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected boolean isEventUpToDate(final Object event, final BaseClientState state,
             @Nullable final ActorRef sender) {
+        if (getSelf().equals(sender)) {
+            // events from self are always relevant
+            return true;
+        }
         switch (state) {
             case CONNECTED:
                 // while connected, events from publisher or consumer child actors are relevant

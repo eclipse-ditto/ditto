@@ -25,6 +25,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 @Immutable
 final class JsonObjectValueValidator extends AbstractHeaderValueValidator {
 
+    private static final JsonObjectValueValidator INSTANCE = new JsonObjectValueValidator();
+
     private JsonObjectValueValidator() {
         super(JsonObject.class::equals);
     }
@@ -35,7 +37,7 @@ final class JsonObjectValueValidator extends AbstractHeaderValueValidator {
      * @return the instance.
      */
     static JsonObjectValueValidator getInstance() {
-        return new JsonObjectValueValidator();
+        return INSTANCE;
     }
 
     @Override

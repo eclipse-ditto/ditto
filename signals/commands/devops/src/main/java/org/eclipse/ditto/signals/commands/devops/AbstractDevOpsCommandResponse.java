@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResponse> extends AbstractCommandResponse<T>
+abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResponse<T>> extends AbstractCommandResponse<T>
         implements DevOpsCommandResponse<T> {
 
     @Nullable private final String serviceName;

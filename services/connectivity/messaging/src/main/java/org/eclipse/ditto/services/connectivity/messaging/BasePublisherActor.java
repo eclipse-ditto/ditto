@@ -47,7 +47,6 @@ import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -192,8 +191,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .thenAccept(ackList -> {
                     final ActorRef sender = multiMapped.getSender().orElse(null);
                     if (!ackList.isEmpty() && sender != null) {
-                        final Acknowledgements aggregatedAcks = Acknowledgements.of(appendConnectionId(ackList),
-                                multiMapped.getSource().getDittoHeaders());
+                        final Acknowledgements aggregatedAcks = appendConnectionId(
+                                Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
                         logIfDebug(multiMapped, l ->
                                 l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks));
                         sender.tell(aggregatedAcks, getSelf());
@@ -211,12 +210,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
-    private List<Acknowledgement> appendConnectionId(final Collection<Acknowledgement> acknowledgements) {
-        return acknowledgements.stream()
-                .map(ack -> ack.setDittoHeaders(ack.getDittoHeaders().toBuilder()
-                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId)
-                        .build()))
-                .collect(Collectors.toList());
+    private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
+        return MessageMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connectionId);
     }
 
     private void logIfDebug(final OutboundSignal.MultiMapped multiMapped, final Consumer<LoggingAdapter> whatToLog) {
@@ -711,7 +706,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
-     * Fully customizable coverter from publisher errors to acknowledgements.
+     * Fully customizable converter from publisher errors to acknowledgements.
      */
     protected static class ErrorConverter {
 

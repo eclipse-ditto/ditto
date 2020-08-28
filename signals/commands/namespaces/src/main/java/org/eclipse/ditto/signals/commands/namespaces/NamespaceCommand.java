@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface NamespaceCommand<T extends NamespaceCommand> extends Command<T>, WithNamespace {
+public interface NamespaceCommand<T extends NamespaceCommand<T>> extends Command<T>, WithNamespace {
 
     /**
      * This class contains definitions for all specific fields of a {@code NamespaceCommand}'s JSON representation.

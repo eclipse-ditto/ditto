@@ -51,7 +51,6 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
@@ -76,6 +75,9 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteDirectives;
 import akka.japi.pf.PFBuilder;
+import akka.pattern.Patterns;
+import akka.stream.KillSwitch;
+import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
@@ -101,6 +103,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private static final Counter THINGS_SSE_COUNTER = getCounterFor(PATH_THINGS);
     private static final Counter SEARCH_SSE_COUNTER = getCounterFor(PATH_SEARCH);
+
+    /**
+     * Timeout asking the local streaming actor.
+     */
+    private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
@@ -248,23 +255,20 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                     final Source<SessionedJsonifiable, ActorRef> publisherSource =
                             Source.actorPublisher(EventAndResponsePublisher.props(10));
 
-                    return publisherSource.mapMaterializedValue(
-                            publisherActor -> {
-                                final String requestCorrelationId = dittoHeaders.getCorrelationId()
+                    return publisherSource.viaMat(KillSwitches.single(), Keep.both())
+                            .mapMaterializedValue(pair -> {
+                                final ActorRef publisherActor = pair.first();
+                                final KillSwitch killSwitch = pair.second();
+                                final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                         .orElseThrow(() -> new IllegalStateException(
                                                 "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
-
-                                final CharSequence connectionCorrelationId = StreamingSessionIdentifier.of(
-                                        requestCorrelationId, UUID.randomUUID().toString());
 
                                 final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
                                         dittoHeaders);
-                                streamingActor.tell(
-                                        new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE,
-                                                jsonSchemaVersion, null),
-                                        null);
+                                final Connect connect = new Connect(publisherActor, connectionCorrelationId,
+                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null);
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                 dittoHeaders.getAuthorizationContext())
@@ -272,7 +276,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                 .withFilter(filterString)
                                                 .withExtraFields(extraFields)
                                                 .build();
-                                streamingActor.tell(startStreaming, null);
+                                Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
+                                        .thenApply(ActorRef.class::cast)
+                                        .thenAccept(streamingSessionActor ->
+                                                streamingSessionActor.tell(startStreaming, ActorRef.noSender()))
+                                        .exceptionally(e -> {
+                                            killSwitch.abort(e);
+                                            return null;
+                                        });
                                 return NotUsed.getInstance();
                             })
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->

@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand> extends ThingSearchCommand<T> {
+public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand<T>> extends ThingSearchCommand<T> {
 
 
     /**

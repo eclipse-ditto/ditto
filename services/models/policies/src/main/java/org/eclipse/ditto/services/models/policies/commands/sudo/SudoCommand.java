@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommand<T extends SudoCommand> extends Command<T> {
+public interface SudoCommand<T extends SudoCommand<T>> extends Command<T> {
 
     /**
      * Type Prefix of Sudo commands.

@@ -33,6 +33,8 @@ import org.eclipse.ditto.model.base.headers.WithManifest;
 @Immutable
 final class ManifestProvider implements Function<Object, String> {
 
+    private static final ManifestProvider INSTANCE = new ManifestProvider();
+
     private ManifestProvider() {
         super();
     }
@@ -43,7 +45,7 @@ final class ManifestProvider implements Function<Object, String> {
      * @return the instance.
      */
     public static ManifestProvider getInstance() {
-        return new ManifestProvider();
+        return INSTANCE;
     }
 
     @Override

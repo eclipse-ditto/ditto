@@ -79,7 +79,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
@@ -332,37 +331,6 @@ public final class LiveSignalEnforcementTest {
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat((CharSequence) ((MessageCommand) publish.msg()).getEntityId())
                     .isEqualTo(msgCommand.getEntityId());
-        }};
-    }
-
-    @Test
-    public void acceptMessageCommandResponseByAcl() {
-        final JsonObject thingWithAcl = newThing()
-                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
-                .build()
-                .toJson(V_1, FieldType.all());
-        final SudoRetrieveThingResponse response =
-                SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
-
-        new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(THING_SUDO, response);
-
-            final TestProbe responseProbe = TestProbe.apply(system);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
-            final MessageCommand msgCommand = thingMessageCommand();
-            mockEntitiesActorInstance.setReply(msgCommand);
-            underTest.tell(msgCommand, responseProbe.ref());
-            final DistributedPubSubMediator.Publish publish =
-                    fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
-            assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
-
-            final MessageCommandResponse messageCommandResponse =
-                    thingMessageCommandResponse((MessageCommand) publish.msg());
-
-            underTest.tell(messageCommandResponse, responseProbe.ref());
-            responseProbe.expectMsg(messageCommandResponse);
-            assertThat(responseProbe.lastSender()).isEqualTo(responseProbe.ref());
         }};
     }
 

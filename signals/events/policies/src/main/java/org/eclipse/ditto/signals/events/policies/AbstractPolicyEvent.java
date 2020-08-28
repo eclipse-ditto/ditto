@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> implements PolicyEvent<T> {
+public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent<T>> implements PolicyEvent<T> {
 
     private final String type;
     private final PolicyId policyId;

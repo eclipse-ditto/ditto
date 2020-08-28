@@ -284,24 +284,6 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
-    public void isResponseRequiredReturnsFalseIfRequiredAckLabelsAreEmpty() {
-        final DittoHeaders underTest = DittoHeaders.newBuilder()
-                .acknowledgementRequests(Collections.emptyList())
-                .build();
-
-        assertThat(underTest.isResponseRequired()).isFalse();
-    }
-
-    @Test
-    public void isResponseRequiredReturnsTrueIfRequiredAckLabelsAreNonEmpty() {
-        final DittoHeaders underTest = DittoHeaders.newBuilder()
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
-                .build();
-
-        assertThat(underTest.isResponseRequired()).isTrue();
-    }
-
-    @Test
     public void isDryRunIsFalseByDefault() {
         final DittoHeaders underTest = DittoHeaders.empty();
 

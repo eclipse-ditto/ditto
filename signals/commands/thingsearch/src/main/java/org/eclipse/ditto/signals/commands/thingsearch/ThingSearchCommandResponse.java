@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse> extends CommandResponse<T>,
+public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse<T>> extends CommandResponse<T>,
         WithIdButActuallyNot {
 
     /**
