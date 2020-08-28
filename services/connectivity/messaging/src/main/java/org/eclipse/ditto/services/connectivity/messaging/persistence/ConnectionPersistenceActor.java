@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -87,10 +88,9 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -112,7 +112,6 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscri
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -120,6 +119,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
+import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.routing.Broadcast;
@@ -462,25 +462,24 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected void matchAnyAfterInitialization(final Object message) {
-        if (message instanceof Acknowledgement || message instanceof Acknowledgements) {
-            handleAcknowledgement((WithDittoHeaders<?>) message);
-        } else if (message instanceof ThingSearchCommand) {
-            forwardThingSearchCommandToClientActors((ThingSearchCommand<?>) message);
-        } else if (message instanceof Signal) {
-            handleSignal((Signal<?>) message);
-        } else if (message == CheckLoggingActive.INSTANCE) {
-            checkLoggingEnabled();
-        } else {
-            log.warning("Unknown message: {}", message);
-        }
+    protected Receive matchAnyAfterInitialization() {
+        return ReceiveBuilder.create()
+                // command response and search commands: can only be incoming
+                .match(CommandResponse.class, this::handleResponseOrAcknowledgement)
+                .match(ThingSearchCommand.class, this::forwardThingSearchCommandToClientActors)
+                // other signals: can only be outgoing; the incoming path does not go through here
+                .match(Signal.class, this::handleSignal)
+
+                .matchEquals(CheckLoggingActive.INSTANCE, this::checkLoggingEnabled)
+                .matchAny(message -> log.warning("Unknown message: {}", message))
+                .build();
     }
 
-    private void handleAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
+    private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
         final ActorContext context = getContext();
         final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
         final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)
-                .info("Received Acknowledgement but no AcknowledgementForwarderActor was present: <{}>",
+                .info("Received response but no AcknowledgementForwarderActor was present: <{}>",
                         acknowledgement);
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
@@ -513,8 +512,10 @@ public final class ConnectionPersistenceActor
         }
 
         final Signal<?> signalToForward;
-        if (signal instanceof ThingEvent) {
-            final ThingEvent<?> thingEvent = (ThingEvent<?>) signal;
+        if (hasSource() && signal instanceof WithThingId) {
+            // no point starting the acknowledgement forwarder if there is no source.
+            // issued acknowledgements from targets go to the sender directly with internal headers intact.
+            final WithThingId thingEvent = (WithThingId) signal;
             signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
                     thingEvent.getThingEntityId(),
                     signal,
@@ -526,7 +527,8 @@ public final class ConnectionPersistenceActor
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signalToForward.getType(),
                 subscribedAndAuthorizedTargets);
 
-        final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
+        final OutboundSignal outbound =
+                OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
         final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
     }
@@ -607,7 +609,7 @@ public final class ConnectionPersistenceActor
         return Integer.toHexString(getClientCount()).length();
     }
 
-    private void checkLoggingEnabled() {
+    private void checkLoggingEnabled(final CheckLoggingActive message) {
         final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
         broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
@@ -959,6 +961,10 @@ public final class ConnectionPersistenceActor
         final StagedCommand stagedCommand = StagedCommand.of(connect, StagedCommand.dummyEvent(), connect,
                 Collections.singletonList(UPDATE_SUBSCRIPTIONS));
         openConnection(stagedCommand, false);
+    }
+
+    private boolean hasSource() {
+        return entity != null && !entity.getSources().isEmpty();
     }
 
     private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {

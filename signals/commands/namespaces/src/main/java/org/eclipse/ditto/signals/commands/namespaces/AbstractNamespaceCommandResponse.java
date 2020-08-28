@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * Common base implementation of {@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse}.
  */
 @Immutable
-abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceCommandResponse>
+abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceCommandResponse<T>>
         extends AbstractCommandResponse<T> implements NamespaceCommandResponse<T> {
 
     /**

@@ -64,7 +64,26 @@ public final class ThingModifyCommandAckRequestSetterTest {
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final CreateThing expected = command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
+                .responseRequired(true)
                 .build());
+        final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
+
+        assertThat(underTest.apply(command)).isEqualTo(expected);
+    }
+
+    @Test
+    public void filterOutOtherBuiltInDittoAcknowledgementLabels() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
+                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .randomCorrelationId()
+                .build();
+        final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
+        final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
+                .responseRequired(true)
+                .build();
+        final CreateThing expected = CreateThing.of(Thing.newBuilder().build(), null, expectedHeaders);
         final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(expected);
@@ -77,6 +96,7 @@ public final class ThingModifyCommandAckRequestSetterTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .acknowledgementRequest(ackRequest1, ackRequest2)
                 .randomCorrelationId()
+                .responseRequired(true)
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final ThingModifyCommandAckRequestSetter underTest = ThingModifyCommandAckRequestSetter.getInstance();

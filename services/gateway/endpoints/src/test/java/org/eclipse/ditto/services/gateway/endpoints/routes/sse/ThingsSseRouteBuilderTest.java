@@ -276,6 +276,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
             });
 
             final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
 
             final ActorRef publisherActor = publisherActorReference.get();
             publisherActor.tell(receivedConnect, ActorRef.noSender());

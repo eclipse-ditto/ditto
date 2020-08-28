@@ -22,7 +22,6 @@ import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Adapter for mapping a {@link ErrorResponse} to and from an {@link Adaptable}.
@@ -73,7 +72,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
                 .getValue()
                 .map(JsonValue::asObject)
                 .map(jsonObject -> parseWithErrorRegistry(jsonObject, dittoHeaders, errorRegistry))
-                .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
+                .orElseThrow(() -> new JsonMissingFieldException(CommandResponse.JsonFields.PAYLOAD));
 
         return buildErrorResponse(topicPath, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }

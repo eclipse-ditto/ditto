@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommandResponse<T extends SudoCommandResponse> extends CommandResponse<T>, WithEntity<T> {
+public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends CommandResponse<T>, WithEntity<T> {
 
     /**
      * Type Prefix of Sudo commands.

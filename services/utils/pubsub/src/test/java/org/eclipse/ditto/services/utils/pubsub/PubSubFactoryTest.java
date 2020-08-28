@@ -145,7 +145,8 @@ public final class PubSubFactoryTest {
             ).join();
 
             // Wait until distributed data is ready
-            TimeUnit.SECONDS.sleep(15);
+            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofSeconds(5));
+            TimeUnit.MILLISECONDS.sleep(sleepAmount.toMillis());
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -241,9 +242,12 @@ public final class PubSubFactoryTest {
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
-            Thread.sleep(500L); // give local subscriber a chance to receive most updated subscriptions
+            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofSeconds(2));
+            // give local subscriber a chance to receive most updated subscriptions
+            TimeUnit.MILLISECONDS.sleep(sleepAmount.toMillis());
+
             pub.publish("hello", publisher.ref());
-            subscriber.expectMsg("hello");
+            subscriber.expectMsg(dilated(Duration.create(5, TimeUnit.SECONDS)), "hello");
         }};
     }
 

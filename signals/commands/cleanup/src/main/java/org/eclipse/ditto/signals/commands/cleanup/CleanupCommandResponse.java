@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface CleanupCommandResponse<T extends CleanupCommandResponse> extends CommandResponse<T> {
+public interface CleanupCommandResponse<T extends CleanupCommandResponse<T>> extends CommandResponse<T> {
 
     /**
      * Type Prefix of Cleanup command responses.

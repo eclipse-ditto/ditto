@@ -21,7 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ErrorResponse<T extends ErrorResponse> extends CommandResponse<T> {
+public interface ErrorResponse<T extends ErrorResponse<T>> extends CommandResponse<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

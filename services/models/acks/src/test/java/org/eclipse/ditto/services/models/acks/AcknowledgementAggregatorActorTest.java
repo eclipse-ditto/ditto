@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
@@ -22,11 +23,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.junit.After;
 import org.junit.Before;
@@ -45,13 +48,11 @@ import akka.testkit.javadsl.TestKit;
 public final class AcknowledgementAggregatorActorTest {
 
     private ActorSystem actorSystem;
-    private AcknowledgementConfig config;
     private HeaderTranslator headerTranslator;
 
     @Before
     public void init() {
         actorSystem = ActorSystem.create();
-        config = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
         headerTranslator = HeaderTranslator.of();
     }
 
@@ -60,6 +61,96 @@ public final class AcknowledgementAggregatorActorTest {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
         }
+    }
+
+    @Test
+    public void returnSingleResponseForTwin() {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            final String correlationId = "singleResponseTwin";
+            final ThingId thingId = ThingId.of("thing:id");
+            final AcknowledgementLabel label1 = AcknowledgementLabel.of("twin-persisted");
+            final DeleteThing command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                    .correlationId(correlationId)
+                    .acknowledgementRequest(AcknowledgementRequest.of(label1))
+                    .build());
+            final ActorRef underTest = childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+            // WHEN
+            final DeleteThingResponse response = DeleteThingResponse.of(thingId, command.getDittoHeaders());
+            underTest.tell(response, ActorRef.noSender());
+
+            // THEN
+            expectMsg(response);
+        }};
+    }
+
+    @Test
+    public void returnSingleResponseForLive() {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            final String correlationId = "singleResponseLive";
+            final ThingId thingId = ThingId.of("thing:id");
+            final AcknowledgementLabel label1 = AcknowledgementLabel.of("live-response");
+            final DeleteThing command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                    .correlationId(correlationId)
+                    .acknowledgementRequest(AcknowledgementRequest.of(label1))
+                    .channel("live")
+                    .build());
+            final ActorRef underTest = childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+            // WHEN
+            final DeleteThingResponse response = DeleteThingResponse.of(thingId, command.getDittoHeaders());
+            underTest.tell(response, ActorRef.noSender());
+
+            // THEN
+            expectMsg(response);
+        }};
+    }
+
+    @Test
+    public void returnErrorResponseForTwin() {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            final String correlationId = "errorResponseTwin";
+            final ThingId thingId = ThingId.of("thing:id");
+            final AcknowledgementLabel label1 = AcknowledgementLabel.of("twin-persisted");
+            final DeleteThing command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                    .correlationId(correlationId)
+                    .acknowledgementRequest(AcknowledgementRequest.of(label1))
+                    .timeout(Duration.ofMillis(1L))
+                    .build());
+
+            // WHEN
+            childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+            // THEN
+            assertThat(expectMsgClass(ThingErrorResponse.class).getDittoRuntimeException())
+                    .isInstanceOf(GatewayCommandTimeoutException.class);
+        }};
+    }
+
+    @Test
+    public void returnErrorResponseForLive() {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            final String correlationId = "errorResponseLive";
+            final ThingId thingId = ThingId.of("thing:id");
+            final AcknowledgementLabel label1 = AcknowledgementLabel.of("live-response");
+            final DeleteThing command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                    .correlationId(correlationId)
+                    .acknowledgementRequest(AcknowledgementRequest.of(label1))
+                    .channel("live")
+                    .timeout(Duration.ofMillis(1L))
+                    .build());
+
+            // WHEN
+            childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+            // THEN
+            assertThat(expectMsgClass(ThingErrorResponse.class).getDittoRuntimeException())
+                    .isInstanceOf(GatewayCommandTimeoutException.class);
+        }};
     }
 
     @Test
@@ -133,7 +224,8 @@ public final class AcknowledgementAggregatorActorTest {
     }
 
     private Props getAcknowledgementAggregatorProps(final ThingModifyCommand<?> command, final TestKit testKit) {
-        return AcknowledgementAggregatorActor.props(command, config, headerTranslator, tellThis(testKit));
+        return AcknowledgementAggregatorActor.props(command, DefaultAcknowledgementConfig.of(ConfigFactory.empty()),
+                headerTranslator, tellThis(testKit));
     }
 
     private static Consumer<Object> tellThis(final TestKit testKit) {

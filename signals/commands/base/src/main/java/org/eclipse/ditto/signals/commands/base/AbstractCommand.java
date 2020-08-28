@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  *
  * @param <T> the type of the implementing class.
  */
-public abstract class AbstractCommand<T extends AbstractCommand> implements Command<T> {
+public abstract class AbstractCommand<T extends AbstractCommand<T>> implements Command<T> {
 
     private final String type;
     private final DittoHeaders dittoHeaders;

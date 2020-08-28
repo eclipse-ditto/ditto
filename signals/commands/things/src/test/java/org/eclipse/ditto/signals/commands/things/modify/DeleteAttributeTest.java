@@ -85,7 +85,8 @@ public final class DeleteAttributeTest {
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceWithInvalidArguments() {
-        DeleteAttribute.of(TestConstants.Thing.THING_ID, TestConstants.Pointer.INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteAttribute.of(TestConstants.Thing.THING_ID, TestConstants.Pointer.INVALID_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = AttributePointerInvalidException.class)

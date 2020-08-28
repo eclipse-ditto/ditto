@@ -159,8 +159,7 @@ final class ThingUpdater extends AbstractActor {
         if (log.isDebugEnabled()) {
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
                             "policy-revision <{}>: <{}>.",
-                    new Object[]{thingId, thingRevision, policyId, policyRevision,
-                            policyReferenceTag.asIdentifierString()});
+                    thingId, thingRevision, policyId, policyRevision, policyReferenceTag.asIdentifierString());
         }
 
         final PolicyTag policyTag = policyReferenceTag.getPolicyTag();

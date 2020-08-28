@@ -44,7 +44,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = SendFeatureMessage.TYPE_PREFIX, name = SendFeatureMessage.NAME)
-public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage>
+public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage<T>>
         implements WithFeatureId {
 
     /**

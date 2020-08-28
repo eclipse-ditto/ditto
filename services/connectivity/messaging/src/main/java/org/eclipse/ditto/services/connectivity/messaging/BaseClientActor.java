@@ -38,12 +38,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -78,8 +76,6 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -104,9 +100,12 @@ import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.FSM;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
@@ -142,6 +141,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ActorRef messageMappingProcessorActor;
     private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
+    private final SupervisorStrategy supervisorStrategy;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -185,9 +185,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         messageMappingProcessorActor = startMessageMappingProcessorActor(connection);
         subscriptionManager = startSubscriptionManager(this.proxyActor);
+        supervisorStrategy = createSupervisorStrategy(getSelf());
 
         // Send init message to allow for unsafe initialization of subclasses.
         getSelf().tell(Init.INSTANCE, getSelf());
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return supervisorStrategy;
     }
 
     @Override
@@ -339,45 +345,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CheckConnectionLogsActive.class, BaseClientData.class,
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
-                .event(Acknowledgement.class, BaseClientData.class, this::handleAcknowledgement)
-                .event(Acknowledgements.class, BaseClientData.class, this::handleAcknowledgements)
                 .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
-    }
-
-    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgement(final Acknowledgement acknowledgement,
-            final BaseClientData baseClientData) {
-
-        log.debug("Forwarding Acknowledgement to parent ConnectionPersistenceActor: {}", acknowledgement);
-        final Acknowledgement ack = appendConnectionIdToAcknowledgement(acknowledgement);
-        connectionActor.forward(ack, getContext());
-        return stay();
-    }
-
-    private FSM.State<BaseClientState, BaseClientData> handleAcknowledgements(final Acknowledgements acknowledgements,
-            final BaseClientData baseClientData) {
-        final List<Acknowledgement> acksList = acknowledgements.stream()
-                .map(this::appendConnectionIdToAcknowledgement)
-                .collect(Collectors.toList());
-        // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
-        final Acknowledgements acks =
-                Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
-                        acknowledgements.getDittoHeaders());
-        log.info("Forwarding Acknowledgements to parent ConnectionPersistenceActor: {}", acks);
-        connectionActor.forward(acks, getContext());
-        return stay();
-    }
-
-    /**
-     * Appends the ConnectionId to the processed acknowledgements payload.
-     *
-     * @return the Acknowledgement with appended ConnectionId.
-     */
-    protected final Acknowledgement appendConnectionIdToAcknowledgement(final Acknowledgement ack) {
-        final DittoHeaders newHeaders = ack.getDittoHeaders()
-                .toBuilder()
-                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId().toString())
-                .build();
-        return ack.setDittoHeaders(newHeaders);
     }
 
     /**
@@ -1312,6 +1280,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         } else {
             return describeEventualCause(cause);
         }
+    }
+
+    private SupervisorStrategy createSupervisorStrategy(final ActorRef self) {
+        return new OneForOneStrategy(
+                DeciderBuilder.matchAny(error -> {
+                    self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
+                    return SupervisorStrategy.stop();
+                }).build()
+        );
     }
 
     /**

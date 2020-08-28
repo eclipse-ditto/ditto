@@ -17,9 +17,7 @@ import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
 import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -74,7 +72,6 @@ import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
@@ -118,7 +115,7 @@ import akka.pattern.Patterns;
 /**
  * Authorize {@code ThingCommand}.
  */
-public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
+public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand<?>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingCommandEnforcement.class);
 
@@ -144,7 +141,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
-    private ThingCommandEnforcement(final Contextual<ThingCommand> data,
+    private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
@@ -171,7 +168,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     @Override
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
-        final ThingCommand signal = signal();
+        final ThingCommand<?> signal = signal();
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
 
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
@@ -254,12 +251,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      */
     private Contextual<WithDittoHeaders> enforceThingCommandByAclEnforcer(final Enforcer enforcer) {
         final ThingCommand<?> thingCommand = signal();
-        final Optional<? extends ThingCommand> authorizedCommand = authorizeByAcl(enforcer, thingCommand);
+        final Optional<? extends ThingCommand<?>> authorizedCommand = authorizeByAcl(enforcer, thingCommand);
 
         if (authorizedCommand.isPresent()) {
-            final ThingCommand commandWithReadSubjects = authorizedCommand.get();
+            final ThingCommand<?> commandWithReadSubjects = authorizedCommand.get();
             if (commandWithReadSubjects instanceof RetrieveThing &&
-                    shouldRetrievePolicyWithThing(commandWithReadSubjects)) {
+                    shouldRetrievePolicyWithThing(commandWithReadSubjects) &&
+                    commandWithReadSubjects.getDittoHeaders().isResponseRequired()) {
                 final RetrieveThing retrieveThing = (RetrieveThing) commandWithReadSubjects;
                 return retrieveThingAclAndMigrateToPolicy(retrieveThing, enforcer);
             } else {
@@ -324,7 +322,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         return authorizeByPolicy(enforcer, thingCommand)
                 .map(commandWithReadSubjects -> {
                     if (commandWithReadSubjects instanceof ThingQueryCommand) {
-                        final ThingQueryCommand thingQueryCommand = (ThingQueryCommand) commandWithReadSubjects;
+                        final ThingQueryCommand<?> thingQueryCommand = (ThingQueryCommand<?>) commandWithReadSubjects;
+                        if (!thingQueryCommand.getDittoHeaders().isResponseRequired()) {
+                            // drop query command with response-required=false
+                            return withMessageToReceiver(null, ActorRef.noSender());
+                        }
                         if (thingQueryCommand instanceof RetrieveThing &&
                                 shouldRetrievePolicyWithThing(thingQueryCommand)) {
 
@@ -564,7 +566,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer.
      */
-    private static <T extends ThingQueryCommandResponse> T buildJsonViewForThingQueryCommandResponse(
+    private static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
             final ThingQueryCommandResponse<T> response, final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();
@@ -749,9 +751,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final PolicyId policyId) {
-        final Map<String, String> enhancedMap = new HashMap<>(dittoHeaders());
-        enhancedMap.put(AbstractGraphActor.DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, "true");
-        final DittoHeaders adjustedHeaders = DittoHeaders.of(enhancedMap);
+        final DittoHeaders adjustedHeaders = dittoHeaders().toBuilder()
+                .responseRequired(true)
+                .build();
 
         return Patterns.ask(conciergeForwarder(), RetrievePolicy.of(policyId, adjustedHeaders), getAskTimeout())
                 .thenApply(response -> {
@@ -879,7 +881,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static <T extends ThingCommand> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
+    static <T extends ThingCommand<T>> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
             final ThingCommand<T> command) {
 
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
@@ -985,12 +987,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
             if (policy.isPresent()) {
 
-                final DittoHeaders dittoHeadersWithoutPreconditionHeaders = createThing.getDittoHeaders()
+                final DittoHeaders dittoHeadersForCreatePolicy = createThing.getDittoHeaders()
                         .toBuilder()
                         .removePreconditionHeaders()
+                        .responseRequired(true)
                         .build();
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), dittoHeadersWithoutPreconditionHeaders);
+                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), dittoHeadersForCreatePolicy);
                 final Optional<CreatePolicy> authorizedCreatePolicy =
                         PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
 
@@ -1023,6 +1026,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 createThingWithoutPolicyId.getDittoHeaders());
 
         invalidatePolicyCache(createPolicy.getEntityId());
+
         return preEnforcer.apply(createPolicy)
                 .thenCompose(msg -> Patterns.ask(policiesShardRegion, msg, getAskTimeout()))
                 .thenApply(policyResponse -> {
@@ -1187,7 +1191,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     /**
      * Provides {@link AbstractEnforcement} for commands of type {@link ThingCommand}.
      */
-    public static final class Provider implements EnforcementProvider<ThingCommand> {
+    public static final class Provider implements EnforcementProvider<ThingCommand<?>> {
 
         private static final List<SubjectIssuer> DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
                 Collections.singletonList(SubjectIssuer.GOOGLE);
@@ -1250,24 +1254,25 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
 
         @Override
-        public Class<ThingCommand> getCommandClass() {
-            return ThingCommand.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<ThingCommand<?>> getCommandClass() {
+            return (Class) ThingCommand.class;
         }
 
         @Override
-        public boolean isApplicable(final ThingCommand command) {
+        public boolean isApplicable(final ThingCommand<?> command) {
             // live commands are not applicable for thing command enforcement
             // because they should never be forwarded to things shard region
             return !LiveSignalEnforcement.isLiveSignal(command);
         }
 
         @Override
-        public boolean changesAuthorization(final ThingCommand signal) {
-            return signal instanceof ThingModifyCommand && ((ThingModifyCommand) signal).changesAuthorization();
+        public boolean changesAuthorization(final ThingCommand<?> signal) {
+            return signal instanceof ThingModifyCommand && ((ThingModifyCommand<?>) signal).changesAuthorization();
         }
 
         @Override
-        public AbstractEnforcement<ThingCommand> createEnforcement(final Contextual<ThingCommand> context) {
+        public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
                     policyEnforcerCache, aclEnforcerCache, preEnforcer, subjectIssuersForPolicyMigration);
         }

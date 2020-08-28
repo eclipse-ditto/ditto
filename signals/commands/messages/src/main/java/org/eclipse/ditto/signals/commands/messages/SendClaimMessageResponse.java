@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @JsonParsableCommandResponse(type = SendClaimMessageResponse.TYPE)
-public final class SendClaimMessageResponse<T> extends AbstractMessageCommandResponse<T, SendClaimMessageResponse> {
+public final class SendClaimMessageResponse<T> extends AbstractMessageCommandResponse<T, SendClaimMessageResponse<T>> {
 
     /**
      * The name of the {@code Message} wrapped by this {@code MessageCommand}.

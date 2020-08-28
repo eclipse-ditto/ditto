@@ -30,6 +30,9 @@ import org.eclipse.ditto.model.base.headers.ValueValidator;
 @Immutable
 final class HttpStatusCodeValueValidator extends AbstractHeaderValueValidator {
 
+    private static final ValueValidator INSTANCE = HeaderValueValidators.getIntValidator()
+            .andThen(new HttpStatusCodeValueValidator());
+
     private HttpStatusCodeValueValidator() {
         super(valueType -> int.class.equals(valueType) || Integer.class.equals(valueType));
     }
@@ -40,7 +43,7 @@ final class HttpStatusCodeValueValidator extends AbstractHeaderValueValidator {
      * @return the instance.
      */
     static ValueValidator getInstance() {
-        return HeaderValueValidators.getIntValidator().andThen(new HttpStatusCodeValueValidator());
+        return INSTANCE;
     }
 
     @Override

@@ -62,7 +62,7 @@ Sources contain:
 * a consumer count defining how many consumers should be attached to each source address,
 * an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source,
 * enforcement information that allows filtering the messages that are consumed in this source,
-* [acknowledgement requests](basic-acknowledgements.html#requesting-acknowledgements) this source requires in order to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
+* [acknowledgement requests](basic-acknowledgements.html#requesting-acks) this source requires in order to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
 * [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers, and
 * a reply-target to configure publication of any responses of incoming commands.
 

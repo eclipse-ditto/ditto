@@ -23,6 +23,10 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 @Immutable
 final class FeatureDefinitionCreatedStrategy extends AbstractThingEventStrategy<FeatureDefinitionCreated> {
 
+    protected FeatureDefinitionCreatedStrategy() {
+        super();
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final FeatureDefinitionCreated event,
             final ThingBuilder.FromCopy thingBuilder) {

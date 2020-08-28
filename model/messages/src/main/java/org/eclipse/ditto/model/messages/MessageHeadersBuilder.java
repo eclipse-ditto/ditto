@@ -199,24 +199,9 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
         return myself;
     }
 
-    /**
-     * Sets the timeout of the Message to build.
-     *
-     * @param timeout the duration of the Message to time out.
-     * @return this builder to allow method chaining.
-     * @deprecated as of version 1.1.0 please use
-     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(Duration)} instead.
-     */
     @Override
-    @Deprecated
-    public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
-        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
-        if (null != timeout) {
-            putCharSequence(definition, String.valueOf(timeout.getSeconds()));
-        } else {
-            removeHeader(definition.getKey());
-        }
-        return myself;
+    public MessageHeadersBuilder timeout(final Duration timeout) {
+        return super.timeout(timeout);
     }
 
     /**

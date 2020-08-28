@@ -34,6 +34,8 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
+    private static final DefaultClientActorPropsFactory INSTANCE = new DefaultClientActorPropsFactory();
+
     private DefaultClientActorPropsFactory() {
         super();
     }
@@ -44,7 +46,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
      * @return the factory instance.
      */
     public static DefaultClientActorPropsFactory getInstance() {
-        return new DefaultClientActorPropsFactory();
+        return INSTANCE;
     }
 
     @Override

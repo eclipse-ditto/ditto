@@ -23,6 +23,10 @@ import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 @Immutable
 final class AclEntryCreatedStrategy extends AbstractThingEventStrategy<AclEntryCreated> {
 
+    protected AclEntryCreatedStrategy() {
+        super();
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclEntryCreated event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setPermissions(event.getAclEntry());
