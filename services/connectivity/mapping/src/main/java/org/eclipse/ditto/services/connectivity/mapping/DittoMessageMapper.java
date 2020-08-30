@@ -47,7 +47,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 public final class DittoMessageMapper extends AbstractMessageMapper {
 
 
-    private static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder()
+    static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder()
             .set(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
                     String.join(",", "application/vnd.eclipse-hono-empty-notification",
                             "application/vnd.eclipse-hono-dc-notification+json"))

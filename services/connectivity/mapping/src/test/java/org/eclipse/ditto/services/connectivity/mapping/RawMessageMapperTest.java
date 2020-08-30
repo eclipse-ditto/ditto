@@ -40,6 +40,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,34 +64,37 @@ public final class RawMessageMapperTest {
     @Test
     public void mapFromMessageWithoutPayloadWithoutContentType() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final Message<Object> messageWithoutPayload = messageBuilder(null).build();
-        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
+        final Message<Object> message = messageBuilder(null).build();
+        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, message, dittoHeaders);
         final List<ExternalMessage> result = underTest.map(ADAPTER.toAdaptable(sendThingMessage));
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getBytePayload()).isEmpty();
-        assertThat(result.get(0).getTextPayload()).isEmpty();
+        final ExternalMessage externalMessage = result.get(0);
+        assertThat(externalMessage.getBytePayload()).isEmpty();
+        assertThat(externalMessage.getTextPayload()).isEmpty();
+        assertThat(externalMessage.getHeaders()).containsAllEntriesOf(message.getHeaders());
     }
 
     @Test
     public void mapFromMessageWithTextPayload() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final Message<Object> messageWithoutPayload = messageBuilder("application/vnd.eclipse.ditto+json")
+        final Message<Object> message = messageBuilder("text/plain")
                 .payload("hello world")
                 .build();
-        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
+        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, message, dittoHeaders);
         final List<ExternalMessage> result = underTest.map(ADAPTER.toAdaptable(sendThingMessage));
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getBytePayload()).isEmpty();
         assertThat(result.get(0).getTextPayload()).contains("hello world");
+        assertThat(result.get(0).getHeaders()).containsExactlyEntriesOf(message.getHeaders());
     }
 
     @Test
     public void mapFromMessageWithBinaryPayload() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final Message<Object> messageWithoutPayload = messageBuilder("application/whatever")
+        final Message<Object> message = messageBuilder("application/whatever")
                 .rawPayload(ByteBuffer.wrap(new byte[]{1, 2, 3, 4}))
                 .build();
-        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
+        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, message, dittoHeaders);
         final List<ExternalMessage> result = underTest.map(ADAPTER.toAdaptable(sendThingMessage));
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getBytePayload()).satisfies(byteBufferOptional -> {
@@ -99,6 +103,7 @@ public final class RawMessageMapperTest {
                     .isEqualTo(ByteString.copyFrom(new byte[]{1, 2, 3, 4}));
         });
         assertThat(result.get(0).getTextPayload()).isEmpty();
+        assertThat(result.get(0).getHeaders()).containsAllEntriesOf(message.getHeaders());
     }
 
     @Test
@@ -127,6 +132,28 @@ public final class RawMessageMapperTest {
                 "  \"value\": \"This is not a base64-encoded octet stream.\"" +
                 "}"));
         assertThatExceptionOfType(MessageFormatInvalidException.class).isThrownBy(() -> underTest.map(adaptable));
+    }
+
+    @Test
+    public void mapFromNonMessageCommand() {
+        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, DittoHeaders.empty());
+        final Adaptable adaptable = ADAPTER.toAdaptable(signal);
+        final List<ExternalMessage> actualExternalMessages = underTest.map(adaptable);
+        final List<ExternalMessage> expectedExternalMessages = new DittoMessageMapper().map(adaptable);
+        assertThat(actualExternalMessages).isEqualTo(expectedExternalMessages);
+    }
+
+    @Test
+    public void mapFromMessageWithDittoProtocolContentType() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final Message<Object> messageWithoutPayload = messageBuilder("application/vnd.eclipse.ditto+json")
+                .payload("hello world")
+                .build();
+        final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
+        final Adaptable adaptable = ADAPTER.toAdaptable(sendThingMessage);
+        final List<ExternalMessage> result = underTest.map(adaptable);
+        final List<ExternalMessage> expectedResult = new DittoMessageMapper().map(adaptable);
+        assertThat(result).isEqualTo(expectedResult);
     }
 
     @Test
@@ -250,6 +277,17 @@ public final class RawMessageMapperTest {
         assertThat(response.getEntityId().toString()).isEqualTo("thing:id");
         assertThat(response.getFeatureId()).isEqualTo("accelerometer");
         assertThat(response.getMessage().getPayload().orElseThrow()).isEqualTo(JsonObject.of(payload));
+    }
+
+    @Test
+    public void mapToNonMessageCommandWithDittoProtocolContentType() {
+        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, DittoHeaders.empty());
+        final Adaptable adaptable = ADAPTER.toAdaptable(signal);
+        final ExternalMessage externalMessage = new DittoMessageMapper().map(adaptable).get(0)
+                .withHeader("content-type", "application/vnd.eclipse.ditto+json");
+        final List<Adaptable> mapped = underTest.map(externalMessage);
+        assertThat(mapped).hasSize(1);
+        assertThat(mapped.get(0)).isEqualTo(adaptable);
     }
 
     private MessageBuilder<Object> messageBuilder(@Nullable final String contentType) {

@@ -67,7 +67,9 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     private static final String INCOMING_MESSAGE_HEADERS = "incomingMessageHeaders";
 
     /**
-     * Default outgoing content type is text/plain because binary requires base64 encoded string as payload.
+     * Default outgoing content type is text/plain because binary requires base64 encoded string as payload,
+     * which cannot be satisfied by all message commands and responses in the Ditto protocol, whereas
+     * the text/plain content type can.
      */
     private static final String DEFAULT_OUTGOING_CONTENT_TYPE = ContentTypes.TEXT_PLAIN_UTF8.toString();
 
@@ -85,7 +87,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
             MessageHeaderDefinition.FEATURE_ID.getKey(), asPlaceholder(MessageHeaderDefinition.FEATURE_ID)
     );
 
-    private static final JsonObject DEFAULT_CONFIG = JsonObject.newBuilder()
+    private static final JsonObject DEFAULT_CONFIG = DittoMessageMapper.DEFAULT_OPTIONS.toBuilder()
             .set(OUTGOING_CONTENT_TYPE_KEY, DEFAULT_OUTGOING_CONTENT_TYPE)
             .set(INCOMING_MESSAGE_HEADERS, DEFAULT_INCOMING_HEADERS.entrySet()
                     .stream()
@@ -108,6 +110,8 @@ public final class RawMessageMapper extends AbstractMessageMapper {
      */
     private Map<String, String> incomingMessageHeaders = DEFAULT_INCOMING_HEADERS;
 
+    private final DittoMessageMapper dittoMessageMapper = new DittoMessageMapper();
+
     /**
      * The context representing this mapper.
      */
@@ -122,8 +126,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
                 evaluateIncomingMessageHeaders(externalMessage, incomingMessageHeaders);
         if (messageHeadersOptional.isEmpty()) {
             // message payload is a Ditto protocol message.
-            return List.of(ProtocolFactory.jsonifiableAdaptableFromJson(
-                    JsonObject.of(externalMessage.getTextPayload().orElseThrow())));
+            return dittoMessageMapper.map(externalMessage);
         }
         final MessageHeaders messageHeaders = messageHeadersOptional.get();
         return List.of(ProtocolFactory.newAdaptableBuilder(toTopicPath(messageHeaders))
@@ -138,26 +141,27 @@ public final class RawMessageMapper extends AbstractMessageMapper {
             final String contentType = adaptable.getDittoHeaders()
                     .getContentType()
                     .orElse(fallbackOutgoingContentType);
-            final ExternalMessageBuilder builder =
-                    ExternalMessageFactory.newExternalMessageBuilder(
-                            evaluateOutgoingMessageHeaders(adaptable, contentType))
-                            .withInternalHeaders(adaptable.getDittoHeaders());
-            adaptable.getPayload().getValue().ifPresent(payloadValue -> {
-                if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
-                    builder.withText(toOutgoingText(payloadValue));
-                } else {
-                    // binary payload only possible if payload is a base64-encoded string.
-                    builder.withBytes(Optional.of(payloadValue)
-                            .filter(JsonValue::isString)
-                            .flatMap(value -> toOutgoingBinary(value.asString()))
-                            .orElseThrow(() -> badContentType(contentType, adaptable.getDittoHeaders()))
-                    );
-                }
-            });
-            return List.of(builder.build());
-        } else {
-            return List.of();
+            if (!DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+                final ExternalMessageBuilder builder =
+                        ExternalMessageFactory.newExternalMessageBuilder(
+                                evaluateOutgoingMessageHeaders(adaptable, contentType))
+                                .withInternalHeaders(adaptable.getDittoHeaders());
+                adaptable.getPayload().getValue().ifPresent(payloadValue -> {
+                    if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
+                        builder.withText(toOutgoingText(payloadValue));
+                    } else {
+                        // binary payload only possible if payload is a base64-encoded string.
+                        builder.withBytes(Optional.of(payloadValue)
+                                .filter(JsonValue::isString)
+                                .flatMap(value -> toOutgoingBinary(value.asString()))
+                                .orElseThrow(() -> badContentType(contentType, adaptable.getDittoHeaders()))
+                        );
+                    }
+                });
+                return List.of(builder.build());
+            }
         }
+        return dittoMessageMapper.map(adaptable);
     }
 
     @Override
@@ -167,6 +171,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        dittoMessageMapper.configure(mappingConfig, configuration);
         fallbackOutgoingContentType =
                 configuration.findProperty(OUTGOING_CONTENT_TYPE_KEY).orElse(fallbackOutgoingContentType);
         configuration.findProperty(INCOMING_MESSAGE_HEADERS, JsonValue::isObject, JsonValue::asObject)
