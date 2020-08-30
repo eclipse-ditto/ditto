@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
@@ -92,7 +93,7 @@ public final class RawMessageMapperTest {
     public void mapFromMessageWithBinaryPayload() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final Message<Object> message = messageBuilder("application/whatever")
-                .rawPayload(ByteBuffer.wrap(new byte[]{1, 2, 3, 4}))
+                .rawPayload(ByteBuffer.wrap(new byte[]{1, 2, 3, 4, 5, 6}))
                 .build();
         final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, message, dittoHeaders);
         final List<ExternalMessage> result = underTest.map(ADAPTER.toAdaptable(sendThingMessage));
@@ -100,7 +101,7 @@ public final class RawMessageMapperTest {
         assertThat(result.get(0).getBytePayload()).satisfies(byteBufferOptional -> {
             assertThat(byteBufferOptional).isNotEmpty();
             assertThat(ByteString.copyFrom(byteBufferOptional.get()))
-                    .isEqualTo(ByteString.copyFrom(new byte[]{1, 2, 3, 4}));
+                    .isEqualTo(ByteString.copyFrom(new byte[]{1, 2, 3, 4, 5, 6}));
         });
         assertThat(result.get(0).getTextPayload()).isEmpty();
         assertThat(result.get(0).getHeaders()).containsAllEntriesOf(message.getHeaders());
@@ -185,6 +186,7 @@ public final class RawMessageMapperTest {
                         .withBytes(payload.toByteArray())
                         .build());
         assertThat(adaptables).hasSize(1);
+        assertThat(adaptables.get(0).getPayload().getValue()).contains(JsonValue.of("AQIDBAUG"));
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
