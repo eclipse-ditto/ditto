@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
@@ -485,6 +486,15 @@ public interface ThingBuilder {
          * @since 1.2.0
          */
         FromScratch setCreated(@Nullable Instant created);
+
+        /**
+         * Sets the given Metadata to this builder.
+         *
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromScratch setMetadata(@Nullable Metadata metadata);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
@@ -1423,6 +1433,7 @@ public interface ThingBuilder {
          *
          * @param created the created timestamp to be set.
          * @return this builder to allow method chaining.
+         * @since 1.2.0
          */
         default FromCopy setCreated(@Nullable final Instant created) {
             return setCreated(existingCreated -> true, created);
@@ -1436,8 +1447,31 @@ public interface ThingBuilder {
          * @param created the created to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingCreatedPredicate} is {@code null}.
+         * @since 1.2.0
          */
         FromCopy setCreated(Predicate<Instant> existingCreatedPredicate, @Nullable Instant created);
+
+        /**
+         * Sets the given metadata to this builder.
+         *
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        default FromCopy setMetadata(@Nullable final Metadata metadata) {
+            return setMetadata(existingMetadata -> true, metadata);
+        }
+
+        /**
+         * Sets the given metadata to this builder.
+         *
+         * @param existingMetadataPredicate a predicate to decide whether the given metadata is set. The
+         * predicate receives the currently set metadata.
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromCopy setMetadata(Predicate<Metadata> existingMetadataPredicate, @Nullable Metadata metadata);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
@@ -1523,7 +1557,6 @@ public interface ThingBuilder {
          * @return a new Thing object.
          */
         Thing build();
-
 
     }
 

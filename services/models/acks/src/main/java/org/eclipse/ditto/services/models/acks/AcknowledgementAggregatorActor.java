@@ -17,12 +17,14 @@ import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_P
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -82,8 +84,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         timeout = requestCommandHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
         getContext().setReceiveTimeout(timeout);
 
+        final Set<AcknowledgementRequest> acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
         ackregator = AcknowledgementAggregator.getInstance(thingId, correlationId, timeout, headerTranslator);
-        ackregator.addAcknowledgementRequests(requestCommandHeaders.getAcknowledgementRequests());
+        ackregator.addAcknowledgementRequests(acknowledgementRequests);
+        log.withCorrelationId(correlationId)
+                .info("Starting to wait for all requested acknowledgements <{}> for a maximum duration of <{}>.",
+                        acknowledgementRequests, timeout);
     }
 
     /**
@@ -144,6 +150,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
     private void addCommandResponse(final CommandResponse<?> commandResponse, final WithThingId withThingId,
             final boolean isLiveResponse) {
+        log.withCorrelationId(correlationId).debug("Received command response <{}>.", commandResponse);
         final DittoHeaders dittoHeaders = commandResponse.getDittoHeaders();
         ackregator.addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(
                 isLiveResponse ? LIVE_RESPONSE : TWIN_PERSISTED,
@@ -174,16 +181,21 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     }
 
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
+        log.withCorrelationId(correlationId).debug("Received acknowledgement <{}>.", acknowledgement);
         ackregator.addReceivedAcknowledgment(acknowledgement);
         potentiallyCompleteAcknowledgements(null);
     }
 
     private void handleAcknowledgements(final Acknowledgements acknowledgements) {
+        log.withCorrelationId(correlationId).debug("Received acknowledgements <{}>.", acknowledgements);
         acknowledgements.stream().forEach(ackregator::addReceivedAcknowledgment);
         potentiallyCompleteAcknowledgements(null);
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        log.withCorrelationId(correlationId)
+                .info("Stopped waiting for acknowledgements because of ditto runtime exception <{}>.",
+                        dittoRuntimeException);
         // abort on DittoRuntimeException
         handleSignal(dittoRuntimeException);
         getContext().stop(getSelf());

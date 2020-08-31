@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.assertions.JsonifiableAssertions;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithSelectorAndPredicateAssert;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -614,6 +615,19 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         if (JsonSchemaVersion.V_2.equals(expected.getImplementedSchemaVersion())) {
             assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
         }
+
+        return this;
+    }
+
+    public ThingAssert hasMetadata(final Metadata expectedMetadata) {
+        isNotNull();
+
+        final Optional<Metadata> metadataOptional = actual.getMetadata();
+
+        assertThat(metadataOptional)
+                .overridingErrorMessage("Expected Thing metadata to be \n<%s> but it was \n<%s>", expectedMetadata,
+                        metadataOptional.orElse(null))
+                .contains(expectedMetadata);
 
         return this;
     }

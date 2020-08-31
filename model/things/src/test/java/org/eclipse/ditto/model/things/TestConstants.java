@@ -211,4 +211,22 @@ public final class TestConstants {
         }
     }
 
+    /**
+     * Metadata-related test constants.
+     */
+    public static final class Metadata {
+
+        private Metadata() {
+            throw new AssertionError();
+        }
+
+        /**
+         * Known Metadata of a Thing.
+         */
+        public static final org.eclipse.ditto.model.base.entity.metadata.Metadata METADATA =
+                ThingsModelFactory.newMetadataBuilder()
+                        .set("issuedAt", 0L)
+                        .build();
+    }
+
 }

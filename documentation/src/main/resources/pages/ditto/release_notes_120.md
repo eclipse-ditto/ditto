@@ -19,3 +19,11 @@ permalink: release_notes_120.html
 * in `gateway.conf`: `ditto.gateway.http.redirect-to-https-blocklist-pattern`
 * in `ditto-cluster.conf`: `ditto.cluster.cluster-status-roles-blocklist`
 * in `ditto-protocol.conf`: `ditto.protocol.blocklist`
+
+### added config key for setting the max pool size for connections
+The pool is used for mapping inbound and outbound messages in the connectivity service. It is configured
+per connection in the attribute `processorPoolSize`.
+
+To provide a meaningful max per-connection pool size, you can now configure a service-wide maximum
+in the connectivity service using the key `ditto.connectivity.mapping.max-pool-size` (or its corresponding
+environment variable `CONNECTIVITY_MESSAGE_MAPPING_MAX_POOL_SIZE`).
