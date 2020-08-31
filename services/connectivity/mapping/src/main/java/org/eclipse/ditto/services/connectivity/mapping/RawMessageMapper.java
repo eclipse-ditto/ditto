@@ -77,10 +77,11 @@ public final class RawMessageMapper extends AbstractMessageMapper {
      * Default incoming content type is binary.
      */
     private static final Map<String, String> DEFAULT_INCOMING_HEADERS = Map.of(
-            DittoHeaderDefinition.CONTENT_TYPE.getKey(), "{{header:content-type|fn:default('" +
-                    ContentTypes.APPLICATION_OCTET_STREAM +
-                    "')}}",
-            MessageHeaderDefinition.DIRECTION.getKey(), MessageDirection.TO.toString(),
+            DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+            getFromHeaderOrDefault(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                    ContentTypes.APPLICATION_OCTET_STREAM.toString()),
+            MessageHeaderDefinition.DIRECTION.getKey(),
+            getFromHeaderOrDefault(MessageHeaderDefinition.DIRECTION.getKey(), MessageDirection.TO.toString()),
             MessageHeaderDefinition.THING_ID.getKey(), asPlaceholder(MessageHeaderDefinition.THING_ID),
             MessageHeaderDefinition.SUBJECT.getKey(), asPlaceholder(MessageHeaderDefinition.SUBJECT),
             MessageHeaderDefinition.STATUS_CODE.getKey(), asPlaceholder(MessageHeaderDefinition.STATUS_CODE),
@@ -214,6 +215,10 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     private static String asPlaceholder(final MessageHeaderDefinition messageHeaderDefinition) {
         return String.format("{{header:%s}}", messageHeaderDefinition.getKey());
+    }
+
+    private static String getFromHeaderOrDefault(final String headerKey, final String defaultValue) {
+        return "{{header:" + headerKey + "|fn:default('" + defaultValue + "')}}";
     }
 
     private static Map<String, String> evaluateOutgoingMessageHeaders(final Adaptable adaptable,
