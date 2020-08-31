@@ -28,8 +28,7 @@ public final class DefaultMessageMapperConfigurationTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultMessageMapperConfiguration.class, areImmutable(),
-                AllowedReason.assumingFields("properties")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                AllowedReason.provided(MergedJsonObjectMap.class).isAlsoImmutable());
     }
 
     @Test
