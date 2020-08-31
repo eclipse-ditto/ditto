@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -31,7 +32,7 @@ import org.eclipse.ditto.json.JsonValue;
  * Merge 2 JSON objects and present them as a map.
  */
 @Immutable
-final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
+final class MergedJsonObjectMap implements Map<String, JsonValue> {
 
     private final JsonObject jsonObject;
     private final JsonObject fallbackObject;
@@ -43,6 +44,16 @@ final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
 
     static MergedJsonObjectMap of(final JsonObject jsonObject, final JsonObject fallbackObject) {
         return new MergedJsonObjectMap(jsonObject, fallbackObject);
+    }
+
+    static MergedJsonObjectMap of(final Map<String, JsonValue> map) {
+        if (map instanceof MergedJsonObjectMap) {
+            return (MergedJsonObjectMap) map;
+        } else {
+            return new MergedJsonObjectMap(map.entrySet().stream()
+                    .map(entry -> JsonField.newInstance(entry.getKey(), entry.getValue()))
+                    .collect(JsonCollectors.fieldsToObject()), JsonObject.empty());
+        }
     }
 
     @Override
@@ -80,7 +91,7 @@ final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
     }
 
     @Override
-    public JsonValue put(final CharSequence charSequence, final JsonValue jsonValue) {
+    public JsonValue put(final String charSequence, final JsonValue jsonValue) {
         throw new UnsupportedOperationException("This object is immutable");
     }
 
@@ -90,7 +101,7 @@ final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
     }
 
     @Override
-    public void putAll(final Map<? extends CharSequence, ? extends JsonValue> map) {
+    public void putAll(final Map<? extends String, ? extends JsonValue> map) {
         throw new UnsupportedOperationException("This object is immutable");
     }
 
@@ -100,9 +111,11 @@ final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
     }
 
     @Override
-    public Set<CharSequence> keySet() {
-        return Stream.concat(fallbackObject.getKeys().stream(), jsonObject.getKeys().stream())
-                .collect(Collectors.toSet());
+    public Set<String> keySet() {
+        return Stream.concat(
+                fallbackObject.getKeys().stream().map(Object::toString),
+                jsonObject.getKeys().stream().map(Object::toString)
+        ).collect(Collectors.toSet());
     }
 
     @Override
@@ -113,9 +126,9 @@ final class MergedJsonObjectMap implements Map<CharSequence, JsonValue> {
     }
 
     @Override
-    public Set<Entry<CharSequence, JsonValue>> entrySet() {
+    public Set<Entry<String, JsonValue>> entrySet() {
         return Stream.concat(fallbackObject.stream(), jsonObject.stream())
-                .map(field -> new AbstractMap.SimpleEntry<CharSequence, JsonValue>(field.getKey(), field.getValue()))
+                .map(field -> new AbstractMap.SimpleEntry<>(field.getKey().toString(), field.getValue()))
                 .collect(Collectors.toSet());
     }
 

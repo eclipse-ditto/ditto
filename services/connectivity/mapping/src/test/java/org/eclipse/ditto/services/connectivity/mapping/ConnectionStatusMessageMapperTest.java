@@ -63,7 +63,7 @@ public class ConnectionStatusMessageMapperTest {
     private static MappingConfig mappingConfig;
 
     private Map<String, String> validHeader;
-    private Map<CharSequence, JsonValue> validConfigProps;
+    private Map<String, JsonValue> validConfigProps;
     private DefaultMessageMapperConfiguration validMapperConfig;
     private MessageMapper underTest;
 
@@ -175,7 +175,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMapWithMissingHeader() {
-        final Map<CharSequence, JsonValue> props =
+        final Map<String, JsonValue> props =
                 Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:thing-id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props);
@@ -229,7 +229,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMappingContextWithIndividualFeatureId() {
         final String individualFeatureId = "individualFeatureId";
-        final Map<CharSequence, JsonValue> props = new HashMap<>(validConfigProps);
+        final Map<String, JsonValue> props = new HashMap<>(validConfigProps);
         props.put(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID, JsonValue.of(individualFeatureId));
         final MessageMapperConfiguration individualFeatureIdConfig
                 = DefaultMessageMapperConfiguration.of("placeholder", props);
@@ -249,7 +249,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMappingContextWithWrongThingId() {
         exception.expect(DittoRuntimeException.class);
-        final Map<CharSequence, JsonValue> props =
+        final Map<String, JsonValue> props =
                 Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("Invalid Value"));
         final MessageMapperConfiguration wrongThingId
                 = DefaultMessageMapperConfiguration.of("invalidThingId", props);
@@ -258,7 +258,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMappingContextWithThingIdMapping() {
-        final Map<CharSequence, JsonValue> props =
+        final Map<String, JsonValue> props =
                 Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:device_id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props);
@@ -271,7 +271,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMappingContextWithWrongThingIdMapping() {
-        final Map<CharSequence, JsonValue> props =
+        final Map<String, JsonValue> props =
                 Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:device_id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props);

@@ -28,9 +28,9 @@ import org.eclipse.ditto.json.JsonValue;
 public final class DefaultMessageMapperConfiguration implements MessageMapperConfiguration {
 
     private final String id;
-    private final Map<CharSequence, JsonValue> properties;
+    private final Map<String, JsonValue> properties;
 
-    private DefaultMessageMapperConfiguration(final String id, final Map<CharSequence, JsonValue> properties) {
+    private DefaultMessageMapperConfiguration(final String id, final MergedJsonObjectMap properties) {
         this.id = id;
         this.properties = properties;
     }
@@ -44,7 +44,21 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      * @throws NullPointerException if {@code configuration} is {@code null}.
      */
     public static DefaultMessageMapperConfiguration of(final String id,
-            final Map<CharSequence, JsonValue> configuration) {
+            final Map<String, JsonValue> configuration) {
+        checkNotNull(id, "id");
+        checkNotNull(configuration, "configuration properties");
+        return new DefaultMessageMapperConfiguration(id, MergedJsonObjectMap.of(configuration));
+    }
+
+    /**
+     * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
+     *
+     * @param id the id of the mapper
+     * @param configuration the map holding configuration properties.
+     * @return the instance.
+     * @throws NullPointerException if {@code configuration} is {@code null}.
+     */
+    public static DefaultMessageMapperConfiguration of(final String id, final MergedJsonObjectMap configuration) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration properties");
         return new DefaultMessageMapperConfiguration(id, configuration);
@@ -56,7 +70,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
-    public Map<CharSequence, JsonValue> getProperties() {
+    public Map<String, JsonValue> getProperties() {
         return properties;
     }
 

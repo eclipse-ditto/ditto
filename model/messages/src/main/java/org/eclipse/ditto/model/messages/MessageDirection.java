@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.model.messages;
 
-import java.util.Optional;
-
-import org.eclipse.ditto.json.JsonKey;
-
 /**
  * Direction specifies if a message has been sent <em>FROM</em> a {@code Thing} (or its {@code Feature}), or
  * <em>TO</em> a {@code Thing} (or its {@code Feature}).
@@ -31,31 +27,5 @@ public enum MessageDirection {
      * Direction showing that the message was sent <em>TO</em> a {@code Thing} or a {@code Feature}.
      */
     TO;
-
-    /**
-     * Represent the message direction as inbox or outbox.
-     *
-     * @return the message direction as a JSON key.
-     */
-    public JsonKey asJsonKey() {
-        return JsonKey.of(this == TO ? "inbox" : "outbox");
-    }
-
-    /**
-     * Convert a JSON key to a message direction if it matches any.
-     *
-     * @param jsonKey the JSON key.
-     * @return an optional message direction matching the JSON key.
-     */
-    public static Optional<MessageDirection> fromJsonKey(final CharSequence jsonKey) {
-        switch (jsonKey.toString()) {
-            case "inbox":
-                return Optional.of(TO);
-            case "outbox":
-                return Optional.of(FROM);
-            default:
-                return Optional.empty();
-        }
-    }
 
 }

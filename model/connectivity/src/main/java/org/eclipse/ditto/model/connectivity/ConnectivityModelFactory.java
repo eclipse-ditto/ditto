@@ -395,7 +395,7 @@ public final class ConnectivityModelFactory {
      * @param options the mapping options required to instantiate a mapper
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options) {
         return ImmutableMappingContext.of(mappingEngine, options);
@@ -603,7 +603,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * /**
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published

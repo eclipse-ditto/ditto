@@ -49,7 +49,7 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
      * Get options as string key-value pairs. Note that non-string configuration values are converted to JSON string.
      *
      * @return the configuration options as key-value pairs.
-     * @deprecated since 1.2.0. Use {@code getOptionsAsJson()} instead.
+     * @deprecated since 1.3.0. Use {@code getOptionsAsJson()} instead.
      */
     @Deprecated
     default Map<String, String> getOptions() {
@@ -61,7 +61,7 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
      * All configuration options for mapping engine instantiation.
      *
      * @return the options
-     * @since 1.2.0
+     * @since 1.3.0
      */
     JsonObject getOptionsAsJson();
 

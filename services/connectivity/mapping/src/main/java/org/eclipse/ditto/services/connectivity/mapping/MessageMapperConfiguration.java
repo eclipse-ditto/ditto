@@ -47,7 +47,7 @@ public interface MessageMapperConfiguration {
      *
      * @return an unmodifiable Map containing the configuration properties.
      */
-    Map<CharSequence, JsonValue> getProperties();
+    Map<String, JsonValue> getProperties();
 
     /**
      * Returns the configuration properties as JSON object.
@@ -124,7 +124,7 @@ public interface MessageMapperConfiguration {
         /**
          * @return the configuration properties as mutable map.
          */
-        Map<CharSequence, JsonValue> getProperties();
+        Map<String, JsonValue> getProperties();
 
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}

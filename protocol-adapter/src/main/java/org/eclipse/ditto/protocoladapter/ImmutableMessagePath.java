@@ -63,16 +63,12 @@ final class ImmutableMessagePath implements MessagePath {
     @Override
     public Optional<MessageDirection> getDirection() {
         return jsonPointer.getRoot()
-                .flatMap(ImmutableMessagePath::jsonKeyToDirection)
+                .flatMap(MessagePath::jsonKeyToDirection)
                 .map(Optional::of)
                 .orElseGet(() -> jsonPointer.getRoot()
                         .filter(FEATURES::equals)
                         .flatMap(features -> jsonPointer.get(2))
-                        .flatMap(ImmutableMessagePath::jsonKeyToDirection));
-    }
-
-    private static Optional<MessageDirection> jsonKeyToDirection(final JsonKey jsonKey) {
-        return MessageDirection.fromJsonKey(jsonKey);
+                        .flatMap(MessagePath::jsonKeyToDirection));
     }
 
     @Override

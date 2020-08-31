@@ -49,7 +49,7 @@ final class ImmutableMappingContext implements MappingContext {
      * @param options the mapping engine specific options to apply.
      * @return a new instance of ImmutableMappingContext.
      */
-    public static ImmutableMappingContext of(final String mappingEngine, final JsonObject options) {
+    static ImmutableMappingContext of(final String mappingEngine, final JsonObject options) {
         checkNotNull(mappingEngine, "mapping Engine");
         checkNotNull(options, "options");
 

@@ -121,14 +121,14 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext.getMappingEngine());
         final JsonObject defaultOptions =
                 mapper.map(MessageMapper::getDefaultOptions).orElse(JsonObject.empty());
-        final Map<CharSequence, JsonValue> configuredAndDefaultOptions =
+        final Map<String, JsonValue> configuredAndDefaultOptions =
                 mergeMappingOptions(defaultOptions, mappingContext.getOptionsAsJson());
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions);
         return mapper.flatMap(m -> configureInstance(m, options));
     }
 
-    private Map<CharSequence, JsonValue> mergeMappingOptions(final JsonObject defaultOptions,
+    private Map<String, JsonValue> mergeMappingOptions(final JsonObject defaultOptions,
             final JsonObject configuredOptions) {
         return MergedJsonObjectMap.of(configuredOptions, defaultOptions);
     }

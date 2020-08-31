@@ -327,7 +327,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
         final JsonPointer jsonPointer = messageHeaders.getFeatureId()
                 .map(s -> Thing.JsonFields.FEATURES.getPointer().addLeaf(JsonKey.of(s)))
                 .orElseGet(JsonPointer::empty);
-        return jsonPointer.addLeaf(messageHeaders.getDirection().asJsonKey())
+        return jsonPointer.addLeaf(MessagePath.directionToJsonKey(messageHeaders.getDirection()))
                 .addLeaf(MESSAGES_JSON_KEY)
                 .append(JsonPointer.of(messageHeaders.getSubject()));
     }

@@ -41,7 +41,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     }
 
     @Override
-    public Map<CharSequence, JsonValue> getProperties() {
+    public Map<String, JsonValue> getProperties() {
         return delegationTarget.getProperties();
     }
 
@@ -76,16 +76,16 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     static final class Builder implements JavaScriptMessageMapperConfiguration.Builder {
 
         private final String id;
-        private final Map<CharSequence, JsonValue> properties;
+        private final Map<String, JsonValue> properties;
 
-        Builder(final String id, final Map<CharSequence, JsonValue> properties) {
+        Builder(final String id, final Map<String, JsonValue> properties) {
             this.id = id;
-            this.properties = new HashMap<>(); // mutable map!
+            this.properties = new HashMap<>(properties); // mutable map!
             properties.forEach((key, value) -> this.properties.put(key.toString(), value));
         }
 
         @Override
-        public Map<CharSequence, JsonValue> getProperties() {
+        public Map<String, JsonValue> getProperties() {
             return properties;
         }
 
