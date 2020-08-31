@@ -6,11 +6,11 @@ permalink: basic-acknowledgements.html
 ---
 
 Acknowledgements are a concept in Ditto used to indicate that a
-[supported signal](#supported-signal-types--supportedsignaltypes) was successfully received or processed by either an
+[supported signal](#supported-signal-types) was successfully received or processed by either an
 internal Ditto functionality or an external subscriber of that signal.
 
 Acknowledgements can be seen as (potentially multiple) responses to a single signal like for example a twin command.
-This means that Ditto collects all the [requested acknowledgements](#requesting-acknowledgements) until the signal is
+This means that Ditto collects all the [requested acknowledgements](#requesting-acks) until the signal is
 successfully processed within a specified timeout interval.
 
 ## Usage scenario examples
@@ -58,7 +58,7 @@ If the subscriber is in charge of handling a requested acknowledgement it
 
 ## Acknowledgements (ACKs)
 A single acknowledgement contains the following information:
-* Acknowledgement label (one of the requested labels of the [ack requests](#acknowledgement-requests))
+* Acknowledgement label (one of the requested labels of the [ack requests](#requesting-acks))
 * Header fields
     * mandatory: **correlation-id** the same correlation ID as the one of the signal which requested the acknowledgement
     * optional: additional header fields
@@ -282,19 +282,19 @@ acknowledgement, and `4xx` for a non-successful one) together with additional de
 
 ### Assure QoS until persisted in Ditto - twin-persisted
 In order to ensure that a [create/modify command](protocol-specification-things-create-or-modify.html) resulted in a 
-successful update of twin in Ditto's managed database, [request the acknowledgement](#requesting-acknowledgements) for
+successful update of twin in Ditto's managed database, [request the acknowledgement](#requesting-acks) for
 the [built-in "twin-persisted"](#built-in-acknowledgement-labels) acknowledgement label.
 
 ### Assure QoS until processing of a live command/message by a subscriber - live-response
 In order to ensure that a live command or live message is processed by a subscriber,
-[request the acknowledgement](#requesting-acknowledgements) for
+[request the acknowledgement](#requesting-acks) for
 the [built-in "live-response"](#built-in-acknowledgement-labels) acknowledgement label.
 This acknowledgement request is fulfilled when the subscriber sends a live response or message response.
 
 ### Assure QoS until processing of a twin event or live command/message by subscribers - custom label
 In order to ensure that a [create/modify command](protocol-specification-things-create-or-modify.html) resulted in an 
 event which was consumed by an application integrating with Ditto, or that a live command or live message is consumed
-without any live or message response, [request the acknowledgement](#requesting-acknowledgements) for a
+without any live or message response, [request the acknowledgement](#requesting-acks) for a
 [custom acknowledgement label](#custom-acknowledgement-labels).
 
 ## Interaction between headers

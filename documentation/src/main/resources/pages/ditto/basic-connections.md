@@ -125,7 +125,7 @@ See [Basic Authentication](basic-auth.html#authorization-context-in-devops-comma
 #### Source acknowledgement requests
 
 A source can configure, that for each incoming message additional 
-[acknowledgement requests](basic-acknowledgements.html#acknowledgement-requests) are added. 
+[acknowledgement requests](basic-acknowledgements.html#requesting-acks) are added. 
 
 That is desirable whenever incoming messages should be processed with a higher "quality of service" than the default, 
 which is "at most once" (or QoS 0).
