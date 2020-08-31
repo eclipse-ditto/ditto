@@ -155,7 +155,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             // when connection is lost, the library (ChannelActor) will automatically reconnect
             // without the state of this actor changing. But we will receive a new ClientConnected message
             // that we can use to bind our consumers to the channels.
-            allocateResourcesOnConnection(event);
+            startConsumerActors(event);
             return stay();
         });
     }
@@ -380,7 +380,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                             "queue was missing and thus the connection got closed.",
                                     e.getClass().getName(), address);
                         } else {
-                            log.error("Exception while declaring queue {}", address, e);
+                            log.error(e, "Exception while declaring queue {}", address);
                             throw e;
                         }
                     }
