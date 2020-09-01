@@ -34,11 +34,15 @@ public final class DittoLoggerFactory {
     /**
      * Returns a {@link DittoLogger} named corresponding to the class passed as parameter, using the statically bound
      * {@link org.slf4j.ILoggerFactory} instance.
-     *
+     * <p>
      * In case the the clazz parameter differs from the name of the caller as computed internally by SLF4J, a logger
      * name mismatch warning will be printed but only if the {@code slf4j.detectLoggerNameMismatch} system property is
      * set to {@code true}.
      * By default, this property is not set and no warnings will be printed even in case of a logger name mismatch.
+     * </p>
+     * <p>
+     * The returned logger is <em>not thread-safe!</em>.
+     * </p>
      *
      * @param clazz provides the name of the returned logger.
      * @return the logger.
@@ -51,9 +55,12 @@ public final class DittoLoggerFactory {
     /**
      * Returns a {@link DittoLogger} named according to the name parameter using the statically bound
      * {@link org.slf4j.ILoggerFactory} instance.
+     * <p>
+     * The returned logger is <em>not thread-safe!</em>.
+     * </p>
      *
      * @param name the name of the logger.
-     * @return the logger.
+     * @return the not thread-safe logger.
      * @throws NullPointerException if {@code name} is {@code null}.
      */
     public static DittoLogger getLogger(final CharSequence name) {
@@ -61,10 +68,42 @@ public final class DittoLoggerFactory {
     }
 
     /**
+     * Returns a {@link ThreadSafeDittoLogger} named corresponding to the class passed as parameter, using the
+     * statically bound {@link org.slf4j.ILoggerFactory} instance.
+     * <p>
+     * In case the the clazz parameter differs from the name of the caller as computed internally by SLF4J, a logger
+     * name mismatch warning will be printed but only if the {@code slf4j.detectLoggerNameMismatch} system property is
+     * set to {@code true}.
+     * By default, this property is not set and no warnings will be printed even in case of a logger name mismatch.
+     * </p>
+     *
+     * @param clazz provides the name of the returned logger.
+     * @return the thread-safe logger.
+     * @throws NullPointerException if {@code clazz} is {@code null}.
+     * @since 1.3.0
+     */
+    public static ThreadSafeDittoLogger getThreadSafeLogger(final Class<?> clazz) {
+        return ImmutableThreadSafeDittoLogger.of(LoggerFactory.getLogger(checkNotNull(clazz, "clazz")));
+    }
+
+    /**
+     * Returns a {@link ThreadSafeDittoLogger} named according to the name parameter using the statically bound
+     * {@link org.slf4j.ILoggerFactory} instance.
+     *
+     * @param name the name of the logger.
+     * @return the thread-safe logger.
+     * @throws NullPointerException if {@code clazz} is {@code null}.
+     * @since 1.3.0
+     */
+    public static ThreadSafeDittoLogger getThreadSafeLogger(final CharSequence name) {
+        return ImmutableThreadSafeDittoLogger.of(LoggerFactory.getLogger(checkNotNull(name, "name").toString()));
+    }
+
+    /**
      * Returns a LoggingAdapter with MDC support for the given actor.
      *
      * @param logSource the Actor used as logSource
-     * @return the logging adapter.
+     * @return the not thread-safe logging adapter.
      * @throws NullPointerException if {@code logSource} is {@code null}.
      */
     public static DittoDiagnosticLoggingAdapter getDiagnosticLoggingAdapter(final Actor logSource) {
