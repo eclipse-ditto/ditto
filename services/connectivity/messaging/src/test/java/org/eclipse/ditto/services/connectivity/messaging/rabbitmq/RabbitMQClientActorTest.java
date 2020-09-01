@@ -13,6 +13,12 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_ACK;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Sources.AMQP_SOURCE_ADDRESS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,22 +41,32 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.newmotion.akka.rabbitmq.AmqpShutdownSignal;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.ShutdownSignalException;
 
 import akka.actor.Actor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -67,19 +83,19 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             new IllegalArgumentException("custom error message");
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
-    private static final ConnectivityStatus CONNECTION_STATUS = ConnectivityStatus.OPEN;
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
     private static Connection connection;
 
-    @Mock
-    private final ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
-    private final RabbitConnectionFactoryFactory
-            rabbitConnectionFactoryFactory = (con, exHandler) -> mockConnectionFactory;
-    @Mock
-    private final com.rabbitmq.client.Connection mockConnection = Mockito.mock(com.rabbitmq.client.Connection.class);
-    @Mock
-    private final Channel mockChannel = Mockito.mock(Channel.class);
+    @Mock private ConnectionFactory mockConnectionFactory;
+    @Mock private ConnectionFactory failingMockConnectionFactory;
+    @Mock private com.rabbitmq.client.Connection mockConnection;
+    @Mock private com.rabbitmq.client.Connection mockReconnection;
+    @Mock private Channel mockChannel;
+    @Mock private Channel mockChannelReconnected;
+
+    private final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory =
+            (con, exHandler) -> mockConnectionFactory;
 
     @BeforeClass
     public static void setUp() {
@@ -98,7 +114,12 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Before
     public void init() throws IOException, TimeoutException {
         when(mockConnectionFactory.newConnection()).thenReturn(mockConnection);
+        when(failingMockConnectionFactory.newConnection())
+                .thenReturn(mockConnection)
+                .thenThrow(new IOException("connection failed")) // fail once to simulate connection problems
+                .thenReturn(mockReconnection);
         when(mockConnection.createChannel()).thenReturn(mockChannel);
+        when(mockReconnection.createChannel()).thenReturn(mockChannelReconnected);
     }
 
     @Test
@@ -155,6 +176,77 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             rabbitClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
+    }
+
+    @Test
+    public void testReconnectionHandling() throws IOException {
+        new TestKit(actorSystem) {{
+            final ArgumentCaptor<Consumer> consumer = ArgumentCaptor.forClass(Consumer.class);
+            final ArgumentCaptor<Consumer> reconnectedConsumer = ArgumentCaptor.forClass(Consumer.class);
+
+            final Connection connection = getConnection(false);
+            final Props props = getClientActorProps(getRef(), connection, failingMockConnectionFactory);
+            final ActorRef rabbitClientActor = actorSystem.actorOf(props);
+            watch(rabbitClientActor);
+
+            rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
+
+            // 1 consume channel + 1 publish channel
+            verify(mockConnection, times(2)).createChannel();
+            // 2 invocations because consumer count is set to 2
+            verify(mockChannel, times(2)).basicConsume(eq(AMQP_SOURCE_ADDRESS), eq(false),
+                    consumer.capture());
+
+            // verify inbound signal processed
+            sendInboundModifyThingProtocolMessage(consumer.getValue());
+            final ModifyThing modifyThing = expectMsgClass(ModifyThing.class);
+
+            // verify outbound signal processed
+            sendOutboundSignal(rabbitClientActor, modifyThing, connection.getTargets().get(0));
+            verifyPublishOnChannel(mockChannel);
+
+            // simulate rabbitmq connection gets interrupted
+            final AmqpShutdownSignal shutdownSignal =
+                    AmqpShutdownSignal.apply(new ShutdownSignalException(true, true, null, mockConnection));
+            ActorSelection.apply(rabbitClientActor, "rmq-connection*").tell(shutdownSignal, getRef());
+
+            // verify consume and publish channel created on new connection
+            verify(mockReconnection, timeout(6_000).times(2)).createChannel();
+            // verify basicConsume called on new channel
+            verify(mockChannelReconnected, timeout(6_000).times(2))
+                    .basicConsume(eq(AMQP_SOURCE_ADDRESS), eq(false), reconnectedConsumer.capture());
+
+            // verify inbound signal processed after reconnect
+            sendInboundModifyThingProtocolMessage(reconnectedConsumer.getValue());
+            final ModifyThing modifyThingReconnected = expectMsgClass(ModifyThing.class);
+
+            // verify outbound signal processed after reconnect
+            sendOutboundSignal(rabbitClientActor, modifyThingReconnected, connection.getTargets().get(0));
+            verifyPublishOnChannel(mockChannelReconnected);
+
+            rabbitClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(DISCONNECTED_SUCCESS);
+        }};
+    }
+
+    private void verifyPublishOnChannel(final Channel ch) throws IOException {
+        verify(ch, timeout(500).times(1))
+                .basicPublish(eq("twinEventExchange"), eq("twinEventRoutingKey"), eq(true),
+                        any(AMQP.BasicProperties.class), any(byte[].class));
+    }
+
+    private void sendOutboundSignal(final ActorRef rabbitClientActor, final ModifyThing modifyThing,
+            final Target target) {
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(modifyThing, Collections.singletonList(target));
+        rabbitClientActor.tell(outboundSignal, ActorRef.noSender());
+    }
+
+    private void sendInboundModifyThingProtocolMessage(final Consumer consumer) throws IOException {
+        final Envelope envelope = new Envelope(1L, false, "exchange", "key");
+        final AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder().build();
+        consumer.handleDelivery("whatever", envelope, basicProperties, MODIFY_THING_WITH_ACK.getBytes());
     }
 
     @Test
@@ -220,7 +312,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             // a publisher and a consumer channel should be created
-            verify(mockConnection, Mockito.times(2)).createChannel();
+            verify(mockConnection, Mockito.timeout(500).times(2)).createChannel();
         }};
     }
 
@@ -257,8 +349,13 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
+        return getClientActorProps(proxyActor, connection, mockConnectionFactory);
+    }
+
+    private Props getClientActorProps(final ActorRef proxyActor, final Connection connection,
+            final ConnectionFactory connectionFactory) {
         return RabbitMQClientActor.propsForTests(connection, proxyActor,
-                proxyActor, (con, exHandler) -> mockConnectionFactory)
+                proxyActor, (con, exHandler) -> connectionFactory)
                 .withDispatcher(CallingThreadDispatcher.Id());
     }
 
