@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -304,23 +305,25 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .withSizeLimit(maxBytes)
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
                 .thenApply(strictEntity -> {
-                    final Charset charset = strictEntity.getContentType().getCharsetOption()
+                    final akka.http.javadsl.model.ContentType contentType = strictEntity.getContentType();
+                    final Charset charset = contentType.getCharsetOption()
                             .map(HttpCharset::nioCharset)
                             .orElse(StandardCharsets.UTF_8);
-                    if (isApplicationJson(strictEntity.getContentType().mediaType())) {
+                    final byte[] bytes = strictEntity.getData().toArray();
+                    if (isApplicationJson(contentType.mediaType())) {
                         // check for application/.*json first: vendor JSON types are classified incorrectly as binary
-                        final String bodyString = new String(strictEntity.getData().toArray(), charset);
+                        final String bodyString = new String(bytes, charset);
                         try {
                             return JsonFactory.readFrom(bodyString);
                         } catch (Exception e) {
                             return JsonValue.of(bodyString);
                         }
-                    } else if (!strictEntity.getContentType().binary()) {
-                        // leave out non-JSON binary payload
-                        return null;
+                    } else if (contentType.binary()) {
+                        final String base64bytes = Base64.getEncoder().encodeToString(bytes);
+                        return JsonFactory.newValue(base64bytes);
                     } else {
                         // add text payload as JSON string
-                        return JsonFactory.newValue(new String(strictEntity.getData().toArray(), charset));
+                        return JsonFactory.newValue(new String(bytes, charset));
                     }
                 });
     }
