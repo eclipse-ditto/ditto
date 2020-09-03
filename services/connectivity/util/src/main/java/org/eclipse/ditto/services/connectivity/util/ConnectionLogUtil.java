@@ -23,7 +23,7 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 public final class ConnectionLogUtil {
 
-    private static final String MDC_CONNECTION_ID = "connection-id";
+    private static final String MDC_CONNECTION_ID = ConnectivityMdcEntryKey.CONNECTION_ID.toString();
 
     private ConnectionLogUtil() {
         throw new AssertionError();

@@ -75,8 +75,8 @@ import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
@@ -120,7 +120,8 @@ import akka.pattern.Patterns;
  */
 public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingCommandEnforcement.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class);
 
     /**
      * Label of default policy entry in default policy.
@@ -217,8 +218,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final ThingId thingId = signal().getThingEntityId();
             final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(signal(), thingId, policyId);
-            LOGGER.withCorrelationId(dittoHeaders())
-                    .info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.withCorrelationId(dittoHeaders())
+                        .info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId,
+                                error.toString());
+            }
             throw error;
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
@@ -230,20 +234,19 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                     .thenApply(create -> create.withReceiver(thingsShardRegion))
                     )
                     .exceptionally(throwable -> {
+                        final ThreadSafeDittoLogger l = LOGGER.withCorrelationId(dittoHeaders());
+
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(throwable, cause -> {
-                                    LOGGER.withCorrelationId(dittoHeaders())
-                                            .warn("Error during thing by itself enforcement - {}: {}",
-                                                    cause.getClass().getSimpleName(), cause.getMessage());
+                                    l.warn("Error during thing by itself enforcement - {}: {}",
+                                            cause.getClass().getSimpleName(), cause.getMessage());
                                     throw GatewayInternalErrorException.newBuilder()
                                             .cause(cause)
                                             .build();
                                 });
 
-                        LOGGER.withCorrelationId(dittoHeaders())
-                                .debug("DittoRuntimeException during enforceThingCommandByNonexistentEnforcer - {}: {}",
-                                        dittoRuntimeException.getClass().getSimpleName(),
-                                        dittoRuntimeException.getMessage());
+                        l.debug("DittoRuntimeException during enforceThingCommandByNonexistentEnforcer - {}: {}",
+                                dittoRuntimeException.getClass().getSimpleName(), dittoRuntimeException.getMessage());
                         throw dittoRuntimeException;
                     });
         }
@@ -720,23 +723,22 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     private CompletionStage<JsonObject> getInitialPolicyOrCopiedPolicy(final CreateThing createThing) {
+        final ThreadSafeDittoLogger l = LOGGER.withCorrelationId(createThing);
         return createThing.getPolicyIdOrPlaceholder()
                 .flatMap(ReferencePlaceholder::fromCharSequence)
                 .map(referencePlaceholder -> {
-                    LOGGER.withCorrelationId(createThing).debug("CreateThing command contains a reference placeholder" +
-                            " for the policy it wants to copy: {}", referencePlaceholder);
+                    l.debug("CreateThing command contains a reference placeholder for the policy it wants to copy: {}",
+                            referencePlaceholder);
                     return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder, dittoHeaders());
                 })
                 .orElseGet(() -> CompletableFuture.completedFuture(createThing.getPolicyIdOrPlaceholder().orElse(null)))
                 .thenCompose(policyId -> {
                     if (policyId != null) {
-                        LOGGER.withCorrelationId(createThing)
-                                .debug("CreateThing command wants to use a copy of Policy <{}>", policyId);
+                        l.debug("CreateThing command wants to use a copy of Policy <{}>", policyId);
                         return retrievePolicyWithEnforcement(PolicyId.of(policyId))
                                 .thenApply(policy -> policy.toJson(JsonSchemaVersion.V_2).remove("policyId"));
                     } else {
-                        LOGGER.withCorrelationId(createThing)
-                                .debug("CreateThing command did not contain a policy that should be copied.");
+                        l.debug("CreateThing command did not contain a policy that should be copied.");
                         return CompletableFuture.completedFuture(createThing.getInitialPolicy().orElse(null));
                     }
                 });
@@ -1225,6 +1227,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
                 @Nullable final PreEnforcer preEnforcer) {
+
             this(thingsShardRegion, policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache,
                     preEnforcer, DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
         }

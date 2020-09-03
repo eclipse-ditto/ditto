@@ -80,7 +80,9 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -93,6 +95,9 @@ import scala.concurrent.duration.Duration;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
+
+    @Rule
+    public final TestName testName = new TestName();
 
     private ActorSystem system;
     private MockEntitiesActor mockEntitiesActorInstance;
@@ -687,11 +692,12 @@ public final class ThingCommandEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
+    private DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
                 .authorizationContext(
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
                                 AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
+                .correlationId(testName.getMethodName())
                 .schemaVersion(schemaVersion)
                 .build();
     }
@@ -712,11 +718,11 @@ public final class ThingCommandEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static ThingCommand getReadCommand() {
+    private ThingCommand getReadCommand() {
         return RetrieveThing.of(THING_ID, headers(V_2));
     }
 
-    private static ThingCommand getModifyCommand() {
+    private ThingCommand getModifyCommand() {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
     }
 
