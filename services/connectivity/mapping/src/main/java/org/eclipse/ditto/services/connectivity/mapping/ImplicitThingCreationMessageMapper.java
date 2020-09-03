@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
@@ -155,7 +156,11 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         final Thing newThing = ThingsModelFactory.newThing(thingJson);
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
-        return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, message.getInternalHeaders());
+        //Sets content-type to application/json to allow Ditto PayloadMapping
+        final DittoHeaders dittoHeaders =
+                message.getInternalHeaders().toBuilder().contentType("application/json").build();
+        return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom,
+                dittoHeaders);
     }
 
     @Nullable
