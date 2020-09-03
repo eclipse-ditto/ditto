@@ -262,7 +262,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final DittoHeaders dittoHeaders = setContentType(signal.getDittoHeaders(), response);
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
         final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
         if (statusOptional.isEmpty()) {
@@ -282,6 +282,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
         return new ImmutableConnectionFailure(getSelf(), error, "HttpPublisherActor stream terminated");
+    }
+
+    private static DittoHeaders setContentType(final DittoHeaders dittoHeaders, final HttpResponse response) {
+        return dittoHeaders.toBuilder()
+                .contentType(response.entity().getContentType().toString())
+                .build();
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {
