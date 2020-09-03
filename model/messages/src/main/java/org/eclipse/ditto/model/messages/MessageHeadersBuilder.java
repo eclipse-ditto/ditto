@@ -283,7 +283,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
                 final String msgTemplate = "Value for mandatory header with key <{0}> cannot be overwritten!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
             }
-            definition.validateValue(value);
         });
     }
 
