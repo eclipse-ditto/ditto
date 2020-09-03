@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchCommand<T extends ThingSearchCommand>
+public interface ThingSearchCommand<T extends ThingSearchCommand<T>>
         extends Command<T>, WithIdButActuallyNot {
 
     /**

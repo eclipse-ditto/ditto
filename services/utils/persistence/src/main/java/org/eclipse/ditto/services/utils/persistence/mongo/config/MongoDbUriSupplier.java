@@ -212,6 +212,8 @@ final class MongoDbUriSupplier implements Supplier<String> {
     @Immutable
     static final class QueryComponentParser implements Function<String, Map<String, String>> {
 
+        private static final QueryComponentParser INSTANCE = new QueryComponentParser();
+
         private QueryComponentParser() {
             super();
         }
@@ -222,7 +224,7 @@ final class MongoDbUriSupplier implements Supplier<String> {
          * @return the instance.
          */
         static QueryComponentParser getInstance() {
-            return new QueryComponentParser();
+            return INSTANCE;
         }
 
         @Override

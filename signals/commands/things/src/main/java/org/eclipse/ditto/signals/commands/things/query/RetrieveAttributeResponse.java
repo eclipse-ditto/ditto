@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -69,9 +70,13 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
 
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
-        this.attributePointer = Objects.requireNonNull(attributePointer,
-                "The JSON pointer which attribute to retrieve must not be null!");
+        this.attributePointer = checkAttributePointer(attributePointer);
         this.attributeValue = checkNotNull(attributeValue, "Attribute Value");
+    }
+
+    private JsonPointer checkAttributePointer(final JsonPointer attributePointer) {
+        checkNotNull(attributePointer, "The JSON pointer which attribute to retrieve must not be null!");
+        return AttributesModelFactory.validateAttributePointer(attributePointer);
     }
 
     /**
@@ -83,16 +88,16 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
-    public static RetrieveAttributeResponse of(final String thingId,
-            final JsonPointer attributePointer,
-            final JsonValue attributeValue,
-            final DittoHeaders dittoHeaders) {
-
+    public static RetrieveAttributeResponse of(final String thingId, final JsonPointer attributePointer,
+            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         return of(ThingId.of(thingId), attributePointer, attributeValue, dittoHeaders);
     }
 
@@ -105,12 +110,11 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static RetrieveAttributeResponse of(final ThingId thingId,
-            final JsonPointer attributePointer,
-            final JsonValue attributeValue,
-            final DittoHeaders dittoHeaders) {
-
+    public static RetrieveAttributeResponse of(final ThingId thingId, final JsonPointer attributePointer,
+            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         return new RetrieveAttributeResponse(thingId, attributePointer, attributeValue, HttpStatusCode.OK,
                 dittoHeaders);
     }
@@ -125,6 +129,8 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveAttributeResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -139,6 +145,8 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAttributeResponse>(TYPE, jsonObject)

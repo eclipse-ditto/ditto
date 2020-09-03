@@ -12,16 +12,22 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.AfterClass;
@@ -30,15 +36,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
-
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import static org.mockito.Mockito.*;
 
 public final class EnforcementSchedulerTest {
 
@@ -73,8 +76,8 @@ public final class EnforcementSchedulerTest {
             final TestProbe receiverProbe = TestProbe.apply(actorSystem);
             final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), deadLetterProbe.ref(),
                     pubSubProbe.ref(), conciergeForwarderProbe.ref(),
-                    Duration.ofSeconds(10), Mockito.mock(DittoDiagnosticLoggingAdapter.class),
-                    Mockito.mock(Cache.class));
+                    Duration.ofSeconds(10), Mockito.mock(DittoDiagnosticLoggingAdapter.class)
+            );
             final ThingId thingId = ThingId.of("busy", "thing");
             final PolicyId policyId = PolicyId.of("some", "policy");
             final PolicyId policyId2 = PolicyId.of("other", "policy");
@@ -145,16 +148,16 @@ public final class EnforcementSchedulerTest {
             underTest.tell(retrieveThing2TaskSpy, getRef());
             underTest.tell(modifyPolicyId2TaskSpy, getRef());
 
-            inOrder.verify(retrieveThing1TaskSpy, timeout(1000)).start();
+            inOrder.verify(retrieveThing1TaskSpy, timeout(2000)).start();
             // Ensures that modifyPolicyId1 is scheduled without waiting for retrieveThing1 being finished.
-            inOrder.verify(modifyPolicyId1TaskSpy, timeout(1000)).start();
+            inOrder.verify(modifyPolicyId1TaskSpy, timeout(2000)).start();
             // Ensures that retrieveThing2 is blocked by modifyPolicyID1 which changes authorization and has a 3 second duration
-            verify(retrieveThing2TaskSpy, after(1000).never()).start();
+            verify(retrieveThing2TaskSpy, after(2000).never()).start();
             receiverProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), retrieveThing1);
             receiverProbe.expectMsg(modifyPolicyId1);
 
-            inOrder.verify(retrieveThing2TaskSpy, timeout(1000)).start();
-            inOrder.verify(modifyPolicyId2TaskSpy, timeout(1000)).start();
+            inOrder.verify(retrieveThing2TaskSpy, timeout(2000)).start();
+            inOrder.verify(modifyPolicyId2TaskSpy, timeout(2000)).start();
             receiverProbe.expectMsg(retrieveThing2);
             receiverProbe.expectMsg(modifyPolicyId2);
         }};

@@ -47,7 +47,6 @@ import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -154,14 +153,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         receiveBuilder.match(OutboundSignal.MultiMapped.class, this::sendMultiMappedOutboundSignal)
                 .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
-                        getSender().tell(rs, getSelf())))
-                .matchAny(m -> {
-                    log().warning("Unknown message: {}", m);
-                    unhandled(m);
-                });
+                        getSender().tell(rs, getSelf())));
 
         postEnhancement(receiveBuilder);
-        return receiveBuilder.build();
+        return receiveBuilder.matchAny(m -> {
+            log().warning("Unknown message: {}", m);
+            unhandled(m);
+        }).build();
     }
 
     /**
@@ -193,8 +191,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .thenAccept(ackList -> {
                     final ActorRef sender = multiMapped.getSender().orElse(null);
                     if (!ackList.isEmpty() && sender != null) {
-                        final Acknowledgements aggregatedAcks = Acknowledgements.of(appendConnectionId(ackList),
-                                multiMapped.getSource().getDittoHeaders());
+                        final Acknowledgements aggregatedAcks = appendConnectionId(
+                                Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
                         logIfDebug(multiMapped, l ->
                                 l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks));
                         sender.tell(aggregatedAcks, getSelf());
@@ -212,12 +210,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
-    private List<Acknowledgement> appendConnectionId(final Collection<Acknowledgement> acknowledgements) {
-        return acknowledgements.stream()
-                .map(ack -> ack.setDittoHeaders(ack.getDittoHeaders().toBuilder()
-                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId)
-                        .build()))
-                .collect(Collectors.toList());
+    private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
+        return MessageMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connectionId);
     }
 
     private void logIfDebug(final OutboundSignal.MultiMapped multiMapped, final Consumer<LoggingAdapter> whatToLog) {
@@ -525,10 +519,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ConnectionMonitor publishedMonitor =
                 connectionMonitorRegistry.forOutboundPublished(connectionId, target.getOriginalAddress());
         @Nullable final ConnectionMonitor acknowledgedMonitor =
-                isTargetAckRequested(outboundSignal, target) ? connectionMonitorRegistry.forInboundAcknowledged(connectionId, target.getOriginalAddress()) : null;
+                isTargetAckRequested(outboundSignal, target) ?
+                        connectionMonitorRegistry.forInboundAcknowledged(connectionId, target.getOriginalAddress()) :
+                        null;
         @Nullable final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
-        return new SendingContext(outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor, publishedMonitor, autoAckTarget);
+        return new SendingContext(outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor,
+                publishedMonitor, autoAckTarget);
     }
 
     @Nullable
@@ -586,7 +583,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }
 
         private SendingContext setExternalMessage(final ExternalMessage externalMessage) {
-            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor, acknowledgedMonitor, droppedMonitor,
+            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor,
+                    acknowledgedMonitor, droppedMonitor,
                     autoAckTarget);
         }
     }
@@ -618,10 +616,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                     context.publishedMonitor.success(context.externalMessage);
                                     return context.shouldAcknowledge() ? ack : null;
                                 } else if (ack != null) {
-                                   if (context.acknowledgedMonitor != null) {
-                                       context.acknowledgedMonitor.failure(context.externalMessage,
-                                               ackToException(ack));
-                                   }
+                                    if (context.acknowledgedMonitor != null) {
+                                        context.acknowledgedMonitor.failure(context.externalMessage,
+                                                ackToException(ack));
+                                    }
                                     return ack;
                                 } else {
                                     // ack == null; report error.
@@ -708,7 +706,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
-     * Fully customizable coverter from publisher errors to acknowledgements.
+     * Fully customizable converter from publisher errors to acknowledgements.
      */
     protected static class ErrorConverter {
 

@@ -75,7 +75,7 @@ public final class MappingStrategiesBuilderTest {
                     .containsKey(KNOWN_TYPE);
             softly.assertThat(strategies.get(KNOWN_TYPE))
                     .as("contains expected mapping strategy")
-                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.parse(KNOWN_OBJECT, KNOWN_HEADERS))
                             .isEqualTo(KNOWN_JSONIFIABLE));
         }
     }
@@ -92,7 +92,7 @@ public final class MappingStrategiesBuilderTest {
                     .containsKey(KNOWN_TYPE);
             softly.assertThat(strategies.get(KNOWN_TYPE))
                     .as("contains expected mapping strategy")
-                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.parse(KNOWN_OBJECT, KNOWN_HEADERS))
                             .isEqualTo(KNOWN_JSONIFIABLE));
         }
     }
@@ -109,7 +109,7 @@ public final class MappingStrategiesBuilderTest {
                     .containsKey(KNOWN_TYPE);
             softly.assertThat(strategies.get(KNOWN_TYPE))
                     .as("contains expected mapping strategy")
-                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.parse(KNOWN_OBJECT, KNOWN_HEADERS))
                             .isEqualTo(KNOWN_JSONIFIABLE));
         }
     }
@@ -126,7 +126,7 @@ public final class MappingStrategiesBuilderTest {
                     .containsKey(KNOWN_TYPE);
             softly.assertThat(strategies.get(KNOWN_TYPE))
                     .as("contains expected mapping strategy")
-                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.map(KNOWN_OBJECT, KNOWN_HEADERS))
+                    .satisfies(mappingStrategy -> softly.assertThat(mappingStrategy.parse(KNOWN_OBJECT, KNOWN_HEADERS))
                             .isEqualTo(KNOWN_JSONIFIABLE));
         }
     }

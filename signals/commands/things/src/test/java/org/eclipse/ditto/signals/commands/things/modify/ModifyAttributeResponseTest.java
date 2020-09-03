@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.EMPTY_JSON_POINTER;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.INVALID_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -26,6 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -50,7 +54,6 @@ public class ModifyAttributeResponseTest {
             .set(ModifyAttributeResponse.JSON_ATTRIBUTE, TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyAttributeResponse.class,
@@ -58,14 +61,12 @@ public class ModifyAttributeResponseTest {
                 provided(JsonValue.class, JsonPointer.class, ThingId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyAttributeResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -86,7 +87,6 @@ public class ModifyAttributeResponseTest {
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final ModifyAttributeResponse underTestCreated =
@@ -102,4 +102,15 @@ public class ModifyAttributeResponseTest {
         assertThat(underTestUpdated.getAttributeValue()).isEmpty();
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void tryToCreateInstanceWithValidArguments() {
+        ModifyAttributeResponse.modified(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = AttributePointerInvalidException.class)
+    public void createInstanceWithEmptyPointer() {
+        ModifyAttributeResponse.modified(TestConstants.Thing.THING_ID, EMPTY_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 }

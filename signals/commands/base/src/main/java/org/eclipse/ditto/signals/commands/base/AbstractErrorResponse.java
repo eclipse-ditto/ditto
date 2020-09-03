@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.base.ErrorRegistry;
  *
  * @param <T> the type of the implementing class.
  */
-public abstract class AbstractErrorResponse<T extends AbstractErrorResponse>
+public abstract class AbstractErrorResponse<T extends AbstractErrorResponse<T>>
         extends AbstractCommandResponse<T> implements ErrorResponse<T> {
 
     protected static final String FALLBACK_ID = "unknown:unknown";

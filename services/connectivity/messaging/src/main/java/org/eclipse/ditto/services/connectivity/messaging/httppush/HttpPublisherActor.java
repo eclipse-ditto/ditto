@@ -40,6 +40,8 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -47,6 +49,8 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 
+import akka.Done;
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
@@ -60,13 +64,17 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.KillSwitch;
+import akka.stream.KillSwitches;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
+import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.util.Try;
 
 /**
@@ -89,6 +97,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
+    private final KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
@@ -102,15 +111,30 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
         materializer = Materializer.createMaterializer(this::getContext);
-        sourceQueue =
+        final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
+                CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
                         .viaMat(factory.createFlow(system, log), Keep.left())
-                        .toMat(Sink.foreach(this::processResponse), Keep.left())
+                        .viaMat(KillSwitches.single(), Keep.both())
+                        .toMat(Sink.foreach(this::processResponse), Keep.both())
                         .run(materializer);
+        sourceQueue = materialized.first().first();
+        killSwitch = materialized.first().second();
+
+        // Inform self of stream termination.
+        // If self is alive, the error should be escalated.
+        materialized.second()
+                .whenComplete((done, error) -> getSelf().tell(toConnectionFailure(done, error), ActorRef.noSender()));
     }
 
     static Props props(final Connection connection, final HttpPushFactory factory) {
         return Props.create(HttpPublisherActor.class, connection, factory);
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        killSwitch.shutdown();
+        super.postStop();
     }
 
     @Override
@@ -120,7 +144,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
-        // noop
+        receiveBuilder.match(ConnectionFailure.class, failure -> getContext().getParent().tell(failure, getSelf()));
     }
 
     @Override
@@ -253,6 +277,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body)
             );
         }
+    }
+
+    private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
+        return new ImmutableConnectionFailure(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {

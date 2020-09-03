@@ -15,14 +15,12 @@ package org.eclipse.ditto.model.things;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 
 /**
@@ -30,8 +28,6 @@ import org.eclipse.ditto.json.JsonPointerInvalidException;
  */
 @Immutable
 public final class AttributesModelFactory {
-
-    private static final Pattern ATTRIBUTE_POINTER_PATTERN = Pattern.compile("^[^/].*[^/]$|[^/]");
 
     /*
      * Inhibit instantiation of this utility class.
@@ -64,18 +60,14 @@ public final class AttributesModelFactory {
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code Attributes}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws JsonPointerInvalidException if an attribute name in the contained {@code jsonObject} was not valid
+     * according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Attributes newAttributes(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            for (final JsonKey key : jsonObject.getKeys()) {
-                final Matcher matcher =
-                        ATTRIBUTE_POINTER_PATTERN.matcher(key);
-                if (!matcher.matches()) {
-                    throw JsonPointerInvalidException.newBuilderForOuterSlashes(key).build();
-                }
-            }
             return ImmutableAttributes.of(jsonObject);
         } else {
             return nullAttributes();
@@ -116,4 +108,16 @@ public final class AttributesModelFactory {
         return ImmutableAttributesBuilder.of(jsonObject);
     }
 
+    /**
+     * Validates the given attribute {@link JsonPointer}.
+     *
+     * @param jsonPointer {@code jsonPointer} that is validated
+     * @return the same {@code jsonPointer} if validation was successful
+     * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.2.0
+     */
+    public static JsonPointer validateAttributePointer(final JsonPointer jsonPointer) {
+        return JsonKeyValidator.validate(jsonPointer);
+    }
 }

@@ -42,6 +42,8 @@ final class VcapServicesStringParser implements Function<String, Config> {
 
     private static final String VCAP_SERVICE_NAME_CONFIG_PATH = "name";
 
+    private static final VcapServicesStringParser INSTANCE = new VcapServicesStringParser();
+
     private VcapServicesStringParser() {
         super();
     }
@@ -52,7 +54,7 @@ final class VcapServicesStringParser implements Function<String, Config> {
      * @return the instance.
      */
     static VcapServicesStringParser getInstance() {
-        return new VcapServicesStringParser();
+        return INSTANCE;
     }
 
     @Override

@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId {
+public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThingId {
 
     /**
      * Type Prefix of Thing events.

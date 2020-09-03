@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.whoami;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
@@ -103,4 +104,9 @@ public final class Whoami extends CommonCommand<Whoami> {
         return "Whoami{} " + super.toString();
     }
 
+    @Override
+    @Nonnull
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
 }

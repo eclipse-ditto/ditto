@@ -82,7 +82,7 @@ public final class MessageHeadersBuilderTest {
 
     @Test
     public void tryToCreateInstanceWithInvalidSubject() {
-        final String invalidSubject = "{foo}";
+        final String invalidSubject = "§foo";
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, invalidSubject))

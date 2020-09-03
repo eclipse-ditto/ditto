@@ -14,14 +14,17 @@ package org.eclipse.ditto.signals.commands.base;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.*;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.*;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -32,7 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractCommandResponse<T extends AbstractCommandResponse> implements CommandResponse<T> {
+public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<T>> implements CommandResponse<T> {
 
     private final String responseType;
     private final HttpStatusCode statusCode;

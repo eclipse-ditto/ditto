@@ -55,13 +55,19 @@ public final class KafkaValidator extends AbstractProtocolValidator {
             Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(),
                     KafkaBootstrapServerSpecificConfig.getInstance()));
 
+    private static final KafkaValidator INSTANCE = new KafkaValidator();
+
+    private KafkaValidator() {
+        super();
+    }
+
     /**
      * Returns an instance of the Kafka validator.
      *
      * @return the instance.
      */
     public static KafkaValidator getInstance() {
-        return new KafkaValidator();
+        return INSTANCE;
     }
 
     @Override

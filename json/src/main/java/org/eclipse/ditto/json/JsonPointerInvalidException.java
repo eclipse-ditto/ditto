@@ -73,7 +73,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
      * Returns a new builder already containing a generic message that leading or trailing slashes are not supported for JSON
      * pointers.
      *
-     * @param jsonPointer The JSON pointer containing the consecutive slashes.
+     * @param jsonPointer The JSON pointer containing the leading and/or trailing slashes.
      * @return a builder for {@code JsonPointerInvalidException} objects.
      */
     public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForOuterSlashes(

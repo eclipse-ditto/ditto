@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
@@ -72,6 +73,8 @@ import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 
 /**
  * Tests {@link RootRoute}.
@@ -119,6 +122,7 @@ public final class RootRouteTest extends EndpointTestBase {
     @Before
     public void setUp() {
         final ActorSystem actorSystem = system();
+        final Materializer materializer = SystemMaterializer.get(system()).materializer();
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
@@ -149,7 +153,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, materializer))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
@@ -423,6 +427,22 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result = rootTestRoute.run(request);
 
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
+    }
+
+    /**
+     * Make sure header is RFC 7230 conform
+     */
+    @Test
+    public void getExceptionDueToInvalidHeaderKey() {
+        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+            akka.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");}
+        );
+    }
+    @Test
+    public void getExceptionDueToInvalidHeaderValue() {
+        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+            akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");}
+            );
     }
 
     private static HttpRequest withHttps(final HttpRequest httpRequest) {

@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEvent> implements ConnectivityEvent<T> {
+public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEvent<T>> implements ConnectivityEvent<T> {
 
     private final String type;
     private final ConnectionId connectionId;

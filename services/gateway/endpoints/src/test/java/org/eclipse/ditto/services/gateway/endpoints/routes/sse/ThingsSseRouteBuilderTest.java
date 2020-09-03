@@ -268,6 +268,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
             });
 
             final Connect receivedConnect = streamingActor.expectMsgClass(Connect.class);
+            streamingActor.reply(streamingActor.ref());
 
             final SourceQueueWithComplete<SessionedJsonifiable> publisherQueue =
                     receivedConnect.getEventAndResponsePublisher();

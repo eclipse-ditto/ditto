@@ -75,12 +75,13 @@ import akka.cluster.Cluster;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.
@@ -210,6 +211,7 @@ final class GatewayRootActor extends DittoRootActor {
             final HeaderTranslator headerTranslator) {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
+        final Materializer materializer = SystemMaterializer.get(actorSystem).materializer();
 
         final MessageDispatcher authenticationDispatcher =
                 actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
@@ -254,7 +256,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig)
+                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())

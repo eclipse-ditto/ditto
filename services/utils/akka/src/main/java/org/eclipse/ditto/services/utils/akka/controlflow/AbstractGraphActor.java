@@ -50,16 +50,6 @@ import akka.stream.javadsl.SourceQueueWithComplete;
  */
 public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
-    /**
-     * For {@code signals} marked with a DittoHeader with that key, the "special enforcement lane" shall be used &ndash;
-     * meaning that those messages are processed not based on the hash of their ID but in a common "special lane".
-     * <p>
-     * Be aware that when using this, all those signals will be effectively sequentially processed but they could
-     * be processed in parallel to other signals whose IDs have the same hash partition in {@link AbstractGraphActor}.
-     * </p>
-     */
-    public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
-
     protected final DittoDiagnosticLoggingAdapter logger;
     protected final Materializer materializer;
 

@@ -39,8 +39,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     private final boolean response;
     private final boolean error;
     private final PayloadType payloadType;
-    private final PayloadMapping payloadMapping;
 
+    @Nullable private final PayloadMapping payloadMapping;
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
@@ -62,7 +62,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final TopicPath topicPath,
             @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
-            final PayloadMapping payloadMapping,
+            @Nullable final PayloadMapping payloadMapping,
             @Nullable final String sourceAddress,
             @Nullable final Source source,
             final DittoHeaders internalHeaders) {

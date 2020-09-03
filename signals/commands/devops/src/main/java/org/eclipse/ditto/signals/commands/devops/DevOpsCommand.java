@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T>, WithIdButActuallyNot {
+public interface DevOpsCommand<T extends DevOpsCommand<T>> extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of DevOps commands.

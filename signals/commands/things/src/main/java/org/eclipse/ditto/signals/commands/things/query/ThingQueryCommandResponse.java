@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingQueryCommandResponse<T extends ThingQueryCommandResponse>
+public interface ThingQueryCommandResponse<T extends ThingQueryCommandResponse<T>>
         extends ThingCommandResponse<T>, WithEntity<T> {
 
     @Override

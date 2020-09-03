@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.base.Signal;
  * @param <T> the type of the implementing class.
  */
 @IndexSubclasses
-public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
+public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T> {
 
     /**
      * Type qualifier of command responses.

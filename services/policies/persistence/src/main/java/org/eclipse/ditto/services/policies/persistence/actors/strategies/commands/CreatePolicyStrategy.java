@@ -52,7 +52,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyBuilder newPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(newPolicy);
 
-        if (!newPolicy.getLifecycle().isPresent()) {
+        if (newPolicy.getLifecycle().isEmpty()) {
             newPolicyBuilder.setLifecycle(PolicyLifecycle.ACTIVE);
         }
 
@@ -62,6 +62,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
             final Instant timestamp = getEventTimestamp();
             final Policy newPolicyWithTimestampAndRevision = newPolicyWithLifecycle.toBuilder()
                     .setModified(timestamp)
+                    .setCreated(timestamp)
                     .setRevision(nextRevision)
                     .build();
             final PolicyCreated policyCreated =

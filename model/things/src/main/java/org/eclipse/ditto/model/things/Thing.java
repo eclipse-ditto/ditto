@@ -614,6 +614,15 @@ public interface Thing extends Entity<ThingRevision> {
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the Thing's created timestamp in ISO-8601 format.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<String> CREATED =
+                JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
@@ -652,6 +661,15 @@ public interface Thing extends Entity<ThingRevision> {
         public static final JsonFieldDefinition<JsonObject> FEATURES =
                 JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Thing's metadata.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+            JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

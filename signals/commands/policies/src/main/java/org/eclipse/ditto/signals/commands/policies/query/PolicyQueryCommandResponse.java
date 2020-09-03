@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyQueryCommandResponse<T extends PolicyQueryCommandResponse>
+public interface PolicyQueryCommandResponse<T extends PolicyQueryCommandResponse<T>>
         extends PolicyCommandResponse<T>, WithEntity<T> {
 
     @Override

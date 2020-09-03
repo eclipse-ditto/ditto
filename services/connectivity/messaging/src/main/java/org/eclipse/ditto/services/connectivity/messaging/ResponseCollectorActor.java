@@ -100,7 +100,7 @@ public final class ResponseCollectorActor extends AbstractActor {
     }
 
     private void reportIfAllCollected() {
-        if (querySender != null && error != null) {
+        if (querySender != null && error != null && expectedCount >= 0) {
             reportAndStop(error);
         } else if (querySender != null && expectedCount >= 0 && commandResponses.size() >= expectedCount) {
             reportOutputAndStop();
@@ -187,6 +187,20 @@ public final class ResponseCollectorActor extends AbstractActor {
         private SetCount(final int count) {
             this.count = count;
         }
-    }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "[" + count + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return count;
+        }
+
+        @Override
+        public boolean equals(final Object other) {
+            return other instanceof SetCount && ((SetCount) other).count == count;
+        }
+    }
 }

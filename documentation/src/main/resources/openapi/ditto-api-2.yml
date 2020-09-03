@@ -108,6 +108,9 @@ paths:
         The default `policyId` is identical with the default `thingId`, and allows the currently authorized subject all permissions.
 
         In case you need to create a thing with a specific ID, use a *PUT* request instead, as any `thingId` specified in the request body will be ignored.
+
+        The field `_created` is filled automatically with the timestamp of the creation. The field is read-only and can
+        be retrieved later by explicitly selecting it or used in search filters.
       tags:
         - Things
       parameters:
@@ -332,6 +335,9 @@ paths:
         set a policy e.g. "policyId": "com.acme.coffeemaker:policy-1" as the first element in the body part.
         Keep in mind, that you can also change the assignment to another policy anytime,
         with a request on the sub-resource "PUT /things/{thingId}/policyId"
+
+        The field `_created` is filled automatically with the timestamp of the creation. The field is read-only and can
+        be retrieved later by explicitly selecting it or used in search filters.
 
         ### Update an existing thing
 
@@ -2485,7 +2491,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
         '429':
@@ -2573,6 +2592,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
         '503':
@@ -2632,6 +2666,21 @@ paths:
 
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the resource `message:/outbox/messages/{messageSubject}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
           content:
             application/json:
               schema:
@@ -2704,6 +2753,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/messageTooLarge'
         '503':
@@ -2765,6 +2829,21 @@ paths:
 
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the resource `message:/features/{featureId}/outbox/messages/{messageSubject}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the referenced thing does not exist.
+              * the caller has insufficient permissions to interact with the messages of referenced thing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '408':
+          description: The request could not be completed due to timeout.
           content:
             application/json:
               schema:
@@ -4282,12 +4361,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-        '402':
-          description: The request could not be completed due to exceeded transaction count.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
   ###
   ### Things-Search
   ###
@@ -4576,6 +4649,21 @@ components:
           $ref: '#/components/schemas/Attributes'
         features:
           $ref: '#/components/schemas/Features'
+        _revision:
+          type: string
+          description: |-
+            _(read-only)_ The revision is a counter which is incremented on each modification of a Thing. This field
+            is not returned by default but must be selected explicitly.
+        _created:
+          type: string
+          description: |-
+            _(read-only)_ The created timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on creation
+            of a Thing. This field is not returned by default but must be selected explicitly.
+        _modified:
+          type: string
+          description: |-
+            _(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each
+            modification of a Thing. This field is not returned by default but must be selected explicitly.
     Policy:
       type: object
       description: policy consisting of policy entries
@@ -4947,6 +5035,10 @@ components:
 
           Specifically selects the revision of the thing. The revision is a counter, which is incremented on each modification of a thing.
 
+        * `_created`
+
+          Specifically selects the created timestamp of the thing in ISO-8601 UTC format. The timestamp is set on creation of a thing.
+
         * `_modified`
 
           Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
@@ -5137,6 +5229,8 @@ components:
         * ```eq(attributes/location,"kitchen")```
 
         * ```ge(thingId,"myThing1")```
+
+        * ```gt(_created,"2020-08-05T12:17")```
 
         * ```exists(features/featureId)```
 
