@@ -116,7 +116,6 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
         when(mockConnectionFactory.newConnection()).thenReturn(mockConnection);
         when(failingMockConnectionFactory.newConnection())
                 .thenReturn(mockConnection)
-                .thenThrow(new IOException("connection failed")) // fail once to simulate connection problems
                 .thenReturn(mockReconnection);
         when(mockConnection.createChannel()).thenReturn(mockChannel);
         when(mockReconnection.createChannel()).thenReturn(mockChannelReconnected);
