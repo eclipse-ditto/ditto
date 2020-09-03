@@ -65,7 +65,7 @@ import org.slf4j.Logger;
  * @since 1.3.0
  */
 @ThreadSafe
-public interface ThreadSafeDittoLogger extends Logger {
+public interface ThreadSafeDittoLogger extends Logger, WithMdcEntry<ThreadSafeDittoLogger> {
 
     /**
      * Sets the given correlation ID for log operations on the returned logger.
