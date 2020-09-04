@@ -144,6 +144,51 @@ public class ImplicitThingCreationMessageMapperTest {
     }
 
     @Test
+    public void doForwardMappingTwice() {
+        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITH_POLICY));
+
+        final Map<String, String> headers1 = new HashMap<>();
+        headers1.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId1");
+        headers1.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
+
+        final ExternalMessage externalMessage1 = ExternalMessageFactory.newExternalMessageBuilder(headers1).build();
+        final List<Adaptable> mappingResult1 = underTest.map(externalMessage1);
+
+        final Signal<?> firstMappedSignal1 = getFirstMappedSignal(mappingResult1);
+        assertThat(firstMappedSignal1).isInstanceOf(CreateThing.class);
+        final CreateThing createThing1 = (CreateThing) firstMappedSignal1;
+
+        final Thing expectedThing1 =
+                createExpectedThing("headerNamespace:headerDeviceId1", "headerNamespace:headerDeviceId1",
+                        "headerNamespace:headerGatewayId");
+        assertThat(createThing1.getThing().getEntityId()).isEqualTo(expectedThing1.getEntityId());
+        assertThat(createThing1.getThing().getPolicyEntityId()).isEqualTo(expectedThing1.getPolicyEntityId());
+        assertThat(createThing1.getThing().getAttributes()).isEqualTo(expectedThing1.getAttributes());
+        assertThat(createThing1.getInitialPolicy()).contains(INITIAL_POLICY);
+
+
+
+        final Map<String, String> headers2 = new HashMap<>();
+        headers2.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId2");
+        headers2.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
+
+        final ExternalMessage externalMessage2 = ExternalMessageFactory.newExternalMessageBuilder(headers2).build();
+        final List<Adaptable> mappingResult2 = underTest.map(externalMessage2);
+
+        final Signal<?> firstMappedSignal2 = getFirstMappedSignal(mappingResult2);
+        assertThat(firstMappedSignal2).isInstanceOf(CreateThing.class);
+        final CreateThing createThing2 = (CreateThing) firstMappedSignal2;
+
+        final Thing expectedThing2 =
+                createExpectedThing("headerNamespace:headerDeviceId2", "headerNamespace:headerDeviceId2",
+                        "headerNamespace:headerGatewayId");
+        assertThat(createThing2.getThing().getEntityId()).isEqualTo(expectedThing2.getEntityId());
+        assertThat(createThing2.getThing().getPolicyEntityId()).isEqualTo(expectedThing2.getPolicyEntityId());
+        assertThat(createThing2.getThing().getAttributes()).isEqualTo(expectedThing2.getAttributes());
+        assertThat(createThing2.getInitialPolicy()).contains(INITIAL_POLICY);
+    }
+
+    @Test
     public void doForwardWithoutPlaceholders() {
         final Map<String, String> headers = createValidHeaders();
         underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS));

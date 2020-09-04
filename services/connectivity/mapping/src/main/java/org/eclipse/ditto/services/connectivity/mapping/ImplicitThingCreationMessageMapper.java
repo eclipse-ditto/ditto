@@ -129,11 +129,14 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         final Map<String, String> externalHeaders = message.getHeaders();
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
 
+        final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            thingTemplate = applyPlaceholderReplacement(thingTemplate, expressionResolver);
+            resolvedTemplate = applyPlaceholderReplacement(thingTemplate, expressionResolver);
+        } else {
+            resolvedTemplate = thingTemplate;
         }
 
-        final Signal<CreateThing> createThing = getCreateThingSignal(message);
+        final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedTemplate);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         LOGGER.withCorrelationId(message.getInternalHeaders())
@@ -151,16 +154,15 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         return PlaceholderFilter.apply(template, resolver);
     }
 
-    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message) {
-        final JsonObject thingJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(thingTemplate));
+    private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final String template) {
+        final JsonObject thingJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(template));
         final Thing newThing = ThingsModelFactory.newThing(thingJson);
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
-        //Sets content-type to application/json to allow Ditto PayloadMapping
-        final DittoHeaders dittoHeaders =
-                message.getInternalHeaders().toBuilder().contentType("application/json").build();
-        return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom,
-                dittoHeaders);
+        final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
+                .contentType("application/json")
+                .build();
+        return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
 
     @Nullable
