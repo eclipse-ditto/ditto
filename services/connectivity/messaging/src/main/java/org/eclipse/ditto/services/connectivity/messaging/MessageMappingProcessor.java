@@ -325,7 +325,6 @@ public final class MessageMappingProcessor {
 
         R result = resultHandler.emptyResult();
         try {
-            if (shouldMapMessageByConditions(outboundSignal, mapper)) {
                 logger.withCorrelationId(adaptable)
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
 
@@ -352,13 +351,6 @@ public final class MessageMappingProcessor {
                         result = resultHandler.combineResults(result, resultHandler.onMessageMapped(message));
                     }
                 }
-            } else {
-                result = resultHandler.onMessageDropped();
-                logger.withCorrelationId(adaptable)
-                        .debug("Not mapping message with mapper <{}> as MessageMapper" +
-                                        " conditions {} were not matched.",
-                                mapper.getId(), mapper.getConditions());
-            }
         } catch (final DittoRuntimeException e) {
             result = resultHandler.combineResults(result, resultHandler.onException(e));
         } catch (final Exception e) {

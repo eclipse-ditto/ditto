@@ -147,11 +147,6 @@ public final class MessageMappingProcessorTest {
     }
 
     @Test
-    public void testOutboundMessageWithCondition() {
-        testOutboundWithCor(0, 1, 0, targetWithMapping(DITTO_MAPPER_BY_ALIAS));
-    }
-
-    @Test
     public void testOutboundResponseMapped() {
         testOutbound(1, 0, 0);
     }

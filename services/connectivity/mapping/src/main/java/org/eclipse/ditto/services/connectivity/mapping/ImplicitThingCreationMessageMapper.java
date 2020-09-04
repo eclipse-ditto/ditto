@@ -13,6 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
@@ -39,7 +40,10 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
@@ -182,7 +186,17 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        return Collections.emptyList();
+        final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
+
+        final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
+        final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
+        return singletonList(
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                        .withTopicPath(adaptable.getTopicPath())
+                        .withText(jsonString)
+                        .asResponse(isResponse)
+                        .asError(isError)
+                        .build());
     }
 
 }
