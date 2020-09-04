@@ -41,12 +41,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
-     * Header definition for correlation Id value.
+     * Header definition for correlation Id value which MUST NOT be empty.
      * <p>
      * Key: {@code "correlation-id"}, Java type: {@link String}.
      * </p>
      */
-    CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNonEmptyValidator()),
 
     /**
      * Header definition for schema version value.
