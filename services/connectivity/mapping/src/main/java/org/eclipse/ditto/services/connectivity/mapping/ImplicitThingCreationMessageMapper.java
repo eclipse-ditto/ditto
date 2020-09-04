@@ -45,6 +45,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
+import akka.http.javadsl.model.ContentTypes;
+
 /**
  * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
  * a given thing template and may substitutes placeholders by given headers which can be {@code device_id},
@@ -160,7 +162,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
-                .contentType("application/json")
+                .contentType(ContentTypes.APPLICATION_JSON.toString())
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }

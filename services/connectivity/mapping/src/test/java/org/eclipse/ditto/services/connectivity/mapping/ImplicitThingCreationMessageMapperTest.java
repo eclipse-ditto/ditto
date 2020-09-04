@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -42,6 +43,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
+
+import akka.http.javadsl.model.ContentType;
+import akka.http.javadsl.model.ContentTypes;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.mapping.ImplicitThingCreationMessageMapper}.
@@ -120,6 +124,8 @@ public class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
+        assertThat(createThing.getDittoHeaders().getContentType().orElseThrow()).isEqualTo(
+                "application/vnd.eclipse.ditto+json");
     }
 
     @Test
@@ -165,7 +171,6 @@ public class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing1.getThing().getPolicyEntityId()).isEqualTo(expectedThing1.getPolicyEntityId());
         assertThat(createThing1.getThing().getAttributes()).isEqualTo(expectedThing1.getAttributes());
         assertThat(createThing1.getInitialPolicy()).contains(INITIAL_POLICY);
-
 
 
         final Map<String, String> headers2 = new HashMap<>();
@@ -250,6 +255,7 @@ public class ImplicitThingCreationMessageMapperTest {
         final Map<String, String> validHeader = new HashMap<>();
         validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
         validHeader.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
+        validHeader.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/vnd.eclipse-hono-empty-notification");
         return validHeader;
     }
 
