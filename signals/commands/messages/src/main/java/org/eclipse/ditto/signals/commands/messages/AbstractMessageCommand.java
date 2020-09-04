@@ -99,11 +99,10 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
     /**
      * Deserializes the {@link Message} from the JSON representation of the Command- the {@code rawPayload} is decoded with Base64.
      *
-     * @param <T> the type of the message's payload.
      * @param jsonObject the JsonObjectReader to use for reading the message.
      * @return the Message.
      */
-    protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
+    protected static Message<?> deserializeMessageFromJson(final JsonObject jsonObject) {
         final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE);
         return MessageDeserializer.deserializeMessageFromJson(messageObject);
     }

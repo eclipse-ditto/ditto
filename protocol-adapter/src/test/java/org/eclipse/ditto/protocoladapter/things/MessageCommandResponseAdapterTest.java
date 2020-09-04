@@ -15,6 +15,7 @@ package org.eclipse.ditto.protocoladapter.things;
 import static org.eclipse.ditto.protocoladapter.TestConstants.CORRELATION_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -108,13 +109,14 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                         .channel(TopicPath.Channel.LIVE.getName())
                         .schemaVersion(JsonSchemaVersion.V_2)
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID);
-        final DittoHeadersBuilder expectedHeadersBuilder = TestConstants.DITTO_HEADERS_V_2.toBuilder()
+        final DittoHeadersBuilder<?, ?> expectedHeadersBuilder = TestConstants.DITTO_HEADERS_V_2.toBuilder()
                 .contentType(contentType)
                 .channel(TopicPath.Channel.LIVE.getName());
         final Message<Object> expectedMessage = Message.newBuilder(messageHeadersBuilder.build())
                 .payload(javaPayload)
+                .rawPayload(ByteBuffer.wrap(jsonPayload.formatAsString().getBytes()))
                 .build();
-        final MessageCommandResponse expected =
+        final MessageCommandResponse<?, ?> expected =
                 messageCommandResponse(expectedMessage, expectedHeadersBuilder.build());
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)

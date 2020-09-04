@@ -90,14 +90,13 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      *
      * @param jsonString the JSON string of which the SendThingMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static <T> SendThingMessage<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendThingMessage<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -106,17 +105,16 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      *
      * @param jsonObject the JSON object of which the SendThingMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static <T> SendThingMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendThingMessage<T>>(TYPE, jsonObject).deserialize(() -> {
+    public static SendThingMessage<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SendThingMessage<?>>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
-            final Message<T> message = deserializeMessageFromJson(jsonObject);
+            final Message<?> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, message, dittoHeaders);
         });

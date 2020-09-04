@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -124,8 +125,15 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
 
         // build expected message and message command
         final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
-        final Message<Object> expectedMessage = message(messageHeaders, payload.asObject);
-        final MessageCommand expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
+        final ByteBuffer expectedRawPayload = payload.raw
+                ? ByteBuffer.wrap((byte[]) payload.asObject)
+                : payload.asJson == null ? null : ByteBuffer.wrap(payload.asJson.formatAsString().getBytes());
+        final Object expectedPayload = payload.raw ? expectedRawPayload : payload.asObject;
+        final Message<Object> expectedMessage = MessagesModelFactory.newMessageBuilder(messageHeaders)
+                .payload(expectedPayload)
+                .rawPayload(expectedRawPayload)
+                .build();
+        final MessageCommand<?, ?> expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
 
         // build the adaptable that will be converted to a message command
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -140,7 +148,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(theHeaders)
                 .build();
 
-        final MessageCommand actualMessageCommand = underTest.fromAdaptable(adaptable);
+        final MessageCommand<?, ?> actualMessageCommand = underTest.fromAdaptable(adaptable);
 
         assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
     }
@@ -240,7 +248,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
     }
 
 
-    private static MessageCommand messageCommand(final String type, final Message<Object> message,
+    private static MessageCommand<?, ?> messageCommand(final String type, final Message<Object> message,
             final DittoHeaders headers) {
         switch (type) {
             case SendThingMessage.TYPE:

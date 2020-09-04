@@ -47,7 +47,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
     }
 
     @Override
-    public SendThingMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public SendThingMessageResponse<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getThingEntityId(), getMessage(), getStatusCode(), dittoHeaders);
     }
 
@@ -92,14 +92,13 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      *
      * @param jsonString the JSON string of which the SendClaimMessageResponse is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static <T> SendThingMessageResponse<T> fromJson(final String jsonString,
+    public static SendThingMessageResponse<?> fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
@@ -109,20 +108,19 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      *
      * @param jsonObject the JSON object of which the SendClaimMessageResponse is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static <T> SendThingMessageResponse<T> fromJson(final JsonObject jsonObject,
+    public static SendThingMessageResponse<?> fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendThingMessageResponse<T>>(TYPE, jsonObject).deserialize(
+        return new CommandResponseJsonDeserializer<SendThingMessageResponse<?>>(TYPE, jsonObject).deserialize(
                 statusCode -> {
                     final String extractedThingId =
                             jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final Message<T> message = deserializeMessageFromJson(jsonObject);
+                    final Message<?> message = deserializeMessageFromJson(jsonObject);
 
                     return of(thingId, message, statusCode, dittoHeaders);
                 });

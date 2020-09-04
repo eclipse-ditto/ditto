@@ -18,6 +18,8 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -74,24 +76,29 @@ class MessagePayloadSerializer {
         messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
     }
 
-    static void deserialize(final Optional<JsonValue> messagePayloadOptional,
-            final MessageBuilder messageBuilder, final MessageHeaders messageHeaders) {
+    // also validate message size
+    static void deserialize(@Nullable final JsonValue payload, final MessageBuilder<Object> messageBuilder,
+            final MessageHeaders messageHeaders) {
 
         final String contentType = messageHeaders.getContentType().orElse("");
-        if (messagePayloadOptional.isPresent()) {
-            final JsonValue payload = messagePayloadOptional.get();
-            if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
-                messageBuilder.payload(payload.isString() ? payload.asString() : payload);
-            } else {
-                final String payloadStr = payload.isString()
-                        ? payload.asString()
-                        : payload.toString();
-                final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
+        if (payload != null) {
+            final String payloadStr = payload.formatAsString();
+            final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
+            MessageCommandSizeValidator.getInstance().ensureValidSize(() -> payloadBytes.length, () -> messageHeaders);
 
-                MessageCommandSizeValidator.getInstance()
-                        .ensureValidSize(() -> payloadBytes.length, () -> messageHeaders);
-                messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
+            if (MessageDeserializer.shouldBeInterpretedAsText(contentType)) {
+                messageBuilder.payload(payloadStr)
+                        .rawPayload(ByteBuffer.wrap(payloadBytes));
+            } else if (MessageDeserializer.shouldBeInterpretedAsJson(contentType)) {
+                messageBuilder.payload(payload)
+                        .rawPayload(ByteBuffer.wrap(payloadBytes));
+            } else {
+                final byte[] decodedBytes = BASE64_DECODER.decode(payloadBytes);
+                messageBuilder.payload(ByteBuffer.wrap(decodedBytes))
+                        .rawPayload(ByteBuffer.wrap(decodedBytes));
             }
+        } else {
+            MessageCommandSizeValidator.getInstance().ensureValidSize(() -> 0, () -> messageHeaders);
         }
     }
 
