@@ -40,7 +40,7 @@ import org.eclipse.ditto.model.things.ThingId;
 @NotThreadSafe
 public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<MessageHeadersBuilder, MessageHeaders> {
 
-    private static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
+    static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
     private static final Set<MessageHeaderDefinition> DEFINITIONS = determineMessageHeaderDefinitions();
@@ -234,6 +234,17 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
         return myself;
     }
 
+    @Override
+    public MessageHeadersBuilder removeHeader(final CharSequence key) {
+        MessageHeaderDefinition.forKey(key).ifPresent(definition -> {
+            if (MANDATORY_HEADERS.contains(definition)) {
+                final String msgTemplate = "Mandatory header with key <{0}> cannot be removed!";
+                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
+            }
+        });
+        return super.removeHeader(key);
+    }
+
     /**
      * Sets the timestamp of the Message to build.
      *
@@ -273,17 +284,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             final String msg = MessageFormat.format("HTTP status code <{0}> is unknown!", statusCode);
             return new IllegalArgumentException(msg);
         }));
-    }
-
-    @Override
-    protected void validateValueType(final CharSequence key, final CharSequence value) {
-        super.validateValueType(key, value);
-        MessageHeaderDefinition.forKey(key).ifPresent(definition -> {
-            if (MANDATORY_HEADERS.contains(definition)) {
-                final String msgTemplate = "Value for mandatory header with key <{0}> cannot be overwritten!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
-            }
-        });
     }
 
     @Override
