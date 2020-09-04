@@ -93,12 +93,21 @@ class MessagePayloadSerializer {
                 messageBuilder.payload(payload)
                         .rawPayload(ByteBuffer.wrap(payloadBytes));
             } else {
-                final byte[] decodedBytes = BASE64_DECODER.decode(payloadBytes);
+                final byte[] decodedBytes = tryToBase64Decode(payloadBytes);
                 messageBuilder.payload(ByteBuffer.wrap(decodedBytes))
                         .rawPayload(ByteBuffer.wrap(decodedBytes));
             }
         } else {
             MessageCommandSizeValidator.getInstance().ensureValidSize(() -> 0, () -> messageHeaders);
+        }
+    }
+
+    private static byte[] tryToBase64Decode(final byte[] inputBytes) {
+        try {
+            return BASE64_DECODER.decode(inputBytes);
+        } catch (final IllegalArgumentException e) {
+            // not base64-encoded; fallback to input bytes
+            return inputBytes;
         }
     }
 
