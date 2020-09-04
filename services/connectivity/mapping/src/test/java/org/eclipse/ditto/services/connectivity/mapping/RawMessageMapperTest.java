@@ -146,10 +146,11 @@ public final class RawMessageMapperTest {
 
     @Test
     public void mapFromMessageWithDittoProtocolContentType() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final Message<Object> messageWithoutPayload = messageBuilder("application/vnd.eclipse.ditto+json")
-                .payload("hello world")
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .randomCorrelationId()
+                .contentType("application/vnd.eclipse.ditto+json")
                 .build();
+        final Message<Object> messageWithoutPayload = messageBuilder(null).payload("hello world").build();
         final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
         final Adaptable adaptable = ADAPTER.toAdaptable(sendThingMessage);
         final List<ExternalMessage> result = underTest.map(adaptable);
