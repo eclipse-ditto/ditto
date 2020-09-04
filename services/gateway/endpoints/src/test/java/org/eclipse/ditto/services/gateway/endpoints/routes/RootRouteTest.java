@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
@@ -57,6 +58,7 @@ import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.commands.base.CommandHeaderInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
 import org.junit.Before;
 import org.junit.Test;
@@ -315,6 +317,28 @@ public final class RootRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getThingWithResponseRequiredFalse() {
+        final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(
+                HttpRequest.GET(THINGS_2_PATH + "/org.eclipse.ditto%3Adummy")
+        )).addHeader(akka.http.javadsl.model.HttpHeader.parse("response-required", "false"));
+        final TestRouteResult result = rootTestRoute.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+
+        final String headerKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
+        final CommandHeaderInvalidException expectedException =
+                CommandHeaderInvalidException.newBuilder(headerKey)
+                        .message(MessageFormat.format(
+                                "Query commands must not have the header ''{0}'' set to 'false'", headerKey)
+                        )
+                        .description(MessageFormat.format(
+                                "Set the header ''{0}'' to 'true' instead in order to receive a response to your " +
+                                        "query command.", headerKey))
+                        .build();
+        final JsonObject expectedResponsePayload = expectedException.toJson();
+        result.assertEntity(expectedResponsePayload.toString());
+    }
+
+    @Test
     public void getThingSearchUrl() {
         final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THING_SEARCH_2_PATH)));
 
@@ -445,14 +469,17 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getExceptionDueToInvalidHeaderKey() {
         assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
-            akka.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");}
+                    akka.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");
+                }
         );
     }
+
     @Test
     public void getExceptionDueToInvalidHeaderValue() {
         assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
-            akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");}
-            );
+                    akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");
+                }
+        );
     }
 
     private static HttpRequest withHttps(final HttpRequest httpRequest) {
