@@ -45,6 +45,16 @@ public final class HeaderValueValidators {
     }
 
     /**
+     * Returns a validator for checking that a CharSequence was non-empty.
+     *
+     * @return the validator.
+     * @since 1.3.0
+     */
+    public static ValueValidator getNonEmptyValidator() {
+        return NonEmptyValueValidator.getInstance();
+    }
+
+    /**
      * Returns a validator for checking if a CharSequence is an integer value.
      *
      * @return the validator.
