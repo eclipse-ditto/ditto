@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -56,17 +57,25 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     private final DDataWriter<U> ddataWriter;
     private final Supplier<Subscriptions<U>> subscriptionsCreator;
 
+    // TODO: for cluster-wide uniqueness constraint on declared acknowledgement labels
+    private final DDataWriter<?> acksDdataWriter;
+    private final DDataReader<?> acksDdataReader;
+
     @Nullable private ActorRef updater;
 
     @SuppressWarnings("unused")
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<?, U> ddata) {
+            final DData<?, U> ddata,
+            final DData<?, U> acksDdata) {
         super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.ddataWriter = ddata.getWriter();
         this.subscriptionsCreator = ddata::createSubscriptions;
+
+        acksDdataWriter = acksDdata.getWriter();
+        acksDdataReader = acksDdata.getReader();
     }
 
     /**
@@ -81,9 +90,10 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      */
     public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<?, U> ddata) {
+            final DData<?, U> ddata,
+            final DData<?, ?> acksDdata) {
 
-        return Props.create(SubSupervisor.class, messageClass, topicExtractor, ddata);
+        return Props.create(SubSupervisor.class, messageClass, topicExtractor, ddata, acksDdata);
     }
 
     @Override

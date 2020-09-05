@@ -29,8 +29,6 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -46,38 +44,7 @@ import akka.japi.pf.ReceiveBuilder;
  * requested by a user since the previous update. Send acknowledgement to local subscription requesters after
  * acknowledgement from distributed data. There is no transaction---all subscriptions are eventually distributed in
  * the cluster once requested. Local subscribers should most likely not to get any published message before they
- * receive acknowledgement. Below is the state transition diagram.
- * <p>
- * <pre>
- * {@code
- *                Subscribe/Unsubscribe: Append to awaitUpdate
- *                +----------+
- *                |          |
- *                |          |
- *                |          |
- *                +------->  +
- *                             WAITING <-----------------------------------+
- *                +---------->   +                                         |
- *                |              |                                         |
- * Update failure:|              |                                         |Update success:
- * Do nothing.    |              | Clock tick:                             |Ack awaitAcknowledge
- * Wait for next  |              | Add awaitUpdate to awaitAcknowledge     |Clear awaitAcknowledge
- * tick.          |              | Request distributed data update         |Send written state to pubSubSubscriber
- *                |              |                                         |
- *                |              |                                         |
- *                |              |                                         |
- *                |              |                                         |
- *                |              |                                         |
- *                +-----------+  v                                         |
- *                             UPDATING +----------------------------------+
- *                +-----------+      +
- *                |                  | <-----+
- *                |           ^      |       |Clock tick: Do nothing
- *                |           |      +-------+
- *                +-----------+
- *                Subscribe/Unsubscribe: Append to awaitUpdate
- * }
- * </pre>
+ * receive acknowledgement.
  *
  * @param <T> type of representations of topics in the distributed data.
  */
@@ -95,7 +62,7 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
 
     private final PubSubConfig config;
     private final Subscriptions<T> subscriptions;
-    private final DDataWriter<T> topicBloomFiltersWriter;
+    private final DDataWriter<T> topicsWriter;
     private final ActorRef subscriber;
 
     private final Gauge topicMetric = DittoMetrics.gauge("pubsub-topics");
@@ -122,19 +89,14 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
      */
     private boolean localSubscriptionsChanged = false;
 
-    /**
-     * Current state of the actor.
-     */
-    private State state = State.WAITING;
-
     @SuppressWarnings("unused")
     private SubUpdater(final PubSubConfig config,
             final ActorRef subscriber, final Subscriptions<T> subscriptions,
-            final DDataWriter<T> topicBloomFiltersWriter) {
+            final DDataWriter<T> topicsWriter) {
         this.config = config;
         this.subscriber = subscriber;
         this.subscriptions = subscriptions;
-        this.topicBloomFiltersWriter = topicBloomFiltersWriter;
+        this.topicsWriter = topicsWriter;
 
         getTimers().startPeriodicTimer(Clock.TICK, Clock.TICK, config.getUpdateInterval());
     }
@@ -178,21 +140,20 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
             final CompletionStage<Void> ddataOp;
             if (subscriptions.isEmpty()) {
                 snapshot = subscriptions.snapshot();
-                ddataOp = topicBloomFiltersWriter.removeSubscriber(subscriber, nextWriteConsistency);
+                ddataOp = topicsWriter.removeSubscriber(subscriber, nextWriteConsistency);
                 topicMetric.set(0L);
             } else {
                 // export before taking snapshot so that implementations may output incremental update.
                 final T ddata = subscriptions.export(forceUpdate);
                 // take snapshot to give to the subscriber; clear accumulated incremental changes.
                 snapshot = subscriptions.snapshot();
-                ddataOp = topicBloomFiltersWriter.put(subscriber, ddata, nextWriteConsistency);
+                ddataOp = topicsWriter.put(subscriber, ddata, nextWriteConsistency);
                 topicMetric.set((long) subscriptions.countTopics());
             }
             ddataOp.handle(handleDDataWriteResult(snapshot));
             moveAwaitUpdateToAwaitAcknowledge();
             localSubscriptionsChanged = false;
             nextWriteConsistency = Replicator.writeLocal();
-            state = State.UPDATING;
         }
     }
 
@@ -202,7 +163,6 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
 
     private void updateSuccess(final SubscriptionsReader snapshot) {
         flushAcknowledgements();
-        state = State.WAITING;
         // race condition possible -- some published messages may arrive before the acknowledgement
         // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
         subscriber.tell(snapshot, getSelf());
@@ -221,7 +181,6 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
 
         // try again next clock tick
         localSubscriptionsChanged = true;
-        state = State.WAITING;
     }
 
     private void moveAwaitUpdateToAwaitAcknowledge() {
@@ -520,17 +479,5 @@ public final class SubUpdater<T> extends AbstractActorWithTimers {
          * Clock tick to update distributed data.
          */
         TICK
-    }
-
-    private enum State {
-        /**
-         * Waiting for clock tick.
-         */
-        WAITING,
-
-        /**
-         * Waiting for acknowledgement from ddata.
-         */
-        UPDATING
     }
 }

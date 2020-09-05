@@ -27,13 +27,17 @@ import akka.actor.ActorContext;
 /**
  * Pub-sub factory for thing events.
  */
-public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEvent> {
+public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEvent<?>> {
 
     private static final DDataProvider PROVIDER = DDataProvider.of("thing-event-aware");
 
-    private ThingEventPubSubFactory(final ActorContext context, final PubSubTopicExtractor<ThingEvent> topicExtractor) {
+    private static final DDataProvider ACKS_PROVIDER = DDataProvider.of("thing-event-aware", "twin-acks");
 
-        super(context, ThingEvent.class, topicExtractor, PROVIDER);
+    @SuppressWarnings({"unchecked"})
+    private ThingEventPubSubFactory(final ActorContext context,
+            final PubSubTopicExtractor<ThingEvent<?>> topicExtractor) {
+
+        super(context, (Class<ThingEvent<?>>) (Object) ThingEvent.class, topicExtractor, PROVIDER, ACKS_PROVIDER);
     }
 
     /**
@@ -68,21 +72,22 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
      */
     public static ThingEventPubSubFactory shardIdOnly(final ActorContext context, final int numberOfShards) {
 
-        final PubSubTopicExtractor<ThingEvent> topicExtractor =
+        final PubSubTopicExtractor<ThingEvent<?>> topicExtractor =
                 shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, context.system()));
         return new ThingEventPubSubFactory(context, topicExtractor);
     }
 
-    private static PubSubTopicExtractor<ThingEvent> readSubjectOnlyExtractor() {
-        return ReadSubjectExtractor.<ThingEvent>of().with(ConstantTopics.of(ThingEvent.TYPE_PREFIX));
+    private static PubSubTopicExtractor<ThingEvent<?>> readSubjectOnlyExtractor() {
+        return ReadSubjectExtractor.<ThingEvent<?>>of().with(ConstantTopics.of(ThingEvent.TYPE_PREFIX));
     }
 
-    private static PubSubTopicExtractor<ThingEvent> shardIdOnlyExtractor(final ShardRegionExtractor extractor) {
+    private static PubSubTopicExtractor<ThingEvent<?>> shardIdOnlyExtractor(final ShardRegionExtractor extractor) {
         return ShardIdExtractor.of(extractor);
     }
 
-    private static PubSubTopicExtractor<ThingEvent> toTopicExtractor(final ShardRegionExtractor shardRegionExtractor) {
-        return ReadSubjectExtractor.<ThingEvent>of().with(
+    private static PubSubTopicExtractor<ThingEvent<?>> toTopicExtractor(
+            final ShardRegionExtractor shardRegionExtractor) {
+        return ReadSubjectExtractor.<ThingEvent<?>>of().with(
                 Arrays.asList(ConstantTopics.of(ThingEvent.TYPE_PREFIX), shardIdOnlyExtractor(shardRegionExtractor)));
     }
 }

@@ -45,12 +45,12 @@ import akka.actor.Props;
 public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<ThingId> {
 
     private final ActorRef pubSubMediator;
-    private final DistributedPub<ThingEvent> distributedPub;
+    private final DistributedPub<ThingEvent<?>> distributedPub;
     private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
-            final DistributedPub<ThingEvent> distributedPub,
+            final DistributedPub<ThingEvent<?>> distributedPub,
             final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory) {
 
         this.pubSubMediator = pubSubMediator;
@@ -72,7 +72,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      */
     public static Props props(
             final ActorRef pubSubMediator,
-            final DistributedPub<ThingEvent> distributedPub,
+            final DistributedPub<ThingEvent<?>> distributedPub,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, distributedPub, propsFactory);

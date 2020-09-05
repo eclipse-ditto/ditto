@@ -34,6 +34,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
      */
     public static final String ACTOR_NAME_PREFIX = "pubUpdater";
 
+    // TODO: use thread-safe variant
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final DDataWriter<?> ddataWriter;
@@ -47,10 +48,10 @@ public final class PubUpdater extends AbstractActorWithTimers {
     /**
      * Create Props object for this actor.
      *
-     * @param topicBloomFiltersWriter writer of the distributed topic Bloom filters.
+     * @param topicsWriter writer of the topics distributed data.
      */
-    public static Props props(final DDataWriter topicBloomFiltersWriter) {
-        return Props.create(PubUpdater.class, topicBloomFiltersWriter);
+    public static Props props(final DDataWriter topicsWriter) {
+        return Props.create(PubUpdater.class, topicsWriter);
     }
 
     @Override
@@ -65,7 +66,11 @@ public final class PubUpdater extends AbstractActorWithTimers {
         // publisher detected unreachable remote. remove it from local ORMap.
         final Address address = memberRemoved.member().address();
         log.info("Removing subscribers on removed member <{}>", address);
-        ddataWriter.removeAddress(address, Replicator.writeLocal());
+        ddataWriter.removeAddress(address, Replicator.writeLocal()).whenComplete((_void, error) -> {
+            if (error != null) {
+                log.error(error, "Failed to remove subscribers on removed cluster member <{}>", address);
+            }
+        });
     }
 
     private void logUnhandled(final Object message) {

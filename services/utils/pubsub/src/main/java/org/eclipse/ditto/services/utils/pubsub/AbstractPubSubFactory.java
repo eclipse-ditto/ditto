@@ -43,6 +43,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final DistributedDataConfig ddataConfig;
     protected final DData<?, ?> ddata;
+    protected final DData<?, ?> acksDdata;
 
     /**
      * Create a pub-sub factory.
@@ -51,11 +52,13 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
      * @param messageClass the class of messages to publish and subscribe for.
      * @param topicExtractor a function extracting from each message the topics it was published at.
      * @param provider provider of the underlying ddata extension.
+     * @param acksProvider provider of a second ddata extension for declared acknowledgement labels.
      */
     protected AbstractPubSubFactory(final ActorContext context,
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DDataProvider provider) {
+            final DDataProvider provider,
+            final DDataProvider acksProvider) {
 
         this.actorRefFactory = context;
         this.messageClass = messageClass;
@@ -63,6 +66,9 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
         this.topicExtractor = topicExtractor;
         ddataConfig = provider.getConfig(context.system());
         ddata = CompressedDData.of(context.system(), provider);
+
+        // TODO: replace by non-compressed DData! false-positive is fatal!
+        acksDdata = CompressedDData.of(context.system(), acksProvider);
     }
 
     @Override
@@ -76,7 +82,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = factoryId + "-sub-supervisor";
-        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata);
+        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata, acksDdata);
         final ActorRef subSupervisor = actorRefFactory.actorOf(subSupervisorProps, subSupervisorName);
         return DistributedSub.of(ddataConfig, subSupervisor);
     }
@@ -88,9 +94,11 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected static final class DDataProvider extends CompressedDData.Provider {
 
         private final String clusterRole;
+        private final String messageType;
 
-        private DDataProvider(final String clusterRole) {
+        private DDataProvider(final String clusterRole, final String messageType) {
             this.clusterRole = clusterRole;
+            this.messageType = messageType;
         }
 
         /**
@@ -100,17 +108,28 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
          * @return the ddata provider.
          */
         public static DDataProvider of(final String clusterRole) {
-            return new DDataProvider(clusterRole);
+            return new DDataProvider(clusterRole, clusterRole);
+        }
+
+        /**
+         * Create a distributed data provider.
+         *
+         * @param clusterRole Cluster role where this provider start.
+         * @param messageType Message type that uniquely identifies this provider.
+         * @return the ddata provider.
+         */
+        public static DDataProvider of(final String clusterRole, final String messageType) {
+            return new DDataProvider(clusterRole, messageType);
         }
 
         @Override
         public CompressedDDataHandler createExtension(final ExtendedActorSystem system) {
-            return CompressedDDataHandler.create(system, getConfig(system), clusterRole, PubSubConfig.of(system));
+            return CompressedDDataHandler.create(system, getConfig(system), messageType, PubSubConfig.of(system));
         }
 
         @Override
         public DistributedDataConfig getConfig(final ActorSystem actorSystem) {
-            return DistributedData.createConfig(actorSystem, clusterRole + "-replicator", clusterRole);
+            return DistributedData.createConfig(actorSystem, messageType + "-replicator", clusterRole);
         }
     }
 }

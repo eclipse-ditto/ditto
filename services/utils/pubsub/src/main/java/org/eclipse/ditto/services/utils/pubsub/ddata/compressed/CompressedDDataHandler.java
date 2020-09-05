@@ -53,7 +53,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
     private final SelfUniqueAddress selfUniqueAddress;
     private final List<Integer> seeds;
 
-    private final Gauge ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries");
+    private final Gauge ddataMetrics;
 
     private CompressedDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
@@ -65,6 +65,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
         this.topicType = topicType;
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
         this.seeds = seeds;
+        ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries").tag("topic", topicType);
     }
 
     /**
@@ -73,7 +74,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
      *
      * @param system the actor system.
      * @param ddataConfig the distributed data config.
-     * @param topicType the type of messages, typically the canonical name of the message class.
+     * @param topicType the type of messages, typically "message-type-name-aware".
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */

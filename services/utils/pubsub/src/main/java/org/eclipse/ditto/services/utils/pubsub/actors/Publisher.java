@@ -41,7 +41,8 @@ public final class Publisher<T> extends AbstractActor {
      */
     public static final String ACTOR_NAME_PREFIX = "publisher";
 
-    private DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    // TODO: use thread-safe variant.
+    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final DDataReader<T> ddataReader;
 
