@@ -32,7 +32,7 @@ import akka.actor.ActorRef;
 public final class TestPubSubFactory extends AbstractPubSubFactory<String> implements Hashes {
 
     private static final DDataProvider PROVIDER = DDataProvider.of("dc-default");
-    private static final DDataProvider ACKS_PROVIDER = DDataProvider.of("dc-default", "acks");
+    private static final LiteralDDataProvider ACKS_PROVIDER = LiteralDDataProvider.of("dc-default", "acks");
 
     private final Collection<Integer> seeds;
 

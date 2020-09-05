@@ -31,7 +31,7 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
 
     private static final DDataProvider PROVIDER = DDataProvider.of("thing-event-aware");
 
-    private static final DDataProvider ACKS_PROVIDER = DDataProvider.of("thing-event-aware", "twin-acks");
+    private static final LiteralDDataProvider ACKS_PROVIDER = LiteralDDataProvider.of("thing-event-aware", "twin-acks");
 
     @SuppressWarnings({"unchecked"})
     private ThingEventPubSubFactory(final ActorContext context,

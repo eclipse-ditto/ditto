@@ -30,7 +30,7 @@ final class LiveSignalPubSubFactory<T extends Signal<?>> extends AbstractPubSubF
 
     private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
 
-    private static final DDataProvider ACKS_PROVIDER = DDataProvider.of("live-signal-aware", "live-acks");
+    private static final LiteralDDataProvider ACKS_PROVIDER = LiteralDDataProvider.of("live-signal-aware", "live-acks");
 
     private LiveSignalPubSubFactory(final ActorContext context, final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor) {

@@ -20,6 +20,8 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDDataHandler;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorContext;
@@ -58,7 +60,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DDataProvider provider,
-            final DDataProvider acksProvider) {
+            final LiteralDDataProvider acksProvider) {
 
         this.actorRefFactory = context;
         this.messageClass = messageClass;
@@ -66,9 +68,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
         this.topicExtractor = topicExtractor;
         ddataConfig = provider.getConfig(context.system());
         ddata = CompressedDData.of(context.system(), provider);
-
-        // TODO: replace by non-compressed DData! false-positive is fatal!
-        acksDdata = CompressedDData.of(context.system(), acksProvider);
+        acksDdata = LiteralDData.of(context.system(), acksProvider);
     }
 
     @Override
@@ -94,11 +94,9 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected static final class DDataProvider extends CompressedDData.Provider {
 
         private final String clusterRole;
-        private final String messageType;
 
-        private DDataProvider(final String clusterRole, final String messageType) {
+        private DDataProvider(final String clusterRole) {
             this.clusterRole = clusterRole;
-            this.messageType = messageType;
         }
 
         /**
@@ -108,7 +106,31 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
          * @return the ddata provider.
          */
         public static DDataProvider of(final String clusterRole) {
-            return new DDataProvider(clusterRole, clusterRole);
+            return new DDataProvider(clusterRole);
+        }
+
+        @Override
+        public CompressedDDataHandler createExtension(final ExtendedActorSystem system) {
+            return CompressedDDataHandler.create(system, getConfig(system), clusterRole, PubSubConfig.of(system));
+        }
+
+        @Override
+        public DistributedDataConfig getConfig(final ActorSystem actorSystem) {
+            return DistributedData.createConfig(actorSystem, clusterRole + "-replicator", clusterRole);
+        }
+    }
+
+    /**
+     * Literal DData provider.
+     */
+    protected static final class LiteralDDataProvider extends LiteralDData.Provider {
+
+        private final String clusterRole;
+        private final String messageType;
+
+        private LiteralDDataProvider(final String clusterRole, final String messageType) {
+            this.clusterRole = clusterRole;
+            this.messageType = messageType;
         }
 
         /**
@@ -118,13 +140,13 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
          * @param messageType Message type that uniquely identifies this provider.
          * @return the ddata provider.
          */
-        public static DDataProvider of(final String clusterRole, final String messageType) {
-            return new DDataProvider(clusterRole, messageType);
+        public static LiteralDDataProvider of(final String clusterRole, final String messageType) {
+            return new LiteralDDataProvider(clusterRole, messageType);
         }
 
         @Override
-        public CompressedDDataHandler createExtension(final ExtendedActorSystem system) {
-            return CompressedDDataHandler.create(system, getConfig(system), messageType, PubSubConfig.of(system));
+        public LiteralDDataHandler createExtension(final ExtendedActorSystem system) {
+            return LiteralDDataHandler.create(system, getConfig(system), messageType);
         }
 
         @Override
