@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDDataHandler;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorContext;
@@ -45,7 +46,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final DistributedDataConfig ddataConfig;
     protected final DData<?, ?> ddata;
-    protected final DData<?, ?> acksDdata;
+    protected final DData<String, LiteralUpdate> acksDdata;
 
     /**
      * Create a pub-sub factory.

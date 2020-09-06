@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
+import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 
 import akka.actor.ActorRef;
@@ -40,7 +41,7 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> subscribeWithFilterAndAck(final Collection<String> topics,
+    public CompletionStage<AbstractUpdater.SubAck> subscribeWithFilterAndAck(final Collection<String> topics,
             final ActorRef subscriber, final Predicate<Collection<String>> filter) {
         final SubUpdater.Subscribe subscribe =
                 SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter);
@@ -48,21 +49,21 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> subscribeWithAck(final Collection<String> topics,
+    public CompletionStage<AbstractUpdater.SubAck> subscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
         return askSubSupervisor(SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> unsubscribeWithAck(final Collection<String> topics,
+    public CompletionStage<AbstractUpdater.SubAck> unsubscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
         return askSubSupervisor(SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
     }
 
-    private CompletionStage<SubUpdater.Acknowledgement> askSubSupervisor(final SubUpdater.Request request) {
+    private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
         return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
                 // let any ClassCastException here produce a failed future
-                .thenApply(response -> (SubUpdater.Acknowledgement) response);
+                .thenApply(response -> (AbstractUpdater.SubAck) response);
     }
 
     @Override

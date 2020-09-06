@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.junit.After;
 import org.junit.Before;
@@ -92,7 +93,7 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber = TestProbe.apply(system2);
 
             // WHEN: actor subscribes to a topic with acknowledgement
-            final SubUpdater.Acknowledgement subAck =
+            final AbstractUpdater.SubAck subAck =
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
 
             // THEN: subscription is acknowledged
@@ -109,7 +110,7 @@ public final class PubSubFactoryTest {
                     .isEqualTo(publisher.ref().path().toStringWithoutAddress());
 
             // WHEN: subscription is relinquished
-            final SubUpdater.Acknowledgement unsubAck =
+            final AbstractUpdater.SubAck unsubAck =
                     sub.unsubscribeWithAck(asList("hello", "world"), subscriber.ref()).toCompletableFuture().join();
             assertThat(unsubAck.getRequest()).isInstanceOf(SubUpdater.Unsubscribe.class);
             assertThat(unsubAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello", "world");
@@ -237,7 +238,7 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber = TestProbe.apply(system2);
 
             // THEN: they fulfill their function.
-            final SubUpdater.Acknowledgement subAck =
+            final AbstractUpdater.SubAck subAck =
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");

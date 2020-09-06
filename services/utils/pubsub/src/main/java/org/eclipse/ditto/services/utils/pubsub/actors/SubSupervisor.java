@@ -12,70 +12,73 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
-import java.util.function.Supplier;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
+import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Supervisor of actors dealing with subscriptions.
  * <pre>
  * {@code
- *    SubSupervisor
+ *     SubSupervisor
  *          +
  *          |
- *          |supervises one-for-many
- *          +---------------------------+
- *          |                           |
- *          v                           v
- *       SubUpdater +-----------> Subscriber
- *       +           update
- *       |           local
- *       |           subscriptions
- *       |
- *       |
- *       |
- *       |write with highest requested consistency
- *       v
- *    DDataReplicator
- * }
+ *          |supervises one+for+many
+ *          +---------------------------------+-----------------------+
+ *          |                                 |                       |
+ *          |                                 |                       |
+ *          |                                 |                       |
+ *          |                                 |                       |
+ *          |                                 |                       |
+ *          v                                 v                       v
+ *       SubUpdater +-----------------> Subscriber<-------------+AcksUpdater
+ *          +  ^     update             (forwards   Block         +   +
+ *          |  |     local               published  pending       |   |
+ *          |  |     subscriptions       signals)   ack label     |   |
+ *          |  |                                    declarations  |   |
+ *          |  |                                                  |   |
+ *          |  +--------------------------------------------------+   |
+ *          |    rollback on ack label declaration failure            |
+ *          |                                                         |
+ *          |                                                         |
+ *          |                                                         |
+ *          |write with highest requested consistency                 |
+ *          |                                                         |
+ *          +----------------->DDataReplicator<-----------------------+
  * </pre>
+ *
+ * @param <T> type of messages subscribed for.
+ * @param <U> type of compressed topic in the cluster.
  */
 public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
-    private final DDataWriter<U> ddataWriter;
-    private final Supplier<Subscriptions<U>> subscriptionsCreator;
 
-    // TODO: for cluster-wide uniqueness constraint on declared acknowledgement labels
-    private final DDataWriter<?> acksDdataWriter;
-    private final DDataReader<?> acksDdataReader;
+    private final DData<?, U> topicsDData;
+    private final DData<String, LiteralUpdate> acksDData;
 
     @Nullable private ActorRef updater;
+    @Nullable private ActorRef acksUpdater;
 
     @SuppressWarnings("unused")
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<?, U> ddata,
-            final DData<?, U> acksDdata) {
+            final DData<?, U> topicsDData,
+            final DData<String, LiteralUpdate> acksDData) {
         super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
-        this.ddataWriter = ddata.getWriter();
-        this.subscriptionsCreator = ddata::createSubscriptions;
-
-        acksDdataWriter = acksDdata.getWriter();
-        acksDdataReader = acksDdata.getReader();
+        this.topicsDData = topicsDData;
+        this.acksDData = acksDData;
     }
 
     /**
@@ -83,17 +86,18 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      *
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
-     * @param ddata the distributed data access.
+     * @param topicsDData access to the distributed data of topics.
+     * @param acksDData access to the distributed data of acknowledgement labels.
      * @param <T> type of messages.
      * @param <U> type of ddata updates.
      * @return the Props object.
      */
     public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<?, U> ddata,
-            final DData<?, ?> acksDdata) {
+            final DData<?, U> topicsDData,
+            final DData<String, LiteralUpdate> acksDData) {
 
-        return Props.create(SubSupervisor.class, messageClass, topicExtractor, ddata, acksDdata);
+        return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData, acksDData);
     }
 
     @Override
@@ -101,6 +105,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         return ReceiveBuilder.create()
                 .match(SubUpdater.Request.class, this::isUpdaterAvailable, this::request)
                 .match(SubUpdater.Request.class, this::updaterUnavailable)
+                .match(Terminated.class, this::subscriberTerminated)
                 .build();
     }
 
@@ -115,10 +120,19 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     protected void startChildren() {
         final ActorRef subscriber =
                 startChild(Subscriber.props(messageClass, topicExtractor), Subscriber.ACTOR_NAME_PREFIX);
-        final Subscriptions<U> localSubscriptions = subscriptionsCreator.get();
-        final Props updaterProps =
-                SubUpdater.props(config, subscriber, localSubscriptions, ddataWriter);
+        getContext().watch(subscriber);
+
+        final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
+
+        final Props acksUpdaterProps = AcksUpdater.props(config, subscriber, updater, acksDData);
+        acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
+    }
+
+    private void subscriberTerminated(final Terminated terminated) {
+        log.error("Subscriber terminated. Removing subscriber from DData: <{}>", terminated.getActor());
+        topicsDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
+        acksDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
     }
 
     private boolean isUpdaterAvailable() {

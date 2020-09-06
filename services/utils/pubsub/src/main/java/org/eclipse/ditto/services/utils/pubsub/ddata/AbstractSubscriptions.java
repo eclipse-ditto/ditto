@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -186,11 +185,11 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
 
     @Override
     public SubscriptionsReader snapshot() {
-        return SubscriptionsReader.of(exportTopicData(), exportSubscriberToFilter());
+        return SubscriptionsReader.fromImmutableMaps(exportTopicData(), exportSubscriberToFilter());
     }
 
     private Map<ActorRef, Predicate<Collection<String>>> exportSubscriberToFilter() {
-        return Collections.unmodifiableMap(new HashMap<>(subscriberToFilter));
+        return Map.copyOf(subscriberToFilter);
     }
 
     private Map<String, Set<ActorRef>> exportTopicData() {
