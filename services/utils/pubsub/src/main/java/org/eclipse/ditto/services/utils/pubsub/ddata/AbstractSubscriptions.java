@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -89,6 +90,12 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
      * @param removedTopic the new topic.
      */
     protected abstract void onRemovedTopic(final TopicData<S> removedTopic);
+
+    @Override
+    public Stream<ActorRef> streamSubscribers(final String topic) {
+        final TopicData<S> topicData = topicToData.get(topic);
+        return topicData != null ? topicData.streamSubscribers() : Stream.empty();
+    }
 
     @Override
     public boolean subscribe(final ActorRef subscriber,

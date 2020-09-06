@@ -127,6 +127,21 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
     protected abstract void updateSuccess(final SubscriptionsReader snapshot);
 
     /**
+     * Handle a subscribe request.
+     *
+     * @param subscribe the subscribe request.
+     */
+    protected abstract void subscribe(final Subscribe subscribe);
+
+    /**
+     * Handle an unsubscribe request.
+     *
+     * @param unsubscribe the unsubscribe request.
+     */
+    protected abstract void unsubscribe(final Unsubscribe unsubscribe);
+
+
+    /**
      * What to do when DData update failed.
      *
      * @param failure the update failure.
@@ -142,6 +157,22 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
      */
     private boolean forceUpdate() {
         return random.nextDouble() < config.getForceUpdateProbability();
+    }
+
+    /**
+     * Add a request to the queue to be handled after cluster update.
+     *  @param request the request.
+     * @param changed whether the request changed ddata.
+     * @param sender sender of the request.
+     */
+    protected void enqueueRequest(final Request request, final boolean changed, final ActorRef sender) {
+        localSubscriptionsChanged |= changed;
+        upgradeWriteConsistency(request.getWriteConsistency());
+        if (request.shouldAcknowledge()) {
+            final SubAck subAck = SubAck.of(request, sender);
+            awaitUpdate.add(subAck);
+            awaitUpdateMetric.increment();
+        }
     }
 
     private void tick(final Clock tick) {
@@ -194,23 +225,6 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         log.warning("Unhandled: <{}>", message);
     }
 
-    private void subscribe(final Subscribe subscribe) {
-        final boolean changed =
-                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter());
-        enqueueRequest(subscribe, changed);
-        if (changed) {
-            getContext().watch(subscribe.getSubscriber());
-        }
-    }
-
-    private void unsubscribe(final Unsubscribe unsubscribe) {
-        final boolean changed = subscriptions.unsubscribe(unsubscribe.getSubscriber(), unsubscribe.getTopics());
-        enqueueRequest(unsubscribe, changed);
-        if (changed && !subscriptions.contains(unsubscribe.getSubscriber())) {
-            getContext().unwatch(unsubscribe.getSubscriber());
-        }
-    }
-
     private void terminated(final Terminated terminated) {
         doRemoveSubscriber(terminated.actor());
     }
@@ -221,16 +235,6 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
     private void doRemoveSubscriber(final ActorRef subscriber) {
         localSubscriptionsChanged |= subscriptions.removeSubscriber(subscriber);
-    }
-
-    private void enqueueRequest(final Request request, final boolean changed) {
-        localSubscriptionsChanged |= changed;
-        upgradeWriteConsistency(request.getWriteConsistency());
-        if (request.shouldAcknowledge()) {
-            final SubAck subAck = SubAck.of(request, getSender());
-            awaitUpdate.add(subAck);
-            awaitUpdateMetric.increment();
-        }
     }
 
     private void upgradeWriteConsistency(final Replicator.WriteConsistency nextWriteConsistency) {
@@ -327,11 +331,15 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
         private final Predicate<Collection<String>> filter;
 
+        // TODO: delete this; just use the topics for AcksUpdater.
+        private final Collection<String> ackLabels;
+
         private Subscribe(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
-                final Predicate<Collection<String>> filter) {
+                final Predicate<Collection<String>> filter, final Collection<String> ackLabels) {
             super(topics, subscriber, writeConsistency, acknowledge);
             this.filter = filter;
+            this.ackLabels = ackLabels;
         }
 
         /**
@@ -345,7 +353,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
          */
         public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE);
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE, List.of());
         }
 
         /**
@@ -361,7 +369,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
                 final Predicate<Collection<String>> filter) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter);
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter, List.of());
         }
 
         /**
@@ -369,6 +377,24 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
          */
         public Predicate<Collection<String>> getFilter() {
             return filter;
+        }
+
+        /**
+         * @return Declared acknowledgement labels.
+         */
+        public Collection<String> getAckLabels() {
+            return ackLabels;
+        }
+
+        /**
+         * Create a copy of this message with declared ack labels.
+         *
+         * @param ackLabels the declared acknowledgement labels.
+         * @return a copy of this object with declared acknowledgement labels set.
+         */
+        public Subscribe withAckLabels(final Collection<String> ackLabels) {
+            return new Subscribe(getTopics(), getSubscriber(), getWriteConsistency(), shouldAcknowledge(), filter,
+                    ackLabels);
         }
     }
 

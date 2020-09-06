@@ -12,6 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
@@ -19,6 +25,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import scala.collection.JavaConverters;
 
 /**
  * Manages local declared acknowledgement labels.
@@ -69,22 +76,110 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     }
 
     @Override
+    protected void subscribe(final Subscribe subscribe) {
+        final ActorRef sender = getSender();
+        if (areAckLabelsDeclaredHere(subscribe)) {
+            failSubscribe(sender);
+        } else {
+            // read local DData for remote subscribers
+            areAckLabelsDeclaredRemotely(subscribe).thenAccept(taken -> {
+                if (taken) {
+                    failSubscribe(sender);
+                } else {
+                    // TODO: actually subscribe
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void unsubscribe(final Unsubscribe unsubscribe) {
+        final boolean changed = subscriptions.removeSubscriber(unsubscribe.getSubscriber());
+        // TODO: send unsub-ack?
+        enqueueRequest(unsubscribe, changed, getSender());
+        if (changed) {
+            getContext().unwatch(unsubscribe.getSubscriber());
+        }
+    }
+
+    @Override
     protected void updateSuccess(final SubscriptionsReader snapshot) {
-        // TODO: fix this
         flushSubAcks(true);
-        // race condition possible -- some published messages may arrive before the acknowledgement
-        // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
-        subscriber.tell(snapshot, getSelf());
     }
 
     @Override
     protected void flushSubAcks(final boolean ddataChanged) {
-        // TODO: fix this
-        for (final SubAck ack : awaitSubAck) {
-            ack.getSender().tell(ack, getSelf());
-        }
+        // There is a chance that a subscriber gets failure after SubAck due to unlucky timing.
+        checkConsistencyAndReply(awaitSubAck);
         awaitSubAck.clear();
         awaitSubAckMetric.set(0L);
+    }
+
+    private void checkConsistencyAndReply(final List<SubAck> awaitSubAck) {
+        final List<SubAck> subAcks = List.copyOf(awaitSubAck);
+        final SubscriptionsReader snapshot = subscriptions.snapshot();
+
+        // local losers are the actors whose declared ack labels are taken over concurrently by remote subscribers.
+        getLocalLosers(snapshot).thenAccept(localLosers -> {
+            // Under a rare condition, a local subscriber may lose a race _after_ a successful SubAck.
+            // TODO: some of these may be Unsubscribe!
+            localLosers.forEach(this::failSubscribe);
+            for (final SubAck subAck : subAcks) {
+                if (!localLosers.contains(subAck.getSender())) {
+                    // the subscriber won the race; forward to subUpdater to start receiving published signals
+                    subUpdater.tell(subAck.getRequest(), subAck.getSender());
+                } else {
+                    // TODO: the subscriber lost the race; remove it.
+                    // getSelf().tell(subAck.getRequest().negate(), ActorRef.noSender());
+                }
+            }
+        });
+    }
+
+    private void failSubscribe(final ActorRef sender) {
+        // TODO: use dedicated DittoRuntimeException for this
+        final Throwable error = new IllegalStateException("Declared acknowledgement labels are taken.");
+        sender.tell(error, getSelf());
+    }
+
+    private boolean areAckLabelsDeclaredHere(final Subscribe subscribe) {
+        return subscribe.getAckLabels()
+                .stream()
+                .flatMap(subscriptions::streamSubscribers)
+                .anyMatch(previousSubscriber -> !previousSubscriber.equals(subscribe.getSubscriber()));
+    }
+
+    /**
+     * Get local subscribers who lost a race of ack label declaration.
+     *
+     * @param snapshot a snapshot of local subscribers for asynchronous read.
+     * @return a future set of local subscribers who lost a race.
+     */
+    private CompletionStage<Set<ActorRef>> getLocalLosers(final SubscriptionsReader snapshot) {
+        final CompletionStage<Set<String>> conflictingAckLabels = acksDData.getReader()
+                .read()
+                .thenApply(map -> map.entrySet()
+                        .stream()
+                        .filter(entry -> isSmallerThanMySubscriber(entry.getKey()))
+                        .flatMap(entry -> JavaConverters.asJavaCollection(entry.getValue())
+                                .stream()
+                                .filter(snapshot::containsTopic)
+                        )
+                        .collect(Collectors.toSet())
+                );
+        return conflictingAckLabels.thenApply(snapshot::getSubscribers);
+    }
+
+    private CompletionStage<Boolean> areAckLabelsDeclaredRemotely(final Subscribe subscribe) {
+        return acksDData.getReader()
+                .getSubscribers(subscribe.getAckLabels())
+                .thenApply(allSubscribers -> allSubscribers.stream()
+                        .anyMatch(otherSubscriber -> !subscriber.equals(otherSubscriber))
+                );
+    }
+
+    private boolean isSmallerThanMySubscriber(final ActorRef otherSubscriber) {
+        return otherSubscriber.compareTo(subscriber) < 0;
     }
 
 }

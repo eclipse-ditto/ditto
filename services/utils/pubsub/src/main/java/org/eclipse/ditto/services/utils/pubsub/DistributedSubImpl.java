@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
@@ -62,8 +63,7 @@ final class DistributedSubImpl implements DistributedSub {
 
     private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
         return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
-                // let any ClassCastException here produce a failed future
-                .thenApply(response -> (AbstractUpdater.SubAck) response);
+                .thenCompose(DistributedSubImpl::processAskResponse);
     }
 
     @Override
@@ -85,5 +85,15 @@ final class DistributedSubImpl implements DistributedSub {
         final SubUpdater.Request request =
                 SubUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
+    }
+
+    private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof AbstractUpdater.SubAck) {
+            return CompletableFuture.completedStage((AbstractUpdater.SubAck) askResponse);
+        } else if (askResponse instanceof Throwable) {
+            return CompletableFuture.failedStage((Throwable) askResponse);
+        } else {
+            return CompletableFuture.failedStage(new ClassCastException("Expect SubAck, got: " + askResponse));
+        }
     }
 }

@@ -81,6 +81,16 @@ public final class SubscriptionsReader {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Check if a topic is subscribed for.
+     *
+     * @param topic the topic.
+     * @return whether it has any subscribers.
+     */
+    public boolean containsTopic(final String topic) {
+        return topicToSubscriber.containsKey(topic);
+    }
+
     @Override
     public boolean equals(final Object other) {
         if (other instanceof SubscriptionsReader) {

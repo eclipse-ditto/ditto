@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -65,19 +64,23 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     @Override
     public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<S> topic) {
 
+        return read().thenApply(map -> map.entrySet()
+                .stream()
+                .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList())
+        );
+    }
+
+    public CompletionStage<Map<ActorRef, scala.collection.immutable.Set<S>>> read() {
         return get(Replicator.readLocal()).thenApply(optional -> {
             if (optional.isPresent()) {
                 final ORMultiMap<ActorRef, S> mmap = optional.get();
                 ddataMetrics.set((long) mmap.size());
-                return JavaConverters.mapAsJavaMap(mmap.entries())
-                        .entrySet()
-                        .stream()
-                        .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
+                return JavaConverters.mapAsJavaMap(mmap.entries());
             } else {
                 ddataMetrics.set(0L);
-                return Collections.emptyList();
+                return Map.of();
             }
         });
     }

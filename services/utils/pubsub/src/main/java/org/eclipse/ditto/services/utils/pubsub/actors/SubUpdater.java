@@ -60,6 +60,25 @@ public final class SubUpdater<T> extends AbstractUpdater<T> {
     }
 
     @Override
+    protected void subscribe(final Subscribe subscribe) {
+        final boolean changed =
+                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter());
+        enqueueRequest(subscribe, changed, getSender());
+        if (changed) {
+            getContext().watch(subscribe.getSubscriber());
+        }
+    }
+
+    @Override
+    protected void unsubscribe(final Unsubscribe unsubscribe) {
+        final boolean changed = subscriptions.unsubscribe(unsubscribe.getSubscriber(), unsubscribe.getTopics());
+        enqueueRequest(unsubscribe, changed, getSender());
+        if (changed && !subscriptions.contains(unsubscribe.getSubscriber())) {
+            getContext().unwatch(unsubscribe.getSubscriber());
+        }
+    }
+
+    @Override
     protected void updateSuccess(final SubscriptionsReader snapshot) {
         flushSubAcks(true);
         // race condition possible -- some published messages may arrive before the acknowledgement
