@@ -16,6 +16,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
 import static org.eclipse.ditto.services.models.things.Permission.READ;
 import static org.eclipse.ditto.services.models.things.Permission.WRITE;
 
@@ -94,6 +95,8 @@ public class ImplicitThingCreationMessageMapperTest {
             "}" +
             "}" +
             "}";
+    public static final String GATEWAY_ID = "headerNamespace:headerGatewayId";
+    public static final String DEVICE_ID = "headerNamespace:headerDeviceId";
 
     private static MappingConfig mappingConfig;
     private MessageMapper underTest;
@@ -116,14 +119,12 @@ public class ImplicitThingCreationMessageMapperTest {
         assertThat(firstMappedSignal).isInstanceOf(CreateThing.class);
         final CreateThing createThing = (CreateThing) firstMappedSignal;
 
-        final Thing expectedThing =
-                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerDeviceId",
-                        "headerNamespace:headerGatewayId");
+        final Thing expectedThing = createExpectedThing(DEVICE_ID, DEVICE_ID, GATEWAY_ID);
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
-        assertThat(createThing.getDittoHeaders().getContentType().orElseThrow()).isEqualTo(
-                "application/vnd.eclipse.ditto+json");
+        assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
+        assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
     }
 
     @Test
@@ -139,8 +140,8 @@ public class ImplicitThingCreationMessageMapperTest {
         final CreateThing createThing = (CreateThing) firstMappedSignal;
 
         final Thing expectedThing =
-                createExpectedThing("headerNamespace:headerDeviceId", "headerNamespace:headerDeviceId",
-                        "headerNamespace:headerGatewayId");
+                createExpectedThing(DEVICE_ID, DEVICE_ID,
+                        GATEWAY_ID);
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
@@ -153,7 +154,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
         final Map<String, String> headers1 = new HashMap<>();
         headers1.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId1");
-        headers1.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
+        headers1.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
 
         final ExternalMessage externalMessage1 = ExternalMessageFactory.newExternalMessageBuilder(headers1).build();
         final List<Adaptable> mappingResult1 = underTest.map(externalMessage1);
@@ -164,7 +165,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
         final Thing expectedThing1 =
                 createExpectedThing("headerNamespace:headerDeviceId1", "headerNamespace:headerDeviceId1",
-                        "headerNamespace:headerGatewayId");
+                        GATEWAY_ID);
         assertThat(createThing1.getThing().getEntityId()).isEqualTo(expectedThing1.getEntityId());
         assertThat(createThing1.getThing().getPolicyEntityId()).isEqualTo(expectedThing1.getPolicyEntityId());
         assertThat(createThing1.getThing().getAttributes()).isEqualTo(expectedThing1.getAttributes());
@@ -173,7 +174,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
         final Map<String, String> headers2 = new HashMap<>();
         headers2.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId2");
-        headers2.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
+        headers2.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
 
         final ExternalMessage externalMessage2 = ExternalMessageFactory.newExternalMessageBuilder(headers2).build();
         final List<Adaptable> mappingResult2 = underTest.map(externalMessage2);
@@ -184,7 +185,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
         final Thing expectedThing2 =
                 createExpectedThing("headerNamespace:headerDeviceId2", "headerNamespace:headerDeviceId2",
-                        "headerNamespace:headerGatewayId");
+                        GATEWAY_ID);
         assertThat(createThing2.getThing().getEntityId()).isEqualTo(expectedThing2.getEntityId());
         assertThat(createThing2.getThing().getPolicyEntityId()).isEqualTo(expectedThing2.getPolicyEntityId());
         assertThat(createThing2.getThing().getAttributes()).isEqualTo(expectedThing2.getAttributes());
@@ -234,7 +235,7 @@ public class ImplicitThingCreationMessageMapperTest {
         underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE));
 
         final Map<String, String> missingEntityHeader = new HashMap<>();
-        missingEntityHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
+        missingEntityHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
 
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(missingEntityHeader).build();
@@ -251,8 +252,8 @@ public class ImplicitThingCreationMessageMapperTest {
 
     private Map<String, String> createValidHeaders() {
         final Map<String, String> validHeader = new HashMap<>();
-        validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
-        validHeader.put(HEADER_HONO_GATEWAY_ID, "headerNamespace:headerGatewayId");
+        validHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
+        validHeader.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
         validHeader.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/vnd.eclipse-hono-empty-notification");
         return validHeader;
     }
