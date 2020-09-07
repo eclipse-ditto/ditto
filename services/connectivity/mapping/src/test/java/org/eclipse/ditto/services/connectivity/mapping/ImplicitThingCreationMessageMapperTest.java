@@ -59,8 +59,9 @@ public class ImplicitThingCreationMessageMapperTest {
 
     private static final String THING_TEMPLATE = "{" +
             "\"thingId\": \"{{ header:device_id }}\"," +
+            "\"_copyPolicyFrom\": \"{{ header:gateway_id }}\"," +
             "\"attributes\": {" +
-            "\"info\": {" +
+            "\"Info\": {" +
             "\"gatewayId\": \"{{ header:gateway_id }}\"" +
             "}" +
             "}" +
@@ -80,7 +81,7 @@ public class ImplicitThingCreationMessageMapperTest {
             .set("policyId", "{{ header:device_id }}")
             .set("_policy", INITIAL_POLICY)
             .set("attributes", JsonObject.newBuilder()
-                    .set("info", JsonObject.newBuilder()
+                    .set("Info", JsonObject.newBuilder()
                             .set("gatewayId", "{{ header:gateway_id }}")
                             .build())
                     .build())
@@ -91,7 +92,7 @@ public class ImplicitThingCreationMessageMapperTest {
             "\"thingId\": \"some:validThingId!\"," +
             "\"policyId\": \"some:validPolicyId!\"," +
             "\"attributes\": {" +
-            "\"info\": {" +
+            "\"Info\": {" +
             "\"gatewayId\": \"some:validGatewayId!\"" +
             "}" +
             "}" +
@@ -264,7 +265,7 @@ public class ImplicitThingCreationMessageMapperTest {
                 "\"thingId\": \"" + thingId + "\"," +
                 "\"policyId\": \"" + policyId + "\"," +
                 "\"attributes\": {" +
-                "\"info\": {" +
+                "\"Info\": {" +
                 "\"gatewayId\": \"" + gatewayId + "\"" +
                 "}" +
                 "}" +
