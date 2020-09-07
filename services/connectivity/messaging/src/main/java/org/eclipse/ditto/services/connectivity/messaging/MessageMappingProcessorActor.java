@@ -611,6 +611,7 @@ public final class MessageMappingProcessorActor
             final DittoHeaders mappedHeaders =
                     applyInboundHeaderMapping(errorResponse, message, authorizationContext,
                             message.getTopicPath().orElse(null), message.getInternalHeaders());
+            logger.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}", mappedHeaders, message.getHeaderMapping(), message.getHeaders());
             handleErrorResponse(dittoRuntimeException, errorResponse.setDittoHeaders(mappedHeaders),
                     ActorRef.noSender());
         } else {
