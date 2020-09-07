@@ -44,9 +44,6 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.http.javadsl.model.ContentType;
-import akka.http.javadsl.model.ContentTypes;
-
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.mapping.ImplicitThingCreationMessageMapper}.
  */

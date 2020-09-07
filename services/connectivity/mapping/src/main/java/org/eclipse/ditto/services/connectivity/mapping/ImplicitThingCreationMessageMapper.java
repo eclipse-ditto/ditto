@@ -13,7 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static java.util.Collections.singletonList;
+import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
@@ -48,8 +48,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-
-import akka.http.javadsl.model.ContentTypes;
 
 /**
  * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
@@ -166,7 +164,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
-                .contentType(ContentTypes.APPLICATION_JSON.toString())
+                .contentType(DITTO_PROTOCOL_CONTENT_TYPE)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
@@ -186,17 +184,18 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
-
-        final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
-        final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-        return singletonList(
-                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
-                        .withTopicPath(adaptable.getTopicPath())
-                        .withText(jsonString)
-                        .asResponse(isResponse)
-                        .asError(isError)
-                        .build());
+        if (TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion())) {
+            final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
+            final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
+            return Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(jsonString)
+                    .asResponse(isResponse)
+                    .asError(true)
+                    .build());
+        } else {
+            return Collections.emptyList();
+        }
     }
 
 }
