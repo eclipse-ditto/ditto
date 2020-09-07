@@ -20,10 +20,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,7 +33,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.ImmutableJsonObject.SoftReferencedFieldMap;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -77,20 +74,23 @@ public final class ImmutableJsonObjectTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonObject.class,
                 areImmutable(),
-                provided(SoftReferencedFieldMap.class).isAlsoImmutable());
+                provided(ImmutableJsonObject.SoftReferencedFieldMap.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
         final Map<String, JsonField> jsonFieldsRed = toMap("foo", JsonValue.of(1));
         final Map<String, JsonField> jsonFieldsBlack = toMap("foo", JsonValue.of(2));
-        final SoftReferencedFieldMap redFieldMap = SoftReferencedFieldMap.of(jsonFieldsRed);
-        final SoftReferencedFieldMap blackFieldMap = SoftReferencedFieldMap.of(jsonFieldsBlack);
+        final ImmutableJsonObject.SoftReferencedFieldMap
+                redFieldMap = ImmutableJsonObject.SoftReferencedFieldMap.of(jsonFieldsRed);
+        final ImmutableJsonObject.SoftReferencedFieldMap
+                blackFieldMap = ImmutableJsonObject.SoftReferencedFieldMap
+                .of(jsonFieldsBlack);
         final ImmutableJsonObject redObject = ImmutableJsonObject.of(jsonFieldsRed);
         final ImmutableJsonObject blackObject = ImmutableJsonObject.of(jsonFieldsBlack);
 
         EqualsVerifier.forClass(ImmutableJsonObject.class)
-                .withPrefabValues(SoftReferencedFieldMap.class, redFieldMap, blackFieldMap)
+                .withPrefabValues(ImmutableJsonObject.SoftReferencedFieldMap.class, redFieldMap, blackFieldMap)
                 .withPrefabValues(ImmutableJsonObject.class, redObject, blackObject)
                 .withNonnullFields("fieldMap")
                 .verify();
@@ -1392,44 +1392,14 @@ public final class ImmutableJsonObjectTest {
     }
 
     @Test
-    public void writeValueWritesExpectedEmpty() throws IOException {
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonObject.empty())).isEqualToIgnoringCase("A0");
-    }
-
-    @Test
-    public void writeValueWritesExpectedSimple() throws IOException {
-        String expectedString = "A3" // map of length 3
-                + "63666F6F" + "63626172" // "foo": "bar"
-                + "63626172" + "6362617A" // "bar": "baz"
-                + "6362617A" + "182A"; // "baz": 42
-
-        assertThat(CborTestUtils.serializeToHexString(ImmutableJsonObject.of(KNOWN_FIELDS))) // {"foo":"bar","bar":"baz","baz":42}
-                .isEqualToIgnoringCase(expectedString);
-    }
-
-    @Test
-    public void validateInternalCachingBehaviour() throws IOException {
-        final ImmutableJsonObject objectWithSelfGeneratedCache = ImmutableJsonObject.of(KNOWN_FIELDS);
-        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, false);
-
-        final ByteBuffer byteBuffer = CborFactory.toByteBuffer(objectWithSelfGeneratedCache);
-        final JsonObject objectWithCborCache = CborFactory.readFrom(byteBuffer).asObject();
-        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, false);
-        final JsonObject objectWithJsonCache = JsonFactory.newObject(objectWithSelfGeneratedCache.toString());
-        assertInternalCachesAreAsExpected(objectWithSelfGeneratedCache, true, true);
-
-        assertInternalCachesAreAsExpected(objectWithCborCache, true, false);
-        assertInternalCachesAreAsExpected(objectWithJsonCache, false, true);
-    }
-
-    @Test
     public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
         final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
-        assertInternalCachesAreAsExpected(jsonObject, true, false);
+        assertInternalCachesAreAsExpected(jsonObject, true);
 
         final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
         valueListField.setAccessible(true);
-        final SoftReferencedFieldMap valueList = (SoftReferencedFieldMap) valueListField.get(jsonObject);
+        final ImmutableJsonObject.SoftReferencedFieldMap
+                valueList = (ImmutableJsonObject.SoftReferencedFieldMap) valueListField.get(jsonObject);
 
         final Field softReferenceField = valueList.getClass().getDeclaredField("fieldsReference");
         softReferenceField.setAccessible(true);
@@ -1440,21 +1410,17 @@ public final class ImmutableJsonObjectTest {
         assertThat(jsonObject.getValue(KNOWN_KEY_FOO).isPresent()).isTrue();
     }
 
-    private void assertInternalCachesAreAsExpected(JsonObject jsonObject, boolean cborExpected, boolean jsonExpected) {
+    private void assertInternalCachesAreAsExpected(final JsonObject jsonObject, final boolean jsonExpected) {
         try {
             final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
             valueListField.setAccessible(true);
-            final SoftReferencedFieldMap fieldMap = (SoftReferencedFieldMap) valueListField.get(jsonObject);
-
-            final Field cborObjectField = fieldMap.getClass().getDeclaredField("cborObjectRepresentation");
-            cborObjectField.setAccessible(true);
-            byte[] cborObject = (byte[]) cborObjectField.get(fieldMap);
+            final ImmutableJsonObject.SoftReferencedFieldMap
+                    fieldMap = (ImmutableJsonObject.SoftReferencedFieldMap) valueListField.get(jsonObject);
 
             final Field jsonStringField = fieldMap.getClass().getDeclaredField("jsonObjectStringRepresentation");
             jsonStringField.setAccessible(true);
             String jsonString = (String) jsonStringField.get(fieldMap);
 
-            assertThat(cborObject != null).isEqualTo(cborExpected);
             assertThat(jsonString != null).isEqualTo(jsonExpected);
         } catch (IllegalAccessException | NoSuchFieldException e) {
             System.err.println(

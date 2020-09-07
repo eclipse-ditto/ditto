@@ -40,17 +40,6 @@
 
         <!-- ### Provided ### -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <scope>provided</scope> <!-- only needed in implementations, that actually use CBOR for serialization -->
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-cbor</artifactId>
-            <scope>provided</scope> <!-- only needed in implementations, that actually use CBOR for serialization -->
-        </dependency>
-
-        <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <scope>provided</scope>
@@ -144,6 +133,13 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+
+                            <!-- CborFactory is treated as "internal" but public due to technical reasons: -->
+                            <exclude>org.eclipse.ditto.json.CborFactory</exclude>
+                            <!-- SerializationContext is treated as "internal" but public due to technical reasons: -->
+                            <exclude>org.eclipse.ditto.json.SerializationContext</exclude>
+                            <!-- BinaryToHexConverter was internal API and removed in Ditto 1.2.1 -->
+                            <exclude>org.eclipse.ditto.json.BinaryToHexConverter</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

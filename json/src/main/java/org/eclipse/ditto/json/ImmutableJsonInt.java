@@ -68,7 +68,7 @@ final class ImmutableJsonInt extends AbstractJsonNumber<Integer> {
 
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeNumber(getValue());
+        serializationContext.writeNumber(getValue());
     }
 
     @Override

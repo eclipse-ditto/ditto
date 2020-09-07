@@ -14,7 +14,6 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
@@ -29,16 +28,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
-
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
 /**
  * An immutable implementation of a JSON object.
@@ -56,7 +54,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
     private final SoftReferencedFieldMap fieldMap;
 
-    private ImmutableJsonObject(final SoftReferencedFieldMap theFieldMap) {
+    ImmutableJsonObject(final SoftReferencedFieldMap theFieldMap) {
         fieldMap = theFieldMap;
     }
 
@@ -546,6 +544,14 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     static final class SoftReferencedFieldMap {
 
         private static final long CBOR_MAX_COMPRESSION_RATIO = 5; // "false" compressed to one byte
+        private static final CborFactory CBOR_FACTORY;
+
+        static {
+            final ServiceLoader<CborFactory> sl = ServiceLoader.load(CborFactory.class);
+            CBOR_FACTORY = StreamSupport.stream(sl.spliterator(), false)
+                    .findFirst()
+                    .orElseGet(NoopCborFactory::new); // when no Service could be found -> CBOR not available
+        }
 
         private String jsonObjectStringRepresentation;
         private byte[] cborObjectRepresentation;
@@ -560,9 +566,10 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             jsonObjectStringRepresentation = stringRepresentation;
             this.cborObjectRepresentation = cborObjectRepresentation;
             if (jsonObjectStringRepresentation == null && cborObjectRepresentation == null) {
-                if (CborAvailabilityChecker.isCborAvailable()) {
+                if (CBOR_FACTORY.isCborAvailable()) {
                     try {
-                        this.cborObjectRepresentation = createCborRepresentation(jsonFieldMap);
+                        this.cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(jsonFieldMap,
+                                        guessSerializedSize());
                     } catch (final IOException e) {
                         assert false; // this should not happen, so assertions will throw during testing
                         jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
@@ -669,7 +676,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         private Map<String, JsonField> recoverFields() {
-            if (cborObjectRepresentation != null) {
+            if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation != null) {
                 return parseToMap(cborObjectRepresentation);
             }
             if (jsonObjectStringRepresentation != null) {
@@ -685,7 +692,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         private static Map<String, JsonField> parseToMap(final byte[] cborObjectRepresentation) {
-            final JsonValue jsonObject = CborFactory.readFrom(cborObjectRepresentation);
+            final JsonValue jsonObject = CBOR_FACTORY.readFrom(cborObjectRepresentation);
             final Map<String, JsonField> map = new LinkedHashMap<>();
             for (final JsonField jsonValue : jsonObject.asObject()) {
                 map.put(jsonValue.getKey().toString(), jsonValue);
@@ -736,39 +743,10 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         void writeValue(final SerializationContext serializationContext) throws IOException {
-            if (cborObjectRepresentation == null) {
-                cborObjectRepresentation = createCborRepresentation(this.fields());
+            if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation == null) {
+                cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(this.fields(), guessSerializedSize());
             }
             serializationContext.writeCachedElement(cborObjectRepresentation);
-        }
-
-        private byte[] createCborRepresentation(final Map<String, JsonField> jsonFieldMap) throws IOException {
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(guessSerializedSize());
-
-            try (final SerializationContext serializationContext = new SerializationContext(byteArrayOutputStream)) {
-                writeStartObjectWithLength(serializationContext, jsonFieldMap.size());
-                for (final JsonField jsonField : jsonFieldMap.values()) {
-                    jsonField.writeKeyAndValue(serializationContext);
-                }
-                serializationContext.getJacksonGenerator().writeEndObject();
-            }
-            return byteArrayOutputStream.toByteArray();
-        }
-
-        private static void writeStartObjectWithLength(final SerializationContext serializationContext, int length)
-                throws IOException {
-            /*
-            This is a workaround to ensure that length is encoded in CBOR-Objects.
-            A proper API should be available in version 2.11. (2020-02)
-            see: https://github.com/FasterXML/jackson-dataformats-binary/issues/3
-             */
-            final JsonGenerator jacksonGenerator = serializationContext.getJacksonGenerator();
-            if (jacksonGenerator instanceof CBORGenerator) {
-                CBORGenerator cborGenerator = (CBORGenerator) jacksonGenerator;
-                cborGenerator.writeStartObject(length);
-            } else {
-                jacksonGenerator.writeStartObject();
-            }
         }
 
         private int guessSerializedSize() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,13 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.eclipse.ditto.json.JsonParseException;
 import org.junit.Test;
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
@@ -27,14 +28,15 @@ public final class CborIllegalValuesTest {
     @Test
     public void binaryValue() throws IOException {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        final CBORGenerator generator = new CBORFactory().createGenerator(byteArrayOutputStream);
-        generator.writeBinary(new byte[]{(byte) 0x42, (byte) 0x8, (byte) 0x15});
-        generator.close();
+        try (CBORGenerator generator = new CBORFactory().createGenerator(byteArrayOutputStream)) {
+            generator.writeBinary(new byte[]{(byte) 0x42, (byte) 0x8, (byte) 0x15});
+        }
 
         final byte[] array = byteArrayOutputStream.toByteArray();
         boolean exceptionThrown = false;
         try {
-            CborFactory.readFrom(array);
+            final JacksonCborFactory cborFactory = new JacksonCborFactory();
+            cborFactory.readFrom(array);
         } catch (final JsonParseException e) {
             exceptionThrown = true;
             assertThat(e)
