@@ -191,6 +191,7 @@
         <module>legal</module>
         <module>documentation</module>
         <module>json</module>
+        <module>json-cbor</module>
         <module>model</module>
         <module>signals</module>
         <module>protocol-adapter</module>

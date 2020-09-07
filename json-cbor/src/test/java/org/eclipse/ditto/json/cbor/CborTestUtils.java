@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,21 +10,28 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.SerializationContext;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 
 final class CborTestUtils {
 
-    static byte[] serializeWithJackson(JsonValue jsonValue) throws IOException {
+    private CborTestUtils() {
+        throw new AssertionError();
+    }
+
+    static byte[] serializeWithJackson(final JsonValue jsonValue) throws IOException {
         final JsonFactory jacksonFactory = new CBORFactory();
         final ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
         final SerializationContext serializationContext =
-                new SerializationContext(jacksonFactory, new ByteBufferOutputStream(byteBuffer));
+                new JacksonSerializationContext(jacksonFactory, new ByteBufferOutputStream(byteBuffer));
         jsonValue.writeValue(serializationContext);
         serializationContext.close();
         byteBuffer.flip();

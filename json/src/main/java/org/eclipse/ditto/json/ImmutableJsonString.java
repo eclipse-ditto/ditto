@@ -90,7 +90,7 @@ final class ImmutableJsonString extends AbstractJsonValue {
 
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeString(value);
+        serializationContext.writeString(value);
     }
 
     @Override

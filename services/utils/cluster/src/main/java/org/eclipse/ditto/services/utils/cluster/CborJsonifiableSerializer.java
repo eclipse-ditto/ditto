@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ServiceLoader;
+import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,6 +30,20 @@ public final class CborJsonifiableSerializer extends AbstractJsonifiableWithDitt
 
     private static final int UNIQUE_IDENTIFIER = 656329405;
 
+    private static final CborFactory CBOR_FACTORY;
+
+    static {
+        final ServiceLoader<CborFactory> sl = ServiceLoader.load(CborFactory.class);
+        CBOR_FACTORY = StreamSupport.stream(sl.spliterator(), false)
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException("Could not lookup CborFactory ServiceLoader implementation"));
+        if (!CBOR_FACTORY.isCborAvailable()) {
+            throw new IllegalStateException("CborFactory was provided via ServiceLoader, " +
+                    "however is not configured to handle CBOR");
+        }
+    }
+
     /**
      * Constructs a new {@code CborJsonifiableSerializer} object.
      *
@@ -39,11 +55,11 @@ public final class CborJsonifiableSerializer extends AbstractJsonifiableWithDitt
 
     @Override
     protected void serializeIntoByteBuffer(final JsonObject jsonObject, final ByteBuffer byteBuffer) throws IOException {
-        CborFactory.writeToByteBuffer(jsonObject, byteBuffer);
+        CBOR_FACTORY.writeToByteBuffer(jsonObject, byteBuffer);
     }
 
     @Override
     protected JsonValue deserializeFromByteBuffer(final ByteBuffer byteBuffer) {
-        return CborFactory.readFrom(byteBuffer);
+        return CBOR_FACTORY.readFrom(byteBuffer);
     }
 }
