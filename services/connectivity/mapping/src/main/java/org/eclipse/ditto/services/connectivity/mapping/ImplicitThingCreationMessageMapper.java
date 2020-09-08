@@ -165,6 +165,7 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
                 .contentType(DITTO_PROTOCOL_CONTENT_TYPE)
+                .responseRequired(false)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
