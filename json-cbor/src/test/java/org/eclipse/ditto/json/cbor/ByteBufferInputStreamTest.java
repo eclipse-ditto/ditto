@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,15 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
-
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+package org.eclipse.ditto.json.cbor;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 public final class ByteBufferInputStreamTest {
@@ -35,7 +34,7 @@ public final class ByteBufferInputStreamTest {
         buffer.flip();
         final InputStream stream = ByteBufferInputStream.of(buffer);
         for (int i = 0; i < length; i++) {
-            assertThat(stream.read()).isEqualTo(i);
+            Assertions.assertThat(stream.read()).isEqualTo(i);
         }
     }
 
@@ -56,23 +55,23 @@ public final class ByteBufferInputStreamTest {
         byte[] bytes = new byte[totalLength];
         final int readCount = stream.read(bytes, paddingFront, length);
 
-        assertThat(readCount).isEqualTo(length);
+        Assertions.assertThat(readCount).isEqualTo(length);
 
         for (int i = 0; i < paddingFront; i++) {
-            assertThat(bytes[i]).isEqualTo((byte) 0);
+            Assertions.assertThat(bytes[i]).isEqualTo((byte) 0);
         }
         for (int i = paddingFront; i < length; i++) {
-            assertThat(bytes[i]).isEqualTo(TESTVALUE);
+            Assertions.assertThat(bytes[i]).isEqualTo(TESTVALUE);
         }
         for (int i = paddingFront + length; i < totalLength; i++) {
-            assertThat(bytes[i]).isEqualTo((byte) 0);
+            Assertions.assertThat(bytes[i]).isEqualTo((byte) 0);
         }
     }
 
     @Test
     public void factoryMethodAccessesBackingArrayDirectlyIfAvailable(){
         final InputStream inputStream = ByteBufferInputStream.of(ByteBuffer.wrap(new byte[16]));
-        assertThat(inputStream).isInstanceOf(ByteArrayInputStream.class);
+        Assertions.assertThat(inputStream).isInstanceOf(ByteArrayInputStream.class);
     }
 
     @Test
@@ -81,6 +80,6 @@ public final class ByteBufferInputStreamTest {
         buffer.put(TESTVALUE);
         buffer.flip();
         final InputStream stream = ByteBufferInputStream.of(buffer.asReadOnlyBuffer());
-        assertThat(stream.read()).isEqualTo(TESTVALUE);
+        Assertions.assertThat(stream.read()).isEqualTo(TESTVALUE);
     }
 }

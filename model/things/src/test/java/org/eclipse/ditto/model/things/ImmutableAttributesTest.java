@@ -17,10 +17,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.io.IOException;
-
-import org.eclipse.ditto.json.BinaryToHexConverter;
-import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
@@ -142,12 +138,6 @@ public final class ImmutableAttributesTest extends LengthRestrictionTestBase {
                 .setValue("someObjectAttribute", JsonFactory.newObject());
 
         assertThat(attributes).isEqualTo(attributes.toBuilder().build());
-    }
-
-    @Test
-    public void writeValueWritesExpected() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(ImmutableAttributes.of(KNOWN_JSON_OBJECT))))
-                .isEqualTo(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(KNOWN_JSON_OBJECT)));
     }
 
     @Test(expected = JsonKeyInvalidException.class)

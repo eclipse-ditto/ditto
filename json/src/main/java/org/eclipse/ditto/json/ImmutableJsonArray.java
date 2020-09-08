@@ -14,7 +14,6 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.ArrayDeque;
@@ -27,7 +26,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -49,7 +50,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
     private final SoftReferencedValueList valueList;
 
-    private ImmutableJsonArray(final SoftReferencedValueList theValueList) {
+    ImmutableJsonArray(final SoftReferencedValueList theValueList) {
         valueList = theValueList;
     }
 
@@ -285,6 +286,14 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
     static final class SoftReferencedValueList {
 
         private static final long CBOR_MAX_COMPRESSION_RATIO = 5; // "false" compressed to one byte
+        private static final CborFactory CBOR_FACTORY;
+
+        static {
+            final ServiceLoader<CborFactory> sl = ServiceLoader.load(CborFactory.class);
+            CBOR_FACTORY = StreamSupport.stream(sl.spliterator(), false)
+                    .findFirst()
+                    .orElseGet(NoopCborFactory::new); // when no Service could be found -> CBOR not available
+        }
 
         private String jsonArrayStringRepresentation;
         private byte[] cborArrayRepresentation;
@@ -298,9 +307,10 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
             jsonArrayStringRepresentation = stringRepresentation;
             this.cborArrayRepresentation = cborArrayRepresentation;
             if (jsonArrayStringRepresentation == null && cborArrayRepresentation == null) {
-                if (CborAvailabilityChecker.isCborAvailable()) {
+                if (CBOR_FACTORY.isCborAvailable()) {
                     try {
-                        this.cborArrayRepresentation = createCborRepresentation(jsonValueList);
+                        this.cborArrayRepresentation = CBOR_FACTORY.createCborRepresentation(jsonValueList,
+                                        guessSerializedSize());
                     } catch (final IOException e) {
                         assert false; // this should not happen, so assertions will throw during testing
                         jsonArrayStringRepresentation = createStringRepresentation(jsonValueList);
@@ -390,7 +400,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         private List<JsonValue> recoverValues() {
-            if (cborArrayRepresentation != null) {
+            if (CBOR_FACTORY.isCborAvailable() && cborArrayRepresentation != null) {
                 return parseToList(cborArrayRepresentation);
             }
             if (jsonArrayStringRepresentation != null) {
@@ -406,7 +416,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         private static List<JsonValue> parseToList(final byte[] cborArrayRepresentation) {
-            final JsonValue jsonArray = CborFactory.readFrom(cborArrayRepresentation);
+            final JsonValue jsonArray = CBOR_FACTORY.readFrom(cborArrayRepresentation);
             List<JsonValue> list = new LinkedList<>();
             for (JsonValue jsonValue : jsonArray.asArray()) {
                 list.add(jsonValue);
@@ -464,23 +474,10 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         void writeValue(final SerializationContext serializationContext) throws IOException {
-            if (cborArrayRepresentation == null) {
-                cborArrayRepresentation = createCborRepresentation(this.values());
+            if (CBOR_FACTORY.isCborAvailable() && cborArrayRepresentation == null) {
+                cborArrayRepresentation = CBOR_FACTORY.createCborRepresentation(this.values(), guessSerializedSize());
             }
             serializationContext.writeCachedElement(cborArrayRepresentation);
-        }
-
-        byte[] createCborRepresentation(final List<JsonValue> list) throws IOException {
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(guessSerializedSize());
-
-            try (final SerializationContext serializationContext = new SerializationContext(byteArrayOutputStream)) {
-                serializationContext.getJacksonGenerator().writeStartArray(list.size());
-                for (final JsonValue jsonValue : list) {
-                    jsonValue.writeValue(serializationContext);
-                }
-                serializationContext.getJacksonGenerator().writeEndArray();
-            }
-            return byteArrayOutputStream.toByteArray();
         }
 
         private int guessSerializedSize() {

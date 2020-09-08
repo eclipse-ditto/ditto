@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 /**
  * Helper for converting binary data to an uppercase hexadecimal string for debugging and logging purposes.
  *
- * @since 1.1.0
+ * @since 1.2.1
  */
 public final class BinaryToHexConverter {
 

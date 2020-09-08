@@ -72,7 +72,7 @@ final class ImmutableJsonLong extends AbstractJsonNumber<Long> {
 
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeNumber(getValue());
+        serializationContext.writeNumber(getValue());
     }
 
     @Override
