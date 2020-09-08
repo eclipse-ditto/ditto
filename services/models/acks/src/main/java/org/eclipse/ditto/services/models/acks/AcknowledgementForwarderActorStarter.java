@@ -30,6 +30,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.signals.base.Signal;
@@ -52,6 +54,7 @@ import akka.japi.Pair;
 final class AcknowledgementForwarderActorStarter implements Supplier<Optional<ActorRef>> {
 
     private static final String PREFIX_COUNTER_SEPARATOR = "#";
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AcknowledgementForwarderActorStarter.class);
 
     private final ActorContext actorContext;
     private final EntityIdWithType entityId;

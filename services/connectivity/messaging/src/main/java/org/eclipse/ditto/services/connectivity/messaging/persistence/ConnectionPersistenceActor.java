@@ -475,14 +475,20 @@ public final class ConnectionPersistenceActor
                 .build();
     }
 
-    private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
+    private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
         final ActorContext context = getContext();
-        final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
-        final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)
-                .info("Received response but no AcknowledgementForwarderActor was present: <{}>",
-                        acknowledgement);
+        final Consumer<ActorRef> action = forwarder -> forwarder.forward(responseOrAck, context);
+        final Runnable emptyAction = () -> {
+            final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
+            if (log.isDebugEnabled()) {
+                log.withCorrelationId(responseOrAck).debug(template, responseOrAck);
+            } else {
+                log.withCorrelationId(responseOrAck).info(template, responseOrAck.getClass().getCanonicalName());
+            }
+            proxyActor.tell(responseOrAck, ActorRef.noSender());
+        };
 
-        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+        context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
                 .ifPresentOrElse(action, emptyAction);
     }
 

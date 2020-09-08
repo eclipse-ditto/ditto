@@ -31,10 +31,13 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
 
     private final Duration askTimeout;
     private final int bufferSize;
+    private final boolean globalLiveResponseDispatching;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
         bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
+        globalLiveResponseDispatching =
+                configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
     }
 
     /**
@@ -60,6 +63,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
+    public boolean shouldDispatchLiveResponsesGlobally() {
+        return globalLiveResponseDispatching;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -68,12 +76,13 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
             return false;
         }
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
-        return bufferSize == that.bufferSize && askTimeout.equals(that.askTimeout);
+        return bufferSize == that.bufferSize && askTimeout.equals(that.askTimeout) &&
+                globalLiveResponseDispatching == that.globalLiveResponseDispatching;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, bufferSize);
+        return Objects.hash(askTimeout, bufferSize, globalLiveResponseDispatching);
     }
 
     @Override
@@ -81,6 +90,7 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
                 ", bufferSize=" + bufferSize +
+                ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
                 "]";
     }
 
