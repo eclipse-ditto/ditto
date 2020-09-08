@@ -111,7 +111,7 @@ public final class MessageMappingProcessorTest {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
         mappings.put(DITTO_MAPPER_BY_ALIAS,
-                ConnectivityModelFactory.newMappingContext("Ditto", Collections.emptyMap(), DITTO_MAPPER_CONDITIONS));
+                ConnectivityModelFactory.newMappingContext("Ditto", Collections.emptyMap(), DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
 
         final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
         dittoCustomMapperHeaders.put(

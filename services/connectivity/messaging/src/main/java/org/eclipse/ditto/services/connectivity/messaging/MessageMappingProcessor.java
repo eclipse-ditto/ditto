@@ -274,7 +274,7 @@ public final class MessageMappingProcessor {
                 logger.withCorrelationId(message.getInternalHeaders())
                         .debug("Not mapping message with mapper <{}> as content-type <{}> was " +
                                         "blocked or MessageMapper conditions {} were not matched.",
-                                mapper.getId(), message.findContentType(), mapper.getConditions());
+                                mapper.getId(), message.findContentType(), mapper.getIncomingConditions());
             }
         } catch (final DittoRuntimeException e) {
             // combining error result with any previously successfully mapped result
@@ -295,17 +295,27 @@ public final class MessageMappingProcessor {
     }
 
     private static boolean shouldMapMessageByConditions(final ExternalMessage message, final MessageMapper mapper) {
-        return resolveConditions(mapper, Resolvers.forExternalMessage(message));
+        return resolveIncomingConditions(mapper, Resolvers.forExternalMessage(message));
     }
 
     private static boolean shouldMapMessageByConditions(final OutboundSignal.Mappable mappable,
             final MessageMapper mapper) {
-        return resolveConditions(mapper, Resolvers.forOutboundSignal(mappable));
+        return resolveOutgoingConditions(mapper, Resolvers.forOutboundSignal(mappable));
     }
 
-    private static boolean resolveConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
+    private static boolean resolveIncomingConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
         boolean conditionBool = true;
-        for (String condition : mapper.getConditions().values()) {
+        for (String condition : mapper.getIncomingConditions().values()) {
+            final String template = "{{ fn:default('true') | " + condition + " }}";
+            final String resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
+            conditionBool &= Boolean.parseBoolean(resolvedCondition);
+        }
+        return conditionBool;
+    }
+
+    private static boolean resolveOutgoingConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
+        boolean conditionBool = true;
+        for (String condition : mapper.getOutgoingConditions().values()) {
             final String template = "{{ fn:default('true') | " + condition + " }}";
             final String resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
             conditionBool &= Boolean.parseBoolean(resolvedCondition);
@@ -325,6 +335,8 @@ public final class MessageMappingProcessor {
 
         R result = resultHandler.emptyResult();
         try {
+
+            if (shouldMapMessageByConditions(outboundSignal, mapper)) {
                 logger.withCorrelationId(adaptable)
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
 
@@ -351,6 +363,12 @@ public final class MessageMappingProcessor {
                         result = resultHandler.combineResults(result, resultHandler.onMessageMapped(message));
                     }
                 }
+            } else {
+                result = resultHandler.onMessageDropped();
+                logger.withCorrelationId(outboundSignal.getSource().getDittoHeaders())
+                        .debug("Not mapping message with mapper <{}> as MessageMapper conditions {} were not matched.",
+                                mapper.getId(), mapper.getIncomingConditions());
+            }
         } catch (final DittoRuntimeException e) {
             result = resultHandler.combineResults(result, resultHandler.onException(e));
         } catch (final Exception e) {

@@ -90,12 +90,20 @@ public interface MessageMapper {
     }
 
     /**
-     * Returns the conditions to be checked before mapping.
+     * Returns the conditions to be checked before mapping incoming messages.
      * @return the conditions.
      *
-     * @since 1.2.0
+     * @since 1.3.0
      */
-    Map<String, String> getConditions();
+    Map<String, String> getIncomingConditions();
+
+    /**
+     * Returns the conditions to be checked before mapping outgoing messages.
+     * @return the conditions.
+     *
+     * @since 1.3.0
+     */
+    Map<String, String> getOutgoingConditions();
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

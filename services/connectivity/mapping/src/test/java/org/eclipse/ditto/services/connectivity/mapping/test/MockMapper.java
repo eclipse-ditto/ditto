@@ -69,7 +69,12 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
-    public Map<String, String> getConditions() {
+    public Map<String, String> getIncomingConditions() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
         return Collections.emptyMap();
     }
 

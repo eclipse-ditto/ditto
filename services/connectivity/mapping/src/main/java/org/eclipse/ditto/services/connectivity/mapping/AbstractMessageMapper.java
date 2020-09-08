@@ -22,7 +22,8 @@ import java.util.Map;
 public abstract class AbstractMessageMapper implements MessageMapper {
 
     private String id;
-    private Map<String, String> conditions;
+    private Map<String, String> incomingConditions;
+    private Map<String, String> outgoingConditions;
     private Collection<String> contentTypeBlocklist;
 
     @Override
@@ -31,8 +32,13 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Map<String, String> getConditions() {
-        return conditions;
+    public Map<String, String> getIncomingConditions() {
+        return incomingConditions;
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return outgoingConditions;
     }
 
     @Override
@@ -43,7 +49,8 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     @Override
     public final void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         this.id = configuration.getId();
-        this.conditions = configuration.getConditions();
+        this.incomingConditions = configuration.getIncomingConditions();
+        this.outgoingConditions = configuration.getOutgoingConditions();
         this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
         doConfigure(mappingConfig, configuration);
     }

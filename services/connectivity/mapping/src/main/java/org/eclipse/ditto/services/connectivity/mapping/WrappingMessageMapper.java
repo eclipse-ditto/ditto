@@ -69,8 +69,13 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Map<String, String> getConditions() {
-        return delegate.getConditions();
+    public Map<String, String> getIncomingConditions() {
+        return delegate.getIncomingConditions();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return delegate.getOutgoingConditions();
     }
 
     /**

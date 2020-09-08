@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -119,13 +118,15 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     @Override
     public Optional<MessageMapper> mapperOf(final String mapperId, final MappingContext mappingContext) {
         final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext.getMappingEngine());
-        final Map<String, String> configuredConditions = mappingContext.getConditions();
+        final Map<String, String> configuredIncomingConditions = mappingContext.getIncomingConditions();
+        final Map<String, String> configuredOutgoingConditions = mappingContext.getOutgoingConditions();
         final Map<String, String> defaultOptions =
                 mapper.map(MessageMapper::getDefaultOptions).orElse(Collections.emptyMap());
         final Map<String, String> configuredAndDefaultOptions =
                 mergeMappingOptions(defaultOptions, mappingContext.getOptions());
         final MessageMapperConfiguration options =
-                DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions, configuredConditions);
+                DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
+                        configuredIncomingConditions, configuredOutgoingConditions);
         return mapper.flatMap(m -> configureInstance(m, options));
     }
 

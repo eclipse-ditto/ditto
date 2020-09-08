@@ -45,8 +45,13 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     }
 
     @Override
-    public Map<String, String> getConditions() {
-        return delegationTarget.getConditions();
+    public Map<String, String> getIncomingConditions() {
+        return delegationTarget.getIncomingConditions();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return delegationTarget.getOutgoingConditions();
     }
 
     @Override
@@ -70,7 +75,8 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "properties=" + getProperties() +
-                ", conditions=" + getConditions().toString() +
+                ", incomingConditions=" + getIncomingConditions() +
+                ", outgoingConditions=" + getOutgoingConditions() +
                 "]";
     }
 
@@ -82,12 +88,15 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
 
         private final String id;
         private final Map<String, String> properties;
-        private final Map<String, String> conditions;
+        private final Map<String, String> incomingConditions;
+        private final Map<String, String> outgoingConditions;
 
-        Builder(final String id, final Map<String, String> properties, final Map<String, String> conditions) {
+        Builder(final String id, final Map<String, String> properties, final Map<String, String> incomingConditions,
+                final Map<String, String> outgoingConditions) {
             this.id = id;
             this.properties = new HashMap<>(properties); // mutable map!
-            this.conditions = conditions;
+            this.incomingConditions = incomingConditions;
+            this.outgoingConditions = outgoingConditions;
         }
 
         @Override
@@ -96,14 +105,19 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
         }
 
         @Override
-        public Map<String, String> getConditions() {
-            return conditions;
+        public Map<String, String> getIncomingConditions() {
+            return incomingConditions;
+        }
+
+        @Override
+        public Map<String, String> getOutgoingConditions() {
+            return outgoingConditions;
         }
 
         @Override
         public JavaScriptMessageMapperConfiguration build() {
             return new ImmutableJavaScriptMessageMapperConfiguration(
-                    DefaultMessageMapperConfiguration.of(id, properties, conditions));
+                    DefaultMessageMapperConfiguration.of(id, properties, incomingConditions, outgoingConditions));
         }
 
     }

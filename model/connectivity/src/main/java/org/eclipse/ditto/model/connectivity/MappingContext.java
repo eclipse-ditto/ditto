@@ -52,12 +52,20 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
     Map<String, String> getOptions();
 
     /**
-     * All conditions to be validated before mapping.
+     * All conditions to be validated before mapping incoming messages.
      *
      * @return the conditions
      * @since 1.3.0
      */
-    Map<String, String> getConditions();
+    Map<String, String> getIncomingConditions();
+
+    /**
+     * All conditions to be validated before mapping outgoing messages.
+     *
+     * @return the conditions
+     * @since 1.3.0
+     */
+    Map<String, String> getOutgoingConditions();
 
     /**
      * Returns all non hidden marked fields of this {@code MappingContext}.
@@ -97,8 +105,15 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
         /**
          * JSON field containing the {@code conditions} to check before mapping.
          */
-        public static final JsonFieldDefinition<JsonObject> CONDITIONS =
-                JsonFactory.newJsonObjectFieldDefinition("conditions", FieldType.REGULAR,
+        public static final JsonFieldDefinition<JsonObject> INCOMING_CONDITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("incomingConditions", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code conditions} to check before mapping.
+         */
+        public static final JsonFieldDefinition<JsonObject> OUTGOING_CONDITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("outgoingConditions", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {

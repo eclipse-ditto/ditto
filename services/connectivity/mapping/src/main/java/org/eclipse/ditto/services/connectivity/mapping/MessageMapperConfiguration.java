@@ -44,12 +44,20 @@ public interface MessageMapperConfiguration {
     Map<String, String> getProperties();
 
     /**
-     * Returns the conditions to check before mapping.
+     * Returns the conditions to check before mapping incoming messages.
      *
      * @return an unmodifiable Set containing the conditions.
-     * @since 1.2.0
+     * @since 1.3.0
      */
-    Map<String, String> getConditions();
+    Map<String, String> getIncomingConditions();
+
+    /**
+     * Returns the conditions to check before mapping outgoing messages.
+     *
+     * @return an unmodifiable Set containing the conditions.
+     * @since 1.3.0
+     */
+    Map<String, String> getOutgoingConditions();
 
     /**
      * Searches the configuration for a specific property.
@@ -100,10 +108,16 @@ public interface MessageMapperConfiguration {
         Map<String, String> getProperties();
 
         /**
-         * @return the conditions as mutable set.
-         * @since 1.2.0
+         * @return the incoming conditions as mutable set.
+         * @since 1.3.0
          */
-        Map<String, String> getConditions();
+        Map<String, String> getIncomingConditions();
+
+        /**
+         * @return the outgoing conditions as mutable set.
+         * @since 1.3.0
+         */
+        Map<String, String> getOutgoingConditions();
 
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}

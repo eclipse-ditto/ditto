@@ -31,13 +31,15 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
 
     private final String id;
     private final Map<String, String> properties;
-    private final Map<String, String> conditions;
+    private final Map<String, String> incomingConditions;
+    private final Map<String, String> outgoingConditions;
 
     private DefaultMessageMapperConfiguration(final String id, final Map<String, String> properties,
-    final Map<String, String> conditions) {
+    final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         this.id = id;
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
-        this.conditions = Collections.unmodifiableMap(new HashMap<>(conditions));
+        this.incomingConditions = Collections.unmodifiableMap(new HashMap<>(incomingConditions));
+        this.outgoingConditions = Collections.unmodifiableMap(new HashMap<>(outgoingConditions));
     }
 
     /**
@@ -51,7 +53,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration");
-        return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptyMap());
+        return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptyMap(), Collections.emptyMap());
     }
 
     /**
@@ -59,18 +61,19 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      *
      * @param id the id of the mapper.
      * @param configuration the map holding configuration properties.
-     * @param conditions the conditions to be checked before mapping.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
      * @return the instance.
      * @throws NullPointerException if {@code id}, {@code configuration} or {@code conditions} is {@code null}.
      *
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration,
-            final Map<String, String> conditions) {
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration");
-        checkNotNull("conditions");
-        return new DefaultMessageMapperConfiguration(id, configuration, conditions);
+        checkNotNull(incomingConditions, "incomingConditions");
+        checkNotNull(outgoingConditions, "outgoingConditions");
+        return new DefaultMessageMapperConfiguration(id, configuration, incomingConditions, outgoingConditions);
     }
 
     @Override
@@ -84,8 +87,13 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
-    public Map<String, String> getConditions() {
-        return conditions;
+    public Map<String, String> getIncomingConditions() {
+        return incomingConditions;
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return outgoingConditions;
     }
 
     @Override
@@ -95,12 +103,13 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
         final DefaultMessageMapperConfiguration that = (DefaultMessageMapperConfiguration) o;
         return Objects.equals(id, that.id) &&
                 Objects.equals(properties, that.properties) &&
-                Objects.equals(conditions, that.conditions);
+                Objects.equals(incomingConditions, that.incomingConditions) &&
+                Objects.equals(outgoingConditions, that.outgoingConditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, properties, conditions);
+        return Objects.hash(id, properties, incomingConditions, outgoingConditions);
     }
 
     @Override
@@ -108,7 +117,8 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
                 ", properties=" + properties +
-                ", conditions=" + conditions +
+                ", incomingConditions=" + incomingConditions +
+                ", outgoingConditions=" + outgoingConditions +
                 "]";
     }
 }

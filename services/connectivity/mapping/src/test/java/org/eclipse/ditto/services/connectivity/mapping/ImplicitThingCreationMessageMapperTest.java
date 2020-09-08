@@ -272,9 +272,9 @@ public class ImplicitThingCreationMessageMapperTest {
 
     private DefaultMessageMapperConfiguration createMapperConfig(final String thingTemplate) {
         final Map<String, String> options = Collections.singletonMap("thing", thingTemplate);
-        final Map<String, String> conditions = Collections.singletonMap("implicitThingCreation",
+        final Map<String, String> incomingConditions = Collections.singletonMap("implicitThingCreation",
                 "{{ header:hono_registration_status | fn:filter(header:hono_registration_status,'eq','NEW') }}");
-        return DefaultMessageMapperConfiguration.of("valid", options, conditions);
+        return DefaultMessageMapperConfiguration.of("valid", options, incomingConditions, Collections.emptyMap());
     }
 
 }

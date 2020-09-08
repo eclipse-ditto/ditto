@@ -387,14 +387,15 @@ public final class ConnectivityModelFactory {
      *
      * @param mappingEngine fully qualified classname of a mapping engine.
      * @param options the mapping options required to instantiate a mapper.
-     * @param conditions the conditions to be checked before mapping.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.3.0
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options,
-            final Map<String, String> conditions) {
-        return ImmutableMappingContext.of(mappingEngine, options, conditions);
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
+        return ImmutableMappingContext.of(mappingEngine, options, incomingConditions, outgoingConditions);
     }
 
     /**
