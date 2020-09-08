@@ -126,7 +126,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
 
-        final Props acksUpdaterProps = AcksUpdater.props(config, subscriber, updater, acksDData);
+        final Props acksUpdaterProps = AcksUpdater.props(config, subscriber, acksDData);
         acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
     }
 

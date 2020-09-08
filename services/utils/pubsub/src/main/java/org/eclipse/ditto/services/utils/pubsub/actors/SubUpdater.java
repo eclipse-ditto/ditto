@@ -80,14 +80,14 @@ public final class SubUpdater<T> extends AbstractUpdater<T> {
 
     @Override
     protected void updateSuccess(final SubscriptionsReader snapshot) {
-        flushSubAcks(true);
+        flushSubAcks();
         // race condition possible -- some published messages may arrive before the acknowledgement
         // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
         subscriber.tell(snapshot, getSelf());
     }
 
     @Override
-    protected void flushSubAcks(final boolean ddataChanged) {
+    protected void flushSubAcks() {
         for (final SubAck ack : awaitSubAck) {
             ack.getSender().tell(ack, getSelf());
         }

@@ -114,10 +114,8 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
     /**
      * Flush pending SubAcks to senders.
-     *
-     * @param ddataChanged whether the distributed data changed.
      */
-    protected abstract void flushSubAcks(final boolean ddataChanged);
+    protected abstract void flushSubAcks();
 
     /**
      * What to do when update succeeded.
@@ -161,7 +159,8 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
     /**
      * Add a request to the queue to be handled after cluster update.
-     *  @param request the request.
+     *
+     * @param request the request.
      * @param changed whether the request changed ddata.
      * @param sender sender of the request.
      */
@@ -179,7 +178,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         final boolean forceUpdate = forceUpdate();
         if (!localSubscriptionsChanged && !forceUpdate) {
             moveAwaitUpdateToAwaitAcknowledge();
-            flushSubAcks(false);
+            flushSubAcks();
         } else {
             final SubscriptionsReader snapshot;
             final CompletionStage<Void> ddataOp;
@@ -331,15 +330,11 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
         private final Predicate<Collection<String>> filter;
 
-        // TODO: delete this; just use the topics for AcksUpdater.
-        private final Collection<String> ackLabels;
-
         private Subscribe(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
-                final Predicate<Collection<String>> filter, final Collection<String> ackLabels) {
+                final Predicate<Collection<String>> filter) {
             super(topics, subscriber, writeConsistency, acknowledge);
             this.filter = filter;
-            this.ackLabels = ackLabels;
         }
 
         /**
@@ -353,7 +348,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
          */
         public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE, List.of());
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE);
         }
 
         /**
@@ -369,7 +364,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
                 final Predicate<Collection<String>> filter) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter, List.of());
+            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter);
         }
 
         /**
@@ -379,23 +374,6 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
             return filter;
         }
 
-        /**
-         * @return Declared acknowledgement labels.
-         */
-        public Collection<String> getAckLabels() {
-            return ackLabels;
-        }
-
-        /**
-         * Create a copy of this message with declared ack labels.
-         *
-         * @param ackLabels the declared acknowledgement labels.
-         * @return a copy of this object with declared acknowledgement labels set.
-         */
-        public Subscribe withAckLabels(final Collection<String> ackLabels) {
-            return new Subscribe(getTopics(), getSubscriber(), getWriteConsistency(), shouldAcknowledge(), filter,
-                    ackLabels);
-        }
     }
 
     /**

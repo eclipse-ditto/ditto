@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -25,6 +24,8 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.ddata.Replicator;
+import akka.japi.pf.ReceiveBuilder;
 import scala.collection.JavaConverters;
 
 /**
@@ -45,16 +46,13 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
      */
     public static final String ACTOR_NAME_PREFIX = "acksUpdater";
 
-    private final ActorRef subUpdater;
     private final DData<String, LiteralUpdate> acksDData;
 
     @SuppressWarnings("unused")
     private AcksUpdater(final PubSubConfig config,
             final ActorRef subscriber,
-            final ActorRef subUpdater,
             final DData<String, LiteralUpdate> acksDData) {
         super(ACTOR_NAME_PREFIX, config, subscriber, acksDData.createSubscriptions(), acksDData.getWriter());
-        this.subUpdater = subUpdater;
         this.acksDData = acksDData;
     }
 
@@ -63,16 +61,22 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
      *
      * @param config the pub-sub config.
      * @param subscriber the subscriber.
-     * @param subUpdater the subUpdater.
      * @param acksDData access to the distributed data of declared acknowledgement labels.
      * @return the Props object.
      */
     public static Props props(final PubSubConfig config,
             final ActorRef subscriber,
-            final ActorRef subUpdater,
             final DData<String, LiteralUpdate> acksDData) {
 
-        return Props.create(AcksUpdater.class, config, subscriber, subUpdater, acksDData);
+        return Props.create(AcksUpdater.class, config, subscriber, acksDData);
+    }
+
+    @Override
+    public Receive createReceive() {
+        return ReceiveBuilder.create()
+                .match(DoSubscribe.class, this::doSubscribe)
+                .build()
+                .orElse(super.createReceive());
     }
 
     @Override
@@ -82,11 +86,11 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
             failSubscribe(sender);
         } else {
             // read local DData for remote subscribers
-            areAckLabelsDeclaredRemotely(subscribe).thenAccept(taken -> {
+            areTopicsClaimedRemotely(subscribe).thenAccept(taken -> {
                 if (taken) {
                     failSubscribe(sender);
                 } else {
-                    // TODO: actually subscribe
+                    getSelf().tell(new DoSubscribe(subscribe, sender), ActorRef.noSender());
                 }
             });
         }
@@ -95,7 +99,6 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     @Override
     protected void unsubscribe(final Unsubscribe unsubscribe) {
         final boolean changed = subscriptions.removeSubscriber(unsubscribe.getSubscriber());
-        // TODO: send unsub-ack?
         enqueueRequest(unsubscribe, changed, getSender());
         if (changed) {
             getContext().unwatch(unsubscribe.getSubscriber());
@@ -104,15 +107,23 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
 
     @Override
     protected void updateSuccess(final SubscriptionsReader snapshot) {
-        flushSubAcks(true);
+        flushSubAcks();
     }
 
     @Override
-    protected void flushSubAcks(final boolean ddataChanged) {
+    protected void flushSubAcks() {
         // There is a chance that a subscriber gets failure after SubAck due to unlucky timing.
         checkConsistencyAndReply(awaitSubAck);
         awaitSubAck.clear();
         awaitSubAckMetric.set(0L);
+    }
+
+    private void doSubscribe(final DoSubscribe doSubscribe) {
+        final boolean changed = subscriptions.subscribe(doSubscribe.sender, doSubscribe.subscribe.getTopics());
+        enqueueRequest(doSubscribe.subscribe, changed, getSender());
+        if (changed) {
+            getContext().watch(doSubscribe.subscribe.getSubscriber());
+        }
     }
 
     private void checkConsistencyAndReply(final List<SubAck> awaitSubAck) {
@@ -122,15 +133,16 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
         // local losers are the actors whose declared ack labels are taken over concurrently by remote subscribers.
         getLocalLosers(snapshot).thenAccept(localLosers -> {
             // Under a rare condition, a local subscriber may lose a race _after_ a successful SubAck.
-            // TODO: some of these may be Unsubscribe!
             localLosers.forEach(this::failSubscribe);
             for (final SubAck subAck : subAcks) {
                 if (!localLosers.contains(subAck.getSender())) {
-                    // the subscriber won the race; forward to subUpdater to start receiving published signals
-                    subUpdater.tell(subAck.getRequest(), subAck.getSender());
+                    // the subscriber won the race
+                    subAck.getSender().tell(subAck, ActorRef.noSender());
                 } else {
-                    // TODO: the subscriber lost the race; remove it.
-                    // getSelf().tell(subAck.getRequest().negate(), ActorRef.noSender());
+                    // the subscriber lost the race; remove it. (failSubscribe already called)
+                    final Unsubscribe unsubscribe =
+                            Unsubscribe.of(Set.of(), subAck.getSender(), Replicator.writeLocal(), false);
+                    getSelf().tell(unsubscribe, ActorRef.noSender());
                 }
             }
         });
@@ -143,7 +155,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     }
 
     private boolean areAckLabelsDeclaredHere(final Subscribe subscribe) {
-        return subscribe.getAckLabels()
+        return subscribe.getTopics()
                 .stream()
                 .flatMap(subscriptions::streamSubscribers)
                 .anyMatch(previousSubscriber -> !previousSubscriber.equals(subscribe.getSubscriber()));
@@ -170,9 +182,9 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
         return conflictingAckLabels.thenApply(snapshot::getSubscribers);
     }
 
-    private CompletionStage<Boolean> areAckLabelsDeclaredRemotely(final Subscribe subscribe) {
+    private CompletionStage<Boolean> areTopicsClaimedRemotely(final Subscribe subscribe) {
         return acksDData.getReader()
-                .getSubscribers(subscribe.getAckLabels())
+                .getSubscribers(subscribe.getTopics())
                 .thenApply(allSubscribers -> allSubscribers.stream()
                         .anyMatch(otherSubscriber -> !subscriber.equals(otherSubscriber))
                 );
@@ -180,6 +192,17 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
 
     private boolean isSmallerThanMySubscriber(final ActorRef otherSubscriber) {
         return otherSubscriber.compareTo(subscriber) < 0;
+    }
+
+    private static final class DoSubscribe {
+
+        private final Subscribe subscribe;
+        private final ActorRef sender;
+
+        private DoSubscribe(final Subscribe subscribe, final ActorRef sender) {
+            this.subscribe = subscribe;
+            this.sender = sender;
+        }
     }
 
 }
