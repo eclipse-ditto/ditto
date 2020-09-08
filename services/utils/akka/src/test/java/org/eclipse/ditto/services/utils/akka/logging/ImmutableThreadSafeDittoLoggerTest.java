@@ -19,16 +19,11 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areEffectivelyImmutable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.annotation.concurrent.ThreadSafe;
-
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.data.MapEntry;
 import org.junit.After;
 import org.junit.Before;
@@ -54,6 +49,9 @@ public final class ImmutableThreadSafeDittoLoggerTest {
 
     @Rule
     public final TestName testName = new TestName();
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Mock
     private Logger plainSlf4jLogger;
@@ -96,7 +94,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
 
     @Test
     public void withSameCorrelationIdReturnsSameInstance() {
-        final String correlationId = getUsableCorrelationId();
+        final String correlationId = getCorrelationId();
         ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
         underTest = underTest.withCorrelationId(correlationId);
 
@@ -106,8 +104,8 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     }
 
     @Test
-    public void putCorrelationIdToMdcAndLogInfo() {
-        final String correlationId = getUsableCorrelationId();
+    public void logInfoWithCorrelationId() {
+        final String correlationId = getCorrelationId();
         final String msg = "Foo!";
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(true);
         ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
@@ -116,17 +114,17 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         underTest.info(msg);
 
         Mockito.verify(plainSlf4jLogger).info(msg);
-        assertThat(mdcObserver.allPutEntries)
+        softly.assertThat(mdcObserver.getAllPutEntries())
                 .as("Put MDC entries")
                 .containsOnly(entry(CORRELATION_ID_KEY, correlationId));
-        assertThat(mdcObserver.allRemovedKeys)
+        softly.assertThat(mdcObserver.getAllRemovedKeys())
                 .as("Removed MDC entries")
                 .containsOnly(CORRELATION_ID_KEY);
     }
 
     @Test
     public void putNothingToMdcAndDoNotLogAsInfoIsDisabled() {
-        final String correlationId = getUsableCorrelationId();
+        final String correlationId = getCorrelationId();
         final String msg = "Foo!";
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(false);
         ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
@@ -135,8 +133,8 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         underTest.info(msg);
 
         Mockito.verify(plainSlf4jLogger, Mockito.times(0)).info(msg);
-        assertThat(mdcObserver.allPutEntries).isEmpty();
-        assertThat(mdcObserver.allRemovedKeys).isEmpty();
+        softly.assertThat(mdcObserver.getAllPutEntries()).isEmpty();
+        softly.assertThat(mdcObserver.getAllRemovedKeys()).isEmpty();
     }
 
     @Test
@@ -150,13 +148,13 @@ public final class ImmutableThreadSafeDittoLoggerTest {
 
         Mockito.verify(plainSlf4jLogger, Mockito.times(0)).isInfoEnabled();
         Mockito.verify(plainSlf4jLogger).info(msg);
-        assertThat(mdcObserver.allPutEntries).as("Put MDC entries").isEmpty();
-        assertThat(mdcObserver.allRemovedKeys).as("Removed MDC entries").isEmpty();
+        softly.assertThat(mdcObserver.getAllPutEntries()).as("Put MDC entries").isEmpty();
+        softly.assertThat(mdcObserver.getAllRemovedKeys()).as("Removed MDC entries").isEmpty();
     }
 
     @Test
     public void putCorrelationIdToMdcAndLogDebugInfoWarnAndError() {
-        final String correlationId = getUsableCorrelationId();
+        final String correlationId = getCorrelationId();
         final String debugMsg = "BugMeNot, {}!";
         final String infoMsg = "Foo!";
         final String warnMsg = "Bar!";
@@ -179,11 +177,11 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         Mockito.verify(plainSlf4jLogger).info(infoMsg);
         Mockito.verify(plainSlf4jLogger).warn(warnMsg);
         Mockito.verify(plainSlf4jLogger).error(errorMsg);
-        assertThat(mdcObserver.allPutEntries)
+        softly.assertThat(mdcObserver.getAllPutEntries())
                 .as("Put MDC entries")
                 .containsExactly(correlationIdMdcEntry, correlationIdMdcEntry, correlationIdMdcEntry,
                         correlationIdMdcEntry);
-        assertThat(mdcObserver.allRemovedKeys)
+        softly.assertThat(mdcObserver.getAllRemovedKeys())
                 .as("Removed MDC entries")
                 .containsExactly(CORRELATION_ID_KEY, CORRELATION_ID_KEY, CORRELATION_ID_KEY, CORRELATION_ID_KEY);
     }
@@ -201,8 +199,8 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         final CompletableFuture<Void> allLoggingFuture = CompletableFuture.allOf(future1, future2);
         allLoggingFuture.join();
 
-        assertThat(allLoggingFuture).isCompleted();
-        assertThat(mdcObserver.allPutEntries)
+        softly.assertThat(allLoggingFuture).isCompleted();
+        softly.assertThat(mdcObserver.getAllPutEntries())
                 .as("Put MDC entries")
                 .containsOnly(entry(CORRELATION_ID_KEY, "logger2-1"), entry(CORRELATION_ID_KEY, "logger1-1"));
     }
@@ -211,20 +209,20 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     public void withTwoMdcEntries() {
         Mockito.when(plainSlf4jLogger.isErrorEnabled()).thenReturn(true);
         final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
-        final String correlationId = getUsableCorrelationId();
+        final String correlationId = getCorrelationId();
         final String connectionId = "myConnection";
         final String logMessage = "The connection is closed!";
 
-        final ThreadSafeDittoLogger underTest =
+        final ImmutableThreadSafeDittoLogger underTest =
                 initialLogger.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId);
 
         underTest.error(logMessage);
 
         Mockito.verify(plainSlf4jLogger).error(logMessage);
-        assertThat(mdcObserver.allPutEntries)
+        softly.assertThat(mdcObserver.getAllPutEntries())
                 .as("Put MDC entries")
                 .containsOnly(entry(CORRELATION_ID_KEY, correlationId), entry(CONNECTION_ID_KEY, connectionId));
-        assertThat(mdcObserver.allRemovedKeys)
+        softly.assertThat(mdcObserver.getAllRemovedKeys())
                 .as("Removed MDC entries")
                 .containsOnly(CORRELATION_ID_KEY, CONNECTION_ID_KEY);
     }
@@ -233,80 +231,57 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     public void removeCorrelationIdViaNullValue() {
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(true);
         final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
-        final String correlationId = getUsableCorrelationId();
+        final String correlationId = getCorrelationId();
         final String connectionId = "myConnection";
 
-        final ThreadSafeDittoLogger withTwoMdcEntries =
+        final ImmutableThreadSafeDittoLogger withTwoMdcEntries =
                 initialLogger.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId);
 
         withTwoMdcEntries.info("Foo");
 
-        final ThreadSafeDittoLogger withOneMdcEntry =
+        final ImmutableThreadSafeDittoLogger withOneMdcEntry =
                 withTwoMdcEntries.withMdcEntries(CORRELATION_ID_KEY, null, CONNECTION_ID_KEY, connectionId);
 
         withOneMdcEntry.info("Bar");
 
-        assertThat(mdcObserver.allPutEntries)
+        softly.assertThat(mdcObserver.getAllPutEntries())
                 .as("Put MDC entries")
                 .containsOnly(entry(CORRELATION_ID_KEY, correlationId),
                         entry(CONNECTION_ID_KEY, connectionId),
                         entry(CONNECTION_ID_KEY, connectionId));
-        assertThat(mdcObserver.allRemovedKeys)
+        softly.assertThat(mdcObserver.getAllRemovedKeys())
                 .as("Removed MDC entries")
                 .containsOnly(CORRELATION_ID_KEY, CONNECTION_ID_KEY, CORRELATION_ID_KEY, CONNECTION_ID_KEY);
     }
 
     @Test
-    public void removeConnectionIdViaKey() {
+    public void removeMdcEntryViaKey() {
         Mockito.when(plainSlf4jLogger.isDebugEnabled()).thenReturn(true);
         final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
-        final String correlationId = getUsableCorrelationId();
+        final String correlationId = getCorrelationId();
         final String connectionId = "myConnection";
 
-        final ThreadSafeDittoLogger withTwoMdcEntries =
+        final ImmutableThreadSafeDittoLogger withTwoMdcEntries =
                 initialLogger.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId);
 
         withTwoMdcEntries.debug("Foo");
 
-        final ThreadSafeDittoLogger withOneMdcEntry = withTwoMdcEntries.removeMdcEntry(CONNECTION_ID_KEY);
+        final ImmutableThreadSafeDittoLogger withOneMdcEntry = withTwoMdcEntries.removeMdcEntry(CONNECTION_ID_KEY);
 
         withOneMdcEntry.debug("Bar");
 
-        assertThat(mdcObserver.allPutEntries)
+        softly.assertThat(mdcObserver.getAllPutEntries())
                 .as("Put MDC entries")
                 .containsOnly(entry(CORRELATION_ID_KEY, correlationId),
                         entry(CONNECTION_ID_KEY, connectionId),
                         entry(CORRELATION_ID_KEY, correlationId));
-        assertThat(mdcObserver.allRemovedKeys)
+        softly.assertThat(mdcObserver.getAllRemovedKeys())
                 .as("Removed MDC entries")
                 .containsOnly(CORRELATION_ID_KEY, CONNECTION_ID_KEY, CORRELATION_ID_KEY, CONNECTION_ID_KEY);
     }
 
-    private String getUsableCorrelationId() {
+    private String getCorrelationId() {
         return testName.getMethodName();
-    }
-
-    @ThreadSafe
-    private static final class CapturingMdcAdapterObserver extends ObservableMdcAdapter.AbstractMdcAdapterObserver {
-
-        private final List<Map.Entry<String, String>> allPutEntries;
-        private final List<String> allRemovedKeys;
-
-        private CapturingMdcAdapterObserver() {
-            allPutEntries = Collections.synchronizedList(new ArrayList<>());
-            allRemovedKeys = Collections.synchronizedList(new ArrayList<>());
-        }
-
-        @Override
-        public void onPut(final String key, final String value) {
-            allPutEntries.add(entry(key, value));
-        }
-
-        @Override
-        public void onRemove(final String key) {
-            allRemovedKeys.add(key);
-        }
-
     }
 
 }

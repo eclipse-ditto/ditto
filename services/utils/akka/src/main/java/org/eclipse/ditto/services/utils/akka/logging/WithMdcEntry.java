@@ -14,15 +14,16 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+
 /**
  * This interface defines the means to put and remove entries to or from the MDC of a logger.
- * It is intended to be implemented by loggers.
  *
- * @param <T> the type of the logger that implements this interface.
+ * @param <L> the type of the logger that implements this interface.
  *
  * @since 1.3.0
  */
-public interface WithMdcEntry<T> {
+public interface WithMdcEntry<L extends Logger> {
 
     /**
      * Puts the specified diagnostic context value as identified by the specified key to this logger's MDC.
@@ -37,7 +38,7 @@ public interface WithMdcEntry<T> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty.
      */
-    T withMdcEntry(CharSequence key, @Nullable CharSequence value);
+    L withMdcEntry(CharSequence key, @Nullable CharSequence value);
 
     /**
      * Puts the specified diagnostic context values as identified by the specified keys to this logger's MDC.
@@ -54,7 +55,7 @@ public interface WithMdcEntry<T> {
      * @throws NullPointerException if {@code k1} or {@code k2} is {@code null}.
      * @throws IllegalArgumentException if {@code k1} or {@code k2} is empty.
      */
-    T withMdcEntries(CharSequence k1, @Nullable CharSequence v1, CharSequence k2, @Nullable CharSequence v2);
+    L withMdcEntries(CharSequence k1, @Nullable CharSequence v1, CharSequence k2, @Nullable CharSequence v2);
 
     /**
      * Puts the specified diagnostic context values as identified by the specified keys to this logger's MDC.
@@ -73,7 +74,7 @@ public interface WithMdcEntry<T> {
      * @throws NullPointerException if {@code k1}, {@code k2} or {@code k3} is {@code null}.
      * @throws IllegalArgumentException if {@code k1}, {@code k2} or {@code k3} is empty.
      */
-    T withMdcEntries(CharSequence k1, @Nullable CharSequence v1, CharSequence k2, @Nullable CharSequence v2,
+    L withMdcEntries(CharSequence k1, @Nullable CharSequence v1, CharSequence k2, @Nullable CharSequence v2,
             CharSequence k3, @Nullable CharSequence v3);
 
     /**
@@ -82,7 +83,7 @@ public interface WithMdcEntry<T> {
      * @return this or a new logger instance for method chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    T withMdcEntry(MdcEntry mdcEntry, MdcEntry ... furtherMdcEntries);
+    L withMdcEntry(MdcEntry mdcEntry, MdcEntry ... furtherMdcEntries);
 
     /**
      * Removes the diagnostic context value identified by the specified key.
@@ -93,6 +94,6 @@ public interface WithMdcEntry<T> {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty.
      */
-    T removeMdcEntry(CharSequence key);
+    L removeMdcEntry(CharSequence key);
 
 }

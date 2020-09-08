@@ -412,7 +412,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ThreadSafeDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+    public ImmutableThreadSafeDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
             final CharSequence k2, @Nullable final CharSequence v2) {
 
         validateMdcEntryKey(k1, "k1");
@@ -436,7 +436,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ThreadSafeDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+    public ImmutableThreadSafeDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
             final CharSequence k2, @Nullable final CharSequence v2,
             final CharSequence k3, @Nullable final CharSequence v3) {
 
@@ -453,7 +453,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ThreadSafeDittoLogger withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
+    public ImmutableThreadSafeDittoLogger withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
         checkNotNull(mdcEntry, "mdcEntry");
         checkNotNull(furtherMdcEntries, "furtherMdcEntries");
 
