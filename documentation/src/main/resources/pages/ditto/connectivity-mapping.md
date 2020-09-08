@@ -230,10 +230,11 @@ The following example connection defines a `ConnectionStatus` mapping with the I
 
 ## Example connection with mapping conditions
 
-The following example connection defines `conditions` for the ConnectionStatus mapping engine.<br/>
- Optional conditions are validated before the mapping.<br/> 
+The following example connection defines `incomingConditions` and `outgoingConditions`for the ConnectionStatus mapping engine.<br/>
+ Optional incomingConditions are validated before the mapping of inbound messages.<br/> 
+ Optional outgoingConditions are validated before the mapping of outbound messages.<br/>
  Conditional Mapping can be achieved by using [function expressions](basic-placeholder.html#function-expressions).
- When multiple conditions are defined for one `mappingEngine`, all have to equal true for the mapping to be executed.  
+ When multiple incoming or outgoing conditions are set for one `mappingEngine`, all have to equal true for the mapping to be executed.  
 
 ```json
 { 
@@ -247,8 +248,11 @@ The following example connection defines `conditions` for the ConnectionStatus m
   "mappingDefinitions": {
     "status": {
       "mappingEngine": "ConnectionStatus",
-      "conditions": {
-        "sampleCondition": "fn:filter(header:mapping-required,'eq','true')"
+      "incomingConditions": {
+        "sampleCondition": "fn:filter(header:incoming-mapping-required,'eq','true')"
+      },
+      "outgoingConditions": {
+        "sampleCondition": "fn:filter(header:outgoing-mapping-required,'eq','true')"
       },
       "options": {
         "thingId": "{%raw%}{{ header:device_id }}{%endraw%}"
