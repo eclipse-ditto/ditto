@@ -35,24 +35,9 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     private final Map<String, String> outgoingConditions;
 
     private DefaultMessageMapperConfiguration(final String id, final MergedJsonObjectMap properties,
-    final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         this.id = id;
         this.properties = properties;
-    }
-
-    /**
-     * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
-     *
-     * @param id the id of the mapper
-     * @param configuration the map holding configuration properties. Must be immutable.
-     * @return the instance.
-     * @throws NullPointerException if {@code configuration} is {@code null}.
-     */
-    public static DefaultMessageMapperConfiguration of(final String id,
-            final Map<String, JsonValue> configuration) {
-        checkNotNull(id, "id");
-        checkNotNull(configuration, "configuration properties");
-        return new DefaultMessageMapperConfiguration(id, MergedJsonObjectMap.of(configuration));
         this.incomingConditions = Collections.unmodifiableMap(new HashMap<>(incomingConditions));
         this.outgoingConditions = Collections.unmodifiableMap(new HashMap<>(outgoingConditions));
     }
@@ -61,28 +46,29 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
      *
      * @param id the id of the mapper
-     * @param configuration the map holding configuration properties.
+     * @param configuration the map holding configuration properties. Must be immutable.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
      * @return the instance.
-     * @throws NullPointerException if {@code id} or {@code configuration} is {@code null}.
+     * @throws NullPointerException if {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final String id, final MergedJsonObjectMap configuration) {
-        checkNotNull(id, "id");
-        checkNotNull(configuration, "configuration");
-        return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptyMap(), Collections.emptyMap());
+    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, JsonValue> configuration,
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
+        return of(id, MergedJsonObjectMap.of(configuration),
+                incomingConditions, outgoingConditions);
     }
 
     /**
      * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
      *
-     * @param id the id of the mapper.
+     * @param id the id of the mapper
      * @param configuration the map holding configuration properties.
      * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
      * @return the instance.
-     * @throws NullPointerException if {@code id}, {@code configuration} or {@code conditions} is {@code null}.
-     *
-     * @since 1.3.0
+     * @throws NullPointerException if {@code id} or {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration,
+    public static DefaultMessageMapperConfiguration of(final String id, final MergedJsonObjectMap configuration,
             final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration");

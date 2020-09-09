@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
@@ -55,15 +56,15 @@ public class ImplicitThingCreationMessageMapperTest {
     private static final String HEADER_HONO_DEVICE_ID = "device_id";
     private static final String HEADER_HONO_GATEWAY_ID = "gateway_id";
 
-    private static final String THING_TEMPLATE = "{" +
-            "\"thingId\": \"{{ header:device_id }}\"," +
-            "\"_copyPolicyFrom\": \"{{ header:gateway_id }}\"," +
-            "\"attributes\": {" +
-            "\"Info\": {" +
-            "\"gatewayId\": \"{{ header:gateway_id }}\"" +
-            "}" +
-            "}" +
-            "}";
+    private static final JsonObject THING_TEMPLATE = JsonObject.newBuilder()
+            .set("thingId", "{{ header:device_id }}")
+            .set("_copyPolicyFrom", "{{ header:gateway_id }}")
+            .set("attributes", JsonObject.newBuilder()
+                    .set("Info", JsonObject.newBuilder()
+                            .set("gatewayId", "{{ header:gateway_id }}")
+                            .build())
+                    .build())
+            .build();
 
     private static final JsonObject INITIAL_POLICY = Policy.newBuilder()
             .forLabel("DEFAULT")
@@ -74,7 +75,7 @@ public class ImplicitThingCreationMessageMapperTest {
             .build()
             .toJson();
 
-    private static final String THING_TEMPLATE_WITH_POLICY = JsonObject.newBuilder()
+    private static final JsonObject THING_TEMPLATE_WITH_POLICY = JsonObject.newBuilder()
             .set("thingId", "{{ header:device_id }}")
             .set("policyId", "{{ header:device_id }}")
             .set("_policy", INITIAL_POLICY)
@@ -83,18 +84,18 @@ public class ImplicitThingCreationMessageMapperTest {
                             .set("gatewayId", "{{ header:gateway_id }}")
                             .build())
                     .build())
-            .build()
-            .toString();
+            .build();
 
-    private static final String THING_TEMPLATE_WITHOUT_PLACEHOLDERS = "{" +
-            "\"thingId\": \"some:validThingId!\"," +
-            "\"policyId\": \"some:validPolicyId!\"," +
-            "\"attributes\": {" +
-            "\"Info\": {" +
-            "\"gatewayId\": \"some:validGatewayId!\"" +
-            "}" +
-            "}" +
-            "}";
+    private static final JsonObject THING_TEMPLATE_WITHOUT_PLACEHOLDERS = JsonObject.newBuilder()
+            .set("thingId", "some:validThingId!")
+            .set("policyId", "some:validPolicyId!")
+            .set("attributes", JsonObject.newBuilder()
+                    .set("Info", JsonObject.newBuilder()
+                            .set("gatewayId", "some:validGatewayId!")
+                            .build())
+                    .build())
+            .build();
+
     public static final String GATEWAY_ID = "headerNamespace:headerGatewayId";
     public static final String DEVICE_ID = "headerNamespace:headerDeviceId";
 
@@ -212,7 +213,7 @@ public class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void throwErrorIfMappingConfigIsMissing() {
-        final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig("{}");
+        final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig(JsonObject.empty());
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
@@ -220,11 +221,17 @@ public class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void throwErrorIfThingIdIsMissingInConfig() {
-        final String thingMissing = "{" +
-                "\"policyId\": \"{{ header:policy_id }}\"" +
-                "}";
+        final JsonObject templateMissingThingId = JsonObject.newBuilder()
+                .set("policyId", "{{ header:device_id }}")
+                .set("_policy", INITIAL_POLICY)
+                .set("attributes", JsonObject.newBuilder()
+                        .set("Info", JsonObject.newBuilder()
+                                .set("gatewayId", "{{ header:gateway_id }}")
+                                .build())
+                        .build())
+                .build();
 
-        final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig(thingMissing);
+        final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig(templateMissingThingId);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
@@ -270,8 +277,8 @@ public class ImplicitThingCreationMessageMapperTest {
                 "}");
     }
 
-    private DefaultMessageMapperConfiguration createMapperConfig(final String thingTemplate) {
-        final Map<String, String> options = Collections.singletonMap("thing", thingTemplate);
+    private DefaultMessageMapperConfiguration createMapperConfig(final JsonValue thingTemplate) {
+        final Map<String, JsonValue> options = Collections.singletonMap("thing", thingTemplate);
         final Map<String, String> incomingConditions = Collections.singletonMap("implicitThingCreation",
                 "{{ header:hono_registration_status | fn:filter(header:hono_registration_status,'eq','NEW') }}");
         return DefaultMessageMapperConfiguration.of("valid", options, incomingConditions, Collections.emptyMap());

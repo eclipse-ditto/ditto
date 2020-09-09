@@ -412,7 +412,7 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.3.0
      */
-    public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options,
+    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options,
             final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         return ImmutableMappingContext.of(mappingEngine, options, incomingConditions, outgoingConditions);
     }

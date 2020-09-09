@@ -30,7 +30,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -123,7 +122,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final Map<String, String> configuredOutgoingConditions = mappingContext.getOutgoingConditions();
         final JsonObject defaultOptions =
                 mapper.map(MessageMapper::getDefaultOptions).orElse(JsonObject.empty());
-        final Map<String, JsonValue> configuredAndDefaultOptions =
+        final MergedJsonObjectMap configuredAndDefaultOptions =
                 mergeMappingOptions(defaultOptions, mappingContext.getOptionsAsJson());
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
@@ -131,7 +130,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return mapper.flatMap(m -> configureInstance(m, options));
     }
 
-    private Map<String, JsonValue> mergeMappingOptions(final JsonObject defaultOptions,
+    private MergedJsonObjectMap mergeMappingOptions(final JsonObject defaultOptions,
             final JsonObject configuredOptions) {
         return MergedJsonObjectMap.of(configuredOptions, defaultOptions);
     }

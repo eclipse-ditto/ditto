@@ -19,13 +19,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -71,11 +74,10 @@ final class ImmutableMappingContext implements MappingContext {
      * @param incomingConditions the conditions to be checked before mapping incoming messages.
      * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
      * @return a new instance of ImmutableMappingContext.
-     *
      * @since 1.3.0
      */
-    public static ImmutableMappingContext of(final String mappingEngine, final Map<String, String> options,
-           final Map<String, String> incomingConditions, Map<String, String> outgoingConditions) {
+    public static ImmutableMappingContext of(final String mappingEngine, final JsonObject options,
+            final Map<String, String> incomingConditions, Map<String, String> outgoingConditions) {
         checkNotNull(mappingEngine, "mappingEngine");
         checkNotNull(options, "options");
         checkNotNull(incomingConditions, "incomingConditions");
@@ -96,17 +98,19 @@ final class ImmutableMappingContext implements MappingContext {
         final String mappingEngine = jsonObject.getValueOrThrow(JsonFields.MAPPING_ENGINE);
         final JsonObject options = jsonObject.getValueOrThrow(JsonFields.OPTIONS);
 
-        final Map<String, String> incomingConditions = jsonObject.getValue(JsonFields.INCOMING_CONDITIONS).orElse(JsonObject.empty()).stream()
-                .collect(Collectors.toMap(
-                        e -> e.getKey().toString(),
-                        e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
-                );
+        final Map<String, String> incomingConditions =
+                jsonObject.getValue(JsonFields.INCOMING_CONDITIONS).orElse(JsonObject.empty()).stream()
+                        .collect(Collectors.toMap(
+                                e -> e.getKey().toString(),
+                                e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
+                        );
 
-        final Map<String, String> outgoingConditions = jsonObject.getValue(JsonFields.OUTGOING_CONDITIONS).orElse(JsonObject.empty()).stream()
-                .collect(Collectors.toMap(
-                        e -> e.getKey().toString(),
-                        e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
-                );
+        final Map<String, String> outgoingConditions =
+                jsonObject.getValue(JsonFields.OUTGOING_CONDITIONS).orElse(JsonObject.empty()).stream()
+                        .collect(Collectors.toMap(
+                                e -> e.getKey().toString(),
+                                e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
+                        );
 
         return of(mappingEngine, options, incomingConditions, outgoingConditions);
     }
