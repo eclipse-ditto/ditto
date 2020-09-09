@@ -381,11 +381,24 @@ public final class ConnectivityModelFactory {
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
+    public static MappingContextBuilder newMappingContextBuilder(final String mappingEngine,
+            final JsonObject options) {
+        return new ImmutableMappingContext.Builder(mappingEngine, options);
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options) {
-        return newMappingContext(mappingEngine, options.entrySet()
+        return newMappingContextBuilder(mappingEngine, options.entrySet()
                 .stream()
                 .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
-                .collect(JsonCollectors.fieldsToObject()));
+                .collect(JsonCollectors.fieldsToObject())).build();
     }
 
     /**
@@ -414,7 +427,9 @@ public final class ConnectivityModelFactory {
      */
     public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options,
             final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
-        return ImmutableMappingContext.of(mappingEngine, options, incomingConditions, outgoingConditions);
+        return newMappingContextBuilder(mappingEngine, options).incomingConditions(incomingConditions)
+                .outgoingConditions(outgoingConditions)
+                .build();
     }
 
     /**
