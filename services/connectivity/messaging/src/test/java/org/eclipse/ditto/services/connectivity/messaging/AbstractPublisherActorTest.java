@@ -34,10 +34,10 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -184,7 +184,7 @@ public abstract class AbstractPublisherActorTest {
     protected OutboundSignal.Mapped getMockOutboundSignal(final Target target,
             final String... extraHeaders) {
 
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder()
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder()
                 .correlationId(TestConstants.CORRELATION_ID)
                 .putHeader("device_id", "ditto:thing");
         for (int i = 0; 2 * i + 1 < extraHeaders.length; ++i) {
@@ -192,7 +192,7 @@ public abstract class AbstractPublisherActorTest {
         }
         final DittoHeaders dittoHeaders = headersBuilder.build();
 
-        final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
+        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
         final ExternalMessage externalMessage =

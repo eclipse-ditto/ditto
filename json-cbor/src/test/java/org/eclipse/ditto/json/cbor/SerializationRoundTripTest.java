@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,16 +10,28 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.eclipse.ditto.json.CborFactory;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.junit.Before;
 import org.junit.Test;
 
 public final class SerializationRoundTripTest {
+
+    private CborFactory cborFactory;
+
+    @Before
+    public void setup() {
+        cborFactory = new JacksonCborFactory();
+    }
 
     @Test
     public void object2cbor2object2cbor2object() throws IOException {
@@ -31,12 +43,12 @@ public final class SerializationRoundTripTest {
                 .setValue("object", innerObject)
                 .setValue("array", JsonFactory.newArray("[4,89,3.0,\"test\"]").add(innerObject));
 
-        final ByteBuffer byteBuffer = CborFactory.toByteBuffer(testObject);
-        final JsonValue jsonValue = CborFactory.readFrom(byteBuffer);
+        final ByteBuffer byteBuffer = cborFactory.toByteBuffer(testObject);
+        final JsonValue jsonValue = cborFactory.readFrom(byteBuffer);
         assertThat(jsonValue).isEqualTo(testObject);
 
-        final ByteBuffer byteBuffer1 = CborFactory.toByteBuffer(jsonValue);
-        final JsonValue jsonValue1 = CborFactory.readFrom(byteBuffer1);
+        final ByteBuffer byteBuffer1 = cborFactory.toByteBuffer(jsonValue);
+        final JsonValue jsonValue1 = cborFactory.readFrom(byteBuffer1);
 
         assertThat(byteBuffer).isEqualTo(byteBuffer1);
         assertThat(jsonValue1).isEqualTo(testObject);
@@ -55,8 +67,8 @@ public final class SerializationRoundTripTest {
         final JsonValue jsonValue = JsonFactory.newObject(testObject.toString());
         assertThat(jsonValue).isEqualTo(testObject);
 
-        final ByteBuffer byteBuffer1 = CborFactory.toByteBuffer(jsonValue);
-        final JsonValue jsonValue1 = CborFactory.readFrom(byteBuffer1);
+        final ByteBuffer byteBuffer1 = cborFactory.toByteBuffer(jsonValue);
+        final JsonValue jsonValue1 = cborFactory.readFrom(byteBuffer1);
 
         assertThat(jsonValue1).isEqualTo(testObject);
     }

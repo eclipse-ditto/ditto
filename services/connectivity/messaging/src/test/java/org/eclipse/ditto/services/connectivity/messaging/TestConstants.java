@@ -302,9 +302,10 @@ public final class TestConstants {
 
     public static final class Sources {
 
+        public static final String AMQP_SOURCE_ADDRESS = "amqp/source1";
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
                 singletonList(ConnectivityModelFactory.newSourceBuilder()
-                        .address("amqp/source1")
+                        .address(AMQP_SOURCE_ADDRESS)
                         .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
                         .consumerCount(2)
                         .index(0)
@@ -453,10 +454,6 @@ public final class TestConstants {
         // no CN
         public static final String CLIENT_SELF_SIGNED_KEY = getCert("client-self-signed.key");
         public static final String CLIENT_SELF_SIGNED_CRT = getCert("client-self-signed.crt");
-
-        // AWS IoT CAs and server certificate
-        public static final String AWS_CA_CRT = getCert("aws-ca.pem");
-        public static final String AWS_IOT_CRT = getCert("aws-iot.crt");
 
         // signed by CA_CRT with common name (CN) and alternative names.
         // CN=server.alt

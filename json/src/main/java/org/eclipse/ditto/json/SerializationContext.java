@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -15,72 +15,18 @@ package org.eclipse.ditto.json;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 
 /**
- * A class that bundles State and Configuration for serialization.
- * It must be recreated for each serialization target.
+ * Bundles state and configuration for serialization. Must be recreated for each serialization target.
  *
- * @since 1.1.0
+ * <p>
+ * <b>This is a Ditto internal class which is not intended for re-use.</b>
+ * It therefore is not treated as API which is held binary compatible to previous versions.
+ * </p>
+ *
+ * @since 1.2.1
  */
-public final class SerializationContext implements Closeable, Flushable {
-
-    private JsonGenerator jacksonGenerator;
-    private ControllableOutputStream outputStream;
-
-    /**
-     * Creates a Serialization context that writes to the designated target.
-     *
-     * @param jacksonFactory The JsonFactory (from Jackson) to use during serialization. It defines among other things
-     * the Format to use.
-     * @param outputStream The stream to write serialized data to. The stream is considered to be borrowed and will not
-     * be closed.
-     */
-    public SerializationContext(final JsonFactory jacksonFactory, final OutputStream outputStream) throws IOException {
-        this.outputStream = new ControllableOutputStream(outputStream);
-        jacksonGenerator = jacksonFactory.createGenerator(this.outputStream);
-    }
-
-    SerializationContext(final OutputStream outputStream) throws IOException {
-        this(new CBORFactory(), outputStream);
-    }
-
-    /**
-     * Creates a Serialization context that writes to the designated target.
-     *
-     * @param jacksonFactory The JsonFactory (from Jackson) to use during serialization. It defines among other things
-     * the Format to use.
-     * @param targetBuffer The Buffer to write serialized data to. The Buffer is considered to be borrowed and will not
-     * be closed.
-     */
-    public SerializationContext(final JsonFactory jacksonFactory, final ByteBuffer targetBuffer) throws IOException {
-        this(jacksonFactory, new ByteBufferOutputStream(targetBuffer));
-    }
-
-    JsonGenerator getJacksonGenerator() {
-        return jacksonGenerator;
-    }
-
-    /**
-     * Closes internal objects that need to be closed. Targets will be closed according to the promise during creation.
-     */
-    @Override
-    public void close() throws IOException {
-        jacksonGenerator.close();
-    }
-
-    /**
-     * Flushes everything including targets.
-     */
-    @Override
-    public void flush() throws IOException {
-        jacksonGenerator.flush();
-    }
+public interface SerializationContext extends Closeable, Flushable {
 
     /**
      * Allows the caller to directly embed cached data in the Buffer.
@@ -88,63 +34,45 @@ public final class SerializationContext implements Closeable, Flushable {
      *
      * @param cachedData The data to write in an appropriately sized array.
      */
-    void writeCachedElement(final byte[] cachedData) throws IOException {
-        flush();
-        outputStream.write(cachedData);
-        informJacksonThatOneElementWasWritten();
-    }
-
-    private void informJacksonThatOneElementWasWritten() throws IOException {
-        // Deactivating the output stream to write a pseudo element and ensure that the internal counter keeping track of array and object lengths is accurate.
-        outputStream.disable();
-        jacksonGenerator.writeNull();
-        jacksonGenerator.flush();
-        outputStream.enable();
-    }
+    void writeCachedElement(byte[] cachedData) throws IOException;
 
     /**
-     * An output stream that can be switched to avoid writing unwanted data to the wrapped stream.
+     * Writes {@code null} to the serialization context.
      */
-    static final class ControllableOutputStream extends OutputStream {
+    void writeNull() throws IOException;
 
-        private final OutputStream target;
-        private boolean enabled = true;
+    /**
+     * Writes the passed boolean {@code state} to the serialization context.
+     */
+    void writeBoolean(boolean state) throws IOException;
 
-        ControllableOutputStream(final OutputStream target) {
-            this.target = target;
-        }
+    /**
+     * Writes the passed float {@code number} to the serialization context.
+     */
+    void writeNumber(float number) throws IOException;
 
-        void enable() {
-            this.enabled = true;
-        }
+    /**
+     * Writes the passed double {@code number} to the serialization context.
+     */
+    void writeNumber(double number) throws IOException;
 
-        void disable() {
-            this.enabled = false;
-        }
+    /**
+     * Writes the passed long {@code number} to the serialization context.
+     */
+    void writeNumber(long number) throws IOException;
 
-        @Override
-        public void write(final int b) throws IOException {
-            if (enabled) target.write(b);
-        }
+    /**
+     * Writes the passed long {@code number} to the serialization context.
+     */
+    void writeNumber(int number) throws IOException;
 
-        @Override
-        public void write(final byte[] a, int b, int c) throws IOException {
-            if (enabled) target.write(a, b, c);
-        }
+    /**
+     * Writes the passed string {@code text} to the serialization context.
+     */
+    void writeString(String text) throws IOException;
 
-        @Override
-        public void write(final byte[] b) throws IOException {
-            if (enabled) target.write(b);
-        }
-
-        @Override
-        public void flush() throws IOException {
-            target.flush();
-        }
-
-        @Override
-        public void close() throws IOException {
-            target.close();
-        }
-    }
+    /**
+     * Writes the passed string {@code name} (as field name) to the serialization context.
+     */
+    void writeFieldName(String name) throws IOException;
 }

@@ -14,24 +14,32 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.junit.Test;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
-import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
@@ -45,6 +53,7 @@ import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
 import scala.util.Try;
 
@@ -53,8 +62,7 @@ import scala.util.Try;
  */
 public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
-    private static final ContentType CONTENT_TYPE =
-            ContentTypes.parse("APPLICATION/VND.ECLIPSE.DITTO+JSON ; PARAM_NAME=PARAM_VALUE");
+    private static final String CONTENT_TYPE = "APPLICATION/VND.ECLIPSE.DITTO+JSON ; PARAM_NAME=PARAM_VALUE";
     private static final String BODY = "[\"The quick brown fox jumps over the lazy dog.\"]";
 
     private HttpPushFactory httpPushFactory;
@@ -67,15 +75,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void setupMocks(final TestProbe probe) {
-        httpPushFactory = new DummyHttpPushFactory("8.8.4.4", request -> {
-            received.offer(request);
-            return HttpResponse.create()
-                    .withStatus(StatusCodes.OK)
-                    .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
-                            (akka.http.scaladsl.model.ContentType) CONTENT_TYPE,
-                            ByteString.fromString(BODY)
-                    ));
-        });
+        httpPushFactory = mockHttpPushFactory(CONTENT_TYPE, BODY);
 
         // activate debug log to show responses
         actorSystem.eventStream().setLogLevel(Attributes.logLevelDebug());
@@ -134,6 +134,48 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ack.getEntity()).contains(JsonFactory.readFrom(BODY));
     }
 
+    @Test
+    public void testPlainTextAck() {
+        new TestKit(actorSystem) {{
+            httpPushFactory = mockHttpPushFactory("text/plain", "hello!");
+
+            final AcknowledgementLabel label = AcknowledgementLabel.of("please-verify");
+            final Target target = decorateTarget(createTestTarget(label));
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(newMultiMappedWithContentType(target, getRef()), getRef());
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            assertThat(acks.getAcknowledgement(label)).isNotEmpty();
+            final Acknowledgement ack = acks.getAcknowledgement(label).orElseThrow();
+            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(Map.of("content-type", "text/plain"));
+            assertThat(ack.getEntity()).contains(JsonValue.of("hello!"));
+        }};
+    }
+
+    @Test
+    public void testBinaryAck() {
+        new TestKit(actorSystem) {{
+            httpPushFactory = mockHttpPushFactory("application/octet-stream", "hello!");
+
+            final AcknowledgementLabel label = AcknowledgementLabel.of("please-verify");
+            final Target target = decorateTarget(createTestTarget(label));
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(newMultiMappedWithContentType(target, getRef()), getRef());
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            assertThat(acks.getAcknowledgement(label)).isNotEmpty();
+            final Acknowledgement ack = acks.getAcknowledgement(label).orElseThrow();
+            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(Map.of("content-type", "application/octet-stream"));
+            assertThat(ack.getEntity()).contains(JsonValue.of("aGVsbG8h"));
+        }};
+    }
+
     @Override
     protected void verifyPublishedMessageToReplyTarget() throws Exception {
         final HttpRequest request = received.take();
@@ -144,6 +186,27 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 .contains(HttpHeader.parse("correlation-id", TestConstants.CORRELATION_ID));
         assertThat(request.getHeader("mappedHeader2"))
                 .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
+    }
+
+    private OutboundSignal.MultiMapped newMultiMappedWithContentType(final Target target,
+            final ActorRef sender) {
+        return OutboundSignalFactory.newMultiMappedOutboundSignal(
+                List.of(getMockOutboundSignal(target, "requested-acks",
+                        JsonArray.of(JsonValue.of("please-verify")).toString())),
+                sender
+        );
+    }
+
+    private HttpPushFactory mockHttpPushFactory(final String contentType, final String body) {
+        return new DummyHttpPushFactory("8.8.4.4", request -> {
+            received.offer(request);
+            return HttpResponse.create()
+                    .withStatus(StatusCodes.OK)
+                    .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
+                            (akka.http.scaladsl.model.ContentType) ContentTypes.parse(contentType),
+                            ByteString.fromString(body)
+                    ));
+        });
     }
 
     private static final class DummyHttpPushFactory implements HttpPushFactory {

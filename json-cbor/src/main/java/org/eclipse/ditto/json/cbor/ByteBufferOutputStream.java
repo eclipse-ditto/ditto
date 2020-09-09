@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,13 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
- * Implementation of {@link java.io.InputStream} backed by a {@link ByteBuffer}.
+ * Implementation of {@link OutputStream} backed by a {@link ByteBuffer}.
  */
 final class ByteBufferOutputStream extends OutputStream {
 

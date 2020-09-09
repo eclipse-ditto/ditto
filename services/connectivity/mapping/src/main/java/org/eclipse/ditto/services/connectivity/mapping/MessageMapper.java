@@ -15,12 +15,12 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -85,8 +85,8 @@ public interface MessageMapper {
     /**
      * @return a map of default options for this mapper
      */
-    default Map<String, String> getDefaultOptions() {
-        return Collections.emptyMap();
+    default JsonObject getDefaultOptions() {
+        return JsonObject.empty();
     }
 
     /**
@@ -124,9 +124,10 @@ public interface MessageMapper {
      */
     static Optional<String> findContentType(final Adaptable adaptable) {
         checkNotNull(adaptable);
-        return adaptable.getHeaders().map(h -> h.entrySet().stream()
+        return adaptable.getHeaders().flatMap(h -> h.entrySet()
+                .stream()
                 .filter(e -> ExternalMessage.CONTENT_TYPE_HEADER.equalsIgnoreCase(e.getKey()))
                 .findFirst()
-                .map(Map.Entry::getValue).orElse(null));
+                .map(Map.Entry::getValue));
     }
 }

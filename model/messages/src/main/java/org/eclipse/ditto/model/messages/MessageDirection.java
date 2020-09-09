@@ -26,6 +26,6 @@ public enum MessageDirection {
     /**
      * Direction showing that the message was sent <em>TO</em> a {@code Thing} or a {@code Feature}.
      */
-    TO
+    TO;
 
 }

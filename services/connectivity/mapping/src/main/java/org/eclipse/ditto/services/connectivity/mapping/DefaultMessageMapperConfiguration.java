@@ -16,12 +16,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Default implementation for a message mapper configuration.
@@ -30,14 +30,29 @@ import javax.annotation.concurrent.Immutable;
 public final class DefaultMessageMapperConfiguration implements MessageMapperConfiguration {
 
     private final String id;
-    private final Map<String, String> properties;
+    private final Map<String, JsonValue> properties;
     private final Map<String, String> incomingConditions;
     private final Map<String, String> outgoingConditions;
 
-    private DefaultMessageMapperConfiguration(final String id, final Map<String, String> properties,
+    private DefaultMessageMapperConfiguration(final String id, final MergedJsonObjectMap properties,
     final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         this.id = id;
-        this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
+        this.properties = properties;
+    }
+
+    /**
+     * Constructs a new {@code DefaultMessageMapperConfiguration} of the given map.
+     *
+     * @param id the id of the mapper
+     * @param configuration the map holding configuration properties. Must be immutable.
+     * @return the instance.
+     * @throws NullPointerException if {@code configuration} is {@code null}.
+     */
+    public static DefaultMessageMapperConfiguration of(final String id,
+            final Map<String, JsonValue> configuration) {
+        checkNotNull(id, "id");
+        checkNotNull(configuration, "configuration properties");
+        return new DefaultMessageMapperConfiguration(id, MergedJsonObjectMap.of(configuration));
         this.incomingConditions = Collections.unmodifiableMap(new HashMap<>(incomingConditions));
         this.outgoingConditions = Collections.unmodifiableMap(new HashMap<>(outgoingConditions));
     }
@@ -50,7 +65,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      * @return the instance.
      * @throws NullPointerException if {@code id} or {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, String> configuration) {
+    public static DefaultMessageMapperConfiguration of(final String id, final MergedJsonObjectMap configuration) {
         checkNotNull(id, "id");
         checkNotNull(configuration, "configuration");
         return new DefaultMessageMapperConfiguration(id, configuration, Collections.emptyMap(), Collections.emptyMap());
@@ -82,7 +97,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
-    public Map<String, String> getProperties() {
+    public Map<String, JsonValue> getProperties() {
         return properties;
     }
 

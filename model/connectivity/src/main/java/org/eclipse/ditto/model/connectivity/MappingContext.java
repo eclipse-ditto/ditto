@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -45,11 +46,24 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
     String getMappingEngine();
 
     /**
+     * Get options as string key-value pairs. Note that non-string configuration values are converted to JSON string.
+     *
+     * @return the configuration options as key-value pairs.
+     * @deprecated since 1.3.0. Use {@code getOptionsAsJson()} instead.
+     */
+    @Deprecated
+    default Map<String, String> getOptions() {
+        return getOptionsAsJson().stream()
+                .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().formatAsString()));
+    }
+
+    /**
      * All configuration options for mapping engine instantiation.
      *
      * @return the options
+     * @since 1.3.0
      */
-    Map<String, String> getOptions();
+    JsonObject getOptionsAsJson();
 
     /**
      * All conditions to be validated before mapping incoming messages.

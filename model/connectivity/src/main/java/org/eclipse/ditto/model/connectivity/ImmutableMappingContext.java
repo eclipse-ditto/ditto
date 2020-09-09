@@ -19,17 +19,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -39,14 +35,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableMappingContext implements MappingContext {
 
     private final String mappingEngine;
-    private final Map<String, String> options;
+    private final JsonObject options;
     private final Map<String, String> incomingConditions;
     private final Map<String, String> outgoingConditions;
 
-    private ImmutableMappingContext(final String mappingEngine, final Map<String, String> options,
+    private ImmutableMappingContext(final String mappingEngine, final JsonObject options,
             final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         this.mappingEngine = mappingEngine;
-        this.options = Collections.unmodifiableMap(new HashMap<>(options));
+        this.options = options;
         this.incomingConditions = Collections.unmodifiableMap(new HashMap<>(incomingConditions));
         this.outgoingConditions = Collections.unmodifiableMap(new HashMap<>(outgoingConditions));
     }
@@ -59,7 +55,7 @@ final class ImmutableMappingContext implements MappingContext {
      * @param options the mapping engine specific options to apply.
      * @return a new instance of ImmutableMappingContext.
      */
-    public static ImmutableMappingContext of(final String mappingEngine, final Map<String, String> options) {
+    static ImmutableMappingContext of(final String mappingEngine, final JsonObject options) {
         checkNotNull(mappingEngine, "mappingEngine");
         checkNotNull(options, "options");
 
@@ -98,11 +94,7 @@ final class ImmutableMappingContext implements MappingContext {
      */
     public static MappingContext fromJson(final JsonObject jsonObject) {
         final String mappingEngine = jsonObject.getValueOrThrow(JsonFields.MAPPING_ENGINE);
-        final Map<String, String> options = jsonObject.getValueOrThrow(JsonFields.OPTIONS).stream()
-                .collect(Collectors.toMap(
-                        e -> e.getKey().toString(),
-                        e -> e.getValue().isString() ? e.getValue().asString() : e.getValue().toString())
-                );
+        final JsonObject options = jsonObject.getValueOrThrow(JsonFields.OPTIONS);
 
         final Map<String, String> incomingConditions = jsonObject.getValue(JsonFields.INCOMING_CONDITIONS).orElse(JsonObject.empty()).stream()
                 .collect(Collectors.toMap(
@@ -126,9 +118,7 @@ final class ImmutableMappingContext implements MappingContext {
 
         jsonObjectBuilder.set(JsonFields.MAPPING_ENGINE, mappingEngine, predicate);
 
-        jsonObjectBuilder.set(JsonFields.OPTIONS, options.entrySet().stream()
-                .map(e -> JsonField.newInstance(e.getKey(), JsonValue.of(e.getValue())))
-                .collect(JsonCollectors.fieldsToObject()), predicate);
+        jsonObjectBuilder.set(JsonFields.OPTIONS, options, predicate);
 
         if (!incomingConditions.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.INCOMING_CONDITIONS, incomingConditions.entrySet().stream()
@@ -151,7 +141,7 @@ final class ImmutableMappingContext implements MappingContext {
     }
 
     @Override
-    public Map<String, String> getOptions() {
+    public JsonObject getOptionsAsJson() {
         return options;
     }
 

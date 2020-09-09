@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,9 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public final class BinaryToHexConverterTest {
 
-    private static byte[] testVector = new byte[]{
+    private static final byte[] TEST_VECTOR = new byte[]{
             b(0x00), b(0x10), b(0x58), b(0xC0), b(0xFF), b(0xEE), b(0x00), b(0xBE), b(0xEF)
     };
     private static final String EXPECTED_STRING = "001058C0FFEE00BEEF";
@@ -32,17 +32,17 @@ public final class BinaryToHexConverterTest {
     }
 
     @Test
-    public void HexStringFromByteArrayWorks() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(testVector)).isEqualTo(EXPECTED_STRING);
+    public void hexStringFromByteArrayWorks() throws IOException {
+        assertThat(BinaryToHexConverter.toHexString(TEST_VECTOR)).isEqualTo(EXPECTED_STRING);
     }
 
     @Test
-    public void HexStringFromByteBufferWorks() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(ByteBuffer.wrap(testVector))).isEqualTo(EXPECTED_STRING);
+    public void hexStringFromByteBufferWorks() throws IOException {
+        assertThat(BinaryToHexConverter.toHexString(ByteBuffer.wrap(TEST_VECTOR))).isEqualTo(EXPECTED_STRING);
     }
 
     @Test
-    public void HexStringFromInputStream() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(new ByteArrayInputStream(testVector))).isEqualTo(EXPECTED_STRING);
+    public void hexStringFromInputStream() throws IOException {
+        assertThat(BinaryToHexConverter.toHexString(new ByteArrayInputStream(TEST_VECTOR))).isEqualTo(EXPECTED_STRING);
     }
 }

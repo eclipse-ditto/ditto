@@ -82,7 +82,7 @@ final class ImmutableJsonBoolean extends AbstractJsonValue {
 
     @Override
     public void writeValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeBoolean(value);
+        serializationContext.writeBoolean(value);
     }
 
     @Override

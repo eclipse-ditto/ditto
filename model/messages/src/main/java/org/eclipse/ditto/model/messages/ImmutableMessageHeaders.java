@@ -53,6 +53,7 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     public MessageDirection getDirection() {
         final HeaderDefinition definition = MessageHeaderDefinition.DIRECTION;
         return getStringForDefinition(definition)
+                .map(String::toUpperCase)
                 .map(MessageDirection::valueOf)
                 .orElseThrow(() -> newIllegalStateException(definition));
     }

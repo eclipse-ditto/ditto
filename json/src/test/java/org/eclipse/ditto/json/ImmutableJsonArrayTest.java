@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.json;
 
-import static org.eclipse.ditto.json.JsonFactory.newObject;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -20,10 +19,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.json.ImmutableJsonArray.SoftReferencedValueList;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -59,7 +55,7 @@ public final class ImmutableJsonArrayTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonArray.class,
                 areImmutable(),
-                provided(SoftReferencedValueList.class).isAlsoImmutable());
+                provided(ImmutableJsonArray.SoftReferencedValueList.class).isAlsoImmutable());
     }
 
     @Test
@@ -68,12 +64,14 @@ public final class ImmutableJsonArrayTest {
         final List<JsonValue> numberJsonValueList = toList(JsonValue.of(1), JsonValue.of(2), JsonValue.of(3));
         final ImmutableJsonArray redArray = ImmutableJsonArray.of(stringJsonValueList);
         final ImmutableJsonArray blackArray = ImmutableJsonArray.of(numberJsonValueList);
-        final SoftReferencedValueList redValueList = SoftReferencedValueList.of(stringJsonValueList);
-        final SoftReferencedValueList blackValueList = SoftReferencedValueList.of(numberJsonValueList);
+        final ImmutableJsonArray.SoftReferencedValueList
+                redValueList = ImmutableJsonArray.SoftReferencedValueList.of(stringJsonValueList);
+        final ImmutableJsonArray.SoftReferencedValueList
+                blackValueList = ImmutableJsonArray.SoftReferencedValueList.of(numberJsonValueList);
 
         EqualsVerifier.forClass(ImmutableJsonArray.class)
                 .withPrefabValues(ImmutableJsonArray.class, redArray, blackArray)
-                .withPrefabValues(SoftReferencedValueList.class, redValueList, blackValueList)
+                .withPrefabValues(ImmutableJsonArray.SoftReferencedValueList.class, redValueList, blackValueList)
                 .withNonnullFields("valueList")
                 .verify();
     }
@@ -401,43 +399,6 @@ public final class ImmutableJsonArrayTest {
     }
 
     @Test
-    public void writeValueWritesExpectedForSimpleArray() throws IOException {
-        final String expectedString
-                = "83" // Array of size 3
-                + "17" // unsigned 23
-                + "182A" // unsigned 42
-                + "190539"; // unsigned 1337
-        final ImmutableJsonArray underTest = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
-
-        assertThat(CborTestUtils.serializeToHexString(underTest)).isEqualToIgnoringCase(expectedString);
-    }
-
-    @Test
-    public void writeValueWritesExpectedForMixedArray() throws IOException {
-        final String expectedString
-                = "86" // Array of size 6
-                + "F4" // false
-                + "F6" // null
-                + "03" // unsigned 3
-                + "39032E" // -0815
-                + "68" // Text of length 8
-                + "6D79737472696E67" // "mystring
-                + "A1616B6176"; // Object: {"k":"v"}
-
-        final List<JsonValue> jsonValues = new ArrayList<>();
-            jsonValues.add(newValue(false));
-            jsonValues.add(newValue(null));
-            jsonValues.add(newValue(3));
-            jsonValues.add(newValue(-815));
-            jsonValues.add(newValue("mystring"));
-            jsonValues.add(newObject("{\"k\":\"v\"}"));
-
-        final ImmutableJsonArray underTest = ImmutableJsonArray.of(jsonValues);
-
-        assertThat(CborTestUtils.serializeToHexString(underTest)).isEqualToIgnoringCase(expectedString);
-    }
-
-    @Test
     public void getValueAtInvalidIndex() {
         final ImmutableJsonArray underTest = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
         final Optional<JsonValue> jsonValue = underTest.get(-1);
@@ -455,28 +416,14 @@ public final class ImmutableJsonArrayTest {
     }
 
     @Test
-    public void validateInternalCachingBehaviour() throws IOException {
-        final ImmutableJsonArray arrayWithSelfGeneratedCache = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
-        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, false);
-
-        final ByteBuffer byteBuffer = CborFactory.toByteBuffer(arrayWithSelfGeneratedCache);
-        final JsonArray arrayWithCborCache = CborFactory.readFrom(byteBuffer).asArray();
-        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, false);
-        final JsonArray arrayWithJsonCache = JsonFactory.newArray(arrayWithSelfGeneratedCache.toString());
-        assertInternalCachesAreAsExpected(arrayWithSelfGeneratedCache, true, true);
-
-        assertInternalCachesAreAsExpected(arrayWithCborCache, true, false);
-        assertInternalCachesAreAsExpected(arrayWithJsonCache, false, true);
-    }
-
-    @Test
     public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
         final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
-        assertInternalCachesAreAsExpected(jsonArray, true, false);
+        assertInternalCachesAreAsExpected(jsonArray, true);
 
         final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
         valueListField.setAccessible(true);
-        final SoftReferencedValueList valueList = (SoftReferencedValueList) valueListField.get(jsonArray);
+        final ImmutableJsonArray.SoftReferencedValueList
+                valueList = (ImmutableJsonArray.SoftReferencedValueList) valueListField.get(jsonArray);
 
         final Field softReferenceField = valueList.getClass().getDeclaredField("valuesReference");
         softReferenceField.setAccessible(true);
@@ -487,21 +434,17 @@ public final class ImmutableJsonArrayTest {
         assertThat(jsonArray.get(0).isPresent()).isTrue();
     }
 
-    private void assertInternalCachesAreAsExpected(JsonArray jsonArray, boolean cborExpected, boolean jsonExpected) {
+    private void assertInternalCachesAreAsExpected(final JsonArray jsonArray, final boolean jsonExpected) {
         try {
             final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
             valueListField.setAccessible(true);
-            final SoftReferencedValueList valueList = (SoftReferencedValueList) valueListField.get(jsonArray);
-
-            final Field cborArrayField = valueList.getClass().getDeclaredField("cborArrayRepresentation");
-            cborArrayField.setAccessible(true);
-            byte[] cborArray = (byte[]) cborArrayField.get(valueList);
+            final ImmutableJsonArray.SoftReferencedValueList
+                    valueList = (ImmutableJsonArray.SoftReferencedValueList) valueListField.get(jsonArray);
 
             final Field jsonStringField = valueList.getClass().getDeclaredField("jsonArrayStringRepresentation");
             jsonStringField.setAccessible(true);
             String jsonString = (String) jsonStringField.get(valueList);
 
-            assertThat(cborArray != null).isEqualTo(cborExpected);
             assertThat(jsonString != null).isEqualTo(jsonExpected);
         } catch (IllegalAccessException | NoSuchFieldException e) {
             System.err.println(

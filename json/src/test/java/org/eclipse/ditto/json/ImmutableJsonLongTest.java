@@ -17,11 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -219,21 +216,4 @@ public final class ImmutableJsonLongTest {
         }
     }
 
-    public static class NonParameterizedTests{
-        @Test
-        public void writeValueWritesExpected() throws IOException {
-            Map<String, Long> testVectors = new HashMap<String, Long>(){{
-                put("1B7FFFFFFFFFFFFFFF", Long.MAX_VALUE);
-                put("3B7FFFFFFFFFFFFFFF", Long.MIN_VALUE);
-                put("00", 0L);
-                put("1A01655F8F", 23420815L);
-            }};
-
-            for (Map.Entry<String, Long> entry : testVectors.entrySet()) {
-                String actual = CborTestUtils.serializeToHexString(ImmutableJsonLong.of(entry.getValue()));
-                String expected = entry.getKey();
-                assertThat(actual).isEqualToIgnoringCase(expected);
-            }
-        }
-    }
 }

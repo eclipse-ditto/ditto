@@ -17,11 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -272,39 +269,4 @@ public final class ImmutableJsonDoubleTest {
         }
     }
 
-    public static class NonParameterizedTests{
-        @Test
-        public void writeValueWritesExpectedTestVectors() throws IOException {
-            /*
-             * Since both Java and the CBOR library have no native support for 16bit Half-Precision Floating Points,
-             * this implementation encodes them as 32bit floats instead, which increases serialized size but is understood
-             * by other implementations.
-             * The CBOR specification does not explicitly require implementations to choose the smallest representation possible.
-             */
-            Map<String, Double> testVectors = new HashMap<String, Double>(){{
-                // representable as 16bit but represented as 32bit instead
-                put("fa7f800000", Double.POSITIVE_INFINITY);
-                put("faff800000", Double.NEGATIVE_INFINITY);
-                put("fa33800000", 5.960464477539063e-8);
-
-                // representable as 16bit but represented as 64bit instead
-                put("fb7ff8000000000000", Double.NaN);
-
-                // correctly represented as 32bit
-                put("fa7f7fffff", 3.4028234663852886e+38);
-
-                // correctly represented as 64bit
-                put("FB0000000000000001", Double.MIN_VALUE);
-                put("FB7FEFFFFFFFFFFFFF", Double.MAX_VALUE);
-                put("FB402ABF972474538F", 13.3742D);
-                put("FB59B05C5EED0FB82F", 1.081542E124D);
-            }};
-
-            for (Map.Entry<String, Double> entry : testVectors.entrySet()) {
-                String actual = CborTestUtils.serializeToHexString(ImmutableJsonDouble.of(entry.getValue()));
-                String expected = entry.getKey();
-                assertThat(actual).isEqualToIgnoringCase(expected);
-            }
-        }
-    }
 }
