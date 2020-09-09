@@ -96,12 +96,7 @@ public final class BackgroundSyncActorTest {
                     .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED, PolicyId.of(id), REVISION_INDEXED))
                     .collect(Collectors.toList());
     private static final List<StreamedSnapshot> THINGS_PERSISTED = KNOWN_IDs.stream()
-            .map(id -> StreamedSnapshot.of(ThingId.of(id), Thing.newBuilder()
-                    .setId(ThingId.of(id))
-                    .setRevision(REVISION_PERSISTED)
-                    .setPolicyId(PolicyId.of(id))
-                    .build()
-                    .toJson(FieldType.all())))
+            .map(id -> createStreamedSnapshot(id, REVISION_PERSISTED))
             .collect(Collectors.toList());
     private static final Config TEST_CONFIG = ConfigFactory.load("test");
 
@@ -166,6 +161,76 @@ public final class BackgroundSyncActorTest {
 
     }
 
+    @Test
+    public void providesHealthWarningWhenSameThingIsSynchronizedTwice() {
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null);
+        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
+
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
+
+            // first synchronization stream
+            expectSyncActorToStartStreaming(pubSub);
+            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // second synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // expect health to have events for both runs
+            syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.WARN),
+                    detailMessages -> {
+                        final String events = detailMessages.stream()
+                                .map(StatusDetailMessage::getMessage)
+                                .map(JsonValue::toString)
+                                .collect(Collectors.joining());
+                        assertThat(events).contains(indexedThingMetadata.toString());
+                    });
+        }};
+    }
+
+    @Test
+    public void staysHealthyWhenSameThingIsSynchronizedWithOtherRevision() {
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null);
+        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
+        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null);
+        final long nextRevision = nextThingMetadata.getThingRevision() + 1;
+
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
+
+            // first synchronization stream
+            expectSyncActorToStartStreaming(pubSub);
+            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // second synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(nextThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, nextRevision)));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // expect health to have events for both runs
+            syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.INFO),
+                    detailMessages -> {
+                        final String events = detailMessages.stream()
+                                .map(StatusDetailMessage::getMessage)
+                                .map(JsonValue::toString)
+                                .collect(Collectors.joining());
+                        assertThat(events).contains(indexedThingMetadata.toString(), nextThingMetadata.toString());
+                    });
+        }};
+    }
+
     private ActorRef thenCreateBackgroundSyncActor(final TestKit system) {
         return system.childActorOf(BackgroundSyncActor.props(
                 backgroundSyncConfig,
@@ -178,8 +243,12 @@ public final class BackgroundSyncActorTest {
     }
 
     private void expectSyncActorToStartStreaming(final TestKit pubSub) {
+        expectSyncActorToStartStreaming(pubSub, DEFAULT_TIMEOUT);
+    }
+
+    private void expectSyncActorToStartStreaming(final TestKit pubSub, final Duration withinTimeout) {
         final DistributedPubSubMediator.Send startStream =
-                pubSub.expectMsgClass(DistributedPubSubMediator.Send.class);
+                pubSub.expectMsgClass(withinTimeout, DistributedPubSubMediator.Send.class);
         assertThat(startStream.msg()).isInstanceOf(SudoStreamSnapshots.class);
     }
 
@@ -347,6 +416,15 @@ public final class BackgroundSyncActorTest {
             return Source.single(Optional.ofNullable(Pair.create(timestamp, tag)));
         }
 
+    }
+
+    private static StreamedSnapshot createStreamedSnapshot(final EntityId id, final long revision) {
+        return StreamedSnapshot.of(ThingId.of(id), Thing.newBuilder()
+                .setId(ThingId.of(id))
+                .setRevision(revision)
+                .setPolicyId(PolicyId.of(id))
+                .build()
+                .toJson(FieldType.all()));
     }
 
 }

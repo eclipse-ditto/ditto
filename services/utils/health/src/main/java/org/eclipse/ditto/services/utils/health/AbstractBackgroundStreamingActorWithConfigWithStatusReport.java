@@ -231,6 +231,9 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         getContext().become(sleeping());
     }
 
+    protected Stream<Pair<Instant, Event>> getEventStream() {
+        return events.stream();
+    }
 
     private void scheduleWakeUp() {
         scheduleWakeUp(config.getQuietPeriod());
