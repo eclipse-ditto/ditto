@@ -18,8 +18,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.concurrent.CompletionStage;
-
-import javax.annotation.Nullable;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -76,7 +75,6 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
      */
     protected final ActorMaterializer materializer;
 
-    @Nullable
     private final Deque<Pair<Instant, Event>> events;
     private KillSwitch killSwitch;
 
@@ -120,8 +118,8 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     protected abstract C parseConfig(final Config config);
 
     /**
-     * Get the stream that should be restarted again and again in the background as a source of whatever
-     * to be followed by a kill switch and a sink that ignores all elements.
+     * Get the stream that should be restarted again and again in the background as a source of whatever to be followed
+     * by a kill switch and a sink that ignores all elements.
      *
      * @return the source.
      */
@@ -246,7 +244,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         log.info("Terminating stream on demand: <{}>", shutdown);
         shutdownKillSwitch();
 
-        final Event streamTerminated = new StreamTerminated("Got " + shutdown);
+        final Event streamTerminated = StreamTerminated.normally("Got " + shutdown);
         enqueue(events, streamTerminated, config.getKeptEvents());
         getContext().become(sleeping());
 
@@ -279,8 +277,13 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .<Void>handle((result, error) -> {
                     final String description = String.format("Stream terminated. Result=<%s> Error=<%s>",
                             result, error);
-                    log.info(description);
-                    getSelf().tell(new StreamTerminated(description), getSelf());
+                    if (error != null) {
+                        log.error(error, description);
+                        getSelf().tell(StreamTerminated.withError(description), getSelf());
+                    } else {
+                        log.info(description);
+                        getSelf().tell(StreamTerminated.normally(description), getSelf());
+                    }
                     return null;
                 });
     }
@@ -298,7 +301,15 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     private StatusInfo renderStatusInfo() {
         return StatusInfo.fromStatus(StatusInfo.Status.UP,
-                Collections.singletonList(StatusDetailMessage.of(StatusDetailMessage.Level.INFO, render())));
+                Collections.singletonList(StatusDetailMessage.of(getMostSevereLevelFromEvents(), render())));
+    }
+
+    private StatusDetailMessage.Level getMostSevereLevelFromEvents() {
+        return events.stream()
+                .map(Pair::second)
+                .map(Event::level)
+                .max(Enum::compareTo)
+                .orElse(StatusDetailMessage.Level.DEFAULT);
     }
 
     private JsonObject render() {
@@ -323,6 +334,11 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     protected interface Event {
 
         String name();
+
+        default StatusDetailMessage.Level level() {
+            return StatusDetailMessage.Level.DEFAULT;
+        }
+
     }
 
     private static final class WokeUp implements Event {
@@ -343,20 +359,38 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         public String name() {
             return enabled ? "WOKE_UP" : "Not waking up: I am disabled.";
         }
+
     }
 
     private static final class StreamTerminated implements Event {
 
+        private static final StatusDetailMessage.Level STREAM_ERROR_STATUS_LEVEL = StatusDetailMessage.Level.WARN;
         private final String whatHappened;
+        private final StatusDetailMessage.Level level;
 
-        private StreamTerminated(final String whatHappened) {
+        private StreamTerminated(final String whatHappened, final StatusDetailMessage.Level level) {
             this.whatHappened = whatHappened;
+            this.level = level;
+        }
+
+        private static StreamTerminated normally(final String whatHappened) {
+            return new StreamTerminated(whatHappened, StatusDetailMessage.Level.DEFAULT);
+        }
+
+        private static StreamTerminated withError(final String whatHappened) {
+            return new StreamTerminated(whatHappened, STREAM_ERROR_STATUS_LEVEL);
         }
 
         @Override
         public String name() {
             return whatHappened;
         }
+
+        @Override
+        public StatusDetailMessage.Level level() {
+            return this.level;
+        }
+
     }
 
     private static final class JsonFields {
@@ -366,5 +400,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
         private static final JsonFieldDefinition<JsonArray> EVENTS =
                 JsonFactory.newJsonArrayFieldDefinition("events");
+
     }
+
 }
