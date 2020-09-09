@@ -30,7 +30,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
@@ -379,6 +382,22 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options) {
+        return newMappingContext(mappingEngine, options.entrySet()
+                .stream()
+                .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                .collect(JsonCollectors.fieldsToObject()));
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine
+     * @param options the mapping options required to instantiate a mapper
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options) {
         return ImmutableMappingContext.of(mappingEngine, options);
     }
 
@@ -584,8 +603,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-
-     /**
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published

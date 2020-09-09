@@ -359,7 +359,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S contentType(final CharSequence contentType) {
+    public S contentType(@Nullable final CharSequence contentType) {
         putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
         return myself;
     }

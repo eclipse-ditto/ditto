@@ -19,6 +19,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 
@@ -40,7 +41,7 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     }
 
     @Override
-    public Map<String, String> getProperties() {
+    public Map<String, JsonValue> getProperties() {
         return delegationTarget.getProperties();
     }
 
@@ -75,15 +76,16 @@ final class ImmutableJavaScriptMessageMapperConfiguration implements JavaScriptM
     static final class Builder implements JavaScriptMessageMapperConfiguration.Builder {
 
         private final String id;
-        private final Map<String, String> properties;
+        private final Map<String, JsonValue> properties;
 
-        Builder(final String id, final Map<String, String> properties) {
+        Builder(final String id, final Map<String, JsonValue> properties) {
             this.id = id;
             this.properties = new HashMap<>(properties); // mutable map!
+            properties.forEach((key, value) -> this.properties.put(key.toString(), value));
         }
 
         @Override
-        public Map<String, String> getProperties() {
+        public Map<String, JsonValue> getProperties() {
             return properties;
         }
 

@@ -168,7 +168,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                             .incomingScript(TestConstants.Mapping.INCOMING_MAPPING_SCRIPT)
                             .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
-                            .getProperties()
+                            .getPropertiesAsJson()
             );
 
             final ActorRef processor = setupActor(getRef(), mappingContext);
@@ -185,7 +185,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
 
             underTest.tell(getJmsMessage(plainPayload, correlationId), null);
 
-            final Command command = expectMsgClass(Command.class);
+            final Command<?> command = expectMsgClass(Command.class);
             assertThat(command.getType()).isEqualTo(ModifyAttribute.TYPE);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(((ModifyAttribute) command).getAttributePointer()).isEqualTo(JsonPointer.of("/foo"));
@@ -206,7 +206,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                                     .replace("return msg;", "return [msg, msg, msg];"))
                             .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
-                            .getProperties()
+                            .getPropertiesAsJson()
             );
 
             final ActorRef processor = setupActor(getRef(), mappingContext);
@@ -224,7 +224,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             underTest.tell(getJmsMessage(plainPayload, correlationId), null);
 
             for (int i = 0; i < 3; i++) {
-                final Command command = expectMsgClass(Command.class);
+                final Command<?> command = expectMsgClass(Command.class);
                 assertThat(command.getType()).isEqualTo(ModifyAttribute.TYPE);
                 assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
                 assertThat(((ModifyAttribute) command).getAttributePointer()).isEqualTo(JsonPointer.of("/foo"));
@@ -310,7 +310,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             final JmsMessage jmsMessage = messageFacade.asJmsMessage();
             underTest.tell(jmsMessage, null);
 
-            final Command command = expectMsgClass(Command.class);
+            final Command<?> command = expectMsgClass(Command.class);
             assertThat(command.getType()).isEqualTo(ModifyFeatureProperty.TYPE);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(command.getDittoHeaders().getContentType()).isEmpty();

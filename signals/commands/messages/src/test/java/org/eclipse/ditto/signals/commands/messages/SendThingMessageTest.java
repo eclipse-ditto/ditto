@@ -62,6 +62,7 @@ public final class SendThingMessageTest {
             MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
                     .contentType(CONTENT_TYPE)
                     .build())
+            .payload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_BYTES))
             .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_BYTES))
             .build();
 
@@ -140,9 +141,10 @@ public final class SendThingMessageTest {
             assertThat(e).hasMessageContaining(expectedThingId.toString()).hasNoCause();
 
 
-            final String expectedDescription = MessageFormat.format("It does not match the 'thingId' from the Message " +
-                            "the command transports (<{0}>). Please ensure that they are equal.",
-                    MESSAGE.getThingEntityId().toString());
+            final String expectedDescription =
+                    MessageFormat.format("It does not match the 'thingId' from the Message " +
+                                    "the command transports (<{0}>). Please ensure that they are equal.",
+                            MESSAGE.getThingEntityId().toString());
 
             assertThat(e.getDescription()).hasValue(expectedDescription);
         }
@@ -202,7 +204,10 @@ public final class SendThingMessageTest {
                 .contentType("unknownBinaryContentType")
                 .build();
         final String body = "binary message body";
-        final Message<?> message = Message.newBuilder(headers).rawPayload(ByteBuffer.wrap(body.getBytes())).build();
+        final Message<?> message = Message.newBuilder(headers)
+                .payload(ByteBuffer.wrap(body.getBytes()))
+                .rawPayload(ByteBuffer.wrap(body.getBytes()))
+                .build();
 
         final SendThingMessage<?> underTest =
                 SendThingMessage.of(ThingId.of("the", "thingId"), message, TestConstants.EMPTY_DITTO_HEADERS);
