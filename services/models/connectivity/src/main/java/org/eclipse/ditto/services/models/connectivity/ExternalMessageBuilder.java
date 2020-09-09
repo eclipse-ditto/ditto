@@ -59,6 +59,7 @@ public interface ExternalMessageBuilder {
     /**
      * Sets the passed {@code text} to the builder and also changing the
      * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT}.
+     * NOT for use in consumer actors! They should set both the text and the byte payload.
      *
      * @param text the text payload to set
      * @return this builder in order to enable method chaining
