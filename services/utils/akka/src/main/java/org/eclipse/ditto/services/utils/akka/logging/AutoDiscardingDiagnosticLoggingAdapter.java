@@ -63,7 +63,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyError(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -72,7 +72,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyError(cause, message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -81,7 +81,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyWarning(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -90,7 +90,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyInfo(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -99,7 +99,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyDebug(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -108,7 +108,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(cause, message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -117,7 +117,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(cause, template, arg1);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -130,7 +130,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(cause, template, arg1, arg2);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -144,7 +144,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(cause, template, arg1, arg2, arg3);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -159,7 +159,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(cause, template, arg1, arg2, arg3, arg4);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -168,7 +168,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -177,7 +177,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(template, arg1);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -186,7 +186,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(template, arg1, arg2);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -199,7 +199,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(template, arg1, arg2, arg3);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -213,7 +213,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.error(template, arg1, arg2, arg3, arg4);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -222,7 +222,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.warning(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -231,7 +231,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.warning(template, arg1);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -240,7 +240,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.warning(template, arg1, arg2);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -253,7 +253,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.warning(template, arg1, arg2, arg3);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -267,7 +267,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.warning(template, arg1, arg2, arg3, arg4);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -276,7 +276,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.info(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -285,7 +285,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.info(template, arg1);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -294,7 +294,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.info(template, arg1, arg2);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -307,7 +307,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.info(template, arg1, arg2, arg3);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -321,7 +321,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.info(template, arg1, arg2, arg3, arg4);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -330,7 +330,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.debug(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -339,7 +339,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.debug(template, arg1);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -348,7 +348,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.debug(template, arg1, arg2);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -361,7 +361,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.debug(template, arg1, arg2, arg3);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -375,7 +375,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.debug(template, arg1, arg2, arg3, arg4);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -418,6 +418,24 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
     @Override
     public void discardCorrelationId() {
         loggingAdapter.discardCorrelationId();
+    }
+
+    @Override
+    public AutoDiscardingDiagnosticLoggingAdapter putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+        loggingAdapter.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public AutoDiscardingDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
+        loggingAdapter.removeMdcEntry(key);
+        return this;
+    }
+
+    @Override
+    public AutoDiscardingDiagnosticLoggingAdapter discardMdcEntries() {
+        loggingAdapter.discardMdcEntries();
+        return this;
     }
 
 }

@@ -50,7 +50,8 @@ import org.eclipse.ditto.model.base.headers.{DittoHeaders, WithDittoHeaders}
   * </pre>
   */
 @NotThreadSafe
-abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAdapter {
+abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAdapter
+  with MdcEntrySettable[DittoDiagnosticLoggingAdapter] {
 
   /** Sets the given correlation ID for the subsequent log operation.
     *

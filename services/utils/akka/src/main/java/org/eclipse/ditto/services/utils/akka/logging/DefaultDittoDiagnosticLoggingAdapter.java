@@ -41,7 +41,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
         this.loggingAdapter = loggingAdapter;
         this.autoDiscardingLoggingAdapter = autoDiscardingLoggingAdapter;
-        currentLogger = loggingAdapter;
+        currentLogger = autoDiscardingLoggingAdapter;
     }
 
     /**
@@ -98,6 +98,84 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     @Override
     public void discardCorrelationId() {
         currentLogger.discardCorrelationId();
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter putMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+
+        currentLogger = loggingAdapter;
+        currentLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2) {
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2,
+            final CharSequence k3, @Nullable final CharSequence v3) {
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        currentLogger.putMdcEntry(k3, v3);
+        return this;
+    }
+
+    @Override
+    public DittoDiagnosticLoggingAdapter withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
+        checkNotNull(furtherMdcEntries, "furtherMdcEntries");
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        for(final MdcEntry furtherMdcEntry : furtherMdcEntries) {
+            currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
+        }
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntry(final MdcEntry mdcEntry,
+            final Seq<MdcEntry> furtherMdcEntries) {
+
+        checkNotNull(furtherMdcEntries, "furtherMdcEntries");
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        furtherMdcEntries.foreach(furtherMdcEntry -> currentLogger.putMdcEntry(furtherMdcEntry.getKey(),
+                furtherMdcEntry.getValueOrNull()));
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
+        currentLogger.removeMdcEntry(key);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter discardMdcEntries() {
+        currentLogger.discardMdcEntries();
+        currentLogger = autoDiscardingLoggingAdapter;
+        return this;
     }
 
     @Override
