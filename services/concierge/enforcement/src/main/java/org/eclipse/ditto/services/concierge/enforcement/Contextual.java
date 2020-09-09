@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.WithId;
@@ -68,6 +69,10 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Nullable
     private final Function<Object, Object> receiverWrapperFunction;
 
+    // for live signal enforcement
+    @Nullable
+    private final Cache<String, ActorRef> responseReceivers;
+
     @Nullable
     private final Supplier<CompletionStage<Object>> askFuture;
 
@@ -80,6 +85,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
+            @Nullable final Cache<String, ActorRef> responseReceivers,
             @Nullable final Supplier<CompletionStage<Object>> askFuture,
             final boolean changesAuthorization) {
         this.message = message;
@@ -93,6 +99,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.startedTimer = startedTimer;
         this.receiver = receiver;
         this.receiverWrapperFunction = receiverWrapperFunction;
+        this.responseReceivers = responseReceivers;
         this.askFuture = askFuture;
         this.changesAuthorization = changesAuthorization;
     }
@@ -102,11 +109,12 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final Duration askTimeout,
-            final DittoDiagnosticLoggingAdapter log) {
+            final DittoDiagnosticLoggingAdapter log,
+            @Nullable final Cache<String, ActorRef> responseReceivers) {
 
-        return new Contextual<T>(null, self, deadLetters, pubSubMediator, conciergeForwarder, askTimeout, log, null,
+        return new Contextual<>(null, self, deadLetters, pubSubMediator, conciergeForwarder, askTimeout, log, null,
                 null,
-                null, null, null, false);
+                null, null, responseReceivers, null, false);
     }
 
     /**
@@ -119,7 +127,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
      */
     Contextual<T> withAskFuture(final Supplier<CompletionStage<Object>> askFuture) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout, log, entityId,
-                startedTimer, receiver, receiverWrapperFunction, askFuture, changesAuthorization);
+                startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture, changesAuthorization);
     }
 
     /**
@@ -221,6 +229,10 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return receiverWrapperFunction != null ? receiverWrapperFunction : Function.identity();
     }
 
+    Optional<Cache<String, ActorRef>> getResponseReceivers() {
+        return Optional.ofNullable(responseReceivers);
+    }
+
     boolean changesAuthorization() {
         return changesAuthorization;
     }
@@ -231,31 +243,31 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message, final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction,
+                log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture, changesAuthorization);
     }
 
     Contextual<T> withTimer(final StartedTimer startedTimer) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction,
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture, changesAuthorization);
     }
 
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction,
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture, changesAuthorization);
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction,
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture, changesAuthorization);
     }
 
     Contextual<T> changesAuthorization(final boolean changesAuthorization) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction,
+                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture, changesAuthorization);
     }
 
@@ -290,6 +302,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 ", entityId=" + entityId +
                 ", receiver=" + receiver +
                 ", receiverWrapperFunction=" + receiverWrapperFunction +
+                ", responseReceivers=" + responseReceivers +
                 ", changesAuthorization=" + changesAuthorization +
                 "]";
     }
