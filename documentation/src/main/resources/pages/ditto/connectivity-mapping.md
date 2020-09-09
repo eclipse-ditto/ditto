@@ -64,6 +64,7 @@ The following message mappers are included in the Ditto codebase:
 | [JavaScript](#javascript-mapper) | Converts arbitrary messages from and to the [Ditto Protocol](protocol-overview.html) format using **custom** JavaScript code executed by Ditto. | ✓ | ✓ |
 | [Normalized](#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
 | [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0). | ✓ |  |
+| [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 
 ### Ditto mapper
 
@@ -91,7 +92,7 @@ The same is possible for outbound messages in order to transform [Ditto Protocol
 * `loadBytebufferJS` (optional, default: `"false"`): whether to load ByteBufferJS library
 * `loadLongJS` (optional, default: `"false"`): whether to load LongJS library
 
-### Normalized Mapper
+### Normalized mapper
 
 This mapper transforms `created` and `modified` events (other type of messages are dropped) to a normalized view. 
 Events are mapped to a nested sparse JSON.
@@ -137,7 +138,7 @@ The `_context` field contains the original message content excluding the `value`
 * `fields` (optional, default: all fields): comma separated list of fields that are contained in the result (see also
  chapter about [field selectors](httpapi-concepts.html#with-field-selector))
  
-### ConnectionStatus Mapper
+### ConnectionStatus mapper
 This mapper transforms the information from the `ttd` and `creation-time` message headers (see Eclipse Hono [device
  notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/)) into a ModifyFeature
  command that complies with the [Vorto functionblock](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. 
@@ -171,7 +172,77 @@ Example of a resulting `ConnectionStatus` feature:
 * `featureId` (optional, default: `ConnectionStatus`): The ID of the Feature that is updated. It can either be a
  fixed value or resolved from a message header (e.g. `{%raw%}{{ header:feature_id }}{%endraw%}`).
 
+### RawMessage mapper
 
+This mapper relates the payload in the `"value"` field of message commands and message responses to the payload
+of AMQP, MQTT and Kafka messages and the body of HTTP requests. The encoding of the payload is chosen according to
+the configured content type. The subject, direction, thing ID and feature ID of the envelope for incoming message
+commands and responses need to be configured.
+
+Messages with the Ditto protocol content type `application/vnd.eclipse.ditto+json` or signals that are not message
+commands or responses are mapped by the [Ditto mapper](#ditto-mapper) instead.
+
+For example, the mapper maps between the feature message command response
+```json
+{
+  "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/heatUp",
+  "headers": { "content-type": "application/octet-stream" },
+  "path": "/features/water-tank/inbox/messages/heatUp",
+  "value": "AQIDBAUG",
+  "status": 200
+}
+```
+and an AMQP, MQTT 5, Kafka message with payload or an HTTP request with body of 6 bytes
+```
+0x01 02 03 04 05 06
+```
+and headers
+```
+content-type: application/octet-stream
+status: 200
+subject: heatUp
+ditto-message-direction: TO
+ditto-message-thing-id: org.eclipse.ditto:smartcoffee
+ditto-message-feature-id: water-tank
+```
+The headers are lost for connection protocols without application headers such as MQTT 3.
+ 
+#### Configuration options
+
+Example configuration:
+```json
+{
+  "outgoingContentType": "application/octet-stream",
+  "incomingMessageHeaders": {
+    "content-type": "{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}",
+    "status": "{%raw%}{{ header:status }}{%endraw%}",
+    "subject": "{%raw%}{{ header:subject | fn:default('fallback-subject') }}{%endraw%}",
+    "ditto-message-direction": "TO",
+    "ditto-message-thing-id": "{%raw%}{{ header:ditto-message-thing-id | fn:default('ns:fallback-thing') }}{%endraw%}",
+    "ditto-message-feature-id": "{%raw%}{{ header:ditto-message-feature-id }}{%endraw%}"
+  }
+}
+```
+
+* `outgoingContentType` (optional): The fallback content-type for outgoing message commands and responses without
+  the content-type header. Default to `text/plain; charset=UTF-8`.
+* `incomingMessageHeaders` (optional): A JSON object containing the following headers needed to construct a message
+  command or response envelope containing the incoming message as payload in the field `"value"`. Placeholder expressions
+  reading from the protocol headers of incoming messages may be used.
+   * `content-type` (optional): The content type with which to encode the incoming message as payload.
+     Default to `{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}`.
+     If resolved to the Ditto protocol content type `application/vnd.eclipse.ditto+json`, then the entire payload
+     is interpreted as a Ditto protocol message instead.
+   * `status` (optional): Include for message responses. Exclude for message commands. Default to
+     `{%raw%}{{ header:status }}{%endraw%}`.
+   * `subject` (mandatory for MQTT 3): Subject of the message. Default to `{%raw%}{{ header:subject }}{%endraw%}`.
+      Mapping will fail if not resolvable.
+   * `ditto-message-direction` (optional): The message direction. Default to `TO`, which corresponds to `inbox` in
+      message commands and responses.
+   * `ditto-message-thing-id` (mandatory for MQTT 3): ID of the thing to send the message command or response to.
+     Default to `{%raw%}{{ header:ditto-message-thing-id }}{%endraw%}`. Mapping will fail if not resolvable.
+   * `ditto-message-feature-id` (optional): Include to send the message or message response to a feature of the thing.
+     Exclude to send it to the thing itself. Default to `{%raw%}{{ header:ditto-message-feature-id }}{%endraw%}`.
 
 ## Example connection with multiple mappers
 

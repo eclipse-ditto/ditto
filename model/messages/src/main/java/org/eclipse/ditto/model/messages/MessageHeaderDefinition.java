@@ -37,7 +37,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-direction"}, Java type: String.
      * </p>
      */
-    DIRECTION("ditto-message-direction", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    DIRECTION("ditto-message-direction", String.class, false, false, DittoMessageDirectionValueValidator.getInstance()),
 
     /**
      * Header definitions for the subject of a message.
@@ -53,7 +53,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-thing-id"}, Java type: String.
      * </p>
      */
-    THING_ID("ditto-message-thing-id", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    THING_ID("ditto-message-thing-id", String.class, false, false, DittoMessageThingIdValueValidator.getInstance()),
 
     /**
      * Header definition for the Feature ID of a message, if sent to a Feature.
