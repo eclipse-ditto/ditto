@@ -230,7 +230,7 @@ public final class RawMessageMapperTest {
                         Map.of("incomingMessageHeaders", JsonObject.newBuilder()
                                 .set("content-type", "text/plain")
                                 .build()
-                        )));
+                        ), Map.of(), Map.of()));
         final List<Adaptable> adaptables =
                 underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withBytes(payload.getBytes())
@@ -256,7 +256,7 @@ public final class RawMessageMapperTest {
                         Map.of("incomingMessageHeaders", JsonObject.newBuilder()
                                 .set("content-type", "application/octet-stream")
                                 .build()
-                        )));
+                        ), Map.of(), Map.of()));
         final List<Adaptable> adaptables =
                 underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withText(payload)
