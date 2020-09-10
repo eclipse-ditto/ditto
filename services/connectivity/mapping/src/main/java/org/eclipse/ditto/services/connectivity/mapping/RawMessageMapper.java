@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
+import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -299,15 +301,18 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
         if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
             return externalMessage.getTextPayload()
+                    .or(() -> externalMessage.getBytePayload().map(ByteBufferUtils::toUtf8String))
                     .map(textPayload ->
                             MessageDeserializer.shouldBeInterpretedAsJson(contentType)
                                     ? JsonFactory.readFrom(textPayload)
                                     : JsonFactory.newValue(textPayload)
                     );
         } else {
-            return externalMessage.getBytePayload().map(bytePayload ->
-                    JsonFactory.newValue(Base64.getEncoder().encodeToString(bytePayload.array()))
-            );
+            return externalMessage.getBytePayload()
+                    .or(() -> externalMessage.getTextPayload().map(text -> ByteBuffer.wrap(text.getBytes())))
+                    .map(bytePayload ->
+                            JsonFactory.newValue(Base64.getEncoder().encodeToString(bytePayload.array()))
+                    );
         }
     }
 
