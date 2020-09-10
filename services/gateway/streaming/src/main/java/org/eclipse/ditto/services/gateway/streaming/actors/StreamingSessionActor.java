@@ -429,14 +429,21 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void forwardAcknowledgementOrLiveCommandResponse(final CommandResponse<?> response) {
-        // the Acknowledgement / live CommandResponse is meant for someone else:
         final ActorContext context = getContext();
         context.findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                 .ifPresentOrElse(
                         forwarder -> forwarder.forward(response, context),
-                        () -> logger.withCorrelationId(response)
-                                .info("Received Acknowledgement / live CommandResponse but no " +
-                                        "AcknowledgementForwarderActor was present: <{}>", response)
+                        () -> {
+                            // the Acknowledgement / live CommandResponse is meant for someone else:
+                            final String template =
+                                    "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
+                            if (logger.isDebugEnabled()) {
+                                logger.withCorrelationId(response).debug(template, response);
+                            } else {
+                                logger.withCorrelationId(response).info(template, response.getType());
+                            }
+                            commandRouter.tell(response, ActorRef.noSender());
+                        }
                 );
     }
 

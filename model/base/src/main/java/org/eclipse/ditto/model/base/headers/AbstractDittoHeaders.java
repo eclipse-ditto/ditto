@@ -299,7 +299,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
                 .map(ResponseType::fromName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList()); // toList() to keep original order
     }
 
     @Override

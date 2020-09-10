@@ -105,7 +105,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
 
         return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload)
-                .withHeaders(DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(responseHeaders)))
+                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
                 .build();
     }
 

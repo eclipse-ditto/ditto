@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
@@ -37,6 +39,7 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -45,6 +48,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageDeserializer;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
@@ -124,8 +128,13 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
 
         // build expected message and message command
         final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
-        final Message<Object> expectedMessage = message(messageHeaders, payload.asObject);
-        final MessageCommand expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
+        final ByteBuffer expectedRawPayload = wrapPayloadAsByteBuffer();
+        final Object expectedPayload = payload.raw ? expectedRawPayload : payload.asObject;
+        final Message<Object> expectedMessage = MessagesModelFactory.newMessageBuilder(messageHeaders)
+                .payload(expectedPayload)
+                .rawPayload(expectedRawPayload)
+                .build();
+        final MessageCommand<?, ?> expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
 
         // build the adaptable that will be converted to a message command
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -140,9 +149,22 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(theHeaders)
                 .build();
 
-        final MessageCommand actualMessageCommand = underTest.fromAdaptable(adaptable);
+        final MessageCommand<?, ?> actualMessageCommand = underTest.fromAdaptable(adaptable);
 
         assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
+    }
+
+    @Nullable
+    private ByteBuffer wrapPayloadAsByteBuffer() {
+        if (payload.raw) {
+            return ByteBuffer.wrap((byte[]) payload.asObject);
+        } else if (payload.asJson == null) {
+            return null;
+        } else {
+            final boolean isJson = MessageDeserializer.shouldBeInterpretedAsJson(payload.contentType);
+            final String representation = isJson ? payload.asJson.toString() : payload.asJson.formatAsString();
+            return ByteBuffer.wrap(representation.getBytes());
+        }
     }
 
     private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
@@ -240,7 +262,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
     }
 
 
-    private static MessageCommand messageCommand(final String type, final Message<Object> message,
+    private static MessageCommand<?, ?> messageCommand(final String type, final Message<Object> message,
             final DittoHeaders headers) {
         switch (type) {
             case SendThingMessage.TYPE:

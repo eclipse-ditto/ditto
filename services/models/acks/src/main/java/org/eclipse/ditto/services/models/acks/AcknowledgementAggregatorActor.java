@@ -26,7 +26,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -177,7 +180,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         log.withCorrelationId(correlationId).info("Timed out waiting for all requested acknowledgements, " +
                 "completing Acknowledgements with timeouts...");
-        completeAcknowledgements(null, requestCommandHeaders);
+        completeAcknowledgements(null);
     }
 
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
@@ -204,14 +207,13 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private void potentiallyCompleteAcknowledgements(@Nullable final CommandResponse<?> response) {
 
         if (ackregator.receivedAllRequestedAcknowledgements()) {
-            completeAcknowledgements(response, requestCommandHeaders);
+            completeAcknowledgements(response);
         }
     }
 
-    private void completeAcknowledgements(@Nullable final CommandResponse<?> response,
-            final DittoHeaders dittoHeaders) {
-
-        final Acknowledgements aggregatedAcknowledgements = ackregator.getAggregatedAcknowledgements(dittoHeaders);
+    private void completeAcknowledgements(@Nullable final CommandResponse<?> response) {
+        final Acknowledgements aggregatedAcknowledgements =
+                ackregator.getAggregatedAcknowledgements(requestCommandHeaders);
         final boolean builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
         if (null != response && builtInAcknowledgementOnly) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
@@ -220,16 +222,25 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             // there is no response. send an error according to channel
             handleSignal(asThingErrorResponse(aggregatedAcknowledgements));
         } else {
-            log.withCorrelationId(dittoHeaders)
+            log.withCorrelationId(requestCommandHeaders)
                     .debug("Completing with collected acknowledgements: {}", aggregatedAcknowledgements);
             handleSignal(aggregatedAcknowledgements);
         }
-
         getContext().stop(getSelf());
     }
 
-    private void handleSignal(final Object signal) {
-        responseSignalConsumer.accept(signal);
+    private WithDittoHeaders<?> restoreCommandConnectivityHeaders(final WithDittoHeaders<?> signal) {
+        final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = signal.getDittoHeaders().toBuilder();
+        if (requestCommandHeaders.containsKey(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())) {
+            enhancedHeadersBuilder.expectedResponseTypes(requestCommandHeaders.getExpectedResponseTypes());
+        }
+        requestCommandHeaders.getInboundPayloadMapper().ifPresent(enhancedHeadersBuilder::inboundPayloadMapper);
+        requestCommandHeaders.getReplyTarget().ifPresent(enhancedHeadersBuilder::replyTarget);
+        return signal.setDittoHeaders(enhancedHeadersBuilder.build());
+    }
+
+    private void handleSignal(final WithDittoHeaders<?> signal) {
+        responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal));
     }
 
     /**

@@ -137,10 +137,32 @@ public abstract class AbstractHttpRequestActorTest {
             final String messageSubject,
             final DittoHeaders dittoHeaders,
             final DittoHeaders expectedHeaders,
-            @Nullable final SendThingMessageResponse probeResponse,
+            @Nullable final SendThingMessageResponse<?> probeResponse,
             final StatusCode expectedHttpStatusCode,
             final boolean expectHttpResponseHeaders,
             @Nullable final ResponseEntity expectedHttpResponseEntity) throws InterruptedException, ExecutionException {
+
+        HttpResponse expectedHttpResponse = HttpResponse.create().withStatus(expectedHttpStatusCode);
+        if (expectHttpResponseHeaders) {
+            final List<HttpHeader> expectedHttpResponseHeaders = HEADER_TRANSLATOR.toExternalHeaders(expectedHeaders)
+                    .entrySet()
+                    .stream()
+                    .map(e -> RawHeader.create(e.getKey(), e.getValue()))
+                    .collect(Collectors.toList());
+            expectedHttpResponse = expectedHttpResponse.withHeaders(expectedHttpResponseHeaders);
+        }
+        if (null != expectedHttpResponseEntity) {
+            expectedHttpResponse = expectedHttpResponse.withEntity(expectedHttpResponseEntity);
+        }
+        assertThat(testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders, probeResponse))
+                .isEqualTo(expectedHttpResponse);
+    }
+
+    HttpResponse testMessageCommand(final ThingId thingId,
+            final String messageSubject,
+            final DittoHeaders dittoHeaders,
+            final DittoHeaders expectedHeaders,
+            @Nullable final SendThingMessageResponse<?> probeResponse) throws InterruptedException, ExecutionException {
 
         final TestProbe proxyActorProbe = TestProbe.apply(system);
 
@@ -167,19 +189,7 @@ public abstract class AbstractHttpRequestActorTest {
             proxyActorProbe.reply(probeResponse);
         }
 
-        HttpResponse expectedHttpResponse = HttpResponse.create().withStatus(expectedHttpStatusCode);
-        if (expectHttpResponseHeaders) {
-            final List<HttpHeader> expectedHttpResponseHeaders = HEADER_TRANSLATOR.toExternalHeaders(expectedHeaders)
-                    .entrySet()
-                    .stream()
-                    .map(e -> RawHeader.create(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
-            expectedHttpResponse = expectedHttpResponse.withHeaders(expectedHttpResponseHeaders);
-        }
-        if (null != expectedHttpResponseEntity) {
-            expectedHttpResponse = expectedHttpResponse.withEntity(expectedHttpResponseEntity);
-        }
-        assertThat(responseFuture.get()).isEqualTo(expectedHttpResponse);
+        return responseFuture.get();
     }
 
     SendThingMessageResponse<?> buildSendThingMessageResponse(final ThingId thingId,

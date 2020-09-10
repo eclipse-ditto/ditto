@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -765,6 +766,42 @@ public final class JsonFactory {
 
         return JsonValueFieldDefinition.newInstance(pointer, JsonValue.class, jsonValue -> true, Function.identity(),
                 markers);
+    }
+
+    /**
+     * Creates a {@link JsonArray} backed with an already serialized CBOR representation as the passed bytes.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param jsonValueList the JSON values to create the JsonArray from.
+     * @param cborRepresentation the already CBOR serialized representation of the JsonArray.
+     * @return the created JsonArray.
+     * @since 1.2.1
+     */
+    public static JsonArray createJsonArray(final List<JsonValue> jsonValueList,
+            @Nullable final byte[] cborRepresentation) {
+        return new ImmutableJsonArray(
+                ImmutableJsonArray.SoftReferencedValueList.of(jsonValueList, cborRepresentation));
+    }
+
+    /**
+     * Creates a {@link JsonObject} backed with an already serialized CBOR representation as the passed bytes.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param jsonFieldMap the JSON fields to create the JsonObject from.
+     * @param cborObjectRepresentation the already CBOR serialized representation of the JsonObject.
+     * @return the created JsonObject.
+     * @since 1.2.1
+     */
+    public static JsonObject createJsonObject(final Map<String, JsonField> jsonFieldMap,
+            @Nullable final byte[] cborObjectRepresentation) {
+        return new ImmutableJsonObject(
+                ImmutableJsonObject.SoftReferencedFieldMap.of(jsonFieldMap, null, cborObjectRepresentation));
     }
 
     /**

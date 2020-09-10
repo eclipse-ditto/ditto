@@ -21,7 +21,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -149,7 +148,7 @@ public final class ConnectionPersistenceActor
      */
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
-    private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
+    private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
 
     // number of client actors to start per node
     private static final int CLIENT_ACTORS_PER_NODE = 1;
@@ -475,14 +474,20 @@ public final class ConnectionPersistenceActor
                 .build();
     }
 
-    private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> acknowledgement) {
+    private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
         final ActorContext context = getContext();
-        final Consumer<ActorRef> action = forwarder -> forwarder.forward(acknowledgement, context);
-        final Runnable emptyAction = () -> log.withCorrelationId(acknowledgement)
-                .info("Received response but no AcknowledgementForwarderActor was present: <{}>",
-                        acknowledgement);
+        final Consumer<ActorRef> action = forwarder -> forwarder.forward(responseOrAck, context);
+        final Runnable emptyAction = () -> {
+            final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
+            if (log.isDebugEnabled()) {
+                log.withCorrelationId(responseOrAck).debug(template, responseOrAck);
+            } else {
+                log.withCorrelationId(responseOrAck).info(template, responseOrAck.getClass().getCanonicalName());
+            }
+            proxyActor.tell(responseOrAck, ActorRef.noSender());
+        };
 
-        context.findChild(AcknowledgementForwarderActor.determineActorName(acknowledgement.getDittoHeaders()))
+        context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
                 .ifPresentOrElse(action, emptyAction);
     }
 
@@ -793,8 +798,7 @@ public final class ConnectionPersistenceActor
             final Runnable onClientActorNotStarted) {
         if (clientActorRouter != null && entity != null) {
             // timeout before sending the (partial) response
-            final Duration timeout =
-                    Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
+            final Duration timeout = extractTimeoutFromCommand(command.getDittoHeaders());
             final ActorRef aggregator =
                     getContext().actorOf(senderPropsForConnectionWithTimeout.apply(entity, timeout));
 
@@ -844,17 +848,16 @@ public final class ConnectionPersistenceActor
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command, final ActorRef sender) {
         checkNotNull(entity, "Connection");
         // timeout before sending the (partial) response
-        final Duration timeout =
-                Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
+        final Duration timeout = extractTimeoutFromCommand(command.getDittoHeaders());
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
                 command.getDittoHeaders(), timeout, pubSubStatus);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 
-    private static long extractTimeoutFromCommand(final DittoHeaders headers) {
-        return Optional.ofNullable(headers.get("timeout"))
-                .map(Long::parseLong)
-                .orElse(DEFAULT_RETRIEVE_STATUS_TIMEOUT);
+    private static Duration extractTimeoutFromCommand(final DittoHeaders headers) {
+        return Duration.ofMillis(
+                (long) (headers.getTimeout().orElse(DEFAULT_RETRIEVE_STATUS_TIMEOUT).toMillis() * 0.75)
+        );
     }
 
     private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command, final ActorRef sender) {

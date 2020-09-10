@@ -170,7 +170,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     /**
      * Returns a Command for creating a new Thing which is passed as argument. The created thing will have a policy
-     * copied from a policy with athe given policyIdOrPlaceholder.
+     * copied from a policy with a given policyIdOrPlaceholder.
      *
      * @param newThing the new {@link Thing} to create.
      * @param initialPolicy the initial {@code Policy} to set for the Thing - may be null.

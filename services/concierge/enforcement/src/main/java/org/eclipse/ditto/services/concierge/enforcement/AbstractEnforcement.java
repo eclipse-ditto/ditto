@@ -51,7 +51,7 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
     /**
      * Context of the enforcement step: sender, self, signal and so forth.
      */
-    private final Contextual<T> context;
+    protected final Contextual<T> context;
 
     /**
      * Create an enforcement step from its context.

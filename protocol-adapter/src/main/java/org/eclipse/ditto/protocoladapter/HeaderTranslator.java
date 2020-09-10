@@ -100,7 +100,7 @@ public final class HeaderTranslator {
     public Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.toExternalHeadersFilter(headerDefinitions);
-        return filterHeaders(dittoHeaders, headerEntryFilter, false);
+        return filterHeadersMap(dittoHeaders, headerEntryFilter, false);
     }
 
     /**

@@ -92,9 +92,9 @@ final class ImmutableJsonDouble extends AbstractJsonNumber<Double> {
         double doubleValue = getValue();
         float floatValue = getValue().floatValue();
         if (floatValue == doubleValue){ // value can be represented as float to save space
-            serializationContext.getJacksonGenerator().writeNumber(floatValue);
+            serializationContext.writeNumber(floatValue);
         } else {
-            serializationContext.getJacksonGenerator().writeNumber(doubleValue);
+            serializationContext.writeNumber(doubleValue);
         }
     }
 

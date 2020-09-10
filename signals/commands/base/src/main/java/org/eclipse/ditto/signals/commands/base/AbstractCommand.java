@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.base;
 
 import static java.util.Objects.requireNonNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -24,6 +25,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -48,6 +50,18 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
     protected AbstractCommand(final String type, final DittoHeaders dittoHeaders) {
         this.type = requireNonNull(type, "The type must not be null!");
         this.dittoHeaders = requireNonNull(dittoHeaders, "The command headers must not be null!");
+
+        if (Category.QUERY == getCategory() && !dittoHeaders.isResponseRequired()) {
+            final String headerKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
+            throw CommandHeaderInvalidException.newBuilder(headerKey)
+                    .message(MessageFormat.format(
+                            "Query commands must not have the header ''{0}'' set to 'false'", headerKey)
+                    )
+                    .description(MessageFormat.format(
+                            "Set the header ''{0}'' to 'true' instead in order to receive a response to your " +
+                                    "query command.", headerKey))
+                    .build();
+        }
     }
 
     @Override

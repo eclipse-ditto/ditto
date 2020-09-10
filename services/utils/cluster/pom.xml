@@ -25,6 +25,13 @@
     <name>Eclipse Ditto :: Services :: Utils :: Cluster Utils</name>
 
     <dependencies>
+        <!-- Required by ditto-json to use CBOR: -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-json-cbor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
@@ -74,17 +81,6 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <!-- required by ditto-json to use CBOR -->
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-cbor</artifactId>
-            <!-- required by ditto-json to use CBOR -->
         </dependency>
 
         <!-- ### Testing ### -->

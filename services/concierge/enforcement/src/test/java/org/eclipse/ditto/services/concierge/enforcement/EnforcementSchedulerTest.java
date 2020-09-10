@@ -76,7 +76,8 @@ public final class EnforcementSchedulerTest {
             final TestProbe receiverProbe = TestProbe.apply(actorSystem);
             final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), deadLetterProbe.ref(),
                     pubSubProbe.ref(), conciergeForwarderProbe.ref(),
-                    Duration.ofSeconds(10), Mockito.mock(DittoDiagnosticLoggingAdapter.class)
+                    Duration.ofSeconds(10), Mockito.mock(DittoDiagnosticLoggingAdapter.class),
+                    null
             );
             final ThingId thingId = ThingId.of("busy", "thing");
             final PolicyId policyId = PolicyId.of("some", "policy");

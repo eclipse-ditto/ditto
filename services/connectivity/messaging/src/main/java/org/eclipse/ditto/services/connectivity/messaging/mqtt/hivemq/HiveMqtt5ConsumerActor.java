@@ -33,10 +33,12 @@ import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.http.javadsl.model.ContentTypes;
 
 /**
  * Actor which receives message from an MQTT 5 broker and forwards them to a {@code MessageMappingProcessorActor}.
@@ -99,9 +101,18 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
             headersFromMqttMessage.put(ExternalMessage.REPLY_TO_HEADER, replyTo);
         });
 
-        message.getContentType().ifPresent(contentType ->
-                headersFromMqttMessage.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType.toString())
-        );
+        final Optional<String> contentType = message.getContentType().map(Object::toString);
+        if (contentType.isPresent()) {
+            headersFromMqttMessage.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType.get());
+        } else {
+            message.getPayloadFormatIndicator().ifPresent(mqtt5PayloadFormatIndicator -> {
+                final String contentTypeFromPayloadIndicator =
+                        mqtt5PayloadFormatIndicator == Mqtt5PayloadFormatIndicator.UTF_8
+                                ? ContentTypes.TEXT_PLAIN_UTF8.toString()
+                                : ContentTypes.APPLICATION_OCTET_STREAM.toString();
+                headersFromMqttMessage.put(ExternalMessage.CONTENT_TYPE_HEADER, contentTypeFromPayloadIndicator);
+            });
+        }
 
         message.getUserProperties().asList().forEach(
                 userProp -> headersFromMqttMessage.put(userProp.getName().toString(), userProp.getValue().toString()));

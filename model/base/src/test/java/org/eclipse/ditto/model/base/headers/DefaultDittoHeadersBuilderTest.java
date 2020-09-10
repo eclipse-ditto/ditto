@@ -146,6 +146,20 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
+    public void buildWithEmptyCorrelationIdThrowsIllegalArgumentException() {
+        DittoBaseAssertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                DittoHeaders.newBuilder().correlationId(""));
+    }
+
+    @Test
+    public void buildWithEmptyCorrelationIdFromMapThrowsDittoHeaderInvalidException() {
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "");
+        DittoBaseAssertions.assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DittoHeaders.of(headerMap));
+    }
+
+    @Test
     public void jsonRepresentationOfEmptyDittoHeadersIsExpected() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
         final JsonObject jsonObject = emptyDittoHeaders.toJson();
