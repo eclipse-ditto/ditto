@@ -81,10 +81,12 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
+import akka.http.scaladsl.model.ContentType$;
 import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
+import scala.util.Either;
 
 /**
  * Abstract actor to handle one HTTP request. It is created with an HTTP request and a promise of an HTTP response that
@@ -387,7 +389,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
-            final Optional<ContentType> optionalContentType = message.getContentType().map(ContentTypes::parse);
+            // this is on purpose not .map(ContentTypes:parse) as this would throw an exception:
+            final Optional<ContentType> optionalContentType = message.getContentType().map(ContentType$.MODULE$::parse)
+                    .filter(Either::isRight)
+                    .map(Either::right)
+                    .map(Either.RightProjection::get);
 
             httpResponse = HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
 
