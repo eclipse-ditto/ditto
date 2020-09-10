@@ -380,6 +380,8 @@ public final class ConnectivityModelFactory {
      * @param options the mapping options required to instantiate a mapper.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
+     *
+     * @since 1.3.0
      */
     public static MappingContextBuilder newMappingContextBuilder(final String mappingEngine,
             final JsonObject options) {

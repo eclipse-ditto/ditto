@@ -95,7 +95,7 @@ public final class Resolvers {
      *
      * @param signal the signal.
      * @return the expression resolver.
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static ExpressionResolver forSignal(final Signal<?> signal) {
         return PlaceholderFactory.newExpressionResolver(
@@ -112,7 +112,7 @@ public final class Resolvers {
      *
      * @param message the external message.
      * @return the expression resolver.
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static ExpressionResolver forExternalMessage(final ExternalMessage message) {
 

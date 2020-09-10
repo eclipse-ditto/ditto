@@ -49,7 +49,7 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.mapping.ImplicitThingCreationMessageMapper}.
  */
-public class ImplicitThingCreationMessageMapperTest {
+public final class ImplicitThingCreationMessageMapperTest {
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 

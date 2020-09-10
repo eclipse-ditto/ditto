@@ -117,14 +117,18 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code conditions} to check before mapping.
+         * JSON field containing the {@code conditions} to check before mapping incoming messages.
+         *
+         * @since 1.3.0
          */
         public static final JsonFieldDefinition<JsonObject> INCOMING_CONDITIONS =
                 JsonFactory.newJsonObjectFieldDefinition("incomingConditions", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code conditions} to check before mapping.
+         * JSON field containing the {@code conditions} to check before mapping outgoing messages.
+         *
+         * @since 1.3.0
          */
         public static final JsonFieldDefinition<JsonObject> OUTGOING_CONDITIONS =
                 JsonFactory.newJsonObjectFieldDefinition("outgoingConditions", FieldType.REGULAR,

@@ -64,7 +64,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
         alias = "ImplicitThingCreation",
         requiresMandatoryConfiguration = true // "thing" is mandatory configuration
 )
-public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
+public final class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
 
