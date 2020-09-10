@@ -22,7 +22,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import akka.event.DiagnosticLoggingAdapter;
-import scala.collection.Seq;
 
 /**
  * Wraps and delegates to a {@link DiagnosticLoggingAdapter}.
@@ -72,35 +71,8 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     @Override
     public void notifyError(final String message) {
+        putLocalMdcToActualMdc();
         loggingAdapter.notifyError(message);
-    }
-
-    @Override
-    public void notifyError(final Throwable cause, final String message) {
-        loggingAdapter.notifyError(cause, message);
-    }
-
-    @Override
-    public void notifyWarning(final String message) {
-        loggingAdapter.notifyWarning(message);
-    }
-
-    @Override
-    public void notifyInfo(final String message) {
-        loggingAdapter.notifyInfo(message);
-    }
-
-    @Override
-    public void notifyDebug(final String message) {
-        loggingAdapter.notifyDebug(message);
-    }
-
-    @Override
-    public void error(final Throwable cause, final String message) {
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(cause, message);
-        }
     }
 
     private void putLocalMdcToActualMdc() {
@@ -114,251 +86,27 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     }
 
     @Override
-    public void error(final Throwable cause, final String template, final Object arg1) {
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(cause, template, arg1);
-        }
+    public void notifyError(final Throwable cause, final String message) {
+        putLocalMdcToActualMdc();
+        loggingAdapter.notifyError(cause, message);
     }
 
     @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2) {
-
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(cause, template, arg1, arg2);
-        }
+    public void notifyWarning(final String message) {
+        putLocalMdcToActualMdc();
+        loggingAdapter.notifyWarning(message);
     }
 
     @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(cause, template, arg1, arg2, arg3);
-        }
+    public void notifyInfo(final String message) {
+        putLocalMdcToActualMdc();
+        loggingAdapter.notifyInfo(message);
     }
 
     @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(cause, template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void error(final String message) {
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(message);
-        }
-    }
-
-    @Override
-    public void error(final String template, final Object arg1) {
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(template, arg1);
-        }
-    }
-
-    @Override
-    public void error(final String template, final Object arg1, final Object arg2) {
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.error(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void warning(final String message) {
-        if (isWarningEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.warning(message);
-        }
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1) {
-        if (isWarningEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.warning(template, arg1);
-        }
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1, final Object arg2) {
-        if (isWarningEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.warning(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isWarningEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.warning(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isWarningEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.warning(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void info(final String message) {
-        if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.info(message);
-        }
-    }
-
-    @Override
-    public void info(final String template, final Object arg1) {
-        if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.info(template, arg1);
-        }
-    }
-
-    @Override
-    public void info(final String template, final Object arg1, final Object arg2) {
-        if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.info(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.info(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.info(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void debug(final String message) {
-        if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.debug(message);
-        }
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1) {
-        if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.debug(template, arg1);
-        }
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1, final Object arg2) {
-        if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.debug(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.debug(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
-            loggingAdapter.debug(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public String format(final String t, final Seq<Object> arg) {
-        return loggingAdapter.format(t, arg);
+    public void notifyDebug(final String message) {
+        putLocalMdcToActualMdc();
+        loggingAdapter.notifyDebug(message);
     }
 
     @Override

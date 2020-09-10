@@ -68,9 +68,9 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         underTest.info(msg2);
 
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
-        Mockito.verify(plainLoggingAdapter).info(msg1);
+        Mockito.verify(plainLoggingAdapter).notifyInfo(msg1);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
-        Mockito.verify(plainLoggingAdapter).info(msg2);
+        Mockito.verify(plainLoggingAdapter).notifyInfo(msg2);
     }
 
     @Test
@@ -84,7 +84,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         underTest.debug(msg);
 
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
-        Mockito.verify(plainLoggingAdapter).debug(msg);
+        Mockito.verify(plainLoggingAdapter).notifyDebug(msg);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
@@ -101,7 +101,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
 
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
-        Mockito.verify(plainLoggingAdapter).debug(msg);
+        Mockito.verify(plainLoggingAdapter).notifyDebug(msg);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
@@ -120,7 +120,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
 
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE, k3, v3));
-        Mockito.verify(plainLoggingAdapter).debug(msg);
+        Mockito.verify(plainLoggingAdapter).notifyDebug(msg);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
@@ -138,7 +138,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
 
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
-        Mockito.verify(plainLoggingAdapter).warning(msg);
+        Mockito.verify(plainLoggingAdapter).notifyWarning(msg);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
@@ -171,8 +171,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         underTest.warning(warnMsg);
         underTest.discardMdcEntries();
 
-        Mockito.verify(plainLoggingAdapter).debug(debugMsg);
-        Mockito.verify(plainLoggingAdapter).warning(warnMsg);
+        Mockito.verify(plainLoggingAdapter).notifyDebug(debugMsg);
+        Mockito.verify(plainLoggingAdapter).notifyWarning(warnMsg);
         Mockito.verify(plainLoggingAdapter, Mockito.times(2))
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId));
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
@@ -227,7 +227,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.verify(plainLoggingAdapter).isErrorEnabled();
         Mockito.verify(plainLoggingAdapter).getMDC();
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
-        Mockito.verify(plainLoggingAdapter).error(msg);
+        Mockito.verify(plainLoggingAdapter).notifyError(msg);
         Mockito.verifyNoMoreInteractions(plainLoggingAdapter);
     }
 
@@ -245,9 +245,9 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         underTest.info(msg2);
 
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
-        Mockito.verify(plainLoggingAdapter).info(msg1);
+        Mockito.verify(plainLoggingAdapter).notifyInfo(msg1);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
-        Mockito.verify(plainLoggingAdapter).info(msg2);
+        Mockito.verify(plainLoggingAdapter).notifyInfo(msg2);
     }
 
     private String getCorrelationId() {
