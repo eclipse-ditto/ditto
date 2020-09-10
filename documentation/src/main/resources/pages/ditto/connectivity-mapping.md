@@ -65,6 +65,7 @@ The following message mappers are included in the Ditto codebase:
 | [Normalized](#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
 | [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0). | ✓ |  |
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
+| [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template| ✓ |  |
 
 ### Ditto mapper
 
@@ -244,6 +245,29 @@ Example configuration:
    * `ditto-message-feature-id` (optional): Include to send the message or message response to a feature of the thing.
      Exclude to send it to the thing itself. Default to `{%raw%}{{ header:ditto-message-feature-id }}{%endraw%}`.
 
+### ImplicitThingCreation Mapper
+This mapper implicitly creates a new thing for an incoming message. 
+ 
+The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`.<br/>
+ 
+#### Configuration options
+
+* `thing` (required): The values of the thing that is created implicitly. It can either contain fixed values
+ or header placeholders (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
+ 
+ Example of a template defined in  `options`:
+ ```json
+ {
+   "thing": {
+   "thingId": "{{ header:device_id }}",
+   "attributes": {
+     "CreatedBy": "ImplicitThingCreation"
+   }
+  }
+ }
+ ```
+
+
 ## Example connection with multiple mappers
 
 The following example connection defines a `ConnectionStatus` mapping with the ID `status` and references it in a
@@ -253,7 +277,6 @@ The following example connection defines a `ConnectionStatus` mapping with the I
 
 ```json
 { 
-  ...  
   "name": "exampleConnection",
   "sources": [{
       "addresses": ["<source>"],
@@ -274,6 +297,42 @@ The following example connection defines a `ConnectionStatus` mapping with the I
 
 {% include note.html content="Starting aliases with an uppercase character and IDs with a lowercase character is
  encouraged to avoid confusion but this is not enforced. "%}
+
+
+
+## Example connection with mapping conditions
+
+The following example connection defines `incomingConditions` and `outgoingConditions`for the ConnectionStatus mapping engine.<br/>
+ Optional incomingConditions are validated before the mapping of inbound messages.<br/> 
+ Optional outgoingConditions are validated before the mapping of outbound messages.<br/>
+ Conditional Mapping can be achieved by using [function expressions](basic-placeholder.html#function-expressions).
+ When multiple incoming or outgoing conditions are set for one `mappingEngine`, all have to equal true for the mapping to be executed.  
+
+```json
+{ 
+  "name": "exampleConnection",
+  "sources": [{
+      "addresses": ["<source>"],
+      "authorizationContext": ["ditto:inbound"],
+      "payloadMapping": ["status"]
+    }
+  ],
+  "mappingDefinitions": {
+    "status": {
+      "mappingEngine": "ConnectionStatus",
+      "incomingConditions": {
+        "sampleCondition": "fn:filter(header:incoming-mapping-required,'eq','true')"
+      },
+      "outgoingConditions": {
+        "sampleCondition": "fn:filter(header:outgoing-mapping-required,'eq','true')"
+      },
+      "options": {
+        "thingId": "{%raw%}{{ header:device_id }}{%endraw%}"
+      }
+    }
+  }
+}
+```
 
 
 

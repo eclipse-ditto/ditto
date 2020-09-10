@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -29,10 +31,15 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
 
     private final String id;
     private final Map<String, JsonValue> properties;
+    private final Map<String, String> incomingConditions;
+    private final Map<String, String> outgoingConditions;
 
-    private DefaultMessageMapperConfiguration(final String id, final MergedJsonObjectMap properties) {
+    private DefaultMessageMapperConfiguration(final String id, final MergedJsonObjectMap properties,
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         this.id = id;
         this.properties = properties;
+        this.incomingConditions = Collections.unmodifiableMap(new HashMap<>(incomingConditions));
+        this.outgoingConditions = Collections.unmodifiableMap(new HashMap<>(outgoingConditions));
     }
 
     /**
@@ -40,14 +47,15 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      *
      * @param id the id of the mapper
      * @param configuration the map holding configuration properties. Must be immutable.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
      * @return the instance.
      * @throws NullPointerException if {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final String id,
-            final Map<String, JsonValue> configuration) {
-        checkNotNull(id, "id");
-        checkNotNull(configuration, "configuration properties");
-        return new DefaultMessageMapperConfiguration(id, MergedJsonObjectMap.of(configuration));
+    public static DefaultMessageMapperConfiguration of(final String id, final Map<String, JsonValue> configuration,
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
+        return of(id, MergedJsonObjectMap.of(configuration),
+                incomingConditions, outgoingConditions);
     }
 
     /**
@@ -55,13 +63,18 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      *
      * @param id the id of the mapper
      * @param configuration the map holding configuration properties.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
      * @return the instance.
-     * @throws NullPointerException if {@code configuration} is {@code null}.
+     * @throws NullPointerException if {@code id} or {@code configuration} is {@code null}.
      */
-    public static DefaultMessageMapperConfiguration of(final String id, final MergedJsonObjectMap configuration) {
+    public static DefaultMessageMapperConfiguration of(final String id, final MergedJsonObjectMap configuration,
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
         checkNotNull(id, "id");
-        checkNotNull(configuration, "configuration properties");
-        return new DefaultMessageMapperConfiguration(id, configuration);
+        checkNotNull(configuration, "configuration");
+        checkNotNull(incomingConditions, "incomingConditions");
+        checkNotNull(outgoingConditions, "outgoingConditions");
+        return new DefaultMessageMapperConfiguration(id, configuration, incomingConditions, outgoingConditions);
     }
 
     @Override
@@ -75,17 +88,29 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
     }
 
     @Override
+    public Map<String, String> getIncomingConditions() {
+        return incomingConditions;
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return outgoingConditions;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultMessageMapperConfiguration that = (DefaultMessageMapperConfiguration) o;
         return Objects.equals(id, that.id) &&
-                Objects.equals(properties, that.properties);
+                Objects.equals(properties, that.properties) &&
+                Objects.equals(incomingConditions, that.incomingConditions) &&
+                Objects.equals(outgoingConditions, that.outgoingConditions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, properties);
+        return Objects.hash(id, properties, incomingConditions, outgoingConditions);
     }
 
     @Override
@@ -93,6 +118,8 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
                 ", properties=" + properties +
+                ", incomingConditions=" + incomingConditions +
+                ", outgoingConditions=" + outgoingConditions +
                 "]";
     }
 }

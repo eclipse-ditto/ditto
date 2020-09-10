@@ -47,7 +47,13 @@ public final class Resolvers {
     private static final List<ResolverCreator<?>> RESOLVER_CREATORS = Arrays.asList(
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
             ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a) -> e),
-            ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a) -> s.getEntityId()),
+            ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a) -> {
+                if (s != null) {
+                    return s.getEntityId();
+                } else {
+                    return null;
+                }
+            }),
             ResolverCreator.of(PlaceholderFactory.newTopicPathPlaceholder(), (e, s, t, a) -> t),
             ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a) -> a)
     );
@@ -89,7 +95,7 @@ public final class Resolvers {
      *
      * @param signal the signal.
      * @return the expression resolver.
-     * @since 1.2.0
+     * @since 1.3.0
      */
     public static ExpressionResolver forSignal(final Signal<?> signal) {
         return PlaceholderFactory.newExpressionResolver(
@@ -97,6 +103,43 @@ public final class Resolvers {
                         .map(creator -> creator.create(signal.getDittoHeaders(), signal,
                                 null,
                                 signal.getDittoHeaders().getAuthorizationContext()))
+                        .toArray(PlaceholderResolver[]::new)
+        );
+    }
+
+    /**
+     * Create an expression resolver for an external Message.
+     *
+     * @param message the external message.
+     * @return the expression resolver.
+     * @since 1.3.0
+     */
+    public static ExpressionResolver forExternalMessage(final ExternalMessage message) {
+
+        return PlaceholderFactory.newExpressionResolver(
+                RESOLVER_CREATORS.stream()
+                        .map(creator -> creator.create(message.getHeaders(), null,
+                                message.getTopicPath().orElse(null),
+                                message.getAuthorizationContext().orElse(null)))
+                        .toArray(PlaceholderResolver[]::new)
+        );
+    }
+
+    /**
+     * Create an expression resolver for an mappable outbound signal.
+     *
+     * @param outboundSignal the outbound signal.
+     * @return the expression resolver.
+     * @since 1.2.0
+     */
+    public static ExpressionResolver forOutboundSignal(final OutboundSignal.Mappable outboundSignal) {
+
+        return PlaceholderFactory.newExpressionResolver(
+                RESOLVER_CREATORS.stream()
+                        .map(creator -> creator.create(outboundSignal.getSource().getDittoHeaders(),
+                                outboundSignal.getSource(),
+                                null,
+                                outboundSignal.getSource().getDittoHeaders().getAuthorizationContext()))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
@@ -129,7 +172,7 @@ public final class Resolvers {
     private interface ResolverDataExtractor<T> {
 
         @Nullable
-        T extract(Map<String, String> inputHeaders, Signal signal, @Nullable TopicPath topicPath,
+        T extract(Map<String, String> inputHeaders, @Nullable Signal signal, @Nullable TopicPath topicPath,
                 @Nullable AuthorizationContext authorizationContext);
     }
 
@@ -155,7 +198,7 @@ public final class Resolvers {
             return new ResolverCreator<>(placeholder, dataExtractor);
         }
 
-        private PlaceholderResolver<T> create(final Map<String, String> inputHeaders, final Signal signal,
+        private PlaceholderResolver<T> create(final Map<String, String> inputHeaders, @Nullable final Signal signal,
                 @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
             return PlaceholderFactory.newPlaceholderResolver(placeholder,
                     dataExtractor.extract(inputHeaders, signal, topicPath, authorizationContext));
