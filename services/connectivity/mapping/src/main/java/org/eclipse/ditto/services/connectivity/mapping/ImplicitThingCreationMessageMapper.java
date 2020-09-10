@@ -17,22 +17,29 @@ import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -71,17 +78,30 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final String THING_TEMPLATE = "thing";
+    private static final String COMMAND_HEADERS = "commandHeaders";
     private static final String THING_ID = "thingId";
     private static final String THING_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + THING_ID;
     private static final String POLICY_ID = "policyId";
     private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
 
     private String thingTemplate;
+    private Map<String, String> commandHeaders;
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         thingTemplate = configuration.findProperty(THING_TEMPLATE).orElseThrow(
                 () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build());
+
+        configuration.findProperty(COMMAND_HEADERS, JsonValue::isObject, JsonValue::asObject)
+                .ifPresent(configuredHeaders -> {
+                    if (!configuredHeaders.isEmpty()) {
+                        commandHeaders = new HashMap<>();
+                        for (final JsonField field : configuredHeaders) {
+                            commandHeaders.put(field.getKeyName(), field.getValue().formatAsString());
+                        }
+                        commandHeaders = Collections.unmodifiableMap(commandHeaders);
+                    }
+                });
 
         final JsonObject thingJson = JsonObject.of(thingTemplate);
 
@@ -140,6 +160,10 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
             resolvedTemplate = thingTemplate;
         }
 
+        if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
+            commandHeaders = evaluateCommandHeaders(message, commandHeaders);
+        }
+
         final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedTemplate);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
@@ -165,9 +189,24 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
                 .contentType(DITTO_PROTOCOL_CONTENT_TYPE)
-                .responseRequired(false)
+                .putHeaders(commandHeaders)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
+    }
+
+    private static Map<String, String> evaluateCommandHeaders(final ExternalMessage externalMessage,
+            final Map<String, String> errorResponseHeaders) {
+        final ExpressionResolver resolver =
+                getExpressionResolver(externalMessage.getHeaders());
+        final Map<String, String> resolvedHeaders = new HashMap<>();
+        errorResponseHeaders.forEach((key, value) ->
+                resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->
+                        resolvedHeaders.put(key, resolvedHeaderValue)
+                )
+        );
+        // throws IllegalArgumentException or SubjectInvalidException
+        // if resolved headers are missing mandatory headers or the resolved subject is invalid.
+        return resolvedHeaders;
     }
 
     @Nullable
@@ -188,7 +227,8 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         if (TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion())) {
             final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
             final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-            return Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+
+            return Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(commandHeaders)
                     .withTopicPath(adaptable.getTopicPath())
                     .withText(jsonString)
                     .asResponse(isResponse)
