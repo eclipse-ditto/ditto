@@ -224,268 +224,148 @@
  * Source: https://github.com/lightbend/ssl-config
 
 
-## akka-actor (2.6.8)
+## akka-actor (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster-sharding (2.5.27)
+## akka-cluster-sharding (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.5.27`
+ * Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster-sharding (2.6.8)
+## akka-cluster-tools (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster-tools (2.5.27)
+## akka-cluster (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.5.27`
+ * Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster-tools (2.6.8)
+## akka-coordination (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster (2.5.27)
+## akka-discovery (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.5.27`
+ * Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster (2.6.8)
+## akka-distributed-data (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-coordination (2.5.27)
+## akka-http-core (10.2.0)
 
- * Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.5.27`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-coordination (2.6.8)
-
- * Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-discovery (2.5.27)
-
- * Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.5.27`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-distributed-data (2.5.27)
-
- * Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.5.27`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-distributed-data (2.6.8)
-
- * Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-http-core (10.1.11)
-
- * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.1.11`
+ * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
 
 
-## akka-http-core (10.2.0-RC2)
+## akka-http-spray-json (10.2.0)
 
- * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.0-RC2`
+ * Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.2.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
 
 
-## akka-http-spray-json (10.1.11)
+## akka-http (10.2.0)
 
- * Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.1.11`
+ * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
 
 
-## akka-http (10.1.11)
+## akka-parsing (10.2.0)
 
- * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.1.11`
+ * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io
  * Source: https://github.com/akka/akka-http
 
 
-## akka-http (10.2.0-RC2)
+## akka-persistence-query (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.0-RC2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
-
-
-## akka-parsing (10.1.11)
-
- * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.1.11`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
-
-
-## akka-parsing (10.2.0-RC2)
-
- * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.0-RC2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
-
-
-## akka-persistence-query (2.6.8)
-
- * Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-persistence (2.5.23)
+## akka-persistence (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.5.23`
+ * Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-persistence (2.6.8)
+## akka-pki (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-pki (2.6.8)
+## akka-protobuf-v3 (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-protobuf-v3 (2.6.8)
+## akka-remote (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.8`
+ * Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-protobuf (2.5.27)
+## akka-slf4j (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-protobuf_2.13:2.5.27`
+ * Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
 
 
-## akka-remote (2.5.27)
+## akka-stream (2.6.9)
 
- * Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.5.27`
+ * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.9`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://akka.io/
  * Source: https://github.com/akka/akka
-
-
-## akka-remote (2.6.8)
-
- * Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-slf4j (2.6.8)
-
- * Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-stream (2.5.23)
-
- * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.5.23`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-stream (2.5.27)
-
- * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.5.27`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-stream (2.6.8)
-
- * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## aeron (1.15.1)
-
- * Maven coordinates: `io.aeron:aeron-client:1.15.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/aeron
- * Source: https://github.com/real-logic/aeron
-
-
-## aeron (1.15.1)
-
- * Maven coordinates: `io.aeron:aeron-driver:1.15.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/aeron
- * Source: https://github.com/real-logic/aeron
 
 
 ## Metrics Core (4.1.9)

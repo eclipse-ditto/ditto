@@ -1,8 +1,8 @@
 com.github.dnvriend:akka-persistence-inmemory_2.13:jar:2.5.15.2:test
 com.github.stefanbirkner:system-rules:jar:1.19.0:test
 com.typesafe.akka:akka-http-testkit_2.13:jar:10.2.0-RC2:test
-com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.8:test
-com.typesafe.akka:akka-testkit_2.13:jar:2.6.8:test
+com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.9:test
+com.typesafe.akka:akka-testkit_2.13:jar:2.6.9:test
 de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.2.0:test
 de.flapdoodle.embed:de.flapdoodle.embed.process:jar:2.1.2:test
 io.jsonwebtoken:jjwt-orgjson:jar:0.10.7:test
