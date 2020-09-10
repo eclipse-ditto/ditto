@@ -343,7 +343,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     .join()
                     .getData();
             assertThat(responseBody.utf8String()).isEqualTo(responsePayload);
-            // TODO: what should be the content-type header?
+            assertThat(response.entity().getContentType()).isEqualTo(ContentTypes.APPLICATION_OCTET_STREAM);
         }};
     }
 

@@ -396,15 +396,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
             httpResponse = HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
 
-            if (optionalPayload.isPresent()) {
+            if (optionalPayload.isPresent() && optionalContentType.isPresent()) {
                 final Object payload = optionalPayload.get();
-
-                if (optionalContentType.isPresent()) {
-                    httpResponse = httpResponse.withEntity(
-                            HttpEntities.create(optionalContentType.get(), ByteString.fromString(payload.toString())));
-                } else {
-                    httpResponse = httpResponse.withEntity(HttpEntities.create(payload.toString()));
-                }
+                httpResponse = httpResponse.withEntity(
+                        HttpEntities.create(optionalContentType.get(), ByteString.fromString(payload.toString())));
             } else if (optionalRawPayload.isPresent()) {
 
                 final ByteBuffer rawPayload = optionalRawPayload.get();
