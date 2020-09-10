@@ -16,10 +16,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.Actor;
+import akka.event.DiagnosticLoggingAdapter;
+import akka.event.Logging;
 
 /**
  * Factory for obtaining instances of {@link DittoLogger} and {@link DittoDiagnosticLoggingAdapter}.
@@ -107,7 +108,23 @@ public final class DittoLoggerFactory {
      * @throws NullPointerException if {@code logSource} is {@code null}.
      */
     public static DittoDiagnosticLoggingAdapter getDiagnosticLoggingAdapter(final Actor logSource) {
-        return DefaultDittoDiagnosticLoggingAdapter.of(LogUtil.obtain(checkNotNull(logSource, "logSource")));
+        return DefaultDittoDiagnosticLoggingAdapter.of(getPlainDiagnosticLoggingAdapter(logSource));
+    }
+
+    private static DiagnosticLoggingAdapter getPlainDiagnosticLoggingAdapter(final Actor logSource) {
+        return Logging.apply(checkNotNull(logSource, "logSource"));
+    }
+
+    /**
+     * Returns a {@link ThreadSafeDittoDiagnosticLoggingAdapter} with MDC support for the given actor.
+     *
+     * @param logSource the Actor used as logSource
+     * @return the thread-safe logging adapter.
+     * @throws NullPointerException if {@code logSource} is {@code null}.
+     * @since 1.3.0
+     */
+    public static ThreadSafeDittoDiagnosticLoggingAdapter getThreadSafeDiagnosticLoggingAdapter(final Actor logSource) {
+        return ImmutableDittoDiagnosticLoggingAdapter.of(getPlainDiagnosticLoggingAdapter(logSource));
     }
 
 }
