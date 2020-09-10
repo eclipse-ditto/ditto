@@ -74,6 +74,11 @@
             <artifactId>akka-slf4j_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-things</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

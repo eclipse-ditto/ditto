@@ -175,6 +175,8 @@ public final class TestConstants {
 
         public static final Instant MODIFIED = Instant.EPOCH;
 
+        public static final Instant CREATED = Instant.EPOCH;
+
         /**
          * A known Thing for testing in V1.
          */
@@ -186,6 +188,7 @@ public final class TestConstants {
                 .setId(THING_ID)
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
+                .setCreated(CREATED)
                 .build();
 
         /**
@@ -200,11 +203,30 @@ public final class TestConstants {
                 .setId(THING_ID)
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
+                .setCreated(CREATED)
                 .build();
 
         private Thing() {
             throw new AssertionError();
         }
+    }
+
+    /**
+     * Metadata-related test constants.
+     */
+    public static final class Metadata {
+
+        private Metadata() {
+            throw new AssertionError();
+        }
+
+        /**
+         * Known Metadata of a Thing.
+         */
+        public static final org.eclipse.ditto.model.base.entity.metadata.Metadata METADATA =
+                ThingsModelFactory.newMetadataBuilder()
+                        .set("issuedAt", 0L)
+                        .build();
     }
 
 }

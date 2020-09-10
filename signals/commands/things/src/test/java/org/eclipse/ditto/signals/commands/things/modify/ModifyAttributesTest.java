@@ -20,7 +20,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Attributes;
@@ -70,7 +72,6 @@ public final class ModifyAttributesTest {
         ModifyAttributes.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final ModifyAttributes underTest = ModifyAttributes.of(TestConstants.Thing.THING_ID,
@@ -80,7 +81,6 @@ public final class ModifyAttributesTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final ModifyAttributes underTest =
@@ -89,6 +89,18 @@ public final class ModifyAttributesTest {
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         Assertions.assertThat(underTest.getAttributes()).isEqualTo(TestConstants.Thing.ATTRIBUTES);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidAttributePointer() {
+
+        final Attributes attributesWithInvalidPointer =
+                TestConstants.Thing.ATTRIBUTES.toBuilder().set("valid", JsonFactory.newObjectBuilder().set("invälid",
+                        JsonValue.of(42)).build()).build();
+
+        ModifyAttributes.fromJson(KNOWN_JSON.toBuilder()
+                .set(ModifyAttributes.JSON_ATTRIBUTES, attributesWithInvalidPointer)
+                .toString(), TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
@@ -104,7 +116,7 @@ public final class ModifyAttributesTest {
     @Test
     public void modifyTooLargeAttributes() {
         final StringBuilder sb = new StringBuilder();
-        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
             sb.append('a');
         }
 

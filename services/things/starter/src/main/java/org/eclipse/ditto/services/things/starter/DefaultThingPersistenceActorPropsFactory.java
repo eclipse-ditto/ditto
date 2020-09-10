@@ -30,6 +30,9 @@ import akka.actor.Props;
 @Immutable
 final class DefaultThingPersistenceActorPropsFactory implements ThingPersistenceActorPropsFactory {
 
+    private static final DefaultThingPersistenceActorPropsFactory INSTANCE =
+            new DefaultThingPersistenceActorPropsFactory();
+
     private DefaultThingPersistenceActorPropsFactory() {}
 
     /**
@@ -39,7 +42,7 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
      * @throws NullPointerException if any argument is {@code null}.
      */
     static DefaultThingPersistenceActorPropsFactory getInstance() {
-        return new DefaultThingPersistenceActorPropsFactory();
+        return INSTANCE;
     }
 
     @Override

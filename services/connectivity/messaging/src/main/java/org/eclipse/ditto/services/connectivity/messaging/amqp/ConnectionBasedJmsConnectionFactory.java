@@ -62,6 +62,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
      */
     private static final int DEFAULT_PREFETCH_POLICY_ALL = 10;
 
+    private static final ConnectionBasedJmsConnectionFactory INSTANCE = new ConnectionBasedJmsConnectionFactory();
+
     private ConnectionBasedJmsConnectionFactory() {
         // no-op
     }
@@ -72,7 +74,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
      * @return the instance.
      */
     public static ConnectionBasedJmsConnectionFactory getInstance() {
-        return new ConnectionBasedJmsConnectionFactory();
+        return INSTANCE;
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -64,6 +65,22 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
      * @return the timestamp.
      */
     Optional<Instant> getModified();
+
+    /**
+     * Returns the created timestamp of this entity.
+     *
+     * @return the timestamp.
+     * @since 1.2.0
+     */
+    Optional<Instant> getCreated();
+
+    /**
+     * Returns the metadata of this entity.
+     *
+     * @return the metadata.
+     * @since 1.2.0
+     */
+    Optional<Metadata> getMetadata();
 
     /**
      * Returns whether this entity is deleted.

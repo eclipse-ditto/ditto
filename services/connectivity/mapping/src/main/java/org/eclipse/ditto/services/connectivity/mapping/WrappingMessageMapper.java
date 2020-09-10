@@ -16,11 +16,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -63,7 +63,7 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Map<String, String> getDefaultOptions() {
+    public JsonObject getDefaultOptions() {
         return delegate.getDefaultOptions();
     }
 

@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +29,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -118,20 +119,18 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     @Override
     public Optional<MessageMapper> mapperOf(final String mapperId, final MappingContext mappingContext) {
         final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext.getMappingEngine());
-        final Map<String, String> defaultOptions =
-                mapper.map(MessageMapper::getDefaultOptions).orElse(Collections.emptyMap());
-        final Map<String, String> configuredAndDefaultOptions =
-                mergeMappingOptions(defaultOptions, mappingContext.getOptions());
+        final JsonObject defaultOptions =
+                mapper.map(MessageMapper::getDefaultOptions).orElse(JsonObject.empty());
+        final Map<String, JsonValue> configuredAndDefaultOptions =
+                mergeMappingOptions(defaultOptions, mappingContext.getOptionsAsJson());
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions);
         return mapper.flatMap(m -> configureInstance(m, options));
     }
 
-    private Map<String, String> mergeMappingOptions(final Map<String, String> defaultOptions,
-            final Map<String, String> configuredOptions) {
-        final HashMap<String, String> mergedOptions = new HashMap<>(defaultOptions);
-        mergedOptions.putAll(configuredOptions);
-        return mergedOptions;
+    private Map<String, JsonValue> mergeMappingOptions(final JsonObject defaultOptions,
+            final JsonObject configuredOptions) {
+        return MergedJsonObjectMap.of(configuredOptions, defaultOptions);
     }
 
     @Override
@@ -156,7 +155,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private Map.Entry<String, MappingContext> getEmptyMappingContextForAlias(final String alias) {
         final MappingContext emptyMappingContext =
-                ConnectivityModelFactory.newMappingContext(alias, Collections.emptyMap());
+                ConnectivityModelFactory.newMappingContext(alias, JsonObject.empty());
         return new SimpleImmutableEntry<>(alias, emptyMappingContext);
     }
 

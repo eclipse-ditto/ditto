@@ -15,10 +15,12 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
@@ -67,7 +69,9 @@ final class ThingsMetadataSource {
     Source<Metadata, NotUsed> createSource(final ThingId lowerBound) {
         return requestStream(lowerBound)
                 .flatMapConcat(ThingsMetadataSource::getStreamedSnapshots)
-                .map(ThingsMetadataSource::toMetadata);
+                .map(ThingsMetadataSource::toMetadata)
+                .filter(Optional::isPresent)
+                .map(Optional::get);
     }
 
     private Object getStartStreamCommand(final ThingId lowerBound) {
@@ -101,13 +105,17 @@ final class ThingsMetadataSource {
                 });
     }
 
-    private static Metadata toMetadata(final StreamedSnapshot streamedSnapshot) {
-        final JsonObject snapshot = streamedSnapshot.getSnapshot();
-        final ThingId thingId = ThingId.of(streamedSnapshot.getEntityId());
-        final long thingRevision = snapshot.getValueOrThrow(Thing.JsonFields.REVISION);
-        final PolicyId policyId = snapshot.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
-        final Instant modified = snapshot.getValue(Thing.JsonFields.MODIFIED).map(Instant::parse).orElse(null);
-        // policy revision is not known from thing snapshot
-        return Metadata.of(thingId, thingRevision, policyId, 0L, modified);
+    private static Optional<Metadata> toMetadata(final StreamedSnapshot streamedSnapshot) {
+        try {
+            final JsonObject snapshot = streamedSnapshot.getSnapshot();
+            final PolicyId policyId = snapshot.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
+            final ThingId thingId = ThingId.of(streamedSnapshot.getEntityId());
+            final long thingRevision = snapshot.getValueOrThrow(Thing.JsonFields.REVISION);
+            final Instant modified = snapshot.getValue(Thing.JsonFields.MODIFIED).map(Instant::parse).orElse(null);
+            // policy revision is not known from thing snapshot
+            return Optional.of(Metadata.of(thingId, thingRevision, policyId, 0L, modified));
+        } catch (PolicyIdInvalidException e) {
+            return Optional.empty();
+        }
     }
 }

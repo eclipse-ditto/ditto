@@ -30,9 +30,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
  * This command deletes a thing's attribute. Contains the key of the attribute to delete and the ID of the Thing.
@@ -64,7 +66,17 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
 
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
-        this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be deleted");
+        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
+    }
+
+    private JsonPointer checkAttributePointer(final JsonPointer attributePointer, final DittoHeaders dittoHeaders) {
+        checkNotNull(attributePointer, "key of the attribute to be deleted");
+        if (attributePointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(attributePointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return AttributesModelFactory.validateAttributePointer(attributePointer);
     }
 
     /**
@@ -76,8 +88,13 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      * @param dittoHeaders the headers of the command.
      * @return a command for deleting a Thing's attribute.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributeJsonPointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -96,6 +113,10 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      * @param dittoHeaders the headers of the command.
      * @return a command for deleting a Thing's attribute.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributeJsonPointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteAttribute of(final ThingId thingId, final JsonPointer attributeJsonPointer,
             final DittoHeaders dittoHeaders) {
@@ -115,6 +136,8 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of  attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteAttribute fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -131,6 +154,8 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteAttribute>(TYPE, jsonObject).deserialize(() -> {

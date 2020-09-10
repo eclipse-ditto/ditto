@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
@@ -170,8 +169,6 @@ public final class AcknowledgementAggregator {
      */
     public void addReceivedAcknowledgment(final Acknowledgement acknowledgement) {
         checkNotNull(acknowledgement, "acknowledgement");
-        validateCorrelationId(acknowledgement);
-        validateEntityId(acknowledgement);
         if (isExpected(acknowledgement)) {
             final DittoHeaders acknowledgementHeaders = filterHeaders(acknowledgement.getDittoHeaders());
             final Acknowledgement adjustedAck = acknowledgement.setDittoHeaders(acknowledgementHeaders);
@@ -179,25 +176,6 @@ public final class AcknowledgementAggregator {
             acknowledgementMap.put(label, adjustedAck);
             expectedLabels.remove(label);
         }
-    }
-
-    private void validateCorrelationId(final WithDittoHeaders<Acknowledgement> acknowledgement) {
-        final DittoHeaders dittoHeaders = acknowledgement.getDittoHeaders();
-        final String receivedCorrelationId = dittoHeaders.getCorrelationId()
-                .orElseThrow(() -> {
-                    final String pattern = "The received Acknowledgement did not provide a correlation ID at all but"
-                            + " expected was <{0}>!";
-                    return new IllegalArgumentException(MessageFormat.format(pattern, correlationId));
-                });
-
-        if (!receivedCorrelationId.equals(correlationId)) {
-            final String ptrn = "The received Acknowledgement''s correlation ID <{0}> differs from the expected <{1}>!";
-            throw new IllegalArgumentException(MessageFormat.format(ptrn, receivedCorrelationId, correlationId));
-        }
-    }
-
-    private void validateEntityId(final Acknowledgement acknowledgement) {
-        entityId.isCompatibleOrThrow(acknowledgement.getEntityId());
     }
 
     private boolean isExpected(final Acknowledgement acknowledgement) {

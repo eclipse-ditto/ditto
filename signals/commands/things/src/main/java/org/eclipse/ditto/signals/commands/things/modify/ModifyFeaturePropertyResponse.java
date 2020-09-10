@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -78,9 +79,13 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
-        this.featurePropertyPointer =
-                requireNonNull(featurePropertyPointer, "The FeatureProperty Pointer must not be null!");
+        this.featurePropertyPointer = checkPropertyPointer(featurePropertyPointer);
         this.featurePropertyValue = featurePropertyValue;
+    }
+
+    private JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
+        checkNotNull(propertyPointer, "The FeatureProperty Pointer must not be null!");
+        return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
     }
 
     /**
@@ -181,6 +186,8 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyFeaturePropertyResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -195,6 +202,8 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyFeaturePropertyResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

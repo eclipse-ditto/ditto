@@ -39,6 +39,13 @@ public interface EnforcementConfig {
     int getBufferSize();
 
     /**
+     * Returns whether live responses from channels other than their subscribers should be dispatched.
+     *
+     * @return whether global live response dispatching is enabled.
+     */
+    boolean shouldDispatchLiveResponsesGlobally();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
@@ -52,12 +59,17 @@ public interface EnforcementConfig {
         /**
          * The buffer size used for the queue in the enforcer actor.
          */
-        BUFFER_SIZE("buffer-size", 1_000);
+        BUFFER_SIZE("buffer-size", 1_000),
+
+        /**
+         * Whether to enable dispatching live responses from channels other than the subscribers.
+         */
+        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", false);
 
         private final String path;
         private final Object defaultValue;
 
-        private EnforcementConfigValue(final String thePath, final Object theDefaultValue) {
+        EnforcementConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

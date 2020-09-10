@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -298,7 +299,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
                 .map(ResponseType::fromName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList()); // toList() to keep original order
     }
 
     @Override
@@ -315,6 +316,12 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return getStringForDefinition(DittoHeaderDefinition.TIMEOUT)
                 .map(DittoDuration::parseDuration)
                 .map(DittoDuration::getDuration);
+    }
+
+    @Override
+    public MetadataHeaders getMetadataHeadersToPut() {
+        final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.PUT_METADATA.getKey(), "");
+        return MetadataHeaders.parseMetadataHeaders(metadataHeaderValue);
     }
 
     @Override

@@ -21,7 +21,7 @@ interface JsonNull extends JsonValue {
 
     @Override
     default void writeValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeNull();
+        serializationContext.writeNull();
     }
 
     @Override

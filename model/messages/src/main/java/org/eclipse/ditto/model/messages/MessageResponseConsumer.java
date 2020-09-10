@@ -18,15 +18,19 @@ import java.util.function.BiConsumer;
  * Interface encapsulating a {@link BiConsumer} which is notified about message responses with either the
  * {@link Message} (if it was successful) or with an {@link Throwable} if there occurred an error.
  * Does also hold the type of the expected Message response.
+ * While the consumer is stored together with the message and obtainable locally, it will not be seiralized
+ * together with the message or send across the wire.
  *
  * @param <R> the type of the expected message's payload.
+ * @deprecated Since 1.2.0.
  */
+@Deprecated
 public interface MessageResponseConsumer<R> {
 
     /**
-     * Returns the type of the expected Message response.
+     * Returns the type of the expected response.
      *
-     * @return the type of the expected Message response.
+     * @return the type of the expected response.
      */
     Class<R> getResponseType();
 

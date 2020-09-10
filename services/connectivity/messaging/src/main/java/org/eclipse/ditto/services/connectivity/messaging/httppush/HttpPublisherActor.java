@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,6 +41,8 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -47,6 +50,8 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 
+import akka.Done;
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
@@ -61,12 +66,16 @@ import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
+import akka.stream.KillSwitch;
+import akka.stream.KillSwitches;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
+import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.util.Try;
 
 /**
@@ -89,6 +98,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final ActorMaterializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
+    private final KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
@@ -102,15 +112,30 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
         materializer = ActorMaterializer.create(getContext());
-        sourceQueue =
+        final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
+                CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
                         .viaMat(factory.createFlow(system, log), Keep.left())
-                        .toMat(Sink.foreach(this::processResponse), Keep.left())
+                        .viaMat(KillSwitches.single(), Keep.both())
+                        .toMat(Sink.foreach(this::processResponse), Keep.both())
                         .run(materializer);
+        sourceQueue = materialized.first().first();
+        killSwitch = materialized.first().second();
+
+        // Inform self of stream termination.
+        // If self is alive, the error should be escalated.
+        materialized.second()
+                .whenComplete((done, error) -> getSelf().tell(toConnectionFailure(done, error), ActorRef.noSender()));
     }
 
     static Props props(final Connection connection, final HttpPushFactory factory) {
         return Props.create(HttpPublisherActor.class, connection, factory);
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        killSwitch.shutdown();
+        super.postStop();
     }
 
     @Override
@@ -120,7 +145,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
-        // noop
+        receiveBuilder.match(ConnectionFailure.class, failure -> getContext().getParent().tell(failure, getSelf()));
     }
 
     @Override
@@ -237,7 +262,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final DittoHeaders dittoHeaders = setContentType(signal.getDittoHeaders(), response);
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
         final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
         if (statusOptional.isEmpty()) {
@@ -253,6 +278,16 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body)
             );
         }
+    }
+
+    private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
+        return new ImmutableConnectionFailure(getSelf(), error, "HttpPublisherActor stream terminated");
+    }
+
+    private static DittoHeaders setContentType(final DittoHeaders dittoHeaders, final HttpResponse response) {
+        return dittoHeaders.toBuilder()
+                .contentType(response.entity().getContentType().toString())
+                .build();
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {
@@ -276,23 +311,25 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .withSizeLimit(maxBytes)
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
                 .thenApply(strictEntity -> {
-                    final Charset charset = strictEntity.getContentType().getCharsetOption()
+                    final akka.http.javadsl.model.ContentType contentType = strictEntity.getContentType();
+                    final Charset charset = contentType.getCharsetOption()
                             .map(HttpCharset::nioCharset)
                             .orElse(StandardCharsets.UTF_8);
-                    if (isApplicationJson(strictEntity.getContentType().mediaType())) {
+                    final byte[] bytes = strictEntity.getData().toArray();
+                    if (isApplicationJson(contentType.mediaType())) {
                         // check for application/.*json first: vendor JSON types are classified incorrectly as binary
-                        final String bodyString = new String(strictEntity.getData().toArray(), charset);
+                        final String bodyString = new String(bytes, charset);
                         try {
                             return JsonFactory.readFrom(bodyString);
                         } catch (Exception e) {
                             return JsonValue.of(bodyString);
                         }
-                    } else if (!strictEntity.getContentType().binary()) {
-                        // leave out non-JSON binary payload
-                        return null;
+                    } else if (contentType.binary()) {
+                        final String base64bytes = Base64.getEncoder().encodeToString(bytes);
+                        return JsonFactory.newValue(base64bytes);
                     } else {
                         // add text payload as JSON string
-                        return JsonFactory.newValue(new String(strictEntity.getData().toArray(), charset));
+                        return JsonFactory.newValue(new String(bytes, charset));
                     }
                 });
     }

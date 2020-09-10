@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityCommand<T extends ConnectivityCommand> extends Command<T> {
+public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends Command<T> {
 
     /**
      * Type Prefix of Connectivity commands.

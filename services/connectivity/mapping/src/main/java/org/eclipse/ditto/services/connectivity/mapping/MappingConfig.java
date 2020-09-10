@@ -32,12 +32,18 @@ public interface MappingConfig {
     int getBufferSize();
 
     /**
-     * Returns the parallelism used for processing messages in parallel in message mapping processor actor responsible
-     * for doing the enrichment.
+     * Returns the parallelism used for enriching messages in parallel in message mapping processor actor.
      *
      * @return the parallelism.
      */
     int getParallelism();
+
+    /**
+     * Returns the max pool size (parallelism) for mapping inbound and outbound messages. This limits the user-settable
+     * configuration {@link org.eclipse.ditto.model.connectivity.Connection#getProcessorPoolSize()}.
+     * @return the max pool size.
+     */
+    int getMaxPoolSize();
 
     /**
      * Returns the config of the JavaScript message mapping.
@@ -65,9 +71,14 @@ public interface MappingConfig {
         BUFFER_SIZE("buffer-size", 500),
 
         /**
-         * The parallelism used for processing messages in parallel in message mapping processor actor.
+         * The parallelism used for enriching messages in parallel in message mapping processor actor.
          */
-        PARALLELISM("parallelism", 64);
+        PARALLELISM("parallelism", 64),
+
+        /**
+         * The maximum parallelism used for mapping inbound and outbound messages in mapping processor actor.
+         */
+        MAX_POOL_SIZE("max-pool-size", 5);
 
         private final String path;
         private final Object defaultValue;

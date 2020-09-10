@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -34,9 +33,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
  * Response to a {@link ModifyAttribute} command.
@@ -64,12 +65,22 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     @Nullable private final JsonValue attributeValue;
 
     private ModifyAttributeResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            final JsonPointer attributePointer,
-            @Nullable final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
+            final JsonPointer attributePointer, @Nullable final JsonValue attributeValue,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
-        this.attributePointer = requireNonNull(attributePointer, "The Attribute Pointer must not be null!");
+        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = attributeValue;
+    }
+
+    private JsonPointer checkAttributePointer(final JsonPointer attributePointer, final DittoHeaders dittoHeaders) {
+        checkNotNull(attributePointer, "The Attribute Pointer must not be null!");
+        if (attributePointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(attributePointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return AttributesModelFactory.validateAttributePointer(attributePointer);
     }
 
     /**
@@ -82,8 +93,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureProperties.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributePointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -103,10 +119,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureProperties.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributePointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse created(final ThingId thingId, final JsonPointer attributePointer,
-            final JsonValue attributeValue,
-            final DittoHeaders dittoHeaders) {
+            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         return new ModifyAttributeResponse(thingId, HttpStatusCode.CREATED, attributePointer, attributeValue,
                 dittoHeaders);
     }
@@ -120,8 +139,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperties.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributePointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -139,6 +163,10 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperties.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributePointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse modified(final ThingId thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
@@ -155,6 +183,8 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -169,6 +199,8 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAttributeResponse>(TYPE, jsonObject)

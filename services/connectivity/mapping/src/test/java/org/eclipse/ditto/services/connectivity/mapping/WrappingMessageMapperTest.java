@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -44,7 +44,7 @@ import com.typesafe.config.ConfigFactory;
  */
 public class WrappingMessageMapperTest {
 
-    private static final Map<String, String> DEFAULT_OPTIONS = Map.of("default", "option");
+    private static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder().set("default", "option").build();
     private MessageMapper mockMapper;
     private MessageMapper underTest;
     private MessageMapperConfiguration mockConfiguration;
@@ -96,7 +96,8 @@ public class WrappingMessageMapperTest {
 
     @Test
     public void mapAdaptable() {
-        final DittoHeaders headers = DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
+        final DittoHeaders headers =
+                DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
         when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);

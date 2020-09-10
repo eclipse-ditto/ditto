@@ -29,12 +29,14 @@ final class EntityTagValueValidator extends AbstractHeaderValueValidator {
      */
     static final String RFC_7232_SECTION_2_3 = "https://tools.ietf.org/html/rfc7232#section-2.3";
 
+    private static final EntityTagValueValidator INSTANCE = new EntityTagValueValidator();
+
     private EntityTagValueValidator() {
         super(EntityTag.class::equals);
     }
 
     static EntityTagValueValidator getInstance() {
-        return new EntityTagValueValidator();
+        return INSTANCE;
     }
 
     @Override

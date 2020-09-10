@@ -21,6 +21,6 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityModifyCommand<T extends ConnectivityModifyCommand>
+public interface ConnectivityModifyCommand<T extends ConnectivityModifyCommand<T>>
         extends ConnectivityCommand<T>, WithOptionalEntity {
 }

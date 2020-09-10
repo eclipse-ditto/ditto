@@ -104,17 +104,18 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
-        if (isV2Upwards && !newThing.getPolicyEntityId().isPresent()) {
+        if (isV2Upwards && newThing.getPolicyEntityId().isEmpty()) {
             newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
 
-        final Instant modified = Instant.now();
+        final Instant now = Instant.now();
         // provide modified and revision only in the response, not in the event (it is defined by the persistence)
         final Thing newThingWithModifiedAndRevision = newThing.toBuilder()
-                .setModified(modified)
+                .setModified(now)
+                .setCreated(now)
                 .setRevision(nextRevision)
                 .build();
-        final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, modified, commandHeaders);
+        final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, now, commandHeaders);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders),
                 newThingWithModifiedAndRevision);
@@ -138,7 +139,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
             }
 
             // policyId is required for v2
-            if (!thing.getPolicyEntityId().isPresent()) {
+            if (thing.getPolicyEntityId().isEmpty()) {
                 throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);
             }
 

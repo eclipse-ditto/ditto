@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityQueryCommandResponse<T extends ConnectivityQueryCommandResponse> extends
+public interface ConnectivityQueryCommandResponse<T extends ConnectivityQueryCommandResponse<T>> extends
         ConnectivityCommandResponse<T>, WithEntity<T> {
 
     @Override

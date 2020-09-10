@@ -70,10 +70,11 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(persistenceId()));
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                    getRef());
 
             // THEN: command is successful and plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
@@ -87,10 +88,11 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(persistenceId(), 0L));
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                    getRef());
 
             // THEN: command is successful and plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
@@ -105,9 +107,10 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(FAIL_DELETE_MESSAGE));
 
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 8);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 8, dilated(Duration.ofSeconds(10)));
 
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(FAIL_DELETE_MESSAGE), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(FAIL_DELETE_MESSAGE), DittoHeaders.empty()),
+                    getRef());
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
 
             assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -121,10 +124,11 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(FAIL_DELETE_SNAPSHOT));
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 5);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 5, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(FAIL_DELETE_SNAPSHOT), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(FAIL_DELETE_SNAPSHOT), DittoHeaders.empty()),
+                    getRef());
 
             // THEN: expect success response with correct status and persistence plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
@@ -138,15 +142,17 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(persistenceId()));
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 20);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 20, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                    getRef());
             final CleanupCommandResponse response1 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(response1.getStatusCode()).isEqualTo(HttpStatusCode.OK);
 
             // and entity is not changed in the meantime
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                    getRef());
             final CleanupCommandResponse response2 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(response2.getStatusCode()).isEqualTo(HttpStatusCode.OK);
 
@@ -160,13 +166,15 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(SLOW_DELETE));
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(15)));
 
             // WHEN: concurrent cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()), getRef());
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()), getRef());
-            final CleanupCommandResponse cleanupFailed =
-                    expectMsgClass(Duration.ofSeconds(10), CleanupCommandResponse.class);
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()),
+                    getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()),
+                    getRef());
+            final CleanupCommandResponse<?> cleanupFailed =
+                    expectMsgClass(dilated(Duration.ofSeconds(15)), CleanupCommandResponse.class);
 
             // THEN: second command is rejected and only first command ist executed by plugin
             assertThat(cleanupFailed.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -179,18 +187,21 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(persistenceId()));
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup command is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                    getRef());
 
             // THEN: command is successful
             final CleanupCommandResponse cleanupCommandResponse1 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse1.getStatusCode()).isEqualTo(HttpStatusCode.OK);
 
             // WHEN: more updates occur and another cleanup command is sent
-            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()), getRef());
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10,
+                    dilated(Duration.ofSeconds(10)));
+            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                    getRef());
 
             // THEN: command is successful and deletes are executed with correct seq number
             final CleanupCommandResponse cleanupCommandResponse2 = expectMsgClass(CleanupCommandResponse.class);
@@ -202,9 +213,9 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
     }
 
     private void modifyDummyAndWaitForSnapshotSuccess(final TestKit testKit,
-            final ActorRef persistenceActor, final int times) {
+            final ActorRef persistenceActor, final int times, final Duration waitTimeout) {
         IntStream.range(0, times).forEach(i -> persistenceActor.tell("SAVE", ActorRef.noSender()));
-        IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(Duration.ofSeconds(10),
+        IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(waitTimeout,
                 SaveSnapshotSuccess.class));
     }
 

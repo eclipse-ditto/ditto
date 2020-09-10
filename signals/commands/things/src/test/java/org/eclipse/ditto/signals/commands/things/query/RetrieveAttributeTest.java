@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.INVALID_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -42,13 +44,11 @@ public final class RetrieveAttributeTest {
             .set(RetrieveAttribute.JSON_ATTRIBUTE, KNOWN_JSON_POINTER.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveAttribute.class, areImmutable(),
                 provided(JsonPointer.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -56,7 +56,6 @@ public final class RetrieveAttributeTest {
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
@@ -74,12 +73,10 @@ public final class RetrieveAttributeTest {
         RetrieveAttribute.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void tryToCreateInstanceWithValidArguments() {
         RetrieveAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -91,7 +88,6 @@ public final class RetrieveAttributeTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final RetrieveAttribute underTest =
@@ -102,4 +98,16 @@ public final class RetrieveAttributeTest {
         assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidJson() {
+        final JsonObject invalidJson = KNOWN_JSON.toBuilder()
+                .set(RetrieveAttribute.JSON_ATTRIBUTE, INVALID_JSON_POINTER.toString())
+                .build();
+        RetrieveAttribute.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidArguments() {
+        RetrieveAttribute.of(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 }

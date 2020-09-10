@@ -39,6 +39,9 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
 
+    private static final ConnectionBasedRabbitConnectionFactoryFactory INSTANCE =
+            new ConnectionBasedRabbitConnectionFactoryFactory();
+
     private ConnectionBasedRabbitConnectionFactoryFactory() {
         // no-op
     }
@@ -49,7 +52,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
      * @return the instance.
      */
     public static ConnectionBasedRabbitConnectionFactoryFactory getInstance() {
-        return new ConnectionBasedRabbitConnectionFactoryFactory();
+        return INSTANCE;
     }
 
     @Override

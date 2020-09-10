@@ -39,8 +39,16 @@ public final class ThingMongoSnapshotAdapterTest {
     }
 
     @Test
-    public void toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected() {
-        final Thing thing = TestConstants.Thing.THING_V1;
+    public void toSnapshotStoreFromSnapshotStoreRoundtripV1ReturnsExpected() {
+        toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(TestConstants.Thing.THING_V1);
+    }
+
+    @Test
+    public void toSnapshotStoreFromSnapshotStoreRoundtripV2ReturnsExpected() {
+        toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(TestConstants.Thing.THING_V2);
+    }
+
+    private void toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(final Thing thing) {
         final Object rawSnapshotEntity = underTest.toSnapshotStore(thing);
         assertThat(rawSnapshotEntity).isInstanceOf(BsonDocument.class);
         final BsonDocument dbObject = (BsonDocument) rawSnapshotEntity;

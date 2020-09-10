@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import org.agrona.concurrent.SystemEpochMicroClock;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
@@ -85,6 +86,8 @@ import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.
@@ -218,6 +221,7 @@ final class GatewayRootActor extends DittoRootActor {
             final HeaderTranslator headerTranslator) {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
+        final Materializer materializer = SystemMaterializer.get(actorSystem).materializer();
 
         final MessageDispatcher authenticationDispatcher =
                 actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
@@ -262,7 +266,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig)
+                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())

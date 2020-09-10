@@ -47,6 +47,7 @@ public abstract class AbstractPolicyEventStrategyTest<T extends PolicyEvent<T>> 
     @Test
     public void testHandlePolicyEvent() {
         final Policy policyWithEventApplied = strategy.handle(policyEvent, policy, 10L);
+        assertThat(policyWithEventApplied).isNotNull();
         assertThat(policyWithEventApplied.getModified()).contains(instant);
         assertThat(policyWithEventApplied.getRevision()).contains(PolicyRevision.newInstance(10L));
         additionalAssertions(policyWithEventApplied);
@@ -54,6 +55,10 @@ public abstract class AbstractPolicyEventStrategyTest<T extends PolicyEvent<T>> 
 
     protected void additionalAssertions(final Policy policyWithEventApplied) {
         // override in subclass
+    }
+
+    protected Instant getInstant() {
+        return instant;
     }
 
     abstract EventStrategy<T, Policy> getStrategyUnderTest();

@@ -13,9 +13,11 @@
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 
 /**
@@ -38,7 +40,9 @@ public final class JavaScriptMessageMapperFactory {
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMessageMapperConfigurationBuilder(
             final String id, final Map<String, String> properties) {
 
-        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, properties);
+        return new ImmutableJavaScriptMessageMapperConfiguration.Builder(id, properties.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> JsonValue.of(entry.getValue()))));
     }
 
     /**

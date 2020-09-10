@@ -17,7 +17,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 
 /**
@@ -41,7 +47,19 @@ public interface MessageMapperConfiguration {
      *
      * @return an unmodifiable Map containing the configuration properties.
      */
-    Map<String, String> getProperties();
+    Map<String, JsonValue> getProperties();
+
+    /**
+     * Returns the configuration properties as JSON object.
+     *
+     * @return configuration properties as JSON object.
+     */
+    default JsonObject getPropertiesAsJson() {
+        return getProperties().entrySet()
+                .stream()
+                .map(entry -> JsonField.newInstance(entry.getKey(), entry.getValue()))
+                .collect(JsonCollectors.fieldsToObject());
+    }
 
     /**
      * Searches the configuration for a specific property.
@@ -50,7 +68,24 @@ public interface MessageMapperConfiguration {
      * @return the property if present.
      */
     default Optional<String> findProperty(final String propertyName) {
-        return Optional.ofNullable(getProperties().get(propertyName));
+        return Optional.ofNullable(getProperties().get(propertyName)).map(JsonValue::formatAsString);
+    }
+
+    /**
+     * Searches the configuration for a specific property of a specific type.
+     *
+     * @param propertyName name of the property.
+     * @param typePredicate the type checking predicate.
+     * @param typeCast the type casting function.
+     * @param <T> the expected value type.
+     * @return the property value of the correct type if it exists or an empty optional otherwise.
+     */
+    default <T> Optional<T> findProperty(final String propertyName,
+            final Predicate<JsonValue> typePredicate,
+            final Function<JsonValue, T> typeCast) {
+        return Optional.ofNullable(getProperties().get(propertyName))
+                .filter(typePredicate)
+                .map(typeCast);
     }
 
     /**
@@ -89,7 +124,7 @@ public interface MessageMapperConfiguration {
         /**
          * @return the configuration properties as mutable map.
          */
-        Map<String, String> getProperties();
+        Map<String, JsonValue> getProperties();
 
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}

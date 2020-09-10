@@ -20,12 +20,14 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -37,7 +39,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <R> the type of the built DittoHeaders object.
  */
 @NotThreadSafe
-public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends DittoHeaders> {
+public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R extends DittoHeaders> {
 
     /**
      * Sets the specified correlation ID.
@@ -174,7 +176,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param contentType the contentType value to be set.
      * @return this builder for Method Chaining.
      */
-    B contentType(CharSequence contentType);
+    B contentType(@Nullable CharSequence contentType);
 
     /**
      * Sets the ETag value.
@@ -225,7 +227,6 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @since 1.2.0
      */
     B expectedResponseTypes(ResponseType... responseTypes);
-
 
     /**
      * Set the expected response types. In combination with {@link #replyTarget(Integer)} this decides which type
@@ -299,6 +300,17 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @since 1.1.0
      */
     B timeout(@Nullable Duration timeout);
+
+    /**
+     * Puts the given metadata association to this builder.
+     * An existing entry with the same key will be replaced.
+     *
+     * @param key the metadata key.
+     * @param value the metadata value.
+     * @return this builder.
+     * @since 1.2.0
+     */
+    B putMetadata(MetadataHeaderKey key, JsonValue value);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

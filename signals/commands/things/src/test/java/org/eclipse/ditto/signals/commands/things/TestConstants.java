@@ -505,4 +505,11 @@ public final class TestConstants {
         }
     }
 
+    public static class Pointer {
+
+        public static final JsonPointer EMPTY_JSON_POINTER = JsonFactory.emptyPointer();
+        public static final JsonPointer VALID_JSON_POINTER = JsonFactory.newPointer("properties/foo");
+        public static final JsonPointer INVALID_JSON_POINTER = JsonFactory.newPointer("key1/äöü/foo");
+    }
+
 }

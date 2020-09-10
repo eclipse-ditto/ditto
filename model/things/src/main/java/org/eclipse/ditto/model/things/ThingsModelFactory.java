@@ -26,10 +26,15 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -539,6 +544,86 @@ public final class ThingsModelFactory {
         final FeaturesBuilder result = ImmutableFeaturesBuilder.newInstance();
         result.setAll(features);
         return result;
+    }
+
+    /**
+     * Validates the given {@link JsonPointer} to a feature property.
+     *
+     * @param jsonPointer {@code jsonPointer} that is validated
+     * @return the same {@code jsonPointer} if validation was successful
+     * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.2.0
+     */
+    public static JsonPointer validateFeaturePropertyPointer(final JsonPointer jsonPointer) {
+        return JsonKeyValidator.validate(jsonPointer);
+    }
+
+    /**
+     * Returns a new immutable empty {@link Metadata}.
+     *
+     * @return the new immutable empty {@code Metadata}.
+     * @since 1.2.0
+     */
+    public static Metadata emptyMetadata() {
+        return MetadataModelFactory.emptyMetadata();
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which represents {@code null}.
+     *
+     * @return the new {@code null}-like {@code Metadata}.
+     * @since 1.2.0
+     */
+    public static Metadata nullMetadata() {
+        return MetadataModelFactory.nullMetadata();
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON object.
+     *
+     * @param jsonObject provides the initial values of the result.
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 1.2.0
+     */
+    public static Metadata newMetadata(final JsonObject jsonObject) {
+        return MetadataModelFactory.newMetadata(jsonObject);
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON string. This
+     * string is required to be a valid {@link JsonObject}.
+     *
+     * @param jsonString provides the initial values of the result;
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code Metadata}.
+     * @since 1.2.0
+     */
+    public static Metadata newMetadata(final String jsonString) {
+        return MetadataModelFactory.newMetadata(jsonString);
+    }
+
+    /**
+     * Returns a new empty builder for a {@link Metadata}.
+     *
+     * @return the builder.
+     * @since 1.2.0
+     */
+    public static MetadataBuilder newMetadataBuilder() {
+        return MetadataModelFactory.newMetadataBuilder();
+    }
+
+    /**
+     * Returns a new builder for a {@link Metadata} which is initialised with the values of the given Metadata.
+     *
+     * @param metadata provides the initial values of the result.
+     * @return the builder.
+     * @throws NullPointerException if {@code metadata} is {@code null}.
+     * @since 1.2.0
+     */
+    public static MetadataBuilder newMetadataBuilder(final Metadata metadata) {
+        return MetadataModelFactory.newMetadataBuilder(metadata);
     }
 
     /**

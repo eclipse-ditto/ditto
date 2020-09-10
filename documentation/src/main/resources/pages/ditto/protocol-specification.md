@@ -94,6 +94,9 @@ HTTP protocol, for example the prefix `ditto-*`.
   timeout-access
   ```
 
+The interaction between the headers `response-required`, `requested-acks` and `timeout` is documented
+[here](basic-acknowledgements.html#interaction-between-headers).
+
 ## Path
 
 Contains a JSON pointer of where to apply the [value](#value) of the protocol message.

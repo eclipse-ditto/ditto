@@ -94,7 +94,8 @@ public final class EnforcerRetriever {
                 if (enforcerKeyEntry.exists()) {
                     final EntityIdWithResourceType enforcerKey = enforcerKeyEntry.getValueOrThrow();
                     final String resourceType = enforcerKey.getResourceType();
-                    final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache = enforcerCacheFunction.apply(resourceType);
+                    final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache =
+                            enforcerCacheFunction.apply(resourceType);
                     if (enforcerCache == null) {
                         LOGGER.error("No enforcerCache for resource type: <{}>", resourceType);
                         throw GatewayInternalErrorException.newBuilder()
@@ -115,7 +116,8 @@ public final class EnforcerRetriever {
      * @param enforcerKey key of the enforcer.
      * @param handler what to do with the enforcer.
      */
-    public CompletionStage<Contextual<WithDittoHeaders>> retrieveByEnforcerKey(final EntityIdWithResourceType enforcerKey,
+    public CompletionStage<Contextual<WithDittoHeaders>> retrieveByEnforcerKey(
+            final EntityIdWithResourceType enforcerKey,
             final Function<Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         final String resourceType = enforcerKey.getResourceType();
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache =
@@ -125,7 +127,7 @@ public final class EnforcerRetriever {
         }
         return enforcerCache.get(enforcerKey)
                 .thenCompose(enforcerEntryOptional -> {
-                    if (!enforcerEntryOptional.isPresent()) {
+                    if (enforcerEntryOptional.isEmpty()) {
                         // may happen due to namespace blocking
                         LOGGER.info("Did not get enforcer-cache value for entityKey <{}>.", enforcerKey);
                         return handler.apply(Entry.nonexistent());
