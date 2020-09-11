@@ -300,7 +300,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
                 @Nullable final CommandResponse<?> commandResponse;
                 if (isMessageCommand) {
-                    commandResponse = toMessageCommandResponse((MessageCommand<?, ?> ) signal, dittoHeaders,
+                    commandResponse = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders,
                             body, statusCode, response.entity().getContentType(), response.getHeaders());
                 } else {
                     commandResponse = null;
@@ -319,28 +319,29 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final akka.http.javadsl.model.ContentType contentType,
             final Iterable<HttpHeader> headers) {
 
-            final MessageHeadersBuilder responseMessageBuilder = messageCommand.getMessage().getHeaders().toBuilder();
-            final MessageHeaders messageHeaders = responseMessageBuilder.statusCode(status)
-                    .contentType(contentType.toString())
-                    .putHeaders(StreamSupport.stream(headers.spliterator(), false)
-                            .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value))
-                    )
-                    .build();
+        final MessageHeadersBuilder responseMessageBuilder = messageCommand.getMessage().getHeaders().toBuilder();
+        final MessageHeaders messageHeaders = responseMessageBuilder.statusCode(status)
+                .contentType(contentType.toString())
+                .putHeaders(StreamSupport.stream(headers.spliterator(), false)
+                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value))
+                )
+                .build();
         final Message<Object> message = Message.newBuilder(messageHeaders)
                 .payload(jsonValue)
                 .build();
 
-        if (messageCommand instanceof SendClaimMessage) {
-            return SendClaimMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
-        } else if (messageCommand instanceof SendThingMessage) {
-            return SendThingMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
-        } else if (messageCommand instanceof SendFeatureMessage) {
-            final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
-            return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
-                    sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
-        } else {
-            throw new IllegalArgumentException("Unknown MessageCommand <" + messageCommand.getClass().getSimpleName() +
-                    ">");
+        switch (messageCommand.getType()) {
+            case SendClaimMessage.TYPE:
+                return SendClaimMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
+            case SendThingMessage.TYPE:
+                return SendThingMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
+            case SendFeatureMessage.TYPE:
+                final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
+                return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
+                        sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown MessageCommand <" + messageCommand.getClass().getSimpleName() + ">");
         }
     }
 
