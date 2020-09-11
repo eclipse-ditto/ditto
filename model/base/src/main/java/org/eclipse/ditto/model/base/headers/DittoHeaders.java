@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
@@ -146,6 +147,13 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the content-type.
      */
     Optional<String> getContentType();
+
+    /**
+     * Returns the parsed content-type of the entity.
+     *
+     * @return the parsed content-type.
+     */
+    Optional<ContentType> getDittoContentType();
 
     /**
      * Returns the json schema version.

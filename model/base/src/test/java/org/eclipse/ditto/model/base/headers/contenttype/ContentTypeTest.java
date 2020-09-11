@@ -10,7 +10,7 @@
 *
 * SPDX-License-Identifier: EPL-2.0
 */
-package org.eclipse.ditto.services.utils.protocol.contenttype;
+package org.eclipse.ditto.model.base.headers.contenttype;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,6 +21,14 @@ public final class ContentTypeTest {
     @Test
     public void applicationJsonIsJson() {
         final ContentType applicationJson = ContentType.of("application/json");
+        assertThat(applicationJson.isText()).isFalse();
+        assertThat(applicationJson.isJson()).isTrue();
+        assertThat(applicationJson.isBinary()).isFalse();
+    }
+
+    @Test
+    public void applicationJsonWithCharsetIsJson() {
+        final ContentType applicationJson = ContentType.of("application/json;charset=UTF-8");
         assertThat(applicationJson.isText()).isFalse();
         assertThat(applicationJson.isJson()).isTrue();
         assertThat(applicationJson.isBinary()).isFalse();

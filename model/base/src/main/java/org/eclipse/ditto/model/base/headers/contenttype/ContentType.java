@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.protocol.contenttype;
+package org.eclipse.ditto.model.base.headers.contenttype;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,14 +43,15 @@ public class ContentType {
 
     public static ContentType of(final String value) {
         final String lowerCaseValue = value.toLowerCase();
+        final String mediaType = lowerCaseValue.split(";")[0];
         final boolean isText;
         final boolean isJson;
         final boolean isBinary;
-        if (TEXT_PATTERN.matcher(lowerCaseValue).matches()) {
+        if (TEXT_PATTERN.matcher(mediaType).matches()) {
             isText = true;
             isJson = false;
             isBinary = false;
-        } else if (JSON_PATTERN.matcher(lowerCaseValue).matches()) {
+        } else if (JSON_PATTERN.matcher(mediaType).matches()) {
             isText = false;
             isJson = true;
             isBinary = false;

@@ -61,7 +61,6 @@ import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.MediaType;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
@@ -321,15 +320,16 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             .map(HttpCharset::nioCharset)
                             .orElse(StandardCharsets.UTF_8);
                     final byte[] bytes = strictEntity.getData().toArray();
-                    if (isApplicationJson(contentType.mediaType())) {
-                        // check for application/.*json first: vendor JSON types are classified incorrectly as binary
+                    final org.eclipse.ditto.model.base.headers.contenttype.ContentType dittoContentType =
+                            org.eclipse.ditto.model.base.headers.contenttype.ContentType.of(contentType.toString());
+                    if (dittoContentType.isJson()) {
                         final String bodyString = new String(bytes, charset);
                         try {
                             return JsonFactory.readFrom(bodyString);
                         } catch (Exception e) {
                             return JsonValue.of(bodyString);
                         }
-                    } else if (contentType.binary()) {
+                    } else if (dittoContentType.isBinary()) {
                         final String base64bytes = Base64.getEncoder().encodeToString(bytes);
                         return JsonFactory.newValue(base64bytes);
                     } else {
@@ -343,19 +343,4 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return requestUri.userInfo("");
     }
 
-    /**
-     * Test if a media type is application/json or application/vnd.xxx+json.
-     * Akka HTTP converts subtype to lower case, why case-insensitive comparison is unnecessary.
-     *
-     * @param mediaType the media type to test.
-     * @return whether the media type indicates a JSON content type.
-     */
-    private static boolean isApplicationJson(final MediaType mediaType) {
-        if (mediaType.isApplication()) {
-            final String subType = mediaType.subType();
-            return subType.equals("json") || subType.startsWith("vnd.") && subType.endsWith("+json");
-        } else {
-            return false;
-        }
-    }
 }

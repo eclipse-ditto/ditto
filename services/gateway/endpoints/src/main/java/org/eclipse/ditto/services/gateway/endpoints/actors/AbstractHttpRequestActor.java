@@ -51,7 +51,7 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.protocol.contenttype.ContentType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -323,14 +323,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                             responseWithoutHeaders, commandResponse.getDittoHeaders());
 
                     final Optional<String> entityPlainStringOptional = withEntity.getEntityPlainString();
+                    final ContentType contentType = getContentType(commandResponse.getDittoHeaders());
                     final HttpResponse response;
                     if (entityPlainStringOptional.isPresent()) {
                         response = addEntityAccordingToContentType(responseWithoutBody,
-                                entityPlainStringOptional.get(), commandResponse.getDittoHeaders());
+                                entityPlainStringOptional.get(), contentType);
                     } else {
                         response = addEntityAccordingToContentType(responseWithoutBody,
                                 withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
-                                commandResponse.getDittoHeaders());
+                                contentType);
                     }
                     completeWithResult(response);
                 })
@@ -507,9 +508,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
-            final DittoHeaders dittoHeaders) {
+            final ContentType contentType) {
 
-        final ContentType contentType = getContentType(dittoHeaders);
         final ByteString byteString;
 
         if (contentType.isBinary()) {
@@ -522,9 +522,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final JsonValue entity,
-            final DittoHeaders dittoHeaders) {
-
-        final ContentType contentType = getContentType(dittoHeaders);
+            final ContentType contentType) {
 
         final String entityString;
 
@@ -534,13 +532,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             entityString = entity.asString();
         }
 
-        return addEntityAccordingToContentType(response, entityString, dittoHeaders);
+        return addEntityAccordingToContentType(response, entityString, contentType);
     }
 
     private static ContentType getContentType(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.getContentType()
-                .map(ContentType::of)
-                .orElse(ContentType.APPLICATION_JSON);
+        return dittoHeaders.getDittoContentType().orElse(ContentType.APPLICATION_JSON);
     }
 
     private HttpResponse createCommandResponse(final DittoHeaders dittoHeaders, final HttpStatusCode statusCode,
@@ -568,7 +564,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion()
                     .orElse(dittoHeaders.getImplementedSchemaVersion());
             return withOptionalEntity.getEntity(schemaVersion)
-                    .map(entity -> addEntityAccordingToContentType(response, entity, dittoHeaders))
+                    .map(entity -> addEntityAccordingToContentType(response, entity, getContentType(dittoHeaders)))
                     .orElse(response);
         };
     }
