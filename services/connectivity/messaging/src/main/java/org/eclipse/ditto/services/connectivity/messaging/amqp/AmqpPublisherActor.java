@@ -174,27 +174,28 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message,
+            final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
         if (!isInBackOffMode) {
             return doPublishMessage(signal, autoAckTarget, publishTarget, message);
         } else {
-            final CompletableFuture<Acknowledgement> backOffModeFuture = new CompletableFuture<>();
+            final CompletableFuture<CommandResponseOrAcknowledgement> backOffModeFuture = new CompletableFuture<>();
             backOffModeFuture.completeExceptionally(getBackOffModeError(message, publishTarget.getJmsDestination()));
             return backOffModeFuture;
         }
     }
 
-    private CompletionStage<Acknowledgement> doPublishMessage(@Nullable final Signal<?> signal,
+    private CompletionStage<CommandResponseOrAcknowledgement> doPublishMessage(@Nullable final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message) {
 
-        final CompletableFuture<Acknowledgement> sendResult = new CompletableFuture<>();
+        final CompletableFuture<CommandResponseOrAcknowledgement> sendResult = new CompletableFuture<>();
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
@@ -209,7 +210,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                             sendResult.complete(null);
                         } else {
                             final Acknowledgement ack = toAcknowledgement(signal, autoAckTarget);
-                            sendResult.complete(ack);
+                            sendResult.complete(new CommandResponseOrAcknowledgement(null, ack));
                         }
                         log.withCorrelationId(message.getInternalHeaders()).debug("Sent: <{}>", jmsMessage);
                     }

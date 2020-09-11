@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -37,6 +39,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -50,6 +55,14 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
+import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
+import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -154,13 +167,17 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
-            @Nullable final Target autoAckTarget, final HttpPublishTarget publishTarget,
-            final ExternalMessage message, int ackSizeQuota) {
+    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+            @Nullable final Target autoAckTarget,
+            final HttpPublishTarget publishTarget,
+            final ExternalMessage message,
+            final int maxTotalMessageSize,
+            final int ackSizeQuota) {
 
-        final CompletableFuture<Acknowledgement> resultFuture = new CompletableFuture<>();
+        final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture = new CompletableFuture<>();
         final HttpRequest request = createRequest(publishTarget, message);
-        final HttpPushContext context = newContext(signal, autoAckTarget, request, message, ackSizeQuota, resultFuture);
+        final HttpPushContext context = newContext(signal, autoAckTarget, request, message, maxTotalMessageSize,
+                ackSizeQuota, resultFuture);
         sourceQueue.offer(Pair.create(request, context))
                 .handle(handleQueueOfferResult(message, resultFuture));
         return resultFuture;
@@ -230,8 +247,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             @Nullable final Target autoAckTarget,
             final HttpRequest request,
             final ExternalMessage message,
+            final int maxTotalMessageSize,
             final int ackSizeQuota,
-            final CompletableFuture<Acknowledgement> resultFuture) {
+            final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture) {
 
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
@@ -245,7 +263,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
                 log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
-                toAcknowledgement(signal, autoAckTarget, response, ackSizeQuota).thenAccept(resultFuture::complete)
+
+                toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
+                        .thenAccept(resultFuture::complete)
                         .exceptionally(e -> {
                             resultFuture.completeExceptionally(e);
                             return null;
@@ -255,9 +275,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         };
     }
 
-    private CompletionStage<Acknowledgement> toAcknowledgement(final Signal<?> signal,
+    private CompletionStage<CommandResponseOrAcknowledgement> toCommandResponseOrAcknowledgement(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpResponse response,
+            final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
@@ -274,9 +295,52 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return CompletableFuture.failedFuture(error);
         } else {
             final HttpStatusCode statusCode = statusOptional.orElseThrow();
-            return getResponseBody(response, ackSizeQuota, materializer).thenApply(body ->
-                    Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body)
-            );
+            final boolean isMessageCommand = signal instanceof MessageCommand;
+            final int maxResponseSize = isMessageCommand ? maxTotalMessageSize : ackSizeQuota;
+            return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
+                @Nullable final CommandResponse<?> commandResponse;
+                if (isMessageCommand) {
+                    commandResponse = toMessageCommandResponse((MessageCommand<?, ?> ) signal, dittoHeaders,
+                            body, statusCode, response.entity().getContentType(), response.getHeaders());
+                } else {
+                    commandResponse = null;
+                }
+                return new CommandResponseOrAcknowledgement(commandResponse,
+                        Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body)
+                );
+            });
+        }
+    }
+
+    private CommandResponse<?> toMessageCommandResponse(final MessageCommand<?, ?> messageCommand,
+            final DittoHeaders dittoHeaders,
+            final JsonValue jsonValue,
+            final HttpStatusCode status,
+            final akka.http.javadsl.model.ContentType contentType,
+            final Iterable<HttpHeader> headers) {
+
+            final MessageHeadersBuilder responseMessageBuilder = messageCommand.getMessage().getHeaders().toBuilder();
+            final MessageHeaders messageHeaders = responseMessageBuilder.statusCode(status)
+                    .contentType(contentType.toString())
+                    .putHeaders(StreamSupport.stream(headers.spliterator(), false)
+                            .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value))
+                    )
+                    .build();
+        final Message<Object> message = Message.newBuilder(messageHeaders)
+                .payload(jsonValue)
+                .build();
+
+        if (messageCommand instanceof SendClaimMessage) {
+            return SendClaimMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
+        } else if (messageCommand instanceof SendThingMessage) {
+            return SendThingMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
+        } else if (messageCommand instanceof SendFeatureMessage) {
+            final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
+            return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
+                    sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
+        } else {
+            throw new IllegalArgumentException("Unknown MessageCommand <" + messageCommand.getClass().getSimpleName() +
+                    ">");
         }
     }
 
@@ -286,7 +350,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static DittoHeaders setDittoHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {
         // Special handling of content-type because it needs to be extracted from the entity instead of the headers.
-        final DittoHeadersBuilder dittoHeadersBuilder =
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
                 dittoHeaders.toBuilder().contentType(response.entity().getContentType().toString());
 
         response.getHeaders().forEach(header -> dittoHeadersBuilder.putHeader(header.name(), header.value()));
@@ -308,7 +372,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
     }
 
-    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
+    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response,
+            final int maxBytes,
             final ActorMaterializer materializer) {
 
         return response.entity()
@@ -326,7 +391,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         final String bodyString = new String(bytes, charset);
                         try {
                             return JsonFactory.readFrom(bodyString);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             return JsonValue.of(bodyString);
                         }
                     } else if (dittoContentType.isBinary()) {
