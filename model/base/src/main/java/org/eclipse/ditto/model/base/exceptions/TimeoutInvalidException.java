@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown when timeout value can not be parsed.
+ *
  * @since 1.2.0
  */
 @Immutable
@@ -38,7 +39,8 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      */
     public static final String ERROR_CODE = "timeout.invalid";
 
-    private static final String DEFAULT_MESSAGE = "The timeout <{0}{2}> is not inside its allowed bounds <0{2} - {1}{2}>";
+    private static final String DEFAULT_MESSAGE =
+            "The timeout <{0}{2}> is not inside its allowed bounds <0{2} - {1}{2}>";
 
     private static final String DEFAULT_DESCRIPTION = "Please choose a valid timeout.";
 
@@ -66,6 +68,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
 
     /**
      * A mutable builder for {@code TimeoutInvalidException}.
+     *
      * @param timeout the received timeout.
      * @param maxTimeout the maximum allowed timeout.
      * @return a mutable builder.
@@ -78,6 +81,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
 
     /**
      * A mutable builder for {@code TimeoutInvalidException}.
+     *
      * @param message the message of the exception.
      * @return a mutable builder.
      */
@@ -109,6 +113,11 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<TimeoutInvalidException> {
+
+        private Builder() {
+            description(DEFAULT_DESCRIPTION);
+            message(DEFAULT_MESSAGE);
+        }
 
         @Override
         protected TimeoutInvalidException doBuild(final DittoHeaders dittoHeaders,

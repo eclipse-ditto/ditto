@@ -99,7 +99,7 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     public static final class Builder
             extends DittoRuntimeExceptionBuilder<GatewayPlaceholderReferenceUnknownFieldException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION_WITHOUT_ENTITY_ID);}
 
         private Builder(final String message, final String description) {
             this();

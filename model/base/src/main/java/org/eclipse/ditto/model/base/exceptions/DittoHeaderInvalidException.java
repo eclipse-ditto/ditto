@@ -102,7 +102,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
     }
 
     /**
-     *  A mutable builder for a {@code DittoHeaderInvalidException} with a custom message.
+     * A mutable builder for a {@code DittoHeaderInvalidException} with a custom message.
      *
      * @param customMessage the custom message
      * @return the builder.

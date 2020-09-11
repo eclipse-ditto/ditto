@@ -107,7 +107,7 @@ public final class PlaceholderFunctionTooComplexException extends DittoRuntimeEx
     private static final class Builder
             extends DittoRuntimeExceptionBuilder<PlaceholderFunctionTooComplexException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION_TEMPLATE);}
 
         @Override
         protected PlaceholderFunctionTooComplexException doBuild(final DittoHeaders dittoHeaders,

@@ -19,6 +19,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.Json
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -63,6 +64,17 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
     }
 
     /**
+     * Returns the command headers with which the the exception to be built should be reported to the user.
+     *
+     * @return the DittoHeaders set to the builder.
+     *
+     * @since 1.3.0
+     */
+    public DittoHeaders getDittoHeaders() {
+        return dittoHeaders;
+    }
+
+    /**
      * Sets the detail message of the exception to be built.
      *
      * @param message the detail message to be set.
@@ -83,6 +95,17 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
     public DittoRuntimeExceptionBuilder<T> message(final Supplier<String> messageSupplier) {
         checkSupplier(messageSupplier);
         return message(messageSupplier.get());
+    }
+
+    /**
+     * Returns the detail message of the exception to be build.
+     *
+     * @return the message set to the builder.
+     *
+     * @since 1.3.0
+     */
+    public Optional<String> getMessage() {
+        return Optional.ofNullable(message);
     }
 
     /**
@@ -109,6 +132,17 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
     }
 
     /**
+     * Returns the description of the exception to be build.
+     *
+     * @return the description set to the builder.
+     *
+     * @since 1.3.0
+     */
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(description);
+    }
+
+    /**
      * Sets the cause which led to the exception to be built.
      *
      * @param cause the cause to be set.
@@ -129,6 +163,17 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
     public DittoRuntimeExceptionBuilder<T> cause(final Supplier<Throwable> causeSupplier) {
         checkSupplier(causeSupplier);
         return cause(causeSupplier.get());
+    }
+
+    /**
+     * Returns the cause of the exception to be build.
+     *
+     * @return the cause set to the builder.
+     *
+     * @since 1.3.0
+     */
+    public Optional<Throwable> getCause() {
+        return Optional.ofNullable(cause);
     }
 
     /**
@@ -169,6 +214,17 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
     public DittoRuntimeExceptionBuilder<T> href(final Supplier<URI> hrefSupplier) {
         checkSupplier(hrefSupplier);
         return href(hrefSupplier.get());
+    }
+
+    /**
+     * Returns the href of the exception to be build.
+     *
+     * @return the href set to the builder.
+     *
+     * @since 1.3.0
+     */
+    public Optional<URI> getHref() {
+        return Optional.ofNullable(href);
     }
 
     /**

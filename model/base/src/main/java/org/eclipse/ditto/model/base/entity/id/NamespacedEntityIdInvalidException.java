@@ -52,7 +52,8 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
             "It must conform to the namespaced entity ID notation (see Ditto documentation) with a maximum name " +
                     "length of 256 characters.";
 
-    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
+    private static final URI DEFAULT_HREF =
+            URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private final CharSequence entityId;
 
@@ -91,7 +92,8 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
      */
     public static NamespacedEntityIdInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder(null));
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders,
+                new Builder(readEntityId(jsonObject).orElse(null)));
     }
 
     private static Optional<String> readEntityId(final JsonObject jsonObject) {

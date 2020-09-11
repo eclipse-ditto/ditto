@@ -103,6 +103,7 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
         private HttpStatusCode statusCode = DEFAULT_STATUS_CODE;
 
         private Builder() {
+            description(DEFAULT_DESCRIPTION);
         }
 
         /**

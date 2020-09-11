@@ -91,7 +91,7 @@ public final class JwtAudienceInvalidException extends DittoRuntimeException imp
     public static final class Builder extends DittoRuntimeExceptionBuilder<JwtAudienceInvalidException> {
 
         private Builder() {
-            message(MESSAGE);
+            message(MESSAGE).description(DESCRIPTION_TEMPLATE);
         }
 
         private Builder(final JsonValue audValue) {

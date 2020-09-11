@@ -103,7 +103,7 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
     public static final class Builder
             extends DittoRuntimeExceptionBuilder<GatewayPlaceholderReferenceNotSupportedException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION_WITHOUT_SUPPORTED_ENTITIES);}
 
         private Builder(final String message, final String description) {
             this();

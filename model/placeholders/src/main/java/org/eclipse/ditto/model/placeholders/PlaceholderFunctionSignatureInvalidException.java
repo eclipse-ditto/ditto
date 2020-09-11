@@ -110,7 +110,7 @@ public final class PlaceholderFunctionSignatureInvalidException extends DittoRun
     private static final class Builder
             extends DittoRuntimeExceptionBuilder<PlaceholderFunctionSignatureInvalidException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION_TEMPLATE);}
 
         @Override
         protected PlaceholderFunctionSignatureInvalidException doBuild(final DittoHeaders dittoHeaders,

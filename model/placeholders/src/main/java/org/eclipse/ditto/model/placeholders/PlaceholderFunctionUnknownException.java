@@ -107,7 +107,7 @@ public final class PlaceholderFunctionUnknownException extends DittoRuntimeExcep
     private static final class Builder
             extends DittoRuntimeExceptionBuilder<PlaceholderFunctionUnknownException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION);}
 
         @Override
         protected PlaceholderFunctionUnknownException doBuild(final DittoHeaders dittoHeaders,

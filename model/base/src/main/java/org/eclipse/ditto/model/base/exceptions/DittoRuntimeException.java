@@ -317,7 +317,8 @@ public class DittoRuntimeException extends RuntimeException
         readDescription(jsonObject).ifPresent(builder::description);
         builder.dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
-                .href(readHRef(jsonObject).orElse(null));
+                .description(readDescription(jsonObject).orElse(builder.getDescription().orElse(null)))
+                .href(readHRef(jsonObject).orElse(builder.getHref().orElse(null)));
 
         return builder.build();
     }

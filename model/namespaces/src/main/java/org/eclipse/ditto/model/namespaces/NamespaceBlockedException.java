@@ -104,7 +104,7 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
     @NotThreadSafe
     private static final class Builder extends DittoRuntimeExceptionBuilder<NamespaceBlockedException> {
 
-        private Builder() {}
+        private Builder() {message(DEFAULT_MESSAGE).description(DEFAULT_DESCRIPTION);}
 
         @Override
         protected NamespaceBlockedException doBuild(final DittoHeaders dittoHeaders,
