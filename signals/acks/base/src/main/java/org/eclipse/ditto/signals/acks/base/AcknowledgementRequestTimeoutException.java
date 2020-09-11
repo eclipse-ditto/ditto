@@ -125,7 +125,7 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
 
         private Builder(final Duration timeout) {
             this();
-            message(getMessage(timeout));
+            message(AcknowledgementRequestTimeoutException.getMessage(timeout));
         }
 
         @Override

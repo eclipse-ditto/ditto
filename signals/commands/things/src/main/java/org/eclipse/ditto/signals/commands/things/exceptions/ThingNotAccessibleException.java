@@ -129,7 +129,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
 
         private Builder(final ThingId thingId) {
             this();
-            message(getMessage(thingId));
+            message(ThingNotAccessibleException.getMessage(thingId));
         }
 
         @Override
