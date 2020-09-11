@@ -14,13 +14,19 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.function.Supplier;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.LoggerFactory;
 
 import akka.actor.Actor;
+import akka.actor.ExtendedActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.EventStream;
+import akka.event.LogSource;
 import akka.event.Logging;
+import akka.event.LoggingFilter;
 
 /**
  * Factory for obtaining instances of {@link DittoLogger} and {@link DittoDiagnosticLoggingAdapter}.
@@ -108,23 +114,36 @@ public final class DittoLoggerFactory {
      * @throws NullPointerException if {@code logSource} is {@code null}.
      */
     public static DittoDiagnosticLoggingAdapter getDiagnosticLoggingAdapter(final Actor logSource) {
-        return DefaultDittoDiagnosticLoggingAdapter.of(getPlainDiagnosticLoggingAdapter(logSource));
-    }
-
-    private static DiagnosticLoggingAdapter getPlainDiagnosticLoggingAdapter(final Actor logSource) {
-        return Logging.apply(checkNotNull(logSource, "logSource"));
+        return DefaultDittoDiagnosticLoggingAdapter.of(Logging.apply(checkNotNull(logSource, "logSource")));
     }
 
     /**
-     * Returns a {@link ThreadSafeDittoDiagnosticLoggingAdapter} with MDC support for the given actor.
+     * Returns a {@link ThreadSafeDittoLoggingAdapter} with MDC support for the given actor.
      *
-     * @param logSource the Actor used as logSource
+     * @param actor the Actor used as logSource
      * @return the thread-safe logging adapter.
      * @throws NullPointerException if {@code logSource} is {@code null}.
      * @since 1.3.0
      */
-    public static ThreadSafeDittoDiagnosticLoggingAdapter getThreadSafeDiagnosticLoggingAdapter(final Actor logSource) {
-        return ImmutableDittoDiagnosticLoggingAdapter.of(getPlainDiagnosticLoggingAdapter(logSource));
+    public static ThreadSafeDittoLoggingAdapter getThreadSafeDittoLoggingAdapter(final Actor actor) {
+        return ImmutableDittoLoggingAdapter.of(getDiagnosticLoggingAdapterFactory(checkNotNull(actor, "actor")));
+    }
+
+    /**
+     * This method transforms the specified Actor reference into the actual information that is required to instantiate
+     * a DiagnosticLoggingAdapter.
+     * The returned Supplier is repeatedly used to create a new DiagnosticLoggingAdapter.
+     * See implementation of {@link Logging#apply(Actor)}.
+     */
+    private static Supplier<DiagnosticLoggingAdapter> getDiagnosticLoggingAdapterFactory(final Actor actor) {
+        final LogSource<Actor> actorLogSource = LogSource.fromActor();
+        final String str = actorLogSource.genString(actor);
+        final Class<?> clazz = actorLogSource.getClazz(actor);
+        final ExtendedActorSystem system = (ExtendedActorSystem) actor.context().system();
+        final EventStream eventStream = system.getEventStream();
+        final LoggingFilter loggingFilter = system.logFilter();
+
+        return () -> new DiagnosticBusLogging(eventStream, str, clazz, loggingFilter);
     }
 
 }
