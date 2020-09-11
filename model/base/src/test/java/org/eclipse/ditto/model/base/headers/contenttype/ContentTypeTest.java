@@ -21,49 +21,37 @@ public final class ContentTypeTest {
     @Test
     public void applicationJsonIsJson() {
         final ContentType applicationJson = ContentType.of("application/json");
-        assertThat(applicationJson.isText()).isFalse();
-        assertThat(applicationJson.isJson()).isTrue();
-        assertThat(applicationJson.isBinary()).isFalse();
+        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.JSON);
     }
 
     @Test
     public void applicationJsonWithCharsetIsJson() {
         final ContentType applicationJson = ContentType.of("application/json;charset=UTF-8");
-        assertThat(applicationJson.isText()).isFalse();
-        assertThat(applicationJson.isJson()).isTrue();
-        assertThat(applicationJson.isBinary()).isFalse();
+        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.JSON);
     }
 
     @Test
     public void vendorSpecificApplicationJsonIsJson() {
         final ContentType applicationJson = ContentType.of("application/vnd.eclipse.ditto+json");
-        assertThat(applicationJson.isText()).isFalse();
-        assertThat(applicationJson.isJson()).isTrue();
-        assertThat(applicationJson.isBinary()).isFalse();
+        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.JSON);
     }
 
     @Test
     public void applicationJavascriptIsText() {
         final ContentType applicationJson = ContentType.of("application/javascript");
-        assertThat(applicationJson.isText()).isTrue();
-        assertThat(applicationJson.isJson()).isFalse();
-        assertThat(applicationJson.isBinary()).isFalse();
+        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.TEXT);
     }
 
     @Test
     public void applicationOctetStreamIsBinary() {
         final ContentType applicationJson = ContentType.of("application/octet-stream");
-        assertThat(applicationJson.isText()).isFalse();
-        assertThat(applicationJson.isJson()).isFalse();
-        assertThat(applicationJson.isBinary()).isTrue();
+        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.BINARY);
     }
 
     @Test
     public void imageJpegIsBinary() {
         final ContentType applicationJson = ContentType.of("image/jpeg");
-        assertThat(applicationJson.isText()).isFalse();
-        assertThat(applicationJson.isJson()).isFalse();
-        assertThat(applicationJson.isBinary()).isTrue();
+        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.BINARY);
     }
 
 }

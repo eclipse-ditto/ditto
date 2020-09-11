@@ -16,7 +16,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class ContentType {
+/**
+ * Parses a string as content type and provides information about how ditto should treat the payload based in its
+ * content type.
+ *
+ * @since 1.3.0
+ */
+public final class ContentType {
 
     // all types of application content types that are considered to be text (application/javascript, application/ecmascript)
     private static final List<String> APPLICATION_TYPES_CONSIDERED_TO_BE_STRING =
@@ -30,53 +36,57 @@ public class ContentType {
     public static final ContentType APPLICATION_JSON = ContentType.of("application/json");
 
     private final String value;
-    private final boolean isText;
-    private final boolean isJson;
-    private final boolean isBinary;
+    private final ParsingStrategyType parsingStrategy;
 
-    private ContentType(final String value, final boolean isText, final boolean isJson, final boolean isBinary) {
+    private ContentType(final String value, final ParsingStrategyType parsingStrategy) {
         this.value = value;
-        this.isText = isText;
-        this.isJson = isJson;
-        this.isBinary = isBinary;
+        this.parsingStrategy = parsingStrategy;
     }
 
+    /**
+     * Parses the given content type value into an instance of {@link ContentType}.
+     *
+     * @param value the content-type header value.
+     * @return the new instance
+     */
     public static ContentType of(final String value) {
         final String lowerCaseValue = value.toLowerCase();
         final String mediaType = lowerCaseValue.split(";")[0];
-        final boolean isText;
-        final boolean isJson;
-        final boolean isBinary;
+        final ParsingStrategyType parsingStrategy;
         if (TEXT_PATTERN.matcher(mediaType).matches()) {
-            isText = true;
-            isJson = false;
-            isBinary = false;
+            parsingStrategy = ParsingStrategyType.TEXT;
         } else if (JSON_PATTERN.matcher(mediaType).matches()) {
-            isText = false;
-            isJson = true;
-            isBinary = false;
+            parsingStrategy = ParsingStrategyType.JSON;
         } else {
-            isText = false;
-            isJson = false;
-            isBinary = true;
+            parsingStrategy = ParsingStrategyType.BINARY;
         }
-        return new ContentType(lowerCaseValue, isText, isJson, isBinary);
+        return new ContentType(lowerCaseValue, parsingStrategy);
     }
 
-    public boolean isText() {
-        return isText;
-    }
-
-    public boolean isJson() {
-        return isJson;
-    }
-
-    public boolean isBinary() {
-        return isBinary;
+    public ParsingStrategyType getParsingStrategyType() {
+        return parsingStrategy;
     }
 
     public String getValue() {
         return value;
+    }
+
+    public boolean isText() {
+        return parsingStrategy == ParsingStrategyType.TEXT;
+    }
+
+    public boolean isJson() {
+        return parsingStrategy == ParsingStrategyType.JSON;
+    }
+
+    public boolean isBinary() {
+        return parsingStrategy == ParsingStrategyType.BINARY;
+    }
+
+    public enum ParsingStrategyType {
+        TEXT,
+        JSON,
+        BINARY;
     }
 
 }
