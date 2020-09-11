@@ -148,8 +148,7 @@ public final class RequestTimeoutHandlingDirective {
          */
         return HttpResponse.create()
                 .withStatus(statusCode)
-                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString()))
-                .addHeaders(SecurityResponseHeadersDirective.createSecurityResponseHeaders());
+                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString()));
     }
 
 }
