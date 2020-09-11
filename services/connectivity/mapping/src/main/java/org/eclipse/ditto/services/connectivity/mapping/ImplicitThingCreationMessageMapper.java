@@ -156,7 +156,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         }
 
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            commandHeaders = evaluateCommandHeaders(message, commandHeaders);
+            commandHeaders = resolveCommandHeaders(message, commandHeaders);
         }
 
         final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedTemplate);
@@ -189,10 +189,9 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
 
-    private static Map<String, String> evaluateCommandHeaders(final ExternalMessage externalMessage,
+    private static Map<String, String> resolveCommandHeaders(final ExternalMessage externalMessage,
             final Map<String, String> errorResponseHeaders) {
-        final ExpressionResolver resolver =
-                getExpressionResolver(externalMessage.getHeaders());
+        final ExpressionResolver resolver = getExpressionResolver(externalMessage.getHeaders());
         final Map<String, String> resolvedHeaders = new HashMap<>();
         errorResponseHeaders.forEach((key, value) ->
                 resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->
