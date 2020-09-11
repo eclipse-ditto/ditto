@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -32,14 +31,10 @@ import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
-import org.eclipse.ditto.model.messages.MessageDirection;
-import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -92,16 +87,16 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         thingTemplate = configuration.findProperty(THING_TEMPLATE).orElseThrow(
                 () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build());
 
-        configuration.findProperty(COMMAND_HEADERS, JsonValue::isObject, JsonValue::asObject)
-                .ifPresent(configuredHeaders -> {
-                    if (!configuredHeaders.isEmpty()) {
-                        commandHeaders = new HashMap<>();
-                        for (final JsonField field : configuredHeaders) {
-                            commandHeaders.put(field.getKeyName(), field.getValue().formatAsString());
-                        }
-                        commandHeaders = Collections.unmodifiableMap(commandHeaders);
+        commandHeaders = configuration.findProperty(COMMAND_HEADERS, JsonValue::isObject, JsonValue::asObject)
+                .filter(configuredHeaders -> !configuredHeaders.isEmpty())
+                .map(configuredHeaders -> {
+                    final Map<String, String> newCommandHeaders = new HashMap<>();
+                    for (final JsonField field : configuredHeaders) {
+                        newCommandHeaders.put(field.getKeyName(), field.getValue().formatAsString());
                     }
-                });
+                    return Collections.unmodifiableMap(newCommandHeaders);
+                })
+                .orElse(Map.of());
 
         final JsonObject thingJson = JsonObject.of(thingTemplate);
 
