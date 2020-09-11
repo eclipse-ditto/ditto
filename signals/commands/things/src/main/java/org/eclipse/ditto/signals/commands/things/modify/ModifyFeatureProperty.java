@@ -100,7 +100,7 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
     }
 
     private void checkPropertyValue(final JsonObject propertyValue) {
-        ThingsModelFactory.validateFeaturePropertyValue(propertyValue);
+        ThingsModelFactory.validateJsonKeys(propertyValue);
     }
 
     /**

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -75,7 +76,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
-        this.attributeValue = checkNotNull(attributeValue, "new attribute");
+        try {
+            checkAttributeValue(attributeValue.asObject());
+        } finally {
+            this.attributeValue = checkNotNull(attributeValue, "new attribute");
+        }
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 attributeValue::getUpperBoundForStringSize,
@@ -91,6 +96,10 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
                     .build();
         }
         return AttributesModelFactory.validateAttributePointer(pointer);
+    }
+
+    private static void checkAttributeValue(final JsonObject object) {
+        ThingsModelFactory.validateJsonKeys(object);
     }
 
     /**

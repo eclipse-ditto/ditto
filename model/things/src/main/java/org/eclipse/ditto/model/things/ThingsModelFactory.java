@@ -567,7 +567,7 @@ public final class ThingsModelFactory {
      * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @since 1.3.0
      */
-    public static void validateFeaturePropertyValue(final JsonObject jsonObject) {
+    public static void validateJsonKeys(final JsonObject jsonObject) {
         JsonKeyValidator.validateJsonKeys(jsonObject);
     }
 
