@@ -12,13 +12,16 @@
  */
 package org.eclipse.ditto.model.base.headers.contenttype;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * Parses a string as content type and provides information about how ditto should treat the payload based in its
- * content type.
+ * Parses a string as content-type and provides information about how Ditto should treat the payload based in its
+ * content-type.
  *
  * @since 1.3.0
  */
@@ -33,65 +36,109 @@ public final class ContentType {
 
     private static final Pattern JSON_PATTERN = Pattern.compile("(application/(vnd\\..+\\+)?json)");
 
+    /**
+     * The well known content-type "application/json".
+     */
     public static final ContentType APPLICATION_JSON = ContentType.of("application/json");
 
     private final String value;
-    private final ParsingStrategyType parsingStrategy;
+    private final ParsingStrategy parsingStrategy;
 
-    private ContentType(final String value, final ParsingStrategyType parsingStrategy) {
+    private ContentType(final String value, final ParsingStrategy parsingStrategy) {
         this.value = value;
         this.parsingStrategy = parsingStrategy;
     }
 
     /**
-     * Parses the given content type value into an instance of {@link ContentType}.
+     * Parses the given contentTypeValue into an instance of {@link ContentType}.
      *
-     * @param value the content-type header value.
+     * @param contentTypeValue the content-type header value.
+     * @throws NullPointerException if {@code contentTypeValue} was {@code null}.
      * @return the new instance
      */
-    public static ContentType of(final String value) {
-        final String lowerCaseValue = value.toLowerCase();
+    public static ContentType of(final CharSequence contentTypeValue) {
+        final String lowerCaseValue = checkNotNull(contentTypeValue, "contentTypeValue").toString()
+                .toLowerCase();
         final String mediaType = lowerCaseValue.split(";")[0];
-        final ParsingStrategyType parsingStrategy;
+        final ParsingStrategy parsingStrategy;
         if (TEXT_PATTERN.matcher(mediaType).matches()) {
-            parsingStrategy = ParsingStrategyType.TEXT;
+            parsingStrategy = ParsingStrategy.TEXT;
         } else if (JSON_PATTERN.matcher(mediaType).matches()) {
-            parsingStrategy = ParsingStrategyType.JSON;
+            parsingStrategy = ParsingStrategy.JSON;
         } else {
-            parsingStrategy = ParsingStrategyType.BINARY;
+            parsingStrategy = ParsingStrategy.BINARY;
         }
         return new ContentType(lowerCaseValue, parsingStrategy);
     }
 
-    public ParsingStrategyType getParsingStrategyType() {
+    /**
+     * @return the strategy of how to parse the content-type.
+     */
+    public ParsingStrategy getParsingStrategy() {
         return parsingStrategy;
     }
 
+    /**
+     * @return the actual content-type string value.
+     */
     public String getValue() {
         return value;
     }
 
+    /**
+     * @return whether this content-type is to be parsed as text.
+     */
     public boolean isText() {
-        return parsingStrategy == ParsingStrategyType.TEXT;
-    }
-
-    public boolean isJson() {
-        return parsingStrategy == ParsingStrategyType.JSON;
-    }
-
-    public boolean isBinary() {
-        return parsingStrategy == ParsingStrategyType.BINARY;
+        return parsingStrategy == ParsingStrategy.TEXT;
     }
 
     /**
-     * Known types of payload parsing in ditto.
-     *
-     * @since 1.3.0
+     * @return whether this content-type is to be parsed as JSON.
      */
-    public enum ParsingStrategyType {
+    public boolean isJson() {
+        return parsingStrategy == ParsingStrategy.JSON;
+    }
+
+    /**
+     * @return whether this content-type is to be parsed as binary.
+     */
+    public boolean isBinary() {
+        return parsingStrategy == ParsingStrategy.BINARY;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ContentType that = (ContentType) o;
+        return value.equals(that.value) &&
+                parsingStrategy == that.parsingStrategy;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value, parsingStrategy);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "value=" + value +
+                ", parsingStrategy=" + parsingStrategy +
+                "]";
+    }
+
+    /**
+     * Known strategies of payload parsing in Ditto.
+     */
+    public enum ParsingStrategy {
         TEXT,
         JSON,
-        BINARY;
+        BINARY
     }
 
 }

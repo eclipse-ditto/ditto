@@ -16,42 +16,45 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+/**
+ * Unit tests for {@link ContentType}.
+ */
 public final class ContentTypeTest {
 
     @Test
     public void applicationJsonIsJson() {
         final ContentType applicationJson = ContentType.of("application/json");
-        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.JSON);
+        assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.JSON);
     }
 
     @Test
     public void applicationJsonWithCharsetIsJson() {
         final ContentType applicationJson = ContentType.of("application/json;charset=UTF-8");
-        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.JSON);
+        assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.JSON);
     }
 
     @Test
     public void vendorSpecificApplicationJsonIsJson() {
         final ContentType applicationJson = ContentType.of("application/vnd.eclipse.ditto+json");
-        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.JSON);
+        assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.JSON);
     }
 
     @Test
     public void applicationJavascriptIsText() {
         final ContentType applicationJson = ContentType.of("application/javascript");
-        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.TEXT);
+        assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.TEXT);
     }
 
     @Test
     public void applicationOctetStreamIsBinary() {
         final ContentType applicationJson = ContentType.of("application/octet-stream");
-        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.BINARY);
+        assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.BINARY);
     }
 
     @Test
     public void imageJpegIsBinary() {
         final ContentType applicationJson = ContentType.of("image/jpeg");
-        assertThat(applicationJson.getParsingStrategyType()).isEqualTo(ContentType.ParsingStrategyType.BINARY);
+        assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.BINARY);
     }
 
 }
