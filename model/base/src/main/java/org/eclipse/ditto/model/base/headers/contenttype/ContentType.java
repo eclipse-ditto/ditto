@@ -83,6 +83,11 @@ public final class ContentType {
         return parsingStrategy == ParsingStrategyType.BINARY;
     }
 
+    /**
+     * Known types of payload parsing in ditto.
+     *
+     * @since 1.3.0
+     */
     public enum ParsingStrategyType {
         TEXT,
         JSON,
