@@ -63,6 +63,8 @@ import scala.util.Try;
 public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final String CONTENT_TYPE = "APPLICATION/VND.ECLIPSE.DITTO+JSON ; PARAM_NAME=PARAM_VALUE";
+    private static final String CUSTOM_HEADER_NAME = "my-custom-header";
+    private static final String CUSTOM_HEADER_VALUE = "bumlux";
     private static final String BODY = "[\"The quick brown fox jumps over the lazy dog.\"]";
 
     private HttpPushFactory httpPushFactory;
@@ -132,6 +134,9 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
         assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
         assertThat(ack.getEntity()).contains(JsonFactory.readFrom(BODY));
+        assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
+                Map.of("content-type", "application/vnd.eclipse.ditto+json; PARAM_NAME=PARAM_VALUE", CUSTOM_HEADER_NAME,
+                        CUSTOM_HEADER_VALUE));
     }
 
     @Test
@@ -150,7 +155,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
             assertThat(acks.getAcknowledgement(label)).isNotEmpty();
             final Acknowledgement ack = acks.getAcknowledgement(label).orElseThrow();
-            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(Map.of("content-type", "text/plain"));
+            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
+                    Map.of("content-type", "text/plain", CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE));
             assertThat(ack.getEntity()).contains(JsonValue.of("hello!"));
         }};
     }
@@ -171,7 +177,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
             assertThat(acks.getAcknowledgement(label)).isNotEmpty();
             final Acknowledgement ack = acks.getAcknowledgement(label).orElseThrow();
-            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(Map.of("content-type", "application/octet-stream"));
+            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
+                    Map.of("content-type", "application/octet-stream", CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE));
             assertThat(ack.getEntity()).contains(JsonValue.of("aGVsbG8h"));
         }};
     }
@@ -198,10 +205,12 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     private HttpPushFactory mockHttpPushFactory(final String contentType, final String body) {
+
         return new DummyHttpPushFactory("8.8.4.4", request -> {
             received.offer(request);
             return HttpResponse.create()
                     .withStatus(StatusCodes.OK)
+                    .addHeader(HttpHeader.parse(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE))
                     .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
                             (akka.http.scaladsl.model.ContentType) ContentTypes.parse(contentType),
                             ByteString.fromString(body)

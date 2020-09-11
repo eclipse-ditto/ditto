@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -262,7 +263,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
-        final DittoHeaders dittoHeaders = setContentType(signal.getDittoHeaders(), response);
+        final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
         final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
         if (statusOptional.isEmpty()) {
@@ -284,10 +285,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return new ImmutableConnectionFailure(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
-    private static DittoHeaders setContentType(final DittoHeaders dittoHeaders, final HttpResponse response) {
-        return dittoHeaders.toBuilder()
-                .contentType(response.entity().getContentType().toString())
-                .build();
+    private static DittoHeaders setDittoHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {
+        // Special handling of content-type because it needs to be extracted from the entity instead of the headers.
+        final DittoHeadersBuilder dittoHeadersBuilder =
+                dittoHeaders.toBuilder().contentType(response.entity().getContentType().toString());
+
+        response.getHeaders().forEach(header -> dittoHeadersBuilder.putHeader(header.name(), header.value()));
+
+        return dittoHeadersBuilder.build();
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {
