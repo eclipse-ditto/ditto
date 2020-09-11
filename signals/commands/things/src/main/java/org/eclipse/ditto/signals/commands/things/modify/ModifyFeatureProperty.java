@@ -39,6 +39,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
+
 /**
  * This command modifies a single Property of a {@link org.eclipse.ditto.model.things.Feature}'s properties.
  */
@@ -81,7 +82,11 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.propertyPointer = checkPropertyPointer(propertyPointer);
-        this.propertyValue = checkNotNull(propertyValue, "Property Value");
+        try {
+            checkPropertyValue(propertyValue.asObject());
+        } finally {
+            this.propertyValue = checkNotNull(propertyValue);
+        }
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 propertyValue::getUpperBoundForStringSize,
@@ -92,6 +97,10 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
     private JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
         checkNotNull(propertyPointer, "Property JsonPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
+    }
+
+    private void checkPropertyValue(final JsonObject propertyValue) {
+        ThingsModelFactory.validateFeaturePropertyValue(propertyValue);
     }
 
     /**
