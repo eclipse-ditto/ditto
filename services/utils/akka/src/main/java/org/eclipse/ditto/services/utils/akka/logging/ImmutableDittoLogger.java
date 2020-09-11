@@ -33,13 +33,13 @@ import org.slf4j.Marker;
  * @since 1.3.0
  */
 @Immutable
-final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
+final class ImmutableDittoLogger implements ThreadSafeDittoLogger {
 
     private final Logger plainSlf4jLogger;
     private final Map<String, String> localMdc;
     private final Logger loggerToUse;
 
-    private ImmutableThreadSafeDittoLogger(final Logger plainSlf4jLogger, final Map<String, String> localMdc) {
+    private ImmutableDittoLogger(final Logger plainSlf4jLogger, final Map<String, String> localMdc) {
         this.plainSlf4jLogger = plainSlf4jLogger;
         this.localMdc = localMdc;
         if (localMdc.isEmpty()) {
@@ -49,8 +49,8 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
         }
     }
 
-    static ImmutableThreadSafeDittoLogger of(final Logger logger) {
-        return new ImmutableThreadSafeDittoLogger(checkNotNull(logger, "logger"), new HashMap<>(5));
+    static ImmutableDittoLogger of(final Logger logger) {
+        return new ImmutableDittoLogger(checkNotNull(logger, "logger"), new HashMap<>(5));
     }
 
     @Override
@@ -359,37 +359,37 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withCorrelationId(@Nullable final CharSequence correlationId) {
+    public ImmutableDittoLogger withCorrelationId(@Nullable final CharSequence correlationId) {
         return withMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withCorrelationId(final WithDittoHeaders<?> withDittoHeaders) {
-        return withCorrelationId(withDittoHeaders.getDittoHeaders());
+    public ImmutableDittoLogger withCorrelationId(final WithDittoHeaders<?> withDittoHeaders) {
+        return withCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withCorrelationId(final DittoHeaders dittoHeaders) {
-        return withCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
+    public ImmutableDittoLogger withCorrelationId(final DittoHeaders dittoHeaders) {
+        return withCorrelationId(checkNotNull(dittoHeaders, "dittoHeaders").getCorrelationId().orElse(null));
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger discardCorrelationId() {
+    public ImmutableDittoLogger discardCorrelationId() {
         return removeMdcEntry(CommonMdcEntryKey.CORRELATION_ID);
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+    public ImmutableDittoLogger withMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         validateMdcEntryKey(key, "key");
         @Nullable final CharSequence existingValue = localMdc.get(key.toString());
-        final ImmutableThreadSafeDittoLogger result;
+        final ImmutableDittoLogger result;
         if (null != value) {
             if (value.equals(existingValue)) {
                 result = this;
             } else {
                 final Map<String, String> newLocalMdc = copyLocalMdc();
                 newLocalMdc.put(key.toString(), value.toString());
-                result = new ImmutableThreadSafeDittoLogger(plainSlf4jLogger, newLocalMdc);
+                result = new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
             }
         } else {
             if (null == existingValue) {
@@ -397,7 +397,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
             } else {
                 final Map<String, String> newLocalMdc = copyLocalMdc();
                 newLocalMdc.remove(key.toString());
-                result = new ImmutableThreadSafeDittoLogger(plainSlf4jLogger, newLocalMdc);
+                result = new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
             }
         }
         return result;
@@ -412,7 +412,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+    public ImmutableDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
             final CharSequence k2, @Nullable final CharSequence v2) {
 
         validateMdcEntryKey(k1, "k1");
@@ -422,7 +422,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
         putOrRemove(k1, v1, newLocalMdc);
         putOrRemove(k2, v2, newLocalMdc);
 
-        return new ImmutableThreadSafeDittoLogger(plainSlf4jLogger, newLocalMdc);
+        return new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
     }
 
     private static void putOrRemove(final CharSequence key, @Nullable final CharSequence value,
@@ -436,7 +436,7 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+    public ImmutableDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
             final CharSequence k2, @Nullable final CharSequence v2,
             final CharSequence k3, @Nullable final CharSequence v3) {
 
@@ -449,11 +449,11 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
         putOrRemove(k2, v2, newLocalMdc);
         putOrRemove(k3, v3, newLocalMdc);
 
-        return new ImmutableThreadSafeDittoLogger(plainSlf4jLogger, newLocalMdc);
+        return new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
+    public ImmutableDittoLogger withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
         checkNotNull(mdcEntry, "mdcEntry");
         checkNotNull(furtherMdcEntries, "furtherMdcEntries");
 
@@ -464,18 +464,18 @@ final class ImmutableThreadSafeDittoLogger implements ThreadSafeDittoLogger {
             newLocalMdc.put(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
         }
 
-        return new ImmutableThreadSafeDittoLogger(plainSlf4jLogger, newLocalMdc);
+        return new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
     }
 
     @Override
-    public ImmutableThreadSafeDittoLogger removeMdcEntry(final CharSequence key) {
+    public ImmutableDittoLogger removeMdcEntry(final CharSequence key) {
         validateMdcEntryKey(key, "key");
         try {
-            final ImmutableThreadSafeDittoLogger result;
+            final ImmutableDittoLogger result;
             if (localMdc.containsKey(key.toString())) {
                 final Map<String, String> newLocalMdc = copyLocalMdc();
                 newLocalMdc.remove(key.toString());
-                result = new ImmutableThreadSafeDittoLogger(plainSlf4jLogger, newLocalMdc);
+                result = new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
             } else {
                 result = this;
             }

@@ -39,10 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.impl.ObservableMdcAdapter;
 
 /**
- * Unit test for {@link ImmutableThreadSafeDittoLogger}.
+ * Unit test for {@link ImmutableDittoLogger}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class ImmutableThreadSafeDittoLoggerTest {
+public final class ImmutableDittoLoggerTest {
 
     private static final String CORRELATION_ID_KEY = CommonMdcEntryKey.CORRELATION_ID.toString();
     private static final String CONNECTION_ID_KEY = "connection-id";
@@ -72,7 +72,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     @Ignore("MutabilityChecker cannot cope with the implementation")
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableThreadSafeDittoLogger.class,
+        assertInstancesOf(ImmutableDittoLogger.class,
                 areEffectivelyImmutable(),
                 provided(Logger.class).isAlsoImmutable());
     }
@@ -80,14 +80,14 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     @Test
     public void getInstanceWithNullLogger() {
         assertThatNullPointerException()
-                .isThrownBy(() -> ImmutableThreadSafeDittoLogger.of(null))
+                .isThrownBy(() -> ImmutableDittoLogger.of(null))
                 .withMessage("The logger must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void getNameReturnsExpected() {
-        final ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        final ImmutableDittoLogger underTest = ImmutableDittoLogger.of(plainSlf4jLogger);
 
         assertThat(underTest.getName()).isEqualTo(plainSlf4jLogger.getName());
     }
@@ -95,10 +95,10 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     @Test
     public void withSameCorrelationIdReturnsSameInstance() {
         final String correlationId = getCorrelationId();
-        ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        ImmutableDittoLogger underTest = ImmutableDittoLogger.of(plainSlf4jLogger);
         underTest = underTest.withCorrelationId(correlationId);
 
-        final ImmutableThreadSafeDittoLogger secondLogger = underTest.withCorrelationId(correlationId);
+        final ImmutableDittoLogger secondLogger = underTest.withCorrelationId(correlationId);
 
         assertThat(secondLogger).isSameAs(underTest);
     }
@@ -108,7 +108,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         final String correlationId = getCorrelationId();
         final String msg = "Foo!";
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(true);
-        ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        ImmutableDittoLogger underTest = ImmutableDittoLogger.of(plainSlf4jLogger);
         underTest = underTest.withCorrelationId(correlationId);
 
         underTest.info(msg);
@@ -127,7 +127,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         final String correlationId = getCorrelationId();
         final String msg = "Foo!";
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(false);
-        ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        ImmutableDittoLogger underTest = ImmutableDittoLogger.of(plainSlf4jLogger);
         underTest = underTest.withCorrelationId(correlationId);
 
         underTest.info(msg);
@@ -141,7 +141,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     public void putNothingToMdcButLogInfo() {
         final String correlationId = null;
         final String msg = "Foo!";
-        ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        ImmutableDittoLogger underTest = ImmutableDittoLogger.of(plainSlf4jLogger);
         underTest = underTest.withCorrelationId(correlationId);
 
         underTest.info(msg);
@@ -165,7 +165,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
         Mockito.when(plainSlf4jLogger.isWarnEnabled()).thenReturn(true);
         Mockito.when(plainSlf4jLogger.isErrorEnabled()).thenReturn(true);
 
-        ImmutableThreadSafeDittoLogger underTest = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        ImmutableDittoLogger underTest = ImmutableDittoLogger.of(plainSlf4jLogger);
         underTest = underTest.withCorrelationId(correlationId);
 
         underTest.debug(debugMsg, "please");
@@ -190,7 +190,7 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     public void twoThreadsTwoLoggers() {
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(true);
 
-        final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        final ImmutableDittoLogger initialLogger = ImmutableDittoLogger.of(plainSlf4jLogger);
         final ExecutorService executorService = Executors.newFixedThreadPool(2);
         final Runnable loggingThread1 = () -> initialLogger.withCorrelationId("logger1-1").info("logger1-1");
         final Runnable loggingThread2 = () -> initialLogger.withCorrelationId("logger2-1").info("logger2-1");
@@ -208,12 +208,12 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     @Test
     public void withTwoMdcEntries() {
         Mockito.when(plainSlf4jLogger.isErrorEnabled()).thenReturn(true);
-        final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        final ImmutableDittoLogger initialLogger = ImmutableDittoLogger.of(plainSlf4jLogger);
         final String correlationId = getCorrelationId();
         final String connectionId = "myConnection";
         final String logMessage = "The connection is closed!";
 
-        final ImmutableThreadSafeDittoLogger underTest =
+        final ImmutableDittoLogger underTest =
                 initialLogger.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId);
 
         underTest.error(logMessage);
@@ -230,16 +230,16 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     @Test
     public void removeCorrelationIdViaNullValue() {
         Mockito.when(plainSlf4jLogger.isInfoEnabled()).thenReturn(true);
-        final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        final ImmutableDittoLogger initialLogger = ImmutableDittoLogger.of(plainSlf4jLogger);
         final String correlationId = getCorrelationId();
         final String connectionId = "myConnection";
 
-        final ImmutableThreadSafeDittoLogger withTwoMdcEntries =
+        final ImmutableDittoLogger withTwoMdcEntries =
                 initialLogger.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId);
 
         withTwoMdcEntries.info("Foo");
 
-        final ImmutableThreadSafeDittoLogger withOneMdcEntry =
+        final ImmutableDittoLogger withOneMdcEntry =
                 withTwoMdcEntries.withMdcEntries(CORRELATION_ID_KEY, null, CONNECTION_ID_KEY, connectionId);
 
         withOneMdcEntry.info("Bar");
@@ -257,16 +257,16 @@ public final class ImmutableThreadSafeDittoLoggerTest {
     @Test
     public void removeMdcEntryViaKey() {
         Mockito.when(plainSlf4jLogger.isDebugEnabled()).thenReturn(true);
-        final ImmutableThreadSafeDittoLogger initialLogger = ImmutableThreadSafeDittoLogger.of(plainSlf4jLogger);
+        final ImmutableDittoLogger initialLogger = ImmutableDittoLogger.of(plainSlf4jLogger);
         final String correlationId = getCorrelationId();
         final String connectionId = "myConnection";
 
-        final ImmutableThreadSafeDittoLogger withTwoMdcEntries =
+        final ImmutableDittoLogger withTwoMdcEntries =
                 initialLogger.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId);
 
         withTwoMdcEntries.debug("Foo");
 
-        final ImmutableThreadSafeDittoLogger withOneMdcEntry = withTwoMdcEntries.removeMdcEntry(CONNECTION_ID_KEY);
+        final ImmutableDittoLogger withOneMdcEntry = withTwoMdcEntries.removeMdcEntry(CONNECTION_ID_KEY);
 
         withOneMdcEntry.debug("Bar");
 

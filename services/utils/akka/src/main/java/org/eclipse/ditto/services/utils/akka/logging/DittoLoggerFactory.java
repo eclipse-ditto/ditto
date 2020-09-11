@@ -90,7 +90,7 @@ public final class DittoLoggerFactory {
      * @since 1.3.0
      */
     public static ThreadSafeDittoLogger getThreadSafeLogger(final Class<?> clazz) {
-        return ImmutableThreadSafeDittoLogger.of(LoggerFactory.getLogger(checkNotNull(clazz, "clazz")));
+        return ImmutableDittoLogger.of(LoggerFactory.getLogger(checkNotNull(clazz, "clazz")));
     }
 
     /**
@@ -103,7 +103,7 @@ public final class DittoLoggerFactory {
      * @since 1.3.0
      */
     public static ThreadSafeDittoLogger getThreadSafeLogger(final CharSequence name) {
-        return ImmutableThreadSafeDittoLogger.of(LoggerFactory.getLogger(checkNotNull(name, "name").toString()));
+        return ImmutableDittoLogger.of(LoggerFactory.getLogger(checkNotNull(name, "name").toString()));
     }
 
     /**
