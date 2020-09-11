@@ -220,6 +220,9 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
     @Override
     public DittoHeaders getDittoHeaders() {
+        if (acknowledgements.size() == 1) {
+            return acknowledgements.get(0).getDittoHeaders();
+        }
         return dittoHeaders;
     }
 
