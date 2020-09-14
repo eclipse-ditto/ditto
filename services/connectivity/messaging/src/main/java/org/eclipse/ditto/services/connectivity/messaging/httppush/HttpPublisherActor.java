@@ -24,14 +24,15 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,6 +44,9 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -57,6 +61,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -104,6 +109,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final long READ_BODY_TIMEOUT_MS = 10000L;
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-http-diagnostic");
+    private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -283,7 +289,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
-        final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
         final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
         if (statusOptional.isEmpty()) {
@@ -299,50 +304,153 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final int maxResponseSize = isMessageCommand ? maxTotalMessageSize : ackSizeQuota;
             return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
                 @Nullable final CommandResponse<?> commandResponse;
-                if (isMessageCommand) {
-                    commandResponse = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders,
-                            body, statusCode, response.entity().getContentType(), response.getHeaders());
+                @Nullable final Acknowledgement acknowledgement;
+                final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
+                if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
+                    // Live-Response is declared as issued ack => parse live response from response
+                    if (isMessageCommand) {
+                        commandResponse = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders,
+                                body, statusCode);
+                    } else {
+                        commandResponse = null;
+                    }
+                    acknowledgement = null; // Response is expected to be the live-response.
+                } else if (NO_ACK_LABEL.equals(label)) {
+                    // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
+                    final boolean isDittoProtocolMessage = dittoHeaders.getContentType()
+                            .filter(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE::equals)
+                            .isPresent();
+                    if (isDittoProtocolMessage && body.isObject()) {
+                        final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
+                        if (parsedResponse instanceof Acknowledgement) {
+                            commandResponse = null;
+                            acknowledgement = (Acknowledgement) parsedResponse;
+                        } else if (parsedResponse instanceof MessageCommandResponse) {
+                            commandResponse = parsedResponse;
+                            acknowledgement = null;
+                        } else {
+                            commandResponse = null;
+                            acknowledgement = null;
+                        }
+                    } else {
+                        commandResponse = null;
+                        acknowledgement = null;
+                    }
                 } else {
+                    // There is an issued ack declared but its not live-response => handle response as acknowledgement.
                     commandResponse = null;
+                    acknowledgement = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
                 }
-                return new CommandResponseOrAcknowledgement(commandResponse,
-                        Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body)
-                );
+
+                if (commandResponse != null) {
+                    if (isMessageCommand) {
+                        validateLiveResponse(commandResponse, (MessageCommand<?, ?>) signal);
+                    } else {
+                        //TODO: throw correct exception.
+                        throw new IllegalStateException("Command responses are only supported for message commands.");
+                    }
+                }
+                return new CommandResponseOrAcknowledgement(commandResponse, acknowledgement);
             });
         }
     }
 
-    private CommandResponse<?> toMessageCommandResponse(final MessageCommand<?, ?> messageCommand,
-            final DittoHeaders dittoHeaders,
-            final JsonValue jsonValue,
-            final HttpStatusCode status,
-            final akka.http.javadsl.model.ContentType contentType,
-            final Iterable<HttpHeader> headers) {
+    private void validateLiveResponse(final CommandResponse<?> commandResponse,
+            final MessageCommand<?, ?> messageCommand) {
 
-        final MessageHeadersBuilder responseMessageBuilder = messageCommand.getMessage().getHeaders().toBuilder();
-        final MessageHeaders messageHeaders = responseMessageBuilder.statusCode(status)
-                .contentType(contentType.toString())
-                .putHeaders(StreamSupport.stream(headers.spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value))
-                )
-                .build();
-        final Message<Object> message = Message.newBuilder(messageHeaders)
-                .payload(jsonValue)
-                .build();
+        if (!commandResponse.getEntityId().equals(messageCommand.getEntityId())) {
+            //TODO: throw correct exception.
+            throw new IllegalStateException("response does not target the correct thing");
+        }
 
         switch (messageCommand.getType()) {
             case SendClaimMessage.TYPE:
-                return SendClaimMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
+                if (!SendClaimMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
+                    //TODO: throw correct exception.
+                    throw new IllegalStateException("response not of correct type");
+                }
+                break;
             case SendThingMessage.TYPE:
-                return SendThingMessageResponse.of(messageCommand.getThingEntityId(), message, status, dittoHeaders);
+                if (!SendThingMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
+                    //TODO: throw correct exception.
+                    throw new IllegalStateException("response not of correct type");
+                }
+                break;
             case SendFeatureMessage.TYPE:
-                final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
-                return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
-                        sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
-            default:
-                throw new IllegalArgumentException(
-                        "Unknown MessageCommand <" + messageCommand.getClass().getSimpleName() + ">");
+                if (!SendFeatureMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
+                    //TODO: throw correct exception.
+                    throw new IllegalStateException("response not of correct type");
+                }
+                if (!((SendFeatureMessage<?>) messageCommand).getFeatureId()
+                        .equalsIgnoreCase(((SendFeatureMessageResponse<?>) commandResponse).getFeatureId())) {
+                    //TODO: throw correct exception.
+                    throw new IllegalStateException("response does not target the correct feature");
+                }
+                break;
+            default: //TODO: error or silently ignore unknown message command type?
         }
+    }
+
+    @Nullable
+    private MessageCommandResponse<?, ?> toMessageCommandResponse(final MessageCommand<?, ?> messageCommand,
+            final DittoHeaders dittoHeaders,
+            final JsonValue jsonValue,
+            final HttpStatusCode status) {
+
+        final boolean isDittoProtocolMessage =
+                dittoHeaders.getContentType().filter(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE::equals).isPresent();
+        if (isDittoProtocolMessage && jsonValue.isObject()) {
+            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
+            if (commandResponse == null) {
+                return null;
+            } else if (commandResponse instanceof MessageCommandResponse) {
+                return (MessageCommandResponse<?, ?>) commandResponse;
+            } else {
+                connectionLogger.exception("Expected <{}> to be of type <{}> but was of type <{}>.",
+                        commandResponse, MessageCommandResponse.class.getSimpleName(),
+                        commandResponse.getClass().getSimpleName());
+                return null;
+            }
+        } else {
+            final MessageHeadersBuilder responseMessageBuilder = messageCommand.getMessage().getHeaders().toBuilder();
+            final MessageHeaders messageHeaders = responseMessageBuilder.statusCode(status)
+                    .putHeaders(dittoHeaders)
+                    .build();
+            final Message<Object> message = Message.newBuilder(messageHeaders)
+                    .payload(jsonValue)
+                    .build();
+
+            switch (messageCommand.getType()) {
+                case SendClaimMessage.TYPE:
+                    return SendClaimMessageResponse.of(messageCommand.getThingEntityId(), message, status,
+                            dittoHeaders);
+                case SendThingMessage.TYPE:
+                    return SendThingMessageResponse.of(messageCommand.getThingEntityId(), message, status,
+                            dittoHeaders);
+                case SendFeatureMessage.TYPE:
+                    final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
+                    return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
+                            sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
+                default:
+                    // TODO: throw correct exception
+                    throw new IllegalArgumentException(
+                            "Unknown MessageCommand <" + messageCommand.getClass().getSimpleName() + ">");
+            }
+        }
+    }
+
+    @Nullable
+    private CommandResponse<?> toCommandResponse(final JsonObject jsonObject) {
+        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+        final Signal<?> signal = DITTO_PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
+        if (signal instanceof CommandResponse) {
+            return (CommandResponse<?>) signal;
+        } else {
+            connectionLogger.exception("Expected <{}> to be of type <{}> but was of type <{}>.",
+                    jsonObject, CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
+            return null;
+        }
+
     }
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
