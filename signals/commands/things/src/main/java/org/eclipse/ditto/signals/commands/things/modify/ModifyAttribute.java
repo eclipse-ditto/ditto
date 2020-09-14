@@ -76,11 +76,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
-        try {
+        if (attributeValue.isObject()) {
             checkAttributeValue(attributeValue.asObject());
-        } finally {
-            this.attributeValue = checkNotNull(attributeValue, "new attribute");
         }
+
+        this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 attributeValue::getUpperBoundForStringSize,

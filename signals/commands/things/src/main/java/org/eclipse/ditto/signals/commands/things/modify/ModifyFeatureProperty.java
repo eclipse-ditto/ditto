@@ -82,11 +82,10 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.propertyPointer = checkPropertyPointer(propertyPointer);
-        try {
+        if (propertyValue.isObject()) {
             checkPropertyValue(propertyValue.asObject());
-        } finally {
-            this.propertyValue = checkNotNull(propertyValue);
         }
+        this.propertyValue = checkNotNull(propertyValue);
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 propertyValue::getUpperBoundForStringSize,
