@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -61,6 +62,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -69,6 +71,7 @@ import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -112,7 +115,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-http-diagnostic");
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
-            "Live response of type <{}> is not of expected type <{}>.";
+            "Live response of type <%s> is not of expected type <%s>.";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -345,68 +348,81 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     acknowledgement = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
                 }
 
-                if (commandResponse != null && isMessageCommand &&
-                        validateLiveResponse(commandResponse, (MessageCommand<?, ?>) signal)) {
+                if (commandResponse != null && isMessageCommand) {
                     // Do only add command response for live commands with a correct response.
-                    return new CommandResponseOrAcknowledgement(commandResponse, null);
+                    return new CommandResponseOrAcknowledgement(
+                            validateLiveResponse(commandResponse, (MessageCommand<?, ?>) signal), null);
                 }
                 return new CommandResponseOrAcknowledgement(null, acknowledgement);
             });
         }
     }
 
-    private boolean validateLiveResponse(final CommandResponse<?> commandResponse,
+    private CommandResponse<?> validateLiveResponse(final CommandResponse<?> commandResponse,
             final MessageCommand<?, ?> messageCommand) {
 
-        boolean valid = true;
         final ThingId messageThingId = messageCommand.getEntityId();
         final EntityId responseThingId = commandResponse.getEntityId();
         if (!responseThingId.equals(messageThingId)) {
-            connectionLogger.failure(
-                    "Live response does not target the correct thing. Expected thing ID <{}>, but was <{}>.",
-                    messageThingId, responseThingId
+            final String message = String.format(
+                    "Live response does not target the correct thing. Expected thing ID <%s>, but was <%s>.",
+                    messageThingId, responseThingId);
+            handleInvalidResponse(message, commandResponse);
+        }
+
+        final String messageCorrelationId = messageCommand.getDittoHeaders().getCorrelationId().orElse(null);
+        final String responseCorrelationId = commandResponse.getDittoHeaders().getCorrelationId().orElse(null);
+        if (!Objects.equals(messageCorrelationId, responseCorrelationId)) {
+            final String message = String.format(
+                    "Correlation ID of response <%s> does not match correlation ID of message command <%s>. ",
+                    responseCorrelationId, messageCorrelationId
             );
-            valid = false;
+            handleInvalidResponse(message, commandResponse);
         }
 
         switch (messageCommand.getType()) {
             case SendClaimMessage.TYPE:
                 if (!SendClaimMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    connectionLogger.failure(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
-                            SendClaimMessageResponse.TYPE
-                    );
-                    valid = false;
+                    final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
+                            SendClaimMessageResponse.TYPE);
+                    handleInvalidResponse(message, commandResponse);
                 }
                 break;
             case SendThingMessage.TYPE:
                 if (!SendThingMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    connectionLogger.failure(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
-                            SendThingMessageResponse.TYPE
-                    );
-                    valid = false;
+                    final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
+                            SendThingMessageResponse.TYPE);
+                    handleInvalidResponse(message, commandResponse);
                 }
                 break;
             case SendFeatureMessage.TYPE:
                 if (!SendFeatureMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    connectionLogger.failure(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
-                            SendFeatureMessageResponse.TYPE
-                    );
-                    valid = false;
+                    final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
+                            SendFeatureMessageResponse.TYPE);
+                    handleInvalidResponse(message, commandResponse);
                 }
                 final String messageFeatureId = ((SendFeatureMessage<?>) messageCommand).getFeatureId();
                 final String responseFeatureId = ((SendFeatureMessageResponse<?>) commandResponse).getFeatureId();
                 if (!messageFeatureId.equalsIgnoreCase(responseFeatureId)) {
-                    connectionLogger.failure("Live response does not target the correct feature. " +
-                            "Expected feature ID <{}>, but was <{}>.", messageFeatureId, responseFeatureId
-                    );
-                    valid = false;
+                    final String message = String.format("Live response does not target the correct feature. " +
+                                    "Expected feature ID <%s>, but was <%s>.",
+                            messageThingId, responseThingId);
+                    handleInvalidResponse(message, commandResponse);
                 }
                 break;
             default:
-                connectionLogger.failure("Initial message command type <{}> is unknown.", messageCommand.getType());
-                valid = false;
+                handleInvalidResponse("Initial message command type <{}> is unknown.", commandResponse);
         }
-        return valid;
+        return commandResponse;
+    }
+
+    private void handleInvalidResponse(final String message, final CommandResponse<?> commandResponse) {
+        final MessageSendingFailedException exception = MessageSendingFailedException.newBuilder()
+                .statusCode(HttpStatusCode.BAD_REQUEST)
+                .description(message)
+                .build();
+        connectionLogger.failure(commandResponse, exception);
+        throw exception;
     }
 
     @Nullable
