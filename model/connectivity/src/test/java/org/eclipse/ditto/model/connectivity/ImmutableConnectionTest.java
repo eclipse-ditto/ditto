@@ -376,6 +376,27 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void emptyCertificatesLeadToEmptyOptional() {
+        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .targets(TARGETS)
+                .validateCertificate(true)
+                .trustedCertificates("")
+                .build();
+
+        assertThat(underTest.getTrustedCertificates()).isEmpty();
+    }
+
+    @Test
+    public void emptyCertificatesFromJsonLeadToEmptyOptional() {
+        final JsonObject connectionJsonWithEmptyCa = KNOWN_JSON
+                .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
+                .set(Connection.JsonFields.TRUSTED_CERTIFICATES, "");
+        final Connection underTest = ConnectivityModelFactory.connectionFromJson(connectionJsonWithEmptyCa);
+
+        assertThat(underTest.getTrustedCertificates()).isEmpty();
+    }
+
+    @Test
     public void parseUriAsExpected() {
         final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671/vhost");
 
