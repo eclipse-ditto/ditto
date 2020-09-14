@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -110,6 +111,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-http-diagnostic");
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
+            "Live response of type <{}> is not of expected type <{}>.";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -342,53 +345,68 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     acknowledgement = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
                 }
 
-                if (commandResponse != null) {
-                    if (isMessageCommand) {
-                        validateLiveResponse(commandResponse, (MessageCommand<?, ?>) signal);
-                    } else {
-                        //TODO: throw correct exception.
-                        throw new IllegalStateException("Command responses are only supported for message commands.");
-                    }
+                if (commandResponse != null && isMessageCommand &&
+                        validateLiveResponse(commandResponse, (MessageCommand<?, ?>) signal)) {
+                    // Do only add command response for live commands with a correct response.
+                    return new CommandResponseOrAcknowledgement(commandResponse, null);
                 }
-                return new CommandResponseOrAcknowledgement(commandResponse, acknowledgement);
+                return new CommandResponseOrAcknowledgement(null, acknowledgement);
             });
         }
     }
 
-    private void validateLiveResponse(final CommandResponse<?> commandResponse,
+    private boolean validateLiveResponse(final CommandResponse<?> commandResponse,
             final MessageCommand<?, ?> messageCommand) {
 
-        if (!commandResponse.getEntityId().equals(messageCommand.getEntityId())) {
-            //TODO: throw correct exception.
-            throw new IllegalStateException("response does not target the correct thing");
+        boolean valid = true;
+        final ThingId messageThingId = messageCommand.getEntityId();
+        final EntityId responseThingId = commandResponse.getEntityId();
+        if (!responseThingId.equals(messageThingId)) {
+            connectionLogger.failure(
+                    "Live response does not target the correct thing. Expected thing ID <{}>, but was <{}>.",
+                    messageThingId, responseThingId
+            );
+            valid = false;
         }
 
         switch (messageCommand.getType()) {
             case SendClaimMessage.TYPE:
                 if (!SendClaimMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    //TODO: throw correct exception.
-                    throw new IllegalStateException("response not of correct type");
+                    connectionLogger.failure(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
+                            SendClaimMessageResponse.TYPE
+                    );
+                    valid = false;
                 }
                 break;
             case SendThingMessage.TYPE:
                 if (!SendThingMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    //TODO: throw correct exception.
-                    throw new IllegalStateException("response not of correct type");
+                    connectionLogger.failure(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
+                            SendThingMessageResponse.TYPE
+                    );
+                    valid = false;
                 }
                 break;
             case SendFeatureMessage.TYPE:
                 if (!SendFeatureMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    //TODO: throw correct exception.
-                    throw new IllegalStateException("response not of correct type");
+                    connectionLogger.failure(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
+                            SendFeatureMessageResponse.TYPE
+                    );
+                    valid = false;
                 }
-                if (!((SendFeatureMessage<?>) messageCommand).getFeatureId()
-                        .equalsIgnoreCase(((SendFeatureMessageResponse<?>) commandResponse).getFeatureId())) {
-                    //TODO: throw correct exception.
-                    throw new IllegalStateException("response does not target the correct feature");
+                final String messageFeatureId = ((SendFeatureMessage<?>) messageCommand).getFeatureId();
+                final String responseFeatureId = ((SendFeatureMessageResponse<?>) commandResponse).getFeatureId();
+                if (!messageFeatureId.equalsIgnoreCase(responseFeatureId)) {
+                    connectionLogger.failure("Live response does not target the correct feature. " +
+                            "Expected feature ID <{}>, but was <{}>.", messageFeatureId, responseFeatureId
+                    );
+                    valid = false;
                 }
                 break;
-            default: //TODO: error or silently ignore unknown message command type?
+            default:
+                connectionLogger.failure("Initial message command type <{}> is unknown.", messageCommand.getType());
+                valid = false;
         }
+        return valid;
     }
 
     @Nullable
@@ -406,7 +424,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (commandResponse instanceof MessageCommandResponse) {
                 return (MessageCommandResponse<?, ?>) commandResponse;
             } else {
-                connectionLogger.exception("Expected <{}> to be of type <{}> but was of type <{}>.",
+                connectionLogger.failure("Expected <{}> to be of type <{}> but was of type <{}>.",
                         commandResponse, MessageCommandResponse.class.getSimpleName(),
                         commandResponse.getClass().getSimpleName());
                 return null;
@@ -432,9 +450,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
                             sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
                 default:
-                    // TODO: throw correct exception
-                    throw new IllegalArgumentException(
-                            "Unknown MessageCommand <" + messageCommand.getClass().getSimpleName() + ">");
+                    connectionLogger.failure("Initial message command type <{}> is unknown.", messageCommand.getType());
+                    return null;
             }
         }
     }
