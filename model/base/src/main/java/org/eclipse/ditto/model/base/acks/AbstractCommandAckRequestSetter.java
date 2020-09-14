@@ -100,6 +100,22 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
         return command.getDittoHeaders().getChannel().filter(LIVE_CHANNEL::equals).isPresent();
     }
 
+    /**
+     * Whether to bind the {@code "response-required"} {@code true/false} value to adding/removing the
+     * {@code implicitAcknowledgementLabel} to explicitly defined "requested-acks" or not.
+     *
+     * @return {@code true} when the configured {@code implicitAcknowledgementLabel} should be also
+     * <ul>
+     * <li>added to an already explicitly defined "requested-acks" header when {@code "response-required"} is
+     * {@code true}</li>
+     * <li>removed from an already explicitly defined "requested-acks" header when {@code "response-required"} is
+     * {@code false}</li>
+     * </ul>
+     *
+     * @since 1.3.0
+     */
+    protected abstract boolean isBindResponseRequiredToAddingRemovingImplicitLabel();
+
     private Optional<DittoHeaders> setDefaultDittoHeaders(final DittoHeaders headers) {
         final DittoHeadersBuilder<?, ?> builder = headers.toBuilder();
         final Set<AcknowledgementRequest> requestedAcks = headers.getAcknowledgementRequests();
@@ -119,15 +135,25 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     private boolean implicitAcksRequested(final DittoHeadersBuilder<?, ?> builder,
             final DittoHeaders headers,
             final boolean hasTimeoutZero) {
-        if (!headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
+        if (headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
+            if (isBindResponseRequiredToAddingRemovingImplicitLabel()) {
+                final Set<AcknowledgementRequest> newRequests = new LinkedHashSet<>(headers.getAcknowledgementRequests());
+                if (headers.isResponseRequired()) {
+                    newRequests.add(AcknowledgementRequest.of(implicitAcknowledgementLabel));
+                } else {
+                    newRequests.remove(AcknowledgementRequest.of(implicitAcknowledgementLabel));
+                }
+                builder.acknowledgementRequests(newRequests);
+                return true;
+            }
+            return false;
+        } else {
             if (!hasTimeoutZero && headers.isResponseRequired()) {
                 builder.acknowledgementRequest(AcknowledgementRequest.of(implicitAcknowledgementLabel));
             } else {
                 builder.acknowledgementRequests(Collections.emptySet());
             }
             return true;
-        } else {
-            return false;
         }
     }
 
