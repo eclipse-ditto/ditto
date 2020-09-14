@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -73,7 +74,11 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     }
 
     public CompletionStage<Map<ActorRef, scala.collection.immutable.Set<S>>> read() {
-        return get(Replicator.readLocal()).thenApply(optional -> {
+        // TODO: remove READALL
+        //return get(Replicator.readLocal()).thenApply(optional -> {
+        final Replicator.ReadConsistency readAll = new Replicator.ReadAll(Duration.ofSeconds(10L));
+        return get(readAll).thenApply(optional -> {
+
             if (optional.isPresent()) {
                 final ORMultiMap<ActorRef, S> mmap = optional.get();
                 ddataMetrics.set((long) mmap.size());

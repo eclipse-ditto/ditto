@@ -50,7 +50,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
      *
      * @param topicsWriter writer of the topics distributed data.
      */
-    public static Props props(final DDataWriter topicsWriter) {
+    public static Props props(final DDataWriter<?> topicsWriter) {
         return Props.create(PubUpdater.class, topicsWriter);
     }
 
@@ -58,6 +58,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ClusterEvent.MemberRemoved.class, this::removeMember)
+                .match(ClusterEvent.CurrentClusterState.class, this::logCurrentClusterState)
                 .matchAny(this::logUnhandled)
                 .build();
     }
@@ -71,6 +72,10 @@ public final class PubUpdater extends AbstractActorWithTimers {
                 log.error(error, "Failed to remove subscribers on removed cluster member <{}>", address);
             }
         });
+    }
+
+    private void logCurrentClusterState(final ClusterEvent.CurrentClusterState currentClusterState) {
+        log.info("Got <{}>" + currentClusterState);
     }
 
     private void logUnhandled(final Object message) {

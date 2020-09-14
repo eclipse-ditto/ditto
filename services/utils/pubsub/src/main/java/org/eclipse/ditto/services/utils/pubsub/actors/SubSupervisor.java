@@ -104,8 +104,10 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(SubUpdater.Request.class, this::isUpdaterAvailable, this::request)
-                .match(SubUpdater.Request.class, this::updaterUnavailable)
+                .match(AbstractUpdater.DeclareAckLabels.class, this::isAcksUpdaterAvailable, this::declareAckLabels)
+                .match(AbstractUpdater.DeclareAckLabels.class, this::acksUpdaterUnavailable)
+                .match(AbstractUpdater.Request.class, this::isUpdaterAvailable, this::request)
+                .match(AbstractUpdater.Request.class, this::updaterUnavailable)
                 .match(Terminated.class, this::subscriberTerminated)
                 .build();
     }
@@ -141,11 +143,25 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void request(final SubUpdater.Request request) {
+    private void request(final AbstractUpdater.Request request) {
         updater.tell(request, getSender());
+    }
+
+    private boolean isAcksUpdaterAvailable() {
+        return acksUpdater != null;
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private void declareAckLabels(final AbstractUpdater.DeclareAckLabels request) {
+        acksUpdater.tell(request.toSubscribe(), getSender());
     }
 
     private void updaterUnavailable(final SubUpdater.Request request) {
         log.error("SubUpdater unavailable. Dropping <{}>", request);
     }
+
+    private void acksUpdaterUnavailable(final AbstractUpdater.DeclareAckLabels request) {
+        log.error("AcksUpdater unavailable. Dropping <{}>", request);
+    }
+
 }

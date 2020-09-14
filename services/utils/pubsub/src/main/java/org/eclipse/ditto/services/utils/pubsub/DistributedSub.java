@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 
@@ -77,6 +78,19 @@ public interface DistributedSub {
      * @param subscriber who is being removed.
      */
     void removeSubscriber(final ActorRef subscriber);
+
+    /**
+     * Declare labels of acknowledgements that a subscriber may send.
+     * Each subscriber's declared acknowledgment labels must be different from the labels declared by other subscribers.
+     * Subscribers relinquish their declared labels when they terminate.
+     *
+     * @param acknowledgementLabels the acknowledgement labels to declare.
+     * @param subscriber the subscriber.
+     * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
+     */
+    CompletionStage<AbstractUpdater.SubAck> declareAcknowledgementLabels(
+            final Collection<AcknowledgementLabel> acknowledgementLabels,
+            final ActorRef subscriber);
 
     /**
      * Create subscription access from an already-started sub-supervisor and a distributed data config.

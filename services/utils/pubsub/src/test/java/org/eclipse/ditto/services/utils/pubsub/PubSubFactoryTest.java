@@ -16,16 +16,23 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +44,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Attributes;
 import akka.testkit.TestActorRef;
@@ -48,6 +56,8 @@ import scala.concurrent.duration.Duration;
  * Tests Ditto pub-sub as a whole.
  */
 public final class PubSubFactoryTest {
+
+    // TODO: remove sleeps by tracking subAcks against updateSuccess
 
     private ActorSystem system1;
     private ActorSystem system2;
@@ -194,12 +204,14 @@ public final class PubSubFactoryTest {
 
     // Can't test recovery after disassociation---no actor system can join a cluster twice.
     @Test
-    public void removeSubscriberOfRemovedClusterMember() throws Exception {
-        new TestKit(system2) {{
+    public void removeSubscriberOfRemovedClusterMember() {
+        new TestKit(system1) {{
             final DistributedPub<String> pub = factory1.startDistributedPub();
             final DistributedSub sub = factory2.startDistributedSub();
             final TestProbe publisher = TestProbe.apply(system1);
             final TestProbe subscriber = TestProbe.apply(system2);
+            cluster1.subscribe(getRef(), ClusterEvent.MemberRemoved.class);
+            expectMsgClass(ClusterEvent.CurrentClusterState.class);
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
@@ -207,10 +219,8 @@ public final class PubSubFactoryTest {
             subscriber.expectMsg("hello");
 
             // WHEN: remote actor system is removed from cluster
-            final CountDownLatch latch = new CountDownLatch(1);
-            cluster2.registerOnMemberRemoved(latch::countDown);
             cluster2.leave(cluster2.selfAddress());
-            latch.await();
+            expectMsgClass(java.time.Duration.ofSeconds(10L), ClusterEvent.MemberRemoved.class);
 
             // THEN: the subscriber is removed
             Awaitility.await().untilAsserted(() -> {
@@ -252,6 +262,56 @@ public final class PubSubFactoryTest {
         }};
     }
 
+    @Test
+    public void failAckDeclarationDueToLocalConflict() {
+        new TestKit(system1) {{
+            // GIVEN: 2 subscribers exist in the same actor system
+            final DistributedSub sub = factory1.startDistributedSub();
+            final TestProbe subscriber1 = TestProbe.apply(system1);
+            final TestProbe subscriber2 = TestProbe.apply(system1);
+
+            // WHEN: the first subscriber declares ack labels
+            // THEN: the declaration should succeed
+            await(sub.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+
+            // WHEN: the second subscriber declares intersecting labels
+            // THEN: the declaration should fail
+            final CompletionStage<?> declareAckLabelFuture =
+                    sub.declareAcknowledgementLabels(acks("ipsum", "lorem"), subscriber2.ref());
+            assertThat(awaitSilently(system1, declareAckLabelFuture))
+                    .hasFailedWithThrowableThat()
+                    .isInstanceOf(AcknowledgementLabelNotUniqueException.class);
+        }};
+    }
+
+    @Test
+    @Ignore("TODO: fix overeager SubAck; add test about race condition in ack declaration")
+    public void failAckDeclarationDueToRemoteConflict() {
+        new TestKit(system1) {{
+            // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system
+            final DistributedSub sub1 = factory1.startDistributedSub();
+            final DistributedSub sub2 = factory2.startDistributedSub();
+            final TestProbe subscriber1 = TestProbe.apply(system1);
+            final TestProbe subscriber2 = TestProbe.apply(system2);
+            final TestProbe subscriber3 = TestProbe.apply(system1);
+
+            // WHEN: 1 subscriber from each system declares disjoint labels
+            // THEN: the declarations should succeed
+            await(sub1.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+            await(sub2.declareAcknowledgementLabels(acks("dolor", "sit"), subscriber2.ref()));
+
+            awaitSilently(system1, new CompletableFuture<>());
+
+            // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
+            // THEN: the declaration should fail
+            final CompletionStage<?> declareAckLabelFuture =
+                    sub1.declareAcknowledgementLabels(acks("sit", "amet"), subscriber3.ref());
+            assertThat(awaitSilently(system1, declareAckLabelFuture))
+                    .hasFailedWithThrowableThat()
+                    .isInstanceOf(AcknowledgementLabelNotUniqueException.class);
+        }};
+    }
+
     private void disableLogging() {
         system1.eventStream().setLogLevel(Attributes.logLevelOff());
         system2.eventStream().setLogLevel(Attributes.logLevelOff());
@@ -259,6 +319,32 @@ public final class PubSubFactoryTest {
 
     private static ActorContext newContext(final ActorSystem actorSystem) {
         return TestActorRef.create(actorSystem, Props.create(NopActor.class)).underlyingActor().context();
+    }
+
+    private static Set<AcknowledgementLabel> acks(final String... labels) {
+        return Arrays.stream(labels).map(AcknowledgementLabel::of).collect(Collectors.toSet());
+    }
+
+    private static <T> CompletionStage<T> await(final CompletionStage<T> stage) {
+        final CompletableFuture<Object> future = stage.toCompletableFuture().thenApply(x -> x);
+        future.completeOnTimeout(new TimeoutException(), 10L, TimeUnit.SECONDS);
+        future.thenCompose(x -> {
+            if (x instanceof Throwable) {
+                return CompletableFuture.failedStage((Throwable) x);
+            } else {
+                return CompletableFuture.completedStage(x);
+            }
+        }).join();
+        return stage;
+    }
+
+    private static <T> CompletionStage<T> awaitSilently(final ActorSystem system, final CompletionStage<T> stage) {
+        try {
+            return await(stage);
+        } catch (final Throwable e) {
+            system.log().info("Future failed: {}", e);
+        }
+        return stage;
     }
 
     private static final class NopActor extends AbstractActor {

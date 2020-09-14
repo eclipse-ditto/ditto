@@ -17,13 +17,17 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.services.utils.pubsub.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
+import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 import scala.collection.JavaConverters;
@@ -54,6 +58,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
             final DData<String, LiteralUpdate> acksDData) {
         super(ACTOR_NAME_PREFIX, config, subscriber, acksDData.createSubscriptions(), acksDData.getWriter());
         this.acksDData = acksDData;
+        Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
     }
 
     /**
@@ -75,6 +80,8 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(DoSubscribe.class, this::doSubscribe)
+                .match(ClusterEvent.MemberRemoved.class, this::memberRemoved)
+                .match(ClusterEvent.CurrentClusterState.class, this::logCurrentClusterState)
                 .build()
                 .orElse(super.createReceive());
     }
@@ -118,9 +125,20 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
         awaitSubAckMetric.set(0L);
     }
 
+    private void memberRemoved(final ClusterEvent.MemberRemoved memberRemoved) {
+        // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
+        final Address address = memberRemoved.member().address();
+        log.info("Removing declared acks on removed member <{}>", address);
+        acksDData.getWriter().removeAddress(address, Replicator.writeLocal()).whenComplete((_void, error) -> {
+            if (error != null) {
+                log.error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
+            }
+        });
+    }
+
     private void doSubscribe(final DoSubscribe doSubscribe) {
         final boolean changed = subscriptions.subscribe(doSubscribe.sender, doSubscribe.subscribe.getTopics());
-        enqueueRequest(doSubscribe.subscribe, changed, getSender());
+        enqueueRequest(doSubscribe.subscribe, changed, doSubscribe.sender);
         if (changed) {
             getContext().watch(doSubscribe.subscribe.getSubscriber());
         }
@@ -149,9 +167,12 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     }
 
     private void failSubscribe(final ActorRef sender) {
-        // TODO: use dedicated DittoRuntimeException for this
-        final Throwable error = new IllegalStateException("Declared acknowledgement labels are taken.");
+        final Throwable error = AcknowledgementLabelNotUniqueException.getInstance();
         sender.tell(error, getSelf());
+    }
+
+    private void logCurrentClusterState(final ClusterEvent.CurrentClusterState currentClusterState) {
+        log.info("Got <{}>" + currentClusterState);
     }
 
     private boolean areAckLabelsDeclaredHere(final Subscribe subscribe) {

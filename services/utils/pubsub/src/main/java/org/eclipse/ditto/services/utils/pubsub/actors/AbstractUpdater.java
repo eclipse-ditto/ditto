@@ -472,4 +472,41 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
          */
         TICK
     }
+
+    /**
+     * Message to declare ack labels for a subscriber.
+     */
+    public static final class DeclareAckLabels extends Request {
+
+        private DeclareAckLabels(final Set<String> ackLabels,
+                final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency,
+                final boolean acknowledge) {
+
+            super(ackLabels, subscriber, writeConsistency, acknowledge);
+        }
+
+        /**
+         * Create a message to declare unique ack labels for a subscriber.
+         *
+         * @param ackLabels what ack labels to declare.
+         * @param subscriber the subscriber.
+         * @param writeConsistency write consistency for the distributed data.
+         * @param acknowledge whether SubAck is expected.
+         * @return the message to declare ack labels.
+         */
+        public static DeclareAckLabels of(final Set<String> ackLabels, final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
+            return new DeclareAckLabels(ackLabels, subscriber, writeConsistency, acknowledge);
+        }
+
+        /**
+         * Convert this message to a Subscribe message for an AbstractUpdater.
+         *
+         * @return the equivalent AbstractUpdater.Subscribe message.
+         */
+        public Subscribe toSubscribe() {
+            return Subscribe.of(getTopics(), getSubscriber(), getWriteConsistency(), shouldAcknowledge());
+        }
+    }
 }
