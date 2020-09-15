@@ -109,6 +109,22 @@ public final class ModifyAttributeTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidJsonValue() {
+        final JsonValue invalid = JsonValue.of(JsonObject.of("{\"bar/baz\":false}"));
+
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, VALID_JSON_POINTER,
+                invalid, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test
+    public void tryToCreateInstanceWithValidJsonObjectAsValue() {
+        final JsonValue valid = JsonValue.of(JsonObject.of("{\"bar.baz\":false}"));
+
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, VALID_JSON_POINTER,
+                valid, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
     @Test(expected = AttributePointerInvalidException.class)
     public void createInstanceWithEmptyPointer() {
         ModifyAttribute.of(TestConstants.Thing.THING_ID, EMPTY_JSON_POINTER, KNOWN_ATTRIBUTE,

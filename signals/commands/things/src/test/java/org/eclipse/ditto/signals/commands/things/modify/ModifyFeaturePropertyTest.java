@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.INVALID_JSON_POINTER;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.VALID_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-
 
 /**
  * Unit test for {@link ModifyFeatureProperty}.
@@ -108,7 +108,6 @@ public final class ModifyFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final ModifyFeatureProperty underTest =
@@ -137,6 +136,22 @@ public final class ModifyFeaturePropertyTest {
                 .set(ModifyFeatureProperty.JSON_PROPERTY, INVALID_JSON_POINTER.toString()).build();
 
         ModifyFeatureProperty.fromJson(invalidJson.toString(), TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidJsonValue() {
+        final JsonValue invalid = JsonValue.of(JsonObject.of("{\"bar/baz\":false}"));
+
+        ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                VALID_JSON_POINTER, invalid, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test
+    public void tryToCreateInstanceWithValidPropertyJsonObject() {
+        final JsonValue valid = JsonValue.of(JsonObject.of("{\"bar.baz\":false}"));
+
+        ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                VALID_JSON_POINTER, valid, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
