@@ -82,10 +82,7 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.propertyPointer = checkPropertyPointer(propertyPointer);
-        if (propertyValue.isObject()) {
-            checkPropertyValue(propertyValue.asObject());
-        }
-        this.propertyValue = checkNotNull(propertyValue);
+        this.propertyValue = checkPropertyValue(propertyValue);
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 propertyValue::getUpperBoundForStringSize,
@@ -98,8 +95,12 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
     }
 
-    private void checkPropertyValue(final JsonObject propertyValue) {
-        ThingsModelFactory.validateJsonKeys(propertyValue);
+    private JsonValue checkPropertyValue(final JsonValue value) {
+        checkNotNull(value, "new feature property");
+        if (value.isObject()) {
+            ThingsModelFactory.validateJsonKeys(value.asObject());
+        }
+        return value;
     }
 
     /**
