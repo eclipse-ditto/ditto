@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -147,7 +148,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String msg = "Foo!";
         Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(false);
 
-        DefaultDittoDiagnosticLoggingAdapter underTest = DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
         underTest.setCorrelationId(getCorrelationId());
         underTest.info(msg);
 
@@ -164,7 +166,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
         Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
 
-        final DefaultDittoDiagnosticLoggingAdapter underTest = DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, connectionId);
         underTest.debug(debugMsg);
@@ -184,7 +187,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String correlationId = getCorrelationId();
         final String connectionId = "my-connection";
 
-        final DefaultDittoDiagnosticLoggingAdapter underTest = DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, connectionId);
         underTest.debug("Foo");
@@ -202,7 +206,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String correlationId = getCorrelationId();
         final String connectionId = "my-connection";
 
-        final DefaultDittoDiagnosticLoggingAdapter underTest = DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, connectionId);
         underTest.debug("Foo");
@@ -220,7 +225,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String msg = "Foo!";
         Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
 
-        final DefaultDittoDiagnosticLoggingAdapter underTest = DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
         underTest.setCorrelationId(correlationId);
         underTest.error(msg);
 
@@ -238,7 +244,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String msg2 = "No correlation ID in MDC.";
         Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(true);
 
-        final DefaultDittoDiagnosticLoggingAdapter underTest = DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
         underTest.setCorrelationId(correlationId);
         underTest.info(msg1);
         underTest.discardCorrelationId();
@@ -248,6 +255,114 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.verify(plainLoggingAdapter).notifyInfo(msg1);
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
         Mockito.verify(plainLoggingAdapter).notifyInfo(msg2);
+    }
+
+    @Test
+    public void logMoreThan4LoggingArgsError() {
+        final String template = "one: {}, two: {}, three: {}, four: {}, five: {}, six: {}";
+        Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
+
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        underTest.error(template,
+                "one",
+                "two",
+                "three",
+                "four",
+                "five",
+                "six");
+
+        Mockito.verify(plainLoggingAdapter, Mockito.atLeastOnce()).isErrorEnabled();
+        Mockito.verify(plainLoggingAdapter).notifyError(String.format(template.replace("{}", "%s"),
+                "one",
+                "two",
+                "three",
+                "four",
+                "five",
+                "six"
+        ));
+    }
+
+    @Test
+    public void logMoreThan4LoggingArgsWarning() {
+        final String template = "one: {}, two: {}, three: {}, four: {}, five: {}, six: {}, seven: {}";
+        final Duration oneSecond = Duration.ofSeconds(1);
+        final Duration twoSeconds = Duration.ofSeconds(2);
+        final Duration threeSeconds = Duration.ofSeconds(3);
+        final Duration fourSeconds = Duration.ofSeconds(4);
+        final Duration fiveSeconds = Duration.ofSeconds(5);
+        final Duration sixSeconds = Duration.ofSeconds(6);
+        final Duration sevenSeconds = Duration.ofSeconds(7);
+        Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
+
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        underTest.warning(template,
+                oneSecond,
+                twoSeconds,
+                threeSeconds,
+                fourSeconds,
+                fiveSeconds,
+                sixSeconds,
+                sevenSeconds);
+
+        Mockito.verify(plainLoggingAdapter, Mockito.atLeastOnce()).isWarningEnabled();
+        Mockito.verify(plainLoggingAdapter).notifyWarning(String.format(template.replace("{}", "%s"),
+                oneSecond,
+                twoSeconds,
+                threeSeconds,
+                fourSeconds,
+                fiveSeconds,
+                sixSeconds,
+                sevenSeconds
+        ));
+    }
+
+    @Test
+    public void logMoreThan4LoggingArgsInfo() {
+        final String template = "one: {}, two: {}, three: {}, four: {}, five: {}";
+        Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(true);
+
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        underTest.info(template,
+                1,
+                2,
+                3,
+                4,
+                5);
+
+        Mockito.verify(plainLoggingAdapter, Mockito.atLeastOnce()).isInfoEnabled();
+        Mockito.verify(plainLoggingAdapter).notifyInfo(String.format(template.replace("{}", "%s"),
+                1,
+                2,
+                3,
+                4,
+                5
+        ));
+    }
+
+    @Test
+    public void logMoreThan4LoggingArgsDebug() {
+        Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
+        final String template = "one: {}, two: {}, three: {}, four: {}, five: {}";
+
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        underTest.debug(template,
+                1,
+                2,
+                3,
+                4,
+                "foobar");
+
+        Mockito.verify(plainLoggingAdapter, Mockito.atLeastOnce()).isDebugEnabled();
+        Mockito.verify(plainLoggingAdapter).notifyDebug(String.format(template.replace("{}", "%s"),
+                1,
+                2,
+                3,
+                4,
+                "foobar"));
     }
 
     private String getCorrelationId() {
