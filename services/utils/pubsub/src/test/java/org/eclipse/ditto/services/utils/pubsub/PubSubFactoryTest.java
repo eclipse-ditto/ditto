@@ -57,8 +57,6 @@ import scala.concurrent.duration.Duration;
  */
 public final class PubSubFactoryTest {
 
-    // TODO: remove sleeps by tracking subAcks against updateSuccess
-
     private ActorSystem system1;
     private ActorSystem system2;
     private Cluster cluster1;
@@ -133,7 +131,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void broadcastMessageToManySubscribers() throws InterruptedException {
+    public void broadcastMessageToManySubscribers() {
         new TestKit(system2) {{
             final DistributedPub<String> pub = factory1.startDistributedPub();
             final DistributedSub sub1 = factory1.startDistributedSub();
@@ -154,10 +152,6 @@ public final class PubSubFactoryTest {
                             .toCompletableFuture(),
                     sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()
             ).join();
-
-            // Wait until distributed data is ready
-            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofSeconds(5));
-            TimeUnit.MILLISECONDS.sleep(sleepAmount.toMillis());
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -223,16 +217,15 @@ public final class PubSubFactoryTest {
             expectMsgClass(java.time.Duration.ofSeconds(10L), ClusterEvent.MemberRemoved.class);
 
             // THEN: the subscriber is removed
-            Awaitility.await().untilAsserted(() -> {
-                assertThat(factory1.getSubscribers("hello").toCompletableFuture().join())
-                        .describedAs("subscriber should be removed from ddata")
-                        .isEmpty();
-            });
+            Awaitility.await().untilAsserted(() ->
+                    assertThat(factory1.getSubscribers("hello").toCompletableFuture().join())
+                            .describedAs("subscriber should be removed from ddata")
+                            .isEmpty());
         }};
     }
 
     @Test
-    public void startSeveralTimes() throws Exception {
+    public void startSeveralTimes() {
         // This test simulates the situation where the root actor of a Ditto service restarts several times.
         new TestKit(system2) {{
             // GIVEN: many pub- and sub-factories start under different actors.
@@ -253,12 +246,8 @@ public final class PubSubFactoryTest {
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
-            final java.time.Duration sleepAmount = dilated(java.time.Duration.ofSeconds(2));
-            // give local subscriber a chance to receive most updated subscriptions
-            TimeUnit.MILLISECONDS.sleep(sleepAmount.toMillis());
-
             pub.publish("hello", publisher.ref());
-            subscriber.expectMsg(dilated(Duration.create(5, TimeUnit.SECONDS)), "hello");
+            subscriber.expectMsg(Duration.create(5, TimeUnit.SECONDS), "hello");
         }};
     }
 
@@ -285,7 +274,8 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    @Ignore("TODO: fix overeager SubAck; add test about race condition in ack declaration")
+    @Ignore("TODO: fix overeager SubAck")
+    // TODO: add test about local & remote racing
     public void failAckDeclarationDueToRemoteConflict() {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system

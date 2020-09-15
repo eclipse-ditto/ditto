@@ -20,15 +20,14 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.services.utils.pubsub.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
-import akka.actor.Address;
 import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent;
 import akka.cluster.ddata.Replicator;
+import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import scala.collection.JavaConverters;
 
@@ -43,7 +42,7 @@ import scala.collection.JavaConverters;
  * <li>If this node is not the lowest subscriber, rollback and send negative SubAck.</li>
  * </ol>
  */
-public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
+public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> implements ClusterMemberRemovedAware {
 
     /**
      * Prefix of this actor's name.
@@ -58,7 +57,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
             final DData<String, LiteralUpdate> acksDData) {
         super(ACTOR_NAME_PREFIX, config, subscriber, acksDData.createSubscriptions(), acksDData.getWriter());
         this.acksDData = acksDData;
-        Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
+        subscribeForClusterMemberRemovedAware();
     }
 
     /**
@@ -80,10 +79,19 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(DoSubscribe.class, this::doSubscribe)
-                .match(ClusterEvent.MemberRemoved.class, this::memberRemoved)
-                .match(ClusterEvent.CurrentClusterState.class, this::logCurrentClusterState)
                 .build()
+                .orElse(receiveClusterMemberRemoved())
                 .orElse(super.createReceive());
+    }
+
+    @Override
+    public LoggingAdapter log() {
+        return log;
+    }
+
+    @Override
+    public DDataWriter<?> getDDataWriter() {
+        return acksDData.getWriter();
     }
 
     @Override
@@ -113,27 +121,16 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     }
 
     @Override
-    protected void updateSuccess(final SubscriptionsReader snapshot) {
-        flushSubAcks();
+    protected void updateSuccess(final SubscriptionsReader snapshot, final int seqNr) {
+        flushSubAcks(seqNr);
     }
 
     @Override
-    protected void flushSubAcks() {
+    protected void flushSubAcks(final int seqNr) {
         // There is a chance that a subscriber gets failure after SubAck due to unlucky timing.
-        checkConsistencyAndReply(awaitSubAck);
+        checkConsistencyAndReply(seqNr);
         awaitSubAck.clear();
         awaitSubAckMetric.set(0L);
-    }
-
-    private void memberRemoved(final ClusterEvent.MemberRemoved memberRemoved) {
-        // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
-        final Address address = memberRemoved.member().address();
-        log.info("Removing declared acks on removed member <{}>", address);
-        acksDData.getWriter().removeAddress(address, Replicator.writeLocal()).whenComplete((_void, error) -> {
-            if (error != null) {
-                log.error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
-            }
-        });
     }
 
     private void doSubscribe(final DoSubscribe doSubscribe) {
@@ -144,8 +141,8 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
         }
     }
 
-    private void checkConsistencyAndReply(final List<SubAck> awaitSubAck) {
-        final List<SubAck> subAcks = List.copyOf(awaitSubAck);
+    private void checkConsistencyAndReply(final int seqNr) {
+        final List<SubAck> subAcks = exportAwaitSubAck(seqNr);
         final SubscriptionsReader snapshot = subscriptions.snapshot();
 
         // local losers are the actors whose declared ack labels are taken over concurrently by remote subscribers.
@@ -169,10 +166,6 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate> {
     private void failSubscribe(final ActorRef sender) {
         final Throwable error = AcknowledgementLabelNotUniqueException.getInstance();
         sender.tell(error, getSelf());
-    }
-
-    private void logCurrentClusterState(final ClusterEvent.CurrentClusterState currentClusterState) {
-        log.info("Got <{}>" + currentClusterState);
     }
 
     private boolean areAckLabelsDeclaredHere(final Subscribe subscribe) {

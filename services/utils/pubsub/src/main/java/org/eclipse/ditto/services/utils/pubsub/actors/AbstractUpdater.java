@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -66,7 +68,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
     /**
      * Queue of actors demanding SubAck whose subscriptions were sent to the replicator but not SubAck-ed.
      */
-    protected final List<SubAck> awaitSubAck = new ArrayList<>();
+    protected final Queue<SubAck> awaitSubAck = new ArrayDeque<>();
 
     /**
      * Write consistency of the next message to the replicator.
@@ -77,6 +79,8 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
      * Whether local subscriptions changed.
      */
     protected boolean localSubscriptionsChanged = false;
+
+    private int seqNr = 0;
 
     protected AbstractUpdater(final String actorNamePrefix,
             final PubSubConfig config,
@@ -106,7 +110,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
                 .match(Terminated.class, this::terminated)
                 .match(RemoveSubscriber.class, this::removeSubscriber)
                 .matchEquals(Clock.TICK, this::tick)
-                .match(SubscriptionsReader.class, this::updateSuccess)
+                .match(DDataOpSuccess.class, s -> updateSuccess(s.snapshot, s.seqNr))
                 .match(Status.Failure.class, this::updateFailure)
                 .matchAny(this::logUnhandled)
                 .build();
@@ -114,15 +118,17 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
     /**
      * Flush pending SubAcks to senders.
+     *
+     * @param seqNr the last seqNr of the update.
      */
-    protected abstract void flushSubAcks();
+    protected abstract void flushSubAcks(final int seqNr);
 
     /**
      * What to do when update succeeded.
      *
      * @param snapshot the snapshot of the current subscription.
      */
-    protected abstract void updateSuccess(final SubscriptionsReader snapshot);
+    protected abstract void updateSuccess(final SubscriptionsReader snapshot, final int seqNr);
 
     /**
      * Handle a subscribe request.
@@ -168,17 +174,30 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         localSubscriptionsChanged |= changed;
         upgradeWriteConsistency(request.getWriteConsistency());
         if (request.shouldAcknowledge()) {
-            final SubAck subAck = SubAck.of(request, sender);
+            final SubAck subAck = SubAck.of(request, sender, ++seqNr);
             awaitUpdate.add(subAck);
             awaitUpdateMetric.increment();
         }
+    }
+
+    protected List<SubAck> exportAwaitSubAck(final int seqNr) {
+        final List<SubAck> subAcks = new ArrayList<>(awaitSubAck.size());
+        while (!awaitSubAck.isEmpty()) {
+            final SubAck ack = awaitSubAck.poll();
+            subAcks.add(ack);
+            if (ack.getSeqNr() == seqNr) {
+                break;
+            }
+        }
+        awaitSubAckMetric.set((long) awaitSubAck.size());
+        return Collections.unmodifiableList(subAcks);
     }
 
     private void tick(final Clock tick) {
         final boolean forceUpdate = forceUpdate();
         if (!localSubscriptionsChanged && !forceUpdate) {
             moveAwaitUpdateToAwaitAcknowledge();
-            flushSubAcks();
+            flushSubAcks(seqNr);
         } else {
             final SubscriptionsReader snapshot;
             final CompletionStage<Void> ddataOp;
@@ -194,7 +213,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
                 ddataOp = topicsWriter.put(subscriber, ddata, nextWriteConsistency);
                 topicMetric.set((long) subscriptions.countTopics());
             }
-            ddataOp.handle(handleDDataWriteResult(snapshot));
+            ddataOp.handle(handleDDataWriteResult(snapshot, seqNr));
             moveAwaitUpdateToAwaitAcknowledge();
             localSubscriptionsChanged = false;
             nextWriteConsistency = Replicator.writeLocal();
@@ -208,11 +227,12 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         awaitUpdateMetric.set(0L);
     }
 
-    private BiFunction<Void, Throwable, Void> handleDDataWriteResult(final SubscriptionsReader snapshot) {
+    private BiFunction<Void, Throwable, Void> handleDDataWriteResult(final SubscriptionsReader snapshot,
+            final int lastSeqNr) {
         // this function is called asynchronously. it must be thread-safe.
         return (_void, error) -> {
             if (error == null) {
-                getSelf().tell(snapshot, ActorRef.noSender());
+                getSelf().tell(new DDataOpSuccess(snapshot, seqNr), ActorRef.noSender());
             } else {
                 getSelf().tell(new Status.Failure(error), ActorRef.noSender());
             }
@@ -432,14 +452,16 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
 
         private final Request request;
         private final ActorRef sender;
+        private final int seqNr;
 
-        private SubAck(final Request request, final ActorRef sender) {
+        private SubAck(final Request request, final ActorRef sender, final int seqNr) {
             this.request = request;
             this.sender = sender;
+            this.seqNr = seqNr;
         }
 
-        private static SubAck of(final Request request, final ActorRef sender) {
-            return new SubAck(request, sender);
+        private static SubAck of(final Request request, final ActorRef sender, final int seqNr) {
+            return new SubAck(request, sender, seqNr);
         }
 
         /**
@@ -456,11 +478,19 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
             return sender;
         }
 
+        /**
+         * @return the sequence number. only visible in this package.
+         */
+        int getSeqNr() {
+            return seqNr;
+        }
+
         @Override
         public String toString() {
             return getClass().getSimpleName() +
                     "[request=" + request +
                     ",sender=" + sender +
+                    ",seqNr=" + seqNr +
                     "]";
         }
     }
@@ -507,6 +537,17 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
          */
         public Subscribe toSubscribe() {
             return Subscribe.of(getTopics(), getSubscriber(), getWriteConsistency(), shouldAcknowledge());
+        }
+    }
+
+    private static final class DDataOpSuccess {
+
+        private final SubscriptionsReader snapshot;
+        private final int seqNr;
+
+        private DDataOpSuccess(final SubscriptionsReader snapshot, final int seqNr) {
+            this.snapshot = snapshot;
+            this.seqNr = seqNr;
         }
     }
 }

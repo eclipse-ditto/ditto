@@ -16,18 +16,15 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 
 import akka.actor.AbstractActorWithTimers;
-import akka.actor.Address;
 import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent;
-import akka.cluster.ddata.Replicator;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Remove remote subscriber on cluster event {@link akka.cluster.ClusterEvent.MemberRemoved}.
  */
-public final class PubUpdater extends AbstractActorWithTimers {
+public final class PubUpdater extends AbstractActorWithTimers implements ClusterMemberRemovedAware {
 
     /**
      * Prefix of this actor's name.
@@ -42,7 +39,7 @@ public final class PubUpdater extends AbstractActorWithTimers {
     @SuppressWarnings("unused")
     private PubUpdater(final DDataWriter<?> ddataWriter) {
         this.ddataWriter = ddataWriter;
-        Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
+        subscribeForClusterMemberRemovedAware();
     }
 
     /**
@@ -56,26 +53,19 @@ public final class PubUpdater extends AbstractActorWithTimers {
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(ClusterEvent.MemberRemoved.class, this::removeMember)
-                .match(ClusterEvent.CurrentClusterState.class, this::logCurrentClusterState)
+        return receiveClusterMemberRemoved().orElse(ReceiveBuilder.create()
                 .matchAny(this::logUnhandled)
-                .build();
+                .build());
     }
 
-    private void removeMember(final ClusterEvent.MemberRemoved memberRemoved) {
-        // publisher detected unreachable remote. remove it from local ORMap.
-        final Address address = memberRemoved.member().address();
-        log.info("Removing subscribers on removed member <{}>", address);
-        ddataWriter.removeAddress(address, Replicator.writeLocal()).whenComplete((_void, error) -> {
-            if (error != null) {
-                log.error(error, "Failed to remove subscribers on removed cluster member <{}>", address);
-            }
-        });
+    @Override
+    public LoggingAdapter log() {
+        return log;
     }
 
-    private void logCurrentClusterState(final ClusterEvent.CurrentClusterState currentClusterState) {
-        log.info("Got <{}>" + currentClusterState);
+    @Override
+    public DDataWriter<?> getDDataWriter() {
+        return ddataWriter;
     }
 
     private void logUnhandled(final Object message) {
