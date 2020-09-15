@@ -70,6 +70,15 @@ automatically created [acknowledement](protocol-specification-acks.html#acknowle
 * Acknowledgement.status: the HTTP response status code is used as acknowledgement status.
 * Acknowledgement.value: the HTTP response body is used as acknowledgement value - if the response body was of 
   `content-type: application/json`, the JSON is inlined into the acknowledgment, otherwise the payload is added as JSON string.
+  
+##### Responding to Messages
+
+For Messages that are sent via a HTTP target you have two different options to respond:
+
+* Respond to the HTTP request with a valid [Ditto Protocol Message Response](protocol-specification-things-messages.html#responding-to-a-message). This requires to set the content-type to `application/vnd.eclipse.ditto+json`.
+* Configure the `live-response` acknowledgement label [as automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label). In this case there are again two options:
+  * Provide the response as ditto protocol message as described as first option.
+  * Use the payload you want to have in the Message response as payload of the HTTP response. The content type, HTTP status and payload of the HTTP response will be used to generate the Message response.
 
 
 ### Specific configuration properties
