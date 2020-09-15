@@ -52,7 +52,9 @@ public interface Adaptable extends WithDittoHeaders<Adaptable> {
      * Returns the {@code DittoHeaders} of this {@code Adaptable} if present.
      *
      * @return the optional headers.
+     * @deprecated this is deprecated. Use getDittoHeaders instead.
      */
+    @Deprecated
     Optional<DittoHeaders> getHeaders();
 
     /**

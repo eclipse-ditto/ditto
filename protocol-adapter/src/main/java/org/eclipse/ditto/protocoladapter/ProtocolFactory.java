@@ -60,7 +60,7 @@ public final class ProtocolFactory {
     public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable) {
         return ImmutableAdaptableBuilder.of(existingAdaptable.getTopicPath())
                 .withPayload(existingAdaptable.getPayload())
-                .withHeaders(existingAdaptable.getHeaders().orElse(null));
+                .withHeaders(existingAdaptable.getDittoHeaders());
     }
 
     /**
@@ -76,7 +76,7 @@ public final class ProtocolFactory {
     public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable,
             final TopicPath overwriteTopicPath) {
         return ImmutableAdaptableBuilder.of(overwriteTopicPath).withPayload(existingAdaptable.getPayload())
-                .withHeaders(existingAdaptable.getHeaders().orElse(null));
+                .withHeaders(existingAdaptable.getDittoHeaders());
     }
 
     /**

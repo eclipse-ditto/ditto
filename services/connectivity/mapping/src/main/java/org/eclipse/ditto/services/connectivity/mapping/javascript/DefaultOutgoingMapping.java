@@ -41,7 +41,7 @@ public class DefaultOutgoingMapping implements MappingFunction<Adaptable, List<E
     public List<ExternalMessage> apply(final Adaptable adaptable) {
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(
-                adaptable.getHeaders().orElseGet(adaptable::getDittoHeaders))
+                adaptable.getDittoHeaders())
                         .withTopicPath(adaptable.getTopicPath());
         messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
