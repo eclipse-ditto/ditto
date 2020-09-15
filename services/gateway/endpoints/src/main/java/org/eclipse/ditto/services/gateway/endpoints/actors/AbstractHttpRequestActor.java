@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -51,7 +52,6 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -390,27 +390,33 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
+
             final Optional<akka.http.scaladsl.model.ContentType> optionalContentType =
                     message.getContentType().map(ContentType$.MODULE$::parse)
                             .filter(Either::isRight)
                             .map(Either::right)
                             .map(Either.RightProjection::get);
 
+            final boolean isBinary = optionalContentType
+                    .map(akka.http.scaladsl.model.ContentType::value)
+                    .map(ContentType::of)
+                    .filter(ContentType::isBinary)
+                    .isPresent();
+
             httpResponse = HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
 
-            if (optionalPayload.isPresent() && optionalContentType.isPresent()) {
+            if (optionalPayload.isPresent() && optionalContentType.isPresent() && !isBinary) {
+                final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
                 final Object payload = optionalPayload.get();
-                httpResponse = httpResponse.withEntity(
-                        HttpEntities.create(optionalContentType.get(), ByteString.fromString(payload.toString())));
-            } else if (optionalRawPayload.isPresent()) {
-
+                final ByteString responsePayload = ByteString.fromString(payload.toString());
+                httpResponse = httpResponse.withEntity(HttpEntities.create(contentType, responsePayload));
+            } else if (optionalRawPayload.isPresent() && optionalContentType.isPresent() && isBinary) {
+                final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
                 final ByteBuffer rawPayload = optionalRawPayload.get();
-                if (optionalContentType.isPresent()) {
-                    httpResponse = httpResponse.withEntity(
-                            HttpEntities.create(optionalContentType.get(), rawPayload.array()));
-                } else {
-                    httpResponse = httpResponse.withEntity(HttpEntities.create(rawPayload.array()));
-                }
+                httpResponse = httpResponse.withEntity(HttpEntities.create(contentType, rawPayload.array()));
+            } else if (optionalRawPayload.isPresent()) {
+                final ByteBuffer rawPayload = optionalRawPayload.get();
+                httpResponse = httpResponse.withEntity(HttpEntities.create(rawPayload.array()));
             }
         } else {
             // if payload was missing OR statusCode was NO_CONTENT:
