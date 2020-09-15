@@ -121,7 +121,7 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     @Override
     public Map<String, Object> getMDC() {
-        return loggingAdapter.getMDC();
+        return new HashMap<>(loggingAdapter.getMDC());
     }
 
     @Override
