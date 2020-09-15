@@ -443,7 +443,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             boolean result = DEFAULT_AGGREGATE;
             final String aggregateHeaderValue = dittoHeaders.get(AGGREGATE_HEADER);
             if (null != aggregateHeaderValue) {
-                result = Boolean.valueOf(aggregateHeaderValue);
+                result = Boolean.parseBoolean(aggregateHeaderValue);
             }
             return result;
         }

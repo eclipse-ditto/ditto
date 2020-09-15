@@ -10,27 +10,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.enforcers;
+package org.eclipse.ditto.json;
 
 import java.text.MessageFormat;
 import java.util.Optional;
-import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Package-private function to merge 2 Json objects into 1.
  */
 @Immutable
-final class JsonObjectMerger implements BiFunction<JsonObject, JsonObject, JsonObject> {
+final class JsonObjectMerger {
 
     /**
      * Merge 2 JSON objects recursively into one. In case of conflict, the first object is more important.
@@ -39,23 +30,18 @@ final class JsonObjectMerger implements BiFunction<JsonObject, JsonObject, JsonO
      * @param jsonObject2 the second json object to merge.
      * @return the merged json object.
      */
-    @Override
-    public JsonObject apply(final JsonObject jsonObject1, final JsonObject jsonObject2) {
-        return mergeJsonObjects(jsonObject1, jsonObject2);
-    }
-
-    private static JsonObject mergeJsonObjects(final JsonObject object1, final JsonObject object2) {
+    public static JsonObject mergeJsonObjects(final JsonObject jsonObject1, final JsonObject jsonObject2) {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
 
-        if(object1.isNull() && object2.isNull()) {
+        if(jsonObject1.isNull() && jsonObject2.isNull()) {
             return JsonFactory.nullObject();
         }
 
         // add fields of jsonObject1
-        object1.forEach(jsonField -> {
+        jsonObject1.forEach(jsonField -> {
             final JsonKey key = jsonField.getKey();
             final JsonValue value1 = jsonField.getValue();
-            final Optional<JsonValue> maybeValue2 = object2.getValue(key);
+            final Optional<JsonValue> maybeValue2 = jsonObject2.getValue(key);
             if (maybeValue2.isPresent()) {
                 builder.set(key, mergeJsonValues(value1, maybeValue2.get()));
             } else {
@@ -63,9 +49,9 @@ final class JsonObjectMerger implements BiFunction<JsonObject, JsonObject, JsonO
             }
         });
 
-        // add fields of jsonObject2 not present in jsonObject0
-        object2.forEach(jsonField -> {
-            if (!object1.contains(jsonField.getKey())) {
+        // add fields of jsonObject2 not present in jsonObject1
+        jsonObject2.forEach(jsonField -> {
+            if (!jsonObject1.contains(jsonField.getKey())) {
                 builder.set(jsonField);
             }
         });

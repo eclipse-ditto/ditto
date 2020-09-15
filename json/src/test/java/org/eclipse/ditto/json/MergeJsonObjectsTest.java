@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,16 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.enforcers;
+package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.function.BiFunction;
-
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
 /**
@@ -98,8 +94,7 @@ public final class MergeJsonObjectsTest {
     }
 
     private static JsonObject merge(final JsonObject object1, final JsonObject object2) {
-        final BiFunction<JsonObject, JsonObject, JsonObject> underTest = new JsonObjectMerger();
-        return underTest.apply(object1, object2);
+        return JsonObjectMerger.mergeJsonObjects(object1, object2);
     }
 
 }
