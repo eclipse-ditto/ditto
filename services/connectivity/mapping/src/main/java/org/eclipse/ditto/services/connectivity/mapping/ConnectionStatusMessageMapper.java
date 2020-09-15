@@ -87,7 +87,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
                 .orElseThrow(
                         () -> MessageMapperConfigurationInvalidException.newBuilder(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                                 .build());
-        //Check if ThingId is valid when its not a placeholder
+        // Check if ThingId is valid when its not a placeholder
         if (!Placeholders.containsAnyPlaceholder(mappingOptionThingId)) {
             try {
                 ThingId.of(mappingOptionThingId);

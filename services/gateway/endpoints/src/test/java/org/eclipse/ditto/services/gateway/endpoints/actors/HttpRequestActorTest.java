@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +28,9 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -286,8 +290,60 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     ContentTypes.parse(contentType), ByteString.ByteStrings.fromString(responsePayload.toString(),
                             Charset.defaultCharset()));
 
-            testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders, expectedHttpResponseEntity);
+            testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders, probeResponse,
+                    expectedHttpStatusCode, expectHttpResponseHeaders, expectedHttpResponseEntity);
+        }};
+    }
+
+    @Test
+    public void forwardMessageCommandResponseWithInconsistentContentTypes() throws Exception {
+        new TestKit(system) {{
+            final ThingId thingId = ThingId.generateRandom();
+            final String messageSubject = "sayPing";
+
+            // Scenario:
+            // message command and response sent with content-type "text/plain",
+            // but the message in the message command response has content-type "null".
+            final DittoHeaders dittoHeaders = createAuthorizedHeaders()
+                    .toBuilder()
+                    .responseRequired(true)
+                    .channel("live")
+                    .contentType("text/plain")
+                    .build();
+
+            final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .responseRequired(true)
+                    .channel("live")
+                    .contentType("text/plain")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+
+            final String responsePayload = "poooong";
+            final ByteBuffer responseBytePayload = ByteBuffer.wrap(responsePayload.getBytes());
+            final Message<ByteBuffer> responseMessage =
+                    Message.<ByteBuffer>newBuilder(
+                            MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
+                                    .statusCode(HttpStatusCode.IMUSED)
+                                    .contentType("null")
+                                    .build())
+                            .payload(responseBytePayload)
+                            .rawPayload(responseBytePayload)
+                            .build();
+            final SendThingMessageResponse<?> probeResponse =
+                    SendThingMessageResponse.of(thingId, responseMessage, HttpStatusCode.IMUSED, expectedHeaders);
+
+            final HttpResponse response =
+                    testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders, probeResponse);
+
+            assertThat(response.status().intValue()).isEqualTo(HttpStatusCode.IMUSED.toInt());
+
+            final ByteString responseBody = response.entity()
+                    .toStrict(10000, SystemMaterializer.get(system).materializer())
+                    .toCompletableFuture()
+                    .join()
+                    .getData();
+            assertThat(responseBody.utf8String()).isEqualTo(responsePayload);
+            assertThat(response.entity().getContentType()).isEqualTo(ContentTypes.APPLICATION_OCTET_STREAM);
         }};
     }
 

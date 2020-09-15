@@ -138,11 +138,10 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
     }
 
     private Object getModifyThingResponse(final ModifyThing modifyThing) {
-        return isSuccess
+        return (isSuccess
                 ? ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders())
-                : ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
-                .dittoHeaders(modifyThing.getDittoHeaders())
-                .build();
+                : ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId()).build())
+                .setDittoHeaders(modifyThing.getDittoHeaders()); // use setDittoHeaders to lose concrete exception type
     }
 
     private Optional<HttpStatusCode> getExpectedOutcome() {

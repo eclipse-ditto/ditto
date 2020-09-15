@@ -507,6 +507,10 @@ final class ImmutableConnection implements Connection {
             this.connectionType = checkNotNull(connectionType, "Connection Type");
         }
 
+        private static boolean isBlankOrNull(@Nullable final String toTest) {
+            return null == toTest || toTest.trim().isEmpty();
+        }
+
         @Override
         public ConnectionBuilder id(final ConnectionId id) {
             this.id = checkNotNull(id, "ID");
@@ -527,7 +531,11 @@ final class ImmutableConnection implements Connection {
 
         @Override
         public Builder trustedCertificates(@Nullable final String trustedCertificates) {
-            this.trustedCertificates = trustedCertificates;
+            if (isBlankOrNull(trustedCertificates)) {
+                this.trustedCertificates = null;
+            } else {
+                this.trustedCertificates = trustedCertificates;
+            }
             return this;
         }
 

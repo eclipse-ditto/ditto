@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
@@ -188,14 +189,29 @@ public final class MessageHeadersBuilderTest {
     }
 
     @Test
-    public void tryToOverwriteMandatoryHeader() {
-        final String key = MessageHeaderDefinition.SUBJECT.getKey();
-        final String value = "mySubject";
+    public void tryToRemoveMandatoryHeader() {
+        final SoftAssertions softly = new SoftAssertions();
+        for(MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+            final String key = mandatoryHeaderDefinition.getKey();
+            softly.assertThatThrownBy(() -> underTest.removeHeader(key))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .withFailMessage("Mandatory header with key <%s> cannot be removed!", key)
+                    .hasNoCause();
+        }
+        softly.assertAll();
+    }
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("Value for mandatory header with key <%s> cannot be overwritten!", key)
-                .withNoCause();
+    @Test
+    public void tryToRemoveMandatoryHeaderBySettingToNull() {
+        final SoftAssertions softly = new SoftAssertions();
+        for(MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+            final String key = mandatoryHeaderDefinition.getKey();
+            softly.assertThatThrownBy(() -> underTest.putHeader(key, null))
+                    .isInstanceOf(NullPointerException.class)
+                    .withFailMessage("The value must not be null!")
+                    .hasNoCause();
+        }
+        softly.assertAll();
     }
 
     @Test

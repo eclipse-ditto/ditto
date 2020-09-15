@@ -96,7 +96,7 @@ final class ImmutableJsonField implements JsonField {
 
     @Override
     public void writeKeyAndValue(final SerializationContext serializationContext) throws IOException {
-        serializationContext.getJacksonGenerator().writeFieldName(key.toString());
+        serializationContext.writeFieldName(key.toString());
         value.writeValue(serializationContext);
     }
 

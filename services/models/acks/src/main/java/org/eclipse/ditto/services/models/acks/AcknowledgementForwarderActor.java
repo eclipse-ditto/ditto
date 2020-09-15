@@ -17,12 +17,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -57,11 +53,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     private final ActorRef acknowledgementRequester;
     private final String correlationId;
     private final DittoDiagnosticLoggingAdapter log;
-    private final Collection<ResponseType> expectedResponseTypes;
-    @Nullable
-    private final Integer replyTarget;
-    @Nullable
-    private final String inboundPayloadMapper;
 
     @SuppressWarnings("unused")
     private AcknowledgementForwarderActor(final ActorRef acknowledgementRequester, final DittoHeaders dittoHeaders,
@@ -73,9 +64,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                         // fall back using the actor name which also contains the correlation-id
                         getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
                 );
-        this.expectedResponseTypes = dittoHeaders.getExpectedResponseTypes();
-        this.replyTarget = dittoHeaders.getReplyTarget().orElse(null);
-        this.inboundPayloadMapper = dittoHeaders.getInboundPayloadMapper().orElse(null);
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         getContext().setReceiveTimeout(dittoHeaders.getTimeout().orElse(defaultTimeout));
@@ -109,13 +97,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         log.withCorrelationId(acknowledgement)
                 .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester: " +
                         "<{}>", acknowledgement);
-        final DittoHeaders enhancedHeaders = acknowledgement.getDittoHeaders()
-                .toBuilder()
-                .expectedResponseTypes(expectedResponseTypes)
-                .inboundPayloadMapper(inboundPayloadMapper)
-                .replyTarget(replyTarget)
-                .build();
-        acknowledgementRequester.tell(acknowledgement.setDittoHeaders(enhancedHeaders), getSender());
+        acknowledgementRequester.tell(acknowledgement, getSender());
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {

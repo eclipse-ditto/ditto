@@ -84,4 +84,14 @@ public final class AddHeaderMessageMapper implements MessageMapper {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public Map<String, String> getIncomingConditions() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return Collections.emptyMap();
+    }
+
 }

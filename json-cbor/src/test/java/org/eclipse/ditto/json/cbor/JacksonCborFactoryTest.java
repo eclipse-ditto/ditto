@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,25 +10,28 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.json;
+package org.eclipse.ditto.json.cbor;
 
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- * Unit test for {@link CborFactory}.
+ * Unit test for {@link org.eclipse.ditto.json.cbor.JacksonCborFactory}.
  */
 @RunWith(Parameterized.class)
-public final class CborFactoryTest {
+public final class JacksonCborFactoryTest {
 
     @Parameterized.Parameters
     public static List<String> testValue_STRINGS() {
@@ -58,15 +61,17 @@ public final class CborFactoryTest {
 
     private JsonValue testValue;
     private byte[] testBytes;
+    private JacksonCborFactory cborFactory;
 
     @Before
     public void init() throws IOException {
         testValue = JsonFactory.newValue(testObjectString);
         testBytes = CborTestUtils.serializeWithJackson(testValue);
+        cborFactory = new JacksonCborFactory();
     }
     @Test
     public void readFromByteArrayWithoutOffset() {
-        final JsonValue result = CborFactory.readFrom(testBytes);
+        final JsonValue result = cborFactory.readFrom(testBytes);
         assertThat(result).isEqualTo(testValue);
     }
 
@@ -76,13 +81,13 @@ public final class CborFactoryTest {
         final int paddingBack = 42;
         final byte[] arrayWithOffsetAndLength = new byte[ paddingFront + testBytes.length + paddingBack];
         System.arraycopy(testBytes, 0, arrayWithOffsetAndLength, paddingFront-1, testBytes.length);
-        final JsonValue result = CborFactory.readFrom(arrayWithOffsetAndLength, paddingFront - 1, testBytes.length);
+        final JsonValue result = cborFactory.readFrom(arrayWithOffsetAndLength, paddingFront - 1, testBytes.length);
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
     public void readFromByteBuffer() {
-        final JsonValue result = CborFactory.readFrom(ByteBuffer.wrap(testBytes));
+        final JsonValue result = cborFactory.readFrom(ByteBuffer.wrap(testBytes));
         assertThat(result).isEqualTo(testValue);
     }
 
@@ -91,20 +96,20 @@ public final class CborFactoryTest {
         // ReadOnlyByteBuffers throw an exception when trying to access the backing array directly.
         // This test also avoids accessing the backing array directly, which causes issues with ByteBuffers that represent slices of other Buffers.
         final ByteBuffer readOnlyBuffer = ByteBuffer.wrap(testBytes).asReadOnlyBuffer();
-        final JsonValue result = CborFactory.readFrom(readOnlyBuffer);
+        final JsonValue result = cborFactory.readFrom(readOnlyBuffer);
         assertThat(result).isEqualTo(testValue);
     }
 
     @Test
     public void toBytebufferWorks() throws IOException {
-        assertThat(BinaryToHexConverter.toHexString(CborFactory.toByteBuffer(testValue)))
+        Assertions.assertThat(BinaryToHexConverter.toHexString(cborFactory.toByteBuffer(testValue)))
                 .isEqualTo(CborTestUtils.serializeToHexString(testValue));
     }
 
     @Test
     public void writeToByteBufferWorks() throws IOException {
         final ByteBuffer allocate = ByteBuffer.allocate(512);
-        CborFactory.writeToByteBuffer(testValue, allocate);
+        cborFactory.writeToByteBuffer(testValue, allocate);
         allocate.flip();
         assertThat(BinaryToHexConverter.toHexString(allocate)).isEqualTo(CborTestUtils.serializeToHexString(testValue));
     }

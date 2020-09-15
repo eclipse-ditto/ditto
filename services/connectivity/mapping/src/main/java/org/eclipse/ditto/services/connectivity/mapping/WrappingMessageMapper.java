@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -63,8 +64,18 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Map<String, String> getDefaultOptions() {
+    public JsonObject getDefaultOptions() {
         return delegate.getDefaultOptions();
+    }
+
+    @Override
+    public Map<String, String> getIncomingConditions() {
+        return delegate.getIncomingConditions();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return delegate.getOutgoingConditions();
     }
 
     /**
