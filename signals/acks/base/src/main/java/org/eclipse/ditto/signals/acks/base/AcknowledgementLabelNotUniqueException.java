@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.pubsub;
+package org.eclipse.ditto.signals.acks.base;
 
 import java.net.URI;
 
@@ -99,7 +99,7 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.services.utils.pubsub.AcknowledgementLabelNotUniqueException}.
+     * A mutable builder with a fluent API for a {@link AcknowledgementLabelNotUniqueException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementLabelNotUniqueException> {

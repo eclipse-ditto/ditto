@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.services.utils.pubsub.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;

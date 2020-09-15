@@ -30,6 +30,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
