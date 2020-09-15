@@ -33,7 +33,7 @@ import akka.stream.javadsl.Sink;
  *
  * @param <T> the type of commands which are enforced.
  */
-public interface EnforcementProvider<T extends Signal> {
+public interface EnforcementProvider<T extends Signal<?>> {
 
     /**
      * The base class of the commands to which this enforcement applies.

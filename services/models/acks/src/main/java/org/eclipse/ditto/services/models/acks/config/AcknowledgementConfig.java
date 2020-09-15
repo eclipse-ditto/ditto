@@ -68,7 +68,7 @@ public interface AcknowledgementConfig {
         /**
          * The fallback timeout to apply when forwarding Acknowledgements.
          */
-        FORWARDER_FALLBACK_TIMEOUT("forwarder-fallback-timeout", Duration.ofSeconds(100)),
+        FORWARDER_FALLBACK_TIMEOUT("forwarder-fallback-timeout", Duration.ofSeconds(65)),
 
         /**
          * The fallback lifetime to apply when collecting Acknowledgements.

@@ -71,6 +71,9 @@ public final class MessageMappingProcessorTest {
     private MessageMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
+    private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of(
+            "testCondition", "fn:filter(header:correlation-id,'ne','testCor')",
+            "testCondition2", "fn:filter(header:correlation-id,'ne','testCor2')");
     private static final String DITTO_MAPPER_BY_ALIAS = "ditto-by-alias";
     private static final String DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST = "ditto-cust-header";
     private static final String DROPPING_MAPPER = "dropping";
@@ -108,7 +111,8 @@ public final class MessageMappingProcessorTest {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
         mappings.put(DITTO_MAPPER_BY_ALIAS,
-                ConnectivityModelFactory.newMappingContext("Ditto", Collections.emptyMap()));
+                ConnectivityModelFactory.newMappingContext("Ditto", JsonObject.empty(),
+                        DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
 
         final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
         dittoCustomMapperHeaders.put(
@@ -193,7 +197,8 @@ public final class MessageMappingProcessorTest {
 
     @Test
     public void testOutboundMessageDuplicated() {
-        testOutbound(2, 0, 0, false, targetWithMapping(DUPLICATING_MAPPER));
+        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()),
+                2, 0, 0, false, targetWithMapping(DUPLICATING_MAPPER));
     }
 
     @Test
@@ -203,13 +208,19 @@ public final class MessageMappingProcessorTest {
 
     @Test
     public void testOutboundMessageDroppedFailedMappedDuplicated() {
-        testOutbound(2 /* duplicated */ + 1 /* mapped */, 1, 1, false,
+        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()),
+                2 /* duplicated */ + 1 /* mapped */, 1, 1, false,
                 targetWithMapping(DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER));
     }
 
     @Test
     public void testInboundMessageMapped() {
         testInbound(1, 0, 0);
+    }
+
+    @Test
+    public void testInboundMessageWithCondition() {
+        testInboundWithCor(0, 1, 0, DITTO_MAPPER_BY_ALIAS);
     }
 
     @Test
@@ -292,10 +303,15 @@ public final class MessageMappingProcessorTest {
     }
 
     private void testOutbound(final int mapped, final int dropped, final int failed, final Target... targets) {
-        testOutbound(mapped, dropped, failed, true, targets);
+        testOutbound(TestConstants.thingModified(Collections.emptyList()), mapped, dropped, failed, true, targets);
     }
 
-    private void testOutbound(final int mapped, final int dropped, final int failed,
+    private void testOutboundWithCor(final int mapped, final int dropped, final int failed, final Target... targets) {
+        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()), mapped, dropped, failed, true,
+                targets);
+    }
+
+    private void testOutbound(final ThingModifiedEvent<?> signal, final int mapped, final int dropped, final int failed,
             final boolean assertTargets, final Target... targets) {
         new TestKit(actorSystem) {{
 
@@ -304,7 +320,6 @@ public final class MessageMappingProcessorTest {
                     .flatMap(t -> Stream.generate(() -> t).limit(t.getPayloadMapping().getMappings().size()))
                     .collect(Collectors.toList());
 
-            final ThingModifiedEvent<?> signal = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
             //noinspection unchecked
@@ -334,6 +349,16 @@ public final class MessageMappingProcessorTest {
                 .newExternalMessageBuilder(Collections.emptyMap())
                 .withText(TestConstants.modifyThing())
                 .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
+                .build();
+        testInbound(externalMessage, mapped, dropped, failed);
+    }
+
+    private void testInboundWithCor(final int mapped, final int dropped, final int failed, final String... mappers) {
+        final ExternalMessage externalMessage = ExternalMessageFactory
+                .newExternalMessageBuilder(Collections.emptyMap())
+                .withText(TestConstants.modifyThing())
+                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
+                .withAdditionalHeaders(DittoHeaders.newBuilder().correlationId("testCor").build())
                 .build();
         testInbound(externalMessage, mapped, dropped, failed);
     }

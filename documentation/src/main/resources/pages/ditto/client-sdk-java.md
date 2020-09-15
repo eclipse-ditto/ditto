@@ -231,7 +231,7 @@ akka.stream.javadsl.Source<Thing, NotUsed> things = akka.stream.javadsl.Source.f
 
 {% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
-[Requesting acknowledgements](basic-acknowledgements.html#requesting-acknowledgements) is possible in the Ditto Java 
+[Requesting acknowledgements](basic-acknowledgements.html#requesting-acks) is possible in the Ditto Java 
 client in the following way:
 
 ```java

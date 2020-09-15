@@ -47,12 +47,12 @@ import akka.pattern.AskTimeoutException;
  * check if the passed in {@code signal} is authorized and forward it accordingly or respond with an error to the passed
  * in {@code sender}.
  */
-public abstract class AbstractEnforcement<T extends Signal> {
+public abstract class AbstractEnforcement<T extends Signal<?>> {
 
     /**
      * Context of the enforcement step: sender, self, signal and so forth.
      */
-    private final Contextual<T> context;
+    protected final Contextual<T> context;
 
     /**
      * Create an enforcement step from its context.
@@ -181,7 +181,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @param enforcer the enforcer.
      * @return the extended signal.
      */
-    protected static <T extends Signal> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
+    protected static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
         final ResourceKey resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
@@ -279,8 +279,9 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @param <S> the message's type
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
-            final ActorRef receiver) {
+    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(
+            @Nullable final S message,
+            @Nullable final ActorRef receiver) {
 
         return context.withMessage(message).withReceiver(receiver);
     }

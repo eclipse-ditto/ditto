@@ -25,6 +25,10 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 @Immutable
 final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModified> {
 
+    protected ThingModifiedStrategy() {
+        super();
+    }
+
     /**
      * Merges the modifications from {@code thingWithModifications} to {@code thingBuilder}.
      * Merge is implemented very simple: All first level fields of {@code thingWithModifications} overwrite the first

@@ -47,7 +47,6 @@ import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -192,8 +191,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .thenAccept(ackList -> {
                     final ActorRef sender = multiMapped.getSender().orElse(null);
                     if (!ackList.isEmpty() && sender != null) {
-                        final Acknowledgements aggregatedAcks = Acknowledgements.of(appendConnectionId(ackList),
-                                multiMapped.getSource().getDittoHeaders());
+                        final Acknowledgements aggregatedAcks = appendConnectionId(
+                                Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
                         logIfDebug(multiMapped, l ->
                                 l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks));
                         sender.tell(aggregatedAcks, getSelf());
@@ -211,12 +210,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
-    private List<Acknowledgement> appendConnectionId(final Collection<Acknowledgement> acknowledgements) {
-        return acknowledgements.stream()
-                .map(ack -> ack.setDittoHeaders(ack.getDittoHeaders().toBuilder()
-                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId)
-                        .build()))
-                .collect(Collectors.toList());
+    private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
+        return MessageMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connectionId);
     }
 
     private void logIfDebug(final OutboundSignal.MultiMapped multiMapped, final Consumer<LoggingAdapter> whatToLog) {
@@ -304,12 +299,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 final CompletionStage<Acknowledgement> ackFuture =
                         publishMessage(outbound.getSource(), autoAckTarget, publishTarget, mappedMessage, quota);
                 // set the external message after header mapping for the result of header mapping to show up in log
-                return new Sending(sendingContext.setExternalMessage(mappedMessage), ackFuture);
+                return new Sending(sendingContext.setExternalMessage(mappedMessage), ackFuture, log());
             } else {
-                return new Dropped(sendingContext);
+                return new Dropped(sendingContext, log());
             }
         } catch (final Exception e) {
-            return new Sending(sendingContext, CompletableFuture.failedFuture(e));
+            return new Sending(sendingContext, CompletableFuture.failedFuture(e), log());
         }
     }
 
@@ -516,7 +511,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private SendingContext sendingContextForReplyTarget(final OutboundSignal.Mapped outboundSignal,
             final ReplyTarget replyTarget) {
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
-        return new SendingContext(outboundSignal, externalMessage, replyTarget, responsePublishedMonitor, null,
+        return new SendingContext(connectionId, outboundSignal, externalMessage, replyTarget, responsePublishedMonitor, null,
                 responseDroppedMonitor, null);
     }
 
@@ -529,7 +524,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         null;
         @Nullable final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
-        return new SendingContext(outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor,
+        return new SendingContext(connectionId, outboundSignal, externalMessage, target, publishedMonitor, acknowledgedMonitor,
                 publishedMonitor, autoAckTarget);
     }
 
@@ -558,6 +553,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private static final class SendingContext {
 
+        private final ConnectionId connectionId;
         private final OutboundSignal.Mapped outboundSignal;
         private final ExternalMessage externalMessage;
         private final GenericTarget genericTarget;
@@ -567,13 +563,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         @Nullable private final Target autoAckTarget;
 
         private SendingContext(
+                final ConnectionId connectionId,
                 final OutboundSignal.Mapped outboundSignal,
                 final ExternalMessage externalMessage,
                 final GenericTarget genericTarget,
                 final ConnectionMonitor publishedMonitor,
-                @Nullable ConnectionMonitor acknowledgedMonitor,
+                @Nullable final ConnectionMonitor acknowledgedMonitor,
                 final ConnectionMonitor droppedMonitor,
                 @Nullable final Target autoAckTarget) {
+            this.connectionId = connectionId;
             this.outboundSignal = outboundSignal;
             this.externalMessage = externalMessage;
             this.genericTarget = genericTarget;
@@ -588,7 +586,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }
 
         private SendingContext setExternalMessage(final ExternalMessage externalMessage) {
-            return new SendingContext(outboundSignal, externalMessage, genericTarget, publishedMonitor,
+            return new SendingContext(connectionId, outboundSignal, externalMessage, genericTarget, publishedMonitor,
                     acknowledgedMonitor, droppedMonitor,
                     autoAckTarget);
         }
@@ -601,6 +599,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         <T> T eval(BiFunction<SendingContext, CompletionStage<Acknowledgement>, T> onSending,
                 Function<SendingContext, T> onDropped);
+
+        /**
+         * @return the logger to use.
+         */
+         DittoDiagnosticLoggingAdapter log();
 
         /**
          * Return an optional future acknowledgement capturing the result of message sending.
@@ -635,7 +638,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                             })
                             .exceptionally(error -> {
                                 final Exception rootCause = getRootCause(error);
-                                monitorSendFailure(context.externalMessage, rootCause, context.publishedMonitor);
+                                monitorSendFailure(context.externalMessage, rootCause, context.publishedMonitor,
+                                        context.connectionId, log());
                                 return convertErrorToAcknowledgement(context, rootCause, errorConverter);
                             })
                     ),
@@ -668,12 +672,28 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }
 
         private static void monitorSendFailure(final ExternalMessage message, final Exception exception,
-                final ConnectionMonitor publishedMonitor) {
+                final ConnectionMonitor publishedMonitor, final ConnectionId connectionId,
+                final DittoDiagnosticLoggingAdapter log) {
+
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             if (exception instanceof DittoRuntimeException) {
-                publishedMonitor.failure(message, (DittoRuntimeException) exception);
+                final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) exception;
+                publishedMonitor.failure(message, dittoRuntimeException);
+                log.withCorrelationId(dittoRuntimeException)
+                        .info("Ran into a failure when publishing signal - {}: {}",
+                                dittoRuntimeException.getClass().getSimpleName(),
+                                dittoRuntimeException.getMessage());
             } else {
                 publishedMonitor.exception(message, exception);
+                @Nullable final String correlationId = message.getInternalHeaders().getCorrelationId().orElseGet(() ->
+                        message.findHeaderIgnoreCase(CORRELATION_ID.getKey())
+                                .orElse(null));
+                log.withCorrelationId(correlationId)
+                        .info("Unexpected failure when publishing signal  - {}: {}",
+                                exception.getClass().getSimpleName(),
+                                exception.getMessage());
             }
+            ConnectionLogUtil.removeConnectionId(log);
         }
 
     }
@@ -682,10 +702,18 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         private final SendingContext sendingContext;
         private final CompletionStage<Acknowledgement> future;
+        private final DittoDiagnosticLoggingAdapter log;
 
-        private Sending(final SendingContext sendingContext, final CompletionStage<Acknowledgement> future) {
+        private Sending(final SendingContext sendingContext, final CompletionStage<Acknowledgement> future,
+                final DittoDiagnosticLoggingAdapter log) {
             this.sendingContext = sendingContext;
             this.future = future;
+            this.log = log;
+        }
+
+        @Override
+        public DittoDiagnosticLoggingAdapter log() {
+            return log;
         }
 
         @Override
@@ -698,9 +726,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final class Dropped implements SendingOrDropped {
 
         private final SendingContext outboundSignal;
+        private final DittoDiagnosticLoggingAdapter log;
 
-        private Dropped(final SendingContext outboundSignal) {
+        private Dropped(final SendingContext outboundSignal, final DittoDiagnosticLoggingAdapter log) {
             this.outboundSignal = outboundSignal;
+            this.log = log;
+        }
+
+        @Override
+        public DittoDiagnosticLoggingAdapter log() {
+            return log;
         }
 
         @Override
@@ -711,7 +746,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
-     * Fully customizable coverter from publisher errors to acknowledgements.
+     * Fully customizable converter from publisher errors to acknowledgements.
      */
     protected static class ErrorConverter {
 

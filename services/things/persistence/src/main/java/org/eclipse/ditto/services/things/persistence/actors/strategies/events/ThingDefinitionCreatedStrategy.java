@@ -23,9 +23,14 @@ import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
 @Immutable
 final class ThingDefinitionCreatedStrategy extends AbstractThingEventStrategy<ThingDefinitionCreated> {
 
+    protected ThingDefinitionCreatedStrategy() {
+        super();
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final ThingDefinitionCreated event,
             final ThingBuilder.FromCopy thingBuilder) {
+
         return thingBuilder.setDefinition(event.getThingDefinition());
     }
 

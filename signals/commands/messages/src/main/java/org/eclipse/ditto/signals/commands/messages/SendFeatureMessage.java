@@ -44,7 +44,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = SendFeatureMessage.TYPE_PREFIX, name = SendFeatureMessage.NAME)
-public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage>
+public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage<T>>
         implements WithFeatureId {
 
     /**
@@ -141,7 +141,6 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *
      * @param jsonString the JSON string of which the SendFeatureMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
@@ -154,7 +153,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *     <li>{@link MessageCommand.JsonFields#JSON_MESSAGE}</li>
      * </ul>
      */
-    public static <T> SendFeatureMessage<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendFeatureMessage<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -163,7 +162,6 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *
      * @param jsonObject the JSON object of which the SendFeatureMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
@@ -175,12 +173,12 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *     <li>{@link MessageCommand.JsonFields#JSON_MESSAGE}</li>
      * </ul>
      */
-    public static <T> SendFeatureMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(() -> {
+    public static SendFeatureMessage<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SendFeatureMessage<?>>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-            final Message<T> message = deserializeMessageFromJson(jsonObject);
+            final Message<?> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, featureId, message, dittoHeaders);
         });

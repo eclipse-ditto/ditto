@@ -157,10 +157,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (signal instanceof MessageCommandResponse) {
             validateChannel(channel, signal, LIVE);
             return toAdaptable((MessageCommandResponse<?, ?>) signal);
+        } else if (signal instanceof ThingSearchCommand) {
+            return toAdaptable((ThingSearchCommand<?>) signal, channel);
         } else if (signal instanceof Command) {
             return toAdaptable((Command<?>) signal, channel);
-        } else if (signal instanceof ThingSearchCommand) {
-            return toAdaptable((ThingSearchCommand) signal, channel);
         } else if (signal instanceof CommandResponse) {
             return toAdaptable((CommandResponse<?>) signal, channel);
         } else if (signal instanceof Event) {

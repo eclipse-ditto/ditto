@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingConstants;
@@ -30,7 +31,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithThingId, WithEntityType {
+public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, WithThingId, WithEntityType {
 
     /**
      * Type Prefix of Thing commands.

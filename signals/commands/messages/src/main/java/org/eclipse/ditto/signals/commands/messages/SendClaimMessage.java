@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @JsonParsableCommand(typePrefix = SendClaimMessage.TYPE_PREFIX, name = SendClaimMessage.NAME)
-public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendClaimMessage> {
+public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendClaimMessage<T>> {
 
     /**
      * The name of the {@code Message} wrapped by this {@code MessageCommand}.
@@ -45,7 +45,7 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
     }
 
     @Override
-    public SendClaimMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public SendClaimMessage<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getThingEntityId(), getMessage(), dittoHeaders);
     }
 
@@ -88,13 +88,12 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
      *
      * @param jsonString the JSON string of which the SendClaimMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
      */
-    public static <T> SendClaimMessage<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendClaimMessage<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -103,16 +102,15 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
      *
      * @param jsonObject the JSON object of which the SendClaimMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
-    public static <T> SendClaimMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendClaimMessage<T>>(TYPE, jsonObject).deserialize(() -> {
+    public static SendClaimMessage<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SendClaimMessage<?>>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
-            final Message<T> message = deserializeMessageFromJson(jsonObject);
+            final Message<?> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, message, dittoHeaders);
         });

@@ -16,6 +16,8 @@ import javax.annotation.Nullable
 import javax.annotation.concurrent.NotThreadSafe
 import org.eclipse.ditto.model.base.headers.{DittoHeaders, WithDittoHeaders}
 
+import scala.annotation.varargs
+
 /** An Akka [[akka.event.DiagnosticLoggingAdapter]] with additional functionality.
   *
   * The main purpose of DittoDiagnosticLoggingAdapter is to provide an API for easily setting a correlation ID to the
@@ -101,5 +103,60 @@ abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAd
     * @throws NullPointerException if `dittoHeaders` is `null`.
     */
   def setCorrelationId(dittoHeaders: DittoHeaders): DittoDiagnosticLoggingAdapter
+
+  /**
+   * Message template with > 4 replacement arguments.
+   */
+  @varargs def error(throwable: Throwable, template: String, arg1: Any, arg2: Any, arg3: Any, arg4: Any, moreArgs: Any*): Unit = {
+    if (isErrorEnabled) {
+      val array = Array(arg1, arg2, arg3, arg4)
+      val combined = Array.concat(array, moreArgs.toArray)
+      error(throwable, template, combined)
+    }
+  }
+
+  /**
+   * Message template with > 4 replacement arguments.
+   */
+  @varargs def error(template: String, arg1: Any, arg2: Any, arg3: Any, arg4: Any, moreArgs: Any*): Unit = {
+    if (isErrorEnabled) {
+      val array = Array(arg1, arg2, arg3, arg4)
+      val combined = Array.concat(array, moreArgs.toArray)
+      error(template, combined)
+    }
+  }
+
+  /**
+   * Message template with > 4 replacement arguments.
+   */
+  @varargs def warning(template: String, arg1: Any, arg2: Any, arg3: Any, arg4: Any, moreArgs: Any*): Unit = {
+    if (isWarningEnabled) {
+      val array = Array(arg1, arg2, arg3, arg4)
+      val combined = Array.concat(array, moreArgs.toArray)
+      warning(template, combined)
+    }
+  }
+
+  /**
+   * Message template with > 4 replacement arguments.
+   */
+  @varargs def info(template: String, arg1: Any, arg2: Any, arg3: Any, arg4: Any, moreArgs: Any*): Unit = {
+    if (isInfoEnabled) {
+      val array = Array(arg1, arg2, arg3, arg4)
+      val combined = Array.concat(array, moreArgs.toArray)
+      info(template, combined)
+    }
+  }
+
+  /**
+   * Message template with > 4 replacement arguments.
+   */
+  @varargs def debug(template: String, arg1: Any, arg2: Any, arg3: Any, arg4: Any, moreArgs: Any*): Unit = {
+    if (isDebugEnabled) {
+      val array = Array(arg1, arg2, arg3, arg4)
+      val combined = Array.concat(array, moreArgs.toArray)
+      debug(template, combined)
+    }
+  }
 
 }

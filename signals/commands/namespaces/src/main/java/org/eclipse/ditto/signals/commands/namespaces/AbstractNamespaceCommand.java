@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <T> Concrete types of each namespace command.
  */
 @Immutable
-abstract class AbstractNamespaceCommand<T extends AbstractNamespaceCommand> extends AbstractCommand<T>
+abstract class AbstractNamespaceCommand<T extends AbstractNamespaceCommand<T>> extends AbstractCommand<T>
         implements NamespaceCommand<T> {
 
     /**

@@ -63,6 +63,15 @@ public final class ConnectionLogUtil {
     }
 
     /**
+     * Removes the connectionId from the "MDC" of the passed {@link DiagnosticLoggingAdapter}.
+     *
+     * @param loggingAdapter the DiagnosticLoggingAdapter to remove the "MDC" from.
+     */
+    public static void removeConnectionId(final DiagnosticLoggingAdapter loggingAdapter) {
+        LogUtil.removeCustomField(loggingAdapter, MDC_CONNECTION_ID);
+    }
+
+    /**
      * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code connectionId}
      * and the correlation ID (if present).
      *

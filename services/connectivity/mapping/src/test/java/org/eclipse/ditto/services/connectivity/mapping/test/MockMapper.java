@@ -17,6 +17,7 @@ import static java.util.Collections.emptyList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -65,6 +66,16 @@ public final class MockMapper implements MessageMapper {
     @Nonnull
     public List<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
         return emptyList();
+    }
+
+    @Override
+    public Map<String, String> getIncomingConditions() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return Collections.emptyMap();
     }
 
 }

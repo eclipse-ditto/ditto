@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
@@ -64,6 +65,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         thing.getRevision().ifPresent(result::setRevision);
         thing.getModified().ifPresent(result::setModified);
         thing.getCreated().ifPresent(result::setCreated);
+        thing.getMetadata().ifPresent(result::setMetadata);
 
         return result;
     }
@@ -128,6 +130,10 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         jsonObject.getValue(Thing.JsonFields.CREATED)
                 .map(ImmutableThingFromCopyBuilder::tryToParseCreated)
                 .ifPresent(result::setCreated);
+
+        jsonObject.getValue(Thing.JsonFields.METADATA)
+                .map(ThingsModelFactory::newMetadata)
+                .ifPresent(result::setMetadata);
 
         return result;
     }
@@ -714,6 +720,21 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     public FromCopy setCreated(final Predicate<Instant> existingCreatedPredicate, @Nullable final Instant created) {
         if (existingCreatedPredicate.test(fromScratchBuilder.created)) {
             setCreated(created);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(@Nullable final Metadata metadata) {
+        fromScratchBuilder.setMetadata(metadata);
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(final Predicate<Metadata> existingMetadataPredicate,
+            @Nullable final Metadata metadata) {
+        if (existingMetadataPredicate.test(fromScratchBuilder.metadata)) {
+            setMetadata(metadata);
         }
         return this;
     }

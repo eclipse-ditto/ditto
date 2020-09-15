@@ -12,16 +12,22 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.AfterClass;
@@ -30,15 +36,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
-
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import static org.mockito.Mockito.*;
 
 public final class EnforcementSchedulerTest {
 
@@ -74,7 +77,8 @@ public final class EnforcementSchedulerTest {
             final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), deadLetterProbe.ref(),
                     pubSubProbe.ref(), conciergeForwarderProbe.ref(),
                     Duration.ofSeconds(10), Mockito.mock(DittoDiagnosticLoggingAdapter.class),
-                    Mockito.mock(Cache.class));
+                    null
+            );
             final ThingId thingId = ThingId.of("busy", "thing");
             final PolicyId policyId = PolicyId.of("some", "policy");
             final PolicyId policyId2 = PolicyId.of("other", "policy");

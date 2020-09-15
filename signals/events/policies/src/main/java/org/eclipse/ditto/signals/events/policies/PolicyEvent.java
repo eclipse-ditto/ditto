@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
+public interface PolicyEvent<T extends PolicyEvent<T>> extends Event<T> {
 
     /**
      * Type Prefix of Policy events.

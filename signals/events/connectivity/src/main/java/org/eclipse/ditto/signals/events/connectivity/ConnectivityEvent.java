@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityEvent<T extends ConnectivityEvent> extends Event<T> {
+public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event<T> {
 
     /**
      * Type Prefix of Connectivity events.

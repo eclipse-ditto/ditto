@@ -30,5 +30,5 @@ public interface SignalMapper<T extends WithId> {
      * @param channel the channel used to send the signal
      * @return an {@link Adaptable}
      */
-    Adaptable mapSignalToAdaptable(T signal, final TopicPath.Channel channel);
+    Adaptable mapSignalToAdaptable(T signal, TopicPath.Channel channel);
 }

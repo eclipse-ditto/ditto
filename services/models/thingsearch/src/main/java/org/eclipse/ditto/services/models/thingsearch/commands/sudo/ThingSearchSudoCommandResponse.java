@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchSudoCommandResponse<T extends ThingSearchSudoCommandResponse> extends CommandResponse<T>,
+public interface ThingSearchSudoCommandResponse<T extends ThingSearchSudoCommandResponse<T>> extends CommandResponse<T>,
         WithEntity<T>, WithIdButActuallyNot {
 
     /**

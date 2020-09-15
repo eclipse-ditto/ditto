@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -310,7 +311,17 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * </p>
      *
      * @return the command timeout.
+     * @since 1.1.0
      */
     Optional<Duration> getTimeout();
+
+    /**
+     * Returns the metadata headers to put/set for the (modifying) command they were added to.
+     *
+     * @return the MetadataHeaders to put being a sorted set of {@code MetadataHeader}s.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 1.2.0
+     */
+    MetadataHeaders getMetadataHeadersToPut();
 
 }

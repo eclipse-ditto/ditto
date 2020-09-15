@@ -33,6 +33,8 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -122,6 +124,7 @@ public final class AcknowledgementForwarderActorTest {
                 .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                 .build();
         final ThingId entityId = ThingId.generateRandom();
+        final Signal<?> signal = ThingDeleted.of(entityId, 1L, dittoHeaders);
         final Acknowledgement acknowledgement =
                 Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.ACCEPTED, dittoHeaders);
 
@@ -129,7 +132,7 @@ public final class AcknowledgementForwarderActorTest {
             when(actorContext.sender()).thenReturn(getRef());
 
             final Optional<ActorRef> underTest =
-                    AcknowledgementForwarderActor.startAcknowledgementForwarder(actorContext, entityId, dittoHeaders,
+                    AcknowledgementForwarderActor.startAcknowledgementForwarder(actorContext, entityId, signal,
                             acknowledgementConfig);
 
             softly.assertThat(underTest).isPresent();

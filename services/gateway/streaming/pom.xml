@@ -117,6 +117,12 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-search</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_2.12</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

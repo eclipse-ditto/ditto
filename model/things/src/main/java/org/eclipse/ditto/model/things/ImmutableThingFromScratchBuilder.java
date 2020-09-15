@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 
@@ -43,6 +44,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
     @Nullable Instant created;
+    @Nullable Metadata metadata;
     @Nullable private JsonSchemaVersion schemaVersion;
     @Nullable private PolicyId policyId;
     @Nullable
@@ -67,6 +69,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         revision = null;
         modified = null;
         created = null;
+        metadata = null;
     }
 
     /**
@@ -345,6 +348,12 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    public FromScratch setMetadata(@Nullable final Metadata metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+
+    @Override
     @Deprecated
     public FromScratch setPermissions(final JsonObject accessControlListJsonObject) {
         final AccessControlList accessControlList = ThingsModelFactory.newAcl(accessControlListJsonObject);
@@ -445,10 +454,10 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     public Thing build() {
         if (null != policyId) {
             return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified, created);
+                    revision, modified, created, metadata);
         } else {
             return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified, created);
+                    revision, modified, created, metadata);
         }
     }
 

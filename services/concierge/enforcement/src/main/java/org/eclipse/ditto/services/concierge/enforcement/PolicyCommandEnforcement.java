@@ -60,7 +60,7 @@ import akka.pattern.Patterns;
 /**
  * Authorize {@link PolicyCommand}.
  */
-public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCommand> {
+public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCommand<?>> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -72,7 +72,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     private final EnforcerRetriever enforcerRetriever;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
 
-    private PolicyCommandEnforcement(final Contextual<PolicyCommand> data, final ActorRef policiesShardRegion,
+    private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> data, final ActorRef policiesShardRegion,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache) {
 
         super(data);
@@ -115,7 +115,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer..
      */
-    public static <T extends PolicyQueryCommandResponse> T buildJsonViewForPolicyQueryCommandResponse(
+    public static <T extends PolicyQueryCommandResponse<T>> T buildJsonViewForPolicyQueryCommandResponse(
             final PolicyQueryCommandResponse<T> response,
             final Enforcer enforcer) {
 
@@ -187,14 +187,20 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
-        final PolicyCommand policyCommand = signal();
-        final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
+        final PolicyCommand<?> policyCommand = signal();
+        final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
+                authorizePolicyCommand(policyCommand, enforcer);
         if (authorizedCommandOpt.isPresent()) {
-            final PolicyCommand authorizedCommand = authorizedCommandOpt.get();
+            final PolicyCommand<?> authorizedCommand = authorizedCommandOpt.get();
             if (authorizedCommand instanceof PolicyQueryCommand) {
-                final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) authorizedCommand;
-                return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
-                        () -> askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer));
+                final PolicyQueryCommand<?> policyQueryCommand = (PolicyQueryCommand<?>) authorizedCommand;
+                if (!policyQueryCommand.getDittoHeaders().isResponseRequired()) {
+                    // drop query command with response-required=false
+                    return withMessageToReceiver(null, ActorRef.noSender());
+                } else {
+                    return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
+                            () -> askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer));
+                }
             } else {
                 return forwardToPoliciesShardRegion(authorizedCommand);
             }
@@ -250,8 +256,8 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                 self());
     }
 
-    private CompletionStage<WithDittoHeaders> askPoliciesShardRegionAndBuildJsonView(
-            final PolicyQueryCommand commandWithReadSubjects,
+    private CompletionStage<WithDittoHeaders<?>> askPoliciesShardRegionAndBuildJsonView(
+            final PolicyQueryCommand<?> commandWithReadSubjects,
             final Enforcer enforcer) {
 
         return Patterns.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout())
@@ -271,7 +277,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     private PolicyUnavailableException reportTimeoutForPolicyQuery(
-            final PolicyQueryCommand command,
+            final PolicyQueryCommand<?> command,
             final AskTimeoutException askTimeoutException) {
         log(command).error(askTimeoutException, "Timeout before building JsonView");
         return PolicyUnavailableException.newBuilder(command.getEntityId())
@@ -279,7 +285,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                 .build();
     }
 
-    private PolicyQueryCommandResponse reportJsonViewForPolicyQuery(
+    private PolicyQueryCommandResponse<?> reportJsonViewForPolicyQuery(
             final PolicyQueryCommandResponse<?> thingQueryCommandResponse,
             final Enforcer enforcer) {
 
@@ -293,7 +299,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     /**
      * Provides {@link AbstractEnforcement} for commands of type {@link PolicyCommand}.
      */
-    public static final class Provider implements EnforcementProvider<PolicyCommand> {
+    public static final class Provider implements EnforcementProvider<PolicyCommand<?>> {
 
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
         private ActorRef policiesShardRegion;
@@ -311,17 +317,18 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         }
 
         @Override
-        public Class<PolicyCommand> getCommandClass() {
-            return PolicyCommand.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<PolicyCommand<?>> getCommandClass() {
+            return (Class) PolicyCommand.class;
         }
 
         @Override
-        public boolean changesAuthorization(final PolicyCommand signal) {
+        public boolean changesAuthorization(final PolicyCommand<?> signal) {
             return signal instanceof PolicyModifyCommand;
         }
 
         @Override
-        public AbstractEnforcement<PolicyCommand> createEnforcement(final Contextual<PolicyCommand> context) {
+        public AbstractEnforcement<PolicyCommand<?>> createEnforcement(final Contextual<PolicyCommand<?>> context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
 

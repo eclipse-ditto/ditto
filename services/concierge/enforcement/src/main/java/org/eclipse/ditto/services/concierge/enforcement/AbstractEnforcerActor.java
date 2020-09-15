@@ -12,12 +12,13 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
@@ -81,9 +82,10 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         super(WithDittoHeaders.class);
 
-        enforcementConfig = DittoConciergeConfig.of(
+        final ConciergeConfig conciergeConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getEnforcementConfig();
+        );
+        enforcementConfig = conciergeConfig.getEnforcementConfig();
 
         this.thingIdCache = thingIdCache;
         this.aclEnforcerCache = aclEnforcerCache;
@@ -91,7 +93,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         contextual = Contextual.forActor(getSelf(), getContext().getSystem().deadLetters(),
                 pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger,
-                createResponseReceiversCache());
+                createResponseReceiverCache(conciergeConfig)
+        );
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
@@ -158,8 +161,13 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         return contextual.withReceivedMessage(message, getSender());
     }
 
-    private static Cache<String, ResponseReceiver> createResponseReceiversCache() {
-        return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS));
+    @Nullable
+    private static Cache<String, ActorRef> createResponseReceiverCache(final ConciergeConfig conciergeConfig) {
+        if (conciergeConfig.getEnforcementConfig().shouldDispatchLiveResponsesGlobally()) {
+            return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(120L)));
+        } else {
+            return null;
+        }
     }
 
 }

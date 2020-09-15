@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -38,6 +37,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -49,6 +49,7 @@ import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -80,9 +81,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
-import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -90,19 +90,19 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
+import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -111,6 +111,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
@@ -118,6 +119,7 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
+import scala.PartialFunction;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -138,15 +140,12 @@ public final class MessageMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
-    private final ThreadSafeDittoLogger logger;
-
     private final ActorRef clientActor;
     private final MessageMappingProcessor messageMappingProcessor;
     private final ConnectionId connectionId;
     private final ActorRef proxyActor;
     private final ActorRef connectionActor;
     private final MappingConfig mappingConfig;
-    private final AcknowledgementConfig acknowledgementConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
@@ -155,6 +154,7 @@ public final class MessageMappingProcessorActor
     private final int processorPoolSize;
     private final SourceQueue<ExternalMessageWithSender> inboundSourceQueue;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
+    private final AcknowledgementAggregatorActorStarter ackregatorStarter;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef proxyActor,
@@ -169,7 +169,7 @@ public final class MessageMappingProcessorActor
         this.proxyActor = proxyActor;
         this.clientActor = clientActor;
         this.messageMappingProcessor = messageMappingProcessor;
-        connectionId = connection.getId();
+        this.connectionId = connection.getId();
         this.connectionActor = connectionActor;
 
         final DefaultScopedConfig dittoScoped =
@@ -178,7 +178,6 @@ public final class MessageMappingProcessorActor
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
-        acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
@@ -187,12 +186,26 @@ public final class MessageMappingProcessorActor
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
         signalEnrichmentFacade =
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
-        this.processorPoolSize = processorPoolSize;
-        inboundSourceQueue = materializeInboundStream(processorPoolSize);
+        this.processorPoolSize = this.determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
+        inboundSourceQueue = materializeInboundStream(this.processorPoolSize);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
+        ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
+                connectivityConfig.getConnectionConfig().getAcknowledgementConfig(),
+                messageMappingProcessor.getHeaderTranslator(),
+                ThingModifyCommandAckRequestSetter.getInstance(),
+                ThingLiveCommandAckRequestSetter.getInstance(),
+                MessageCommandAckRequestSetter.getInstance());
+    }
 
-        logger = DittoLoggerFactory.getThreadSafeLogger(MessageMappingProcessorActor.class)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+    private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
+        if (connectionPoolSize > maxPoolSize) {
+            ConnectionLogUtil.enhanceLogWithConnectionId(logger, connectionId);
+            logger.info("Configured pool size <{}> is greater than the configured max pool size <{}>." +
+                    " Will use max pool size <{}>.", connectionPoolSize, maxPoolSize, maxPoolSize);
+            ConnectionLogUtil.removeConnectionId(logger);
+            return maxPoolSize;
+        }
+        return connectionPoolSize;
     }
 
     /**
@@ -213,13 +226,9 @@ public final class MessageMappingProcessorActor
             final ActorRef connectionActor,
             final int processorPoolSize) {
 
-        return Props.create(MessageMappingProcessorActor.class,
-                proxyActor,
-                clientActor,
-                processor,
-                connection,
-                connectionActor,
-                processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+        return Props.create(MessageMappingProcessorActor.class, proxyActor, clientActor, processor,
+                connection, connectionActor, processorPoolSize)
+                .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
@@ -236,15 +245,14 @@ public final class MessageMappingProcessorActor
                 // Outgoing responses and signals go through the signal enrichment stream
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
-                .match(AcksRequestingSignal.class, this::handleAcksRequestingSignal)
-                .match(Status.Failure.class, f -> logger.warn("Got failure with cause {}: {}",
+                .match(IncomingSignal.class, this::dispatchIncomingSignal)
+                .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
     }
 
     private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // this Acknowledgement seems to have been mis-routed:
-        logger.withCorrelationId(acknowledgement)
-                .warn("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
+        logger.warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
     }
 
     private SourceQueue<ExternalMessageWithSender> materializeInboundStream(final int processorPoolSize) {
@@ -254,7 +262,8 @@ public final class MessageMappingProcessorActor
                         () -> mapInboundMessage(externalMessage),
                         getContext().getDispatcher())
                 )
-                .toMat(Sink.foreach(this::handleIncomingMappedSignal), Keep.left())
+                .flatMapConcat(this::handleIncomingMappedSignal)
+                .toMat(Sink.foreach(incomingSignal -> getSelf().tell(incomingSignal, ActorRef.noSender())), Keep.left())
                 .run(materializer);
     }
 
@@ -262,134 +271,128 @@ public final class MessageMappingProcessorActor
      * Handle incoming signals that request acknowledgements in the actor's thread, since creating the necessary
      * acknowledgement aggregators is not thread-safe.
      *
-     * @param acksRequestingSignal the signal requesting acknowledgements together with its original sender,
+     * @param incomingSignal the signal requesting acknowledgements together with its original sender,
      * the response collector actor.
      */
-    private void handleAcksRequestingSignal(final AcksRequestingSignal acksRequestingSignal) {
-        try {
-            startAckregatorAndForwardSignal(acksRequestingSignal);
-        } catch (final DittoRuntimeException e) {
-            logger.withCorrelationId(acksRequestingSignal.signal)
-                    .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator': {}: <{}>",
-                            e.getClass().getSimpleName(), e.getMessage());
-            responseMappedMonitor.getLogger()
-                    .failure("Got exception {0} when processing external message: {1}", e.getErrorCode(),
-                            e.getMessage());
-            final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
-            // tell sender the error response for consumer settlement
-            acksRequestingSignal.sender.tell(errorResponse, getSelf());
-            // publish error response
-            handleErrorResponse(e, errorResponse.setDittoHeaders(acksRequestingSignal.signal.getDittoHeaders()),
-                    ActorRef.noSender());
-        }
-    }
-
-    // NOT thread-safe
-    private void startAckregatorAndForwardSignal(final AcksRequestingSignal acksRequestingSignal) {
-        final Signal<?> signal = acksRequestingSignal.signal;
-        final ActorRef sender = acksRequestingSignal.sender;
-        Optional<ActorRef> ackregator;
-        try {
-            ackregator = startAckregator(signal, sender);
-        } catch (final AcknowledgementRequestDuplicateCorrelationIdException e) {
-            ackregator = startAckregatorWithRandomCorrelationId(signal, sender);
-        }
-        if (ackregator.isEmpty()) {
-            // signal that I thought should be acknowledged did not start an ackregator actor---this is a bug.
-            // tell collector of the problem.
-            logger.withCorrelationId(signal)
-                    .error("Did not start Ackregator for signal that should be acknowledged. sender=<{}>, signal=<{}>",
-                            sender, signal);
-            sender.tell(failedToStartAckregator(signal, connectionId), ActorRef.noSender());
+    private void dispatchIncomingSignal(final IncomingSignal incomingSignal) {
+        final Signal<?> signal = incomingSignal.signal;
+        final ActorRef sender = incomingSignal.sender;
+        if (incomingSignal.isAckRequesting) {
+            try {
+                startAckregatorAndForwardSignal(signal, sender);
+            } catch (final DittoRuntimeException e) {
+                handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
+            }
         } else {
-            // ackregator started
-            proxyActor.tell(signal, ackregator.orElseThrow());
+            proxyActor.tell(signal, sender);
         }
     }
 
-    // NOT thread-safe
-    private Optional<ActorRef> startAckregatorWithRandomCorrelationId(final Signal<?> signal, final ActorRef sender) {
-        final String originalCorrelationId = signal.getDittoHeaders().getCorrelationId().orElse("");
-        DittoHeaders dittoHeaders;
-        do {
-            dittoHeaders = signal.getDittoHeaders().toBuilder()
-                    .correlationId(originalCorrelationId + "-" + UUID.randomUUID())
-                    .build();
-        } while (getContext().child(AcknowledgementAggregatorActor.determineActorName(dittoHeaders)).isDefined());
-        final String newCorrelationId = dittoHeaders.getCorrelationId().orElse(null);
-        logger.withCorrelationId(originalCorrelationId).info("SetCorrelationId <{}>.", newCorrelationId);
-        logReplacedCorrelationId(signal, newCorrelationId);
-        return startAckregator(signal.setDittoHeaders(dittoHeaders), sender);
+    private void handleErrorDuringStartingOfAckregator(final DittoRuntimeException e,
+            final DittoHeaders dittoHeaders, final ActorRef sender) {
+        logger.withCorrelationId(dittoHeaders.getCorrelationId().orElse("?"))
+                .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
+                        " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
+        responseMappedMonitor.getLogger()
+                .failure("Got exception {0} when processing external message: {1}",
+                        e.getErrorCode(), e.getMessage());
+        final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
+        // tell sender the error response for consumer settlement
+        sender.tell(errorResponse, getSelf());
+        // publish error response
+        handleErrorResponse(e, errorResponse.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
 
-    private void logReplacedCorrelationId(final Signal<?> signalWithOldCorrelationId,
-            @Nullable final String newCorrelationId) {
-
-        final ConnectionMonitor inboundMonitor =
-                connectionMonitorRegistry.getMonitor(connectionId, MAPPED, MetricDirection.INBOUND, LogType.MAPPED,
-                        LogCategory.SOURCE, "");
-        inboundMonitor.getLogger()
-                .success(InfoProviderFactory.forSignal(signalWithOldCorrelationId),
-                        "Due to a conflict, correlation ID is set to: {0}", newCorrelationId);
-    }
-
-    // NOT thread-safe
-    private Optional<ActorRef> startAckregator(final Signal<?> signal, final ActorRef sender) {
-        return AcknowledgementAggregatorActor.startAcknowledgementAggregator(getContext(),
-                (ThingModifyCommand<?>) signal,
-                acknowledgementConfig,
-                messageMappingProcessor.getHeaderTranslator(),
+    private void startAckregatorAndForwardSignal(final Signal<?> signal, final ActorRef sender) {
+        ackregatorStarter.doStart(signal,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
-                    // acks don't get send when no response-required by #handleCommandResponse
-                    getSelf().tell(responseSignal, getSelf());
+                    if (signal.getDittoHeaders().isResponseRequired()) {
+                        getSelf().tell(responseSignal, getSelf());
+                    }
 
                     // forward acks to the original sender for consumer settlement
                     sender.tell(responseSignal, ActorRef.noSender());
+                },
+                ackregator -> {
+                    proxyActor.tell(signal, ackregator);
+                    return null;
                 });
     }
 
-    private static ThingErrorResponse failedToStartAckregator(final Signal<?> signal, final ConnectionId connectionId) {
-        final DittoRuntimeException error = ConnectionUnavailableException.newBuilder(connectionId)
-                .dittoHeaders(signal.getDittoHeaders())
-                .description("Please contact the service team.")
-                .build();
-        return ThingErrorResponse.of(error);
-    }
-
-    private void handleIncomingMappedSignal(final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
+    private Source<IncomingSignal, ?> handleIncomingMappedSignal(
+            final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
         final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
         final ActorRef sender = mappedSignalsWithSender.second();
-        mappedSignals.flatMapConcat(
-                signal -> {
-                    final ActorRef self = getSelf();
-                    if (signal instanceof Acknowledgement) {
-                        // Acknowledgements are directly sent to the ConnectionPersistenceActor as the ConnectionPersistenceActor
-                        //  contains all the AcknowledgementForwarderActor instances for a connection
-                        clientActor.tell(signal, sender);
-                    } else if (signal instanceof ThingSearchCommand<?>) {
-                        // Send to connection actor for dispatching to the same client actor for each session.
-                        // See javadoc of
-                        //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
-                        // for the message path of the search protocol.
-                        connectionActor.tell(signal, ActorRef.noSender());
-                    } else if (areAcknowledgementsRequested(signal)) {
-                        getSelf().tell(new AcksRequestingSignal(signal, sender), ActorRef.noSender());
-                        return Source.single(signal);
-                    } else {
-                        proxyActor.tell(signal, self);
-                    }
-                    return Source.empty();
-                })
-                .runWith(Sink.seq(), materializer)
-                .thenAccept(ackRequestingSignals ->
-                        sender.tell(ResponseCollectorActor.setCount(ackRequestingSignals.size()), getSelf())
-                );
+        final Sink<IncomingSignal, CompletionStage<Integer>> wireTapSink =
+                Sink.fold(0, (i, s) -> i + (s.isAckRequesting ? 1 : 0));
+        return mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
+                .wireTapMat(wireTapSink, (otherMat, ackRequestingSignalCountFuture) -> {
+                    ackRequestingSignalCountFuture.thenAccept(ackRequestingSignalCount ->
+                            sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
+                    );
+                    return otherMat;
+                });
     }
 
-    private static Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message,
-            final Signal<?> signal) {
+    private PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> onIncomingMappedSignal(final ActorRef sender) {
+        final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
+                .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
+                .match(CommandResponse.class, ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                .matchAny(x -> x)
+                .build();
 
+        final PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> dispatchSignal =
+                new PFBuilder<Signal<?>, Source<IncomingSignal, NotUsed>>()
+                        .match(Acknowledgement.class, ack -> forwardToConnectionActor(ack, sender))
+                        .match(Acknowledgements.class, acks -> forwardToConnectionActor(acks, sender))
+                        .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
+                                forwardToConnectionActor(liveResponse, sender)
+                        )
+                        .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
+                        .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
+                                (signal, isAckRequesting) -> Source.single(new IncomingSignal(signal,
+                                        isAckRequesting ? sender : getReturnAddress(signal),
+                                        isAckRequesting)),
+                                headerInvalidException -> {
+                                    // tell the response collector to settle negatively without redelivery
+                                    sender.tell(headerInvalidException, ActorRef.noSender());
+                                    // tell self to publish the error response
+                                    getSelf().tell(ThingErrorResponse.of(headerInvalidException), ActorRef.noSender());
+                                    return Source.empty();
+                                }))
+                        .build();
+
+        return appendConnectionId.andThen(dispatchSignal);
+    }
+
+    /**
+     * Only special Signals must be forwarded to the {@code ConnectionPersistenceActor}:
+     * <ul>
+     * <li>{@code Acknowledgement}s which were received via an incoming connection source</li>
+     * <li>live {@code CommandResponse}s which were received via an incoming connection source</li>
+     * <li>{@code SearchCommand}s which were received via an incoming connection source</li>
+     * </ul>
+     *
+     * @param signal the Signal to forward to the connectionActor
+     * @param sender the sender which shall receive the response
+     * @param <T> type of elements for the next step..
+     * @return an empty source of Signals
+     */
+    private <T> Source<T, NotUsed> forwardToConnectionActor(final Signal<?> signal, final ActorRef sender) {
+        connectionActor.tell(signal, sender);
+        return Source.empty();
+    }
+
+    private ActorRef getReturnAddress(final Signal<?> signal) {
+        final boolean publishResponse = signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired();
+        return publishResponse ? getSelf() : ActorRef.noSender();
+    }
+
+    private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {
+        if (!canRequestAcks(signal)) {
+            return signal;
+        }
         final Set<AcknowledgementRequest> additionalAcknowledgementRequests = message.getSource()
                 .flatMap(org.eclipse.ditto.model.connectivity.Source::getAcknowledgementRequests)
                 .map(FilteredAcknowledgementRequest::getIncludes)
@@ -405,35 +408,17 @@ public final class MessageMappingProcessorActor
             return filterAcknowledgements(signal, filter);
         } else {
             // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
-            final Collection<AcknowledgementRequest> combinedRequestedAcks =
+            final Set<AcknowledgementRequest> combinedRequestedAcks =
                     new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
             combinedRequestedAcks.addAll(additionalAcknowledgementRequests);
 
-            final DittoHeaders headersWithAcknowledgementRequests = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                    .acknowledgementRequests(combinedRequestedAcks)
-                    .build();
-
-            return filterAcknowledgements(signal.setDittoHeaders(headersWithAcknowledgementRequests), filter);
+            return filterAcknowledgements(signal.setDittoHeaders(
+                    signal.getDittoHeaders()
+                            .toBuilder()
+                            .acknowledgementRequests(combinedRequestedAcks)
+                            .build()),
+                    filter);
         }
-    }
-
-    private static Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter) {
-        if (filter != null) {
-            final String fullFilter =
-                    "{{ header:" + DittoHeaderDefinition.REQUESTED_ACKS.getKey() + " | " + filter + " }}";
-            final ExpressionResolver expressionResolver = Resolvers.forSignal(signal);
-            final Optional<String> resolvedFilter = PlaceholderFilter.applyOrElseDelete(fullFilter, expressionResolver);
-            if (resolvedFilter.isPresent()) {
-                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .putHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), resolvedFilter.orElseThrow())
-                        .build());
-            } else {
-                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .acknowledgementRequests(Collections.emptySet())
-                        .build());
-            }
-        }
-        return signal;
     }
 
     @Override
@@ -544,8 +529,8 @@ public final class MessageMappingProcessorActor
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
                 .exceptionally(error -> {
                     logger.withCorrelationId(outboundSignal.getSource())
-                            .warn("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),
-                                    error.getMessage());
+                            .warning("Could not retrieve extra data due to: {} {}",
+                                    error.getClass().getSimpleName(), error.getMessage());
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
                     return Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error));
                 });
@@ -592,15 +577,18 @@ public final class MessageMappingProcessorActor
 
     private void handleInboundMessage(final ExternalMessage externalMessage) {
         ConditionChecker.checkNotNull(externalMessage);
-        inboundSourceQueue.offer(new ExternalMessageWithSender(externalMessage, getSender()));
+        logger.debug("Received inbound Message to map: {}", externalMessage);
+        inboundSourceQueue.offer(new ExternalMessageWithSender(externalMessage, getSender()))
+                .whenComplete((result, error) -> logger.debug(
+                        "Result of inbound source queue offer: <{}>, Error of inbound source queue offer: <{}>",
+                        result, error));
     }
 
     private Pair<Source<Signal<?>, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
         final ExternalMessage externalMessage = withSender.externalMessage;
-        if (logger.isDebugEnabled()) {
-            final String correlationId = getCorrelationIdOrNull(externalMessage);
-            logger.withCorrelationId(correlationId).debug("Handling ExternalMessage <{}>.", externalMessage);
-        }
+        final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, correlationId, connectionId);
+        logger.debug("Handling ExternalMessage: {}", externalMessage);
         try {
             return Pair.create(mapExternalMessageToSignal(withSender), withSender.sender);
         } catch (final Exception e) {
@@ -609,33 +597,28 @@ public final class MessageMappingProcessorActor
         }
     }
 
-    @Nullable
-    private static String getCorrelationIdOrNull(final ExternalMessage externalMessage) {
-        final Map<String, String> headers = externalMessage.getHeaders();
-        return headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-    }
-
-    private void handleInboundException(final Exception e,
-            final ExternalMessageWithSender withSender,
-            @Nullable final TopicPath topicPath,
-            @Nullable final AuthorizationContext authorizationContext) {
+    private void handleInboundException(final Exception e, final ExternalMessageWithSender withSender,
+            @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext) {
 
         final ExternalMessage message = withSender.externalMessage;
         if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
             responseMappedMonitor.getLogger()
                     .failure("Got exception {0} when processing external message: {1}",
-                            dittoRuntimeException.getErrorCode(), e.getMessage());
+                            dittoRuntimeException.getErrorCode(),
+                            e.getMessage());
             final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
-            final DittoHeaders mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
-                    message.getTopicPath().orElse(null), message.getInternalHeaders());
+            final DittoHeaders mappedHeaders =
+                    applyInboundHeaderMapping(errorResponse, message, authorizationContext,
+                            message.getTopicPath().orElse(null), message.getInternalHeaders());
+            logger.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}", mappedHeaders, message.getHeaderMapping(), message.getHeaders());
             handleErrorResponse(dittoRuntimeException, errorResponse.setDittoHeaders(mappedHeaders),
                     ActorRef.noSender());
         } else {
             responseMappedMonitor.getLogger()
                     .failure("Got unknown exception when processing external message: {1}", e.getMessage());
             logger.withCorrelationId(message.getInternalHeaders())
-                    .warn("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
+                    .warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
@@ -653,6 +636,7 @@ public final class MessageMappingProcessorActor
         return InboundMappingResultHandler.newBuilder()
                 .onMessageMapped(mappedInboundMessage -> {
                     final Signal<?> signal = mappedInboundMessage.getSignal();
+                    enhanceLogUtil(signal);
 
                     final DittoHeaders mappedHeaders =
                             applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
@@ -661,20 +645,17 @@ public final class MessageMappingProcessorActor
                     final Signal<?> adjustedSignal = appendConnectionAcknowledgementsToSignal(incomingMessage,
                             signal.setDittoHeaders(mappedHeaders));
 
+                    enhanceLogUtil(adjustedSignal);
                     // enforce signal ID after header mapping was done
                     connectionMonitorRegistry.forInboundEnforced(connectionId, source)
                             .wrapExecution(adjustedSignal)
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
                     // the above throws an exception if signal id enforcement fails
 
+
                     return Source.single(adjustedSignal);
                 })
-                .onMessageDropped(() -> {
-                    if (logger.isDebugEnabled()) {
-                        logger.withCorrelationId(getCorrelationIdOrNull(incomingMessage))
-                                .debug("Message mapping returned null, message is dropped.");
-                    }
-                })
+                .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
                 // skip the inbound stream directly to outbound stream
                 .onException((exception, topicPath) -> handleInboundException(exception, withSender, topicPath,
                         authorizationContext))
@@ -684,20 +665,25 @@ public final class MessageMappingProcessorActor
                 .build();
     }
 
+    private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, signal, connectionId);
+    }
+
     private void handleErrorResponse(final DittoRuntimeException exception, final ErrorResponse<?> errorResponse,
             final ActorRef sender) {
 
-        final ThreadSafeDittoLogger l = logger.withCorrelationId(exception);
+        enhanceLogUtil(exception);
 
-        if (l.isInfoEnabled()) {
-            l.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
-                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
-        }
-        if (l.isDebugEnabled()) {
+        logger.withCorrelationId(exception)
+                .info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
+                        exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
+
+        if (logger.isDebugEnabled()) {
             final String stackTrace = stackTraceAsString(exception);
-            l.debug("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
-                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""),
-                    stackTrace);
+            logger.withCorrelationId(exception)
+                    .debug("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
+                            exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""),
+                            stackTrace);
         }
 
         handleCommandResponse(errorResponse, exception, sender);
@@ -706,19 +692,20 @@ public final class MessageMappingProcessorActor
     private void handleCommandResponse(final CommandResponse<?> response,
             @Nullable final DittoRuntimeException exception, final ActorRef sender) {
 
-        final ThreadSafeDittoLogger l = logger.isDebugEnabled() ? logger.withCorrelationId(response) : logger;
+        enhanceLogUtil(response);
         recordResponse(response, exception);
         if (!response.isOfExpectedResponseType()) {
-            l.debug("Requester did not require response (via DittoHeader '{}') - not mapping back to ExternalMessage.",
-                    DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+            logger.withCorrelationId(response)
+                    .debug("Requester did not require response (via DittoHeader '{}') - not mapping back to"
+                            + " ExternalMessage", DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
             responseDroppedMonitor.success(response,
-                    "Dropped response since requester did not require response via Header {0}.",
+                    "Dropped response since requester did not require response via Header {0}",
                     DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
         } else {
             if (isSuccessResponse(response)) {
-                l.debug("Received response <{}>.", response);
-            } else if (l.isDebugEnabled()) {
-                l.debug("Received error response <{}>.", response.toJsonString());
+                logger.withCorrelationId(response).debug("Received response <{}>.", response);
+            } else {
+                logger.withCorrelationId(response).debug("Received error response <{}>", response.toJsonString());
             }
 
             handleSignal(response, sender);
@@ -735,9 +722,8 @@ public final class MessageMappingProcessorActor
 
     private Source<OutboundSignalWithId, ?> handleOutboundSignal(final OutboundSignalWithId outbound) {
         final Signal<?> source = outbound.getSource();
-        if (logger.isDebugEnabled()) {
-            logger.withCorrelationId(source).debug("Handling outbound signal <{}>.", source);
-        }
+        enhanceLogUtil(source);
+        logger.debug("Handling outbound signal <{}>.", source);
         return mapToExternalMessage(outbound);
     }
 
@@ -762,12 +748,7 @@ public final class MessageMappingProcessorActor
 
         final OutboundMappingResultHandler outboundMappingResultHandler = OutboundMappingResultHandler.newBuilder()
                 .onMessageMapped(mappedOutboundSignal -> Source.single(outbound.mapped(mappedOutboundSignal)))
-                .onMessageDropped(() -> {
-                    if (logger.isDebugEnabled()) {
-                        logger.withCorrelationId(outbound.getSource())
-                                .debug("Message mapping returned null, message is dropped.");
-                    }
-                })
+                .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
                 .onException((exception, topicPath) -> {
                     if (exception instanceof DittoRuntimeException) {
                         final DittoRuntimeException e = (DittoRuntimeException) exception;
@@ -776,7 +757,7 @@ public final class MessageMappingProcessorActor
                                         e.getDescription().orElse(""));
                     } else {
                         logger.withCorrelationId(outbound.getSource())
-                                .warn("Got unexpected exception during processing Signal <{}>.",
+                                .warning("Got unexpected exception during processing Signal <{}>.",
                                         exception.getMessage());
                     }
                 })
@@ -841,13 +822,12 @@ public final class MessageMappingProcessorActor
             @Nullable final TopicPath topicPath,
             final DittoHeaders extraInternalHeaders) {
 
-        final DittoHeaders dittoHeadersOfSignal = signal.getDittoHeaders();
         return externalMessage.getHeaderMapping()
                 .map(mapping -> {
                     final ExpressionResolver expressionResolver =
                             Resolvers.forInbound(externalMessage, signal, topicPath, authorizationContext);
 
-                    final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = dittoHeadersOfSignal.toBuilder();
+                    final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
 
                     // Add mapped external headers as if they were injected into the Adaptable.
                     final Map<String, String> mappedExternalHeaders = mapping.getMapping()
@@ -863,7 +843,7 @@ public final class MessageMappingProcessorActor
 
                     final String correlationIdKey = DittoHeaderDefinition.CORRELATION_ID.getKey();
                     final boolean hasCorrelationId = mapping.getMapping().containsKey(correlationIdKey) ||
-                            dittoHeadersOfSignal.getCorrelationId().isPresent();
+                            signal.getDittoHeaders().getCorrelationId().isPresent();
 
                     final DittoHeaders newHeaders =
                             appendInternalHeaders(dittoHeadersBuilder, authorizationContext, extraInternalHeaders,
@@ -875,10 +855,10 @@ public final class MessageMappingProcessorActor
                 })
                 .orElseGet(() ->
                         appendInternalHeaders(
-                                dittoHeadersOfSignal.toBuilder(),
+                                signal.getDittoHeaders().toBuilder(),
                                 authorizationContext,
                                 extraInternalHeaders,
-                                dittoHeadersOfSignal.getCorrelationId().isEmpty()
+                                signal.getDittoHeaders().getCorrelationId().isEmpty()
                         ).build()
                 );
     }
@@ -912,6 +892,66 @@ public final class MessageMappingProcessorActor
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
                 });
+    }
+
+    static Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter) {
+        if (filter != null) {
+            final String requestedAcks = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
+            final boolean headerDefined = signal.getDittoHeaders().containsKey(requestedAcks);
+            final String fullFilter = "header:" + requestedAcks + "|fn:default('[]')|" + filter;
+            final ExpressionResolver resolver = Resolvers.forSignal(signal);
+            final Optional<String> resolverResult = resolver.resolveAsPipelineElement(fullFilter).toOptional();
+            if (resolverResult.isEmpty()) {
+                // filter tripped: set requested-acks to []
+                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                        .acknowledgementRequests(Collections.emptySet())
+                        .build());
+            } else if (headerDefined) {
+                // filter not tripped, header defined
+                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                        .putHeader(requestedAcks, resolverResult.orElseThrow())
+                        .build());
+            } else {
+                // filter not tripped, header not defined:
+                // - evaluate filter again against unresolved and set requested-acks accordingly
+                // - if filter is not resolved, then keep requested-acks undefined for the default behavior
+                final Optional<String> unsetFilterResult =
+                        resolver.resolveAsPipelineElement(filter).toOptional();
+                return unsetFilterResult.<Signal<?>>map(newAckRequests ->
+                        signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                                .putHeader(requestedAcks, newAckRequests)
+                                .build()))
+                        .orElse(signal);
+            }
+        }
+        return signal;
+    }
+
+    /**
+     * Appends the ConnectionId to the processed {@code commandResponse} payload.
+     *
+     * @param commandResponse the CommandResponse (or Acknowledgement as subtype) to append the ConnectionId to
+     * @param connectionId the ConnectionId to append to the CommandResponse's DittoHeader
+     * @param <T> the type of the CommandResponse
+     * @return the CommandResponse with appended ConnectionId.
+     */
+    static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse,
+            final ConnectionId connectionId) {
+        final DittoHeaders newHeaders = commandResponse.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
+                .build();
+        return commandResponse.setDittoHeaders(newHeaders);
+    }
+
+    static Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements,
+            final ConnectionId connectionId) {
+        final List<Acknowledgement> acksList = acknowledgements.stream()
+                .map(ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                .collect(Collectors.toList());
+        // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
+        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
+                acknowledgements.getDittoHeaders());
     }
 
     private static Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
@@ -984,7 +1024,6 @@ public final class MessageMappingProcessorActor
 
     }
 
-
     /**
      * Split the targets of an outbound signal into 2 parts: those without extra fields and those with.
      *
@@ -1022,39 +1061,34 @@ public final class MessageMappingProcessorActor
     }
 
     private static boolean isTwinCommandResponseWithReplyTarget(final Signal<?> signal) {
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         return signal instanceof CommandResponse &&
                 !ProtocolAdapter.isLiveSignal(signal) &&
-                dittoHeaders.getReplyTarget().isPresent();
+                signal.getDittoHeaders().getReplyTarget().isPresent();
     }
 
-    /**
-     * Test if a signal requires acknowledgements.
-     *
-     * @param signal the signal.
-     * @return whether it requires acknowledgements.
-     */
-    private static boolean areAcknowledgementsRequested(final Signal<?> signal) {
-        return signal instanceof ThingModifyCommand &&
-                !ProtocolAdapter.isLiveSignal(signal) &&
-                containsAcknowledgementRequests(signal.getDittoHeaders());
+    private static boolean canRequestAcks(final Signal<?> signal) {
+        return isApplicable(ThingModifyCommandAckRequestSetter.getInstance(), signal) ||
+                isApplicable(ThingLiveCommandAckRequestSetter.getInstance(), signal) ||
+                isApplicable(MessageCommandAckRequestSetter.getInstance(), signal);
     }
 
-    private static boolean containsAcknowledgementRequests(final DittoHeaders dittoHeaders) {
-        final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
-        return !acknowledgementRequests.isEmpty();
+    private static <C extends WithDittoHeaders<? extends C>> boolean isApplicable(
+            final AbstractCommandAckRequestSetter<C> setter, final Signal<?> signal) {
+        return setter.getMatchedClass().isInstance(signal) &&
+                setter.isApplicable(setter.getMatchedClass().cast(signal));
     }
 
-    private static final class AcksRequestingSignal {
+    private static final class IncomingSignal {
 
         private final Signal<?> signal;
         private final ActorRef sender;
+        private final boolean isAckRequesting;
 
-        private AcksRequestingSignal(final Signal<?> signal, final ActorRef sender) {
+        private IncomingSignal(final Signal<?> signal, final ActorRef sender, final boolean isAckRequesting) {
             this.signal = signal;
             this.sender = sender;
+            this.isAckRequesting = isAckRequesting;
         }
-
     }
 
     private static final class ExternalMessageWithSender {
@@ -1062,11 +1096,11 @@ public final class MessageMappingProcessorActor
         private final ExternalMessage externalMessage;
         private final ActorRef sender;
 
-        private ExternalMessageWithSender(final ExternalMessage externalMessage, final ActorRef sender) {
+        private ExternalMessageWithSender(
+                final ExternalMessage externalMessage, final ActorRef sender) {
             this.externalMessage = externalMessage;
             this.sender = sender;
         }
-
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {
@@ -1147,5 +1181,4 @@ public final class MessageMappingProcessorActor
         }
 
     }
-
 }

@@ -28,6 +28,8 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 @Immutable
 final class DittoMessageSubjectValueValidator extends AbstractHeaderValueValidator {
 
+    private static final DittoMessageSubjectValueValidator INSTANCE = new DittoMessageSubjectValueValidator();
+
     private DittoMessageSubjectValueValidator() {
         super(String.class::equals);
     }
@@ -38,7 +40,7 @@ final class DittoMessageSubjectValueValidator extends AbstractHeaderValueValidat
      * @return the instance.
      */
     static DittoMessageSubjectValueValidator getInstance() {
-        return new DittoMessageSubjectValueValidator();
+        return INSTANCE;
     }
 
     @Override

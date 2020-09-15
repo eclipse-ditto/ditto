@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 @Immutable
 final class DittoDurationValueValidator extends AbstractHeaderValueValidator {
 
+    private static final DittoDurationValueValidator INSTANCE = new DittoDurationValueValidator();
+
     private DittoDurationValueValidator() {
         super(DittoDuration.class::equals);
     }
 
     static DittoDurationValueValidator getInstance() {
-        return new DittoDurationValueValidator();
+        return INSTANCE;
     }
 
     @Override

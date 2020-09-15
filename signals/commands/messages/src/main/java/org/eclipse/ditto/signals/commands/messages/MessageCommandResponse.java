@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  * @param <T> the type of the message's payload.
  * @param <C> the type of the MessageCommandResponse.
  */
-public interface MessageCommandResponse<T, C extends MessageCommandResponse>
+public interface MessageCommandResponse<T, C extends MessageCommandResponse<T, C>>
         extends CommandResponse<C>, WithId, WithThingId {
 
     /**
@@ -120,7 +120,9 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
 
         /**
          * JSON field containing the MessageCommandResponse's Message payload.
+         * Deprecated because it is not used.
          */
+        @Deprecated
         public static final JsonFieldDefinition<String> JSON_MESSAGE_PAYLOAD =
                 JsonFactory.newStringFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);

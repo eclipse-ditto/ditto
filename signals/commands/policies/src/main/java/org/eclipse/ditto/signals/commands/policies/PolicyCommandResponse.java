@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyCommandResponse<T extends PolicyCommandResponse> extends CommandResponse<T> {
+public interface PolicyCommandResponse<T extends PolicyCommandResponse<T>> extends CommandResponse<T> {
 
     /**
      * Type Prefix of Policy command responses.

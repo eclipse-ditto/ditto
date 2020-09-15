@@ -61,9 +61,9 @@ For Ditto acknowledgements with successful [status](protocol-specification-acks.
 * Acknowledges a single AMQP 0.9.1 message with an `Ack` message for the received `deliveryTag`
 
 For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
-* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery (e.g. based on a timeout):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
    * Negatively acknowledges the AMQP 0.9.1 message with a `Nack` message for the received `deliveryTag` and setting `requeue` to `true`
-* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements) require redelivery:
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
    * Negatively acknowledges the AMQP 0.9.1 message with a `Nack` message for the received `deliveryTag` and setting `requeue` to `false` preventing redelivery by the AMQP 0.9.1 broker
 
 

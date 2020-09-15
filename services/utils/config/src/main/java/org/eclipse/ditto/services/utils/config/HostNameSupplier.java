@@ -37,6 +37,8 @@ public final class HostNameSupplier implements Supplier<String> {
      */
     static final String ENV_HOSTNAME = "HOSTNAME";
 
+    private static final HostNameSupplier INSTANCE = new HostNameSupplier();
+
     private HostNameSupplier() {
         super();
     }
@@ -47,7 +49,7 @@ public final class HostNameSupplier implements Supplier<String> {
      * @return the instance.
      */
     public static HostNameSupplier getInstance() {
-        return new HostNameSupplier();
+        return INSTANCE;
     }
 
     @Override
