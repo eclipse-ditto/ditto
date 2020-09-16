@@ -304,13 +304,14 @@ public class DittoRuntimeException extends RuntimeException
      *
      * @param jsonObject the JSON object of which the exception is to be created.
      * @param dittoHeaders the headers of the exception.
-     * @param builder the builder for the exception
+     * @param builder the builder for the exception.
      * @return the exception.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonObject} is empty.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected.
      * format.
+     * @since 1.3.0
      */
     public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
@@ -319,6 +320,24 @@ public class DittoRuntimeException extends RuntimeException
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(builder.getDescription().orElse(null)))
                 .href(readHRef(jsonObject).orElse(builder.getHref().orElse(null)));
+
+        return builder.build();
+    }
+
+    /**
+     * Creates a new {@code DittoRuntimeException} from a JSON object.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders dittoHeaders the headers of the command which resulted in this exception.
+     * @param builder the builder for the exception.
+     * @return the exception.
+     * @throws NullPointerException if {@code dittoHeaders} or {@code builder} argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static <T extends DittoRuntimeException> T fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
+        builder.dittoHeaders(dittoHeaders)
+                .message(() -> message != null ? message : builder.getMessage().orElse(null));
 
         return builder.build();
     }

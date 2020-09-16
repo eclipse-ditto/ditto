@@ -75,12 +75,11 @@ public final class SubjectNotModifiableException extends DittoRuntimeException i
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new SubjectNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static SubjectNotModifiableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static SubjectNotModifiableException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -103,7 +102,6 @@ public final class SubjectNotModifiableException extends DittoRuntimeException i
 
     /**
      * A mutable builder with a fluent API for a {@link SubjectNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectNotModifiableException> {

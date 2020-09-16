@@ -74,13 +74,11 @@ public final class PolicyPreconditionNotModifiedException extends DittoRuntimeEx
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyPreconditionNotModifiedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyPreconditionNotModifiedException fromMessage(final String message,
+    public static PolicyPreconditionNotModifiedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

@@ -80,12 +80,11 @@ public final class AclNotAccessibleException extends DittoRuntimeException imple
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new AclNotAccessibleException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static AclNotAccessibleException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static AclNotAccessibleException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

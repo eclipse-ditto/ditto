@@ -78,11 +78,26 @@ public final class SubjectInvalidException extends DittoRuntimeException impleme
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @return the new SubjectInvalidException.
+     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
      */
+    @Deprecated
     public static SubjectInvalidException fromMessage(final String message) {
         return new Builder()
                 .message(message)
                 .build();
+    }
+
+    /**
+     * Constructs a new {@code SubjectInvalidException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new SubjectInvalidException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static SubjectInvalidException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -103,7 +118,6 @@ public final class SubjectInvalidException extends DittoRuntimeException impleme
 
     /**
      * A mutable builder with a fluent API for a {@link SubjectInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectInvalidException> {

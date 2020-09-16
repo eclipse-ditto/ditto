@@ -65,13 +65,11 @@ public final class GatewayAuthenticationFailedException extends DittoRuntimeExce
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayAuthenticationFailedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayAuthenticationFailedException fromMessage(final String message,
+    public static GatewayAuthenticationFailedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

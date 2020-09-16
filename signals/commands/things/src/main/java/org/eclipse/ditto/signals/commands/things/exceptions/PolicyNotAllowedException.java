@@ -71,12 +71,11 @@ public class PolicyNotAllowedException extends DittoRuntimeException implements 
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyNotAllowedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyNotAllowedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static PolicyNotAllowedException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

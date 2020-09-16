@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -67,12 +68,11 @@ public final class InvalidRqlExpressionException extends DittoRuntimeException {
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new InvalidRqlExpressionException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static InvalidRqlExpressionException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static InvalidRqlExpressionException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

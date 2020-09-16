@@ -66,12 +66,10 @@ public final class UnknownSignalException extends DittoRuntimeException {
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the signal which resulted in this exception.
      * @return the new UnknownSignalException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static UnknownSignalException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static UnknownSignalException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

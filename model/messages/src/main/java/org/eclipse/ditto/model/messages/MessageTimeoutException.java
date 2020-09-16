@@ -77,11 +77,26 @@ public final class MessageTimeoutException extends DittoRuntimeException impleme
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @return the new MessageTimeoutException.
+     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
      */
+    @Deprecated
     public static MessageTimeoutException fromMessage(final String message) {
         return new Builder()
                 .message(message)
                 .build();
+    }
+
+    /**
+     * Constructs a new {@code MessageTimeoutException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new MessageTimeoutException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static MessageTimeoutException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -102,7 +117,6 @@ public final class MessageTimeoutException extends DittoRuntimeException impleme
 
     /**
      * A mutable builder with a fluent API for a {@link MessageTimeoutException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<MessageTimeoutException> {

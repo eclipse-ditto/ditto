@@ -105,7 +105,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      * format.
      */
     public static TimeoutInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, newBuilder(readMessage(jsonObject)));
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
@@ -113,11 +113,6 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<TimeoutInvalidException> {
-
-        private Builder() {
-            description(DEFAULT_DESCRIPTION);
-            message(DEFAULT_MESSAGE);
-        }
 
         @Override
         protected TimeoutInvalidException doBuild(final DittoHeaders dittoHeaders,

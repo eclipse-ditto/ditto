@@ -70,12 +70,10 @@ public final class PolicyConflictException extends DittoRuntimeException impleme
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyConflictException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyConflictException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static PolicyConflictException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

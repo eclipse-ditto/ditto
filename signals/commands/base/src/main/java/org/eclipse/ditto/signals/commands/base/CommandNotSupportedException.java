@@ -72,10 +72,7 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
      */
     public static CommandNotSupportedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

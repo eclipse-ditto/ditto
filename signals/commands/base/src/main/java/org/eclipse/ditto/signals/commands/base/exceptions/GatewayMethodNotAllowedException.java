@@ -68,13 +68,11 @@ public final class GatewayMethodNotAllowedException extends DittoRuntimeExceptio
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayMethodNotAllowedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayMethodNotAllowedException fromMessage(final String message,
+    public static GatewayMethodNotAllowedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

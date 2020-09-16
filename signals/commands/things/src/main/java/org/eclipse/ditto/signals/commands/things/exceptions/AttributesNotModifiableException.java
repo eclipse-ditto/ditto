@@ -71,13 +71,11 @@ public final class AttributesNotModifiableException extends DittoRuntimeExceptio
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new AttributesNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static AttributesNotModifiableException fromMessage(final String message,
+    public static AttributesNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new AttributesNotModifiableException.Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

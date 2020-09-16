@@ -81,10 +81,7 @@ public final class FeatureIdInvalidException extends DittoRuntimeException imple
     public static FeatureIdInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
 
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

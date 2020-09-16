@@ -80,13 +80,11 @@ public final class TopicParseException extends DittoRuntimeException implements 
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new TopicParseException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static TopicParseException fromMessage(final String message,
+    public static TopicParseException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

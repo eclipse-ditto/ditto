@@ -73,13 +73,11 @@ public final class PolicyTooManyModifyingRequestsException extends DittoRuntimeE
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyTooManyModifyingRequestsException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyTooManyModifyingRequestsException fromMessage(final String message,
+    public static PolicyTooManyModifyingRequestsException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -102,7 +100,6 @@ public final class PolicyTooManyModifyingRequestsException extends DittoRuntimeE
 
     /**
      * A mutable builder with a fluent API for a {@link PolicyTooManyModifyingRequestsException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyTooManyModifyingRequestsException> {

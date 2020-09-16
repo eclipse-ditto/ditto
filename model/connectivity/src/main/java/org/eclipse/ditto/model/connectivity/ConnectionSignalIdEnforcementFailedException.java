@@ -71,13 +71,11 @@ public final class ConnectionSignalIdEnforcementFailedException extends DittoRun
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionSignalIdEnforcementFailedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ConnectionSignalIdEnforcementFailedException fromMessage(final String message,
+    public static ConnectionSignalIdEnforcementFailedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

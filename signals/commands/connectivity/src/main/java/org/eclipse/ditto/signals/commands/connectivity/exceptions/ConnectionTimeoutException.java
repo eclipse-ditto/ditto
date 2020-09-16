@@ -60,7 +60,8 @@ public class ConnectionTimeoutException extends DittoRuntimeException implements
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static ConnectionTimeoutException.Builder newBuilder(final ConnectionId connectionId, final String operation) {
+    public static ConnectionTimeoutException.Builder newBuilder(final ConnectionId connectionId,
+            final String operation) {
         return new ConnectionTimeoutException.Builder(connectionId, operation);
     }
 
@@ -70,12 +71,11 @@ public class ConnectionTimeoutException extends DittoRuntimeException implements
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionTimeoutException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ConnectionTimeoutException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new ConnectionTimeoutException.Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static ConnectionTimeoutException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

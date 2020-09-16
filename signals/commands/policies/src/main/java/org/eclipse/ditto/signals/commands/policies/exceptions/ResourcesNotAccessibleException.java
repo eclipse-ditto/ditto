@@ -73,13 +73,11 @@ public class ResourcesNotAccessibleException extends DittoRuntimeException imple
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ResourcesNotAccessibleException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ResourcesNotAccessibleException fromMessage(final String message,
+    public static ResourcesNotAccessibleException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new ResourcesNotAccessibleException.Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -102,7 +100,6 @@ public class ResourcesNotAccessibleException extends DittoRuntimeException imple
 
     /**
      * A mutable builder with a fluent API for a {@link ResourcesNotAccessibleException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ResourcesNotAccessibleException> {

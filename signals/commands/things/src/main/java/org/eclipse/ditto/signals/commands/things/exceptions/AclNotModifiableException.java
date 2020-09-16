@@ -78,12 +78,11 @@ public final class AclNotModifiableException extends DittoRuntimeException imple
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new AclNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static AclNotModifiableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static AclNotModifiableException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

@@ -72,10 +72,7 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
      */
     public static PolicyEntryInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .message(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

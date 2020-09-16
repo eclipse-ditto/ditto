@@ -87,18 +87,12 @@ public final class PolicyModificationInvalidException extends DittoRuntimeExcept
      * @param description the detailed description which may be {@code null}.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyModificationInvalidException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyModificationInvalidException fromMessage(final String message,
+    public static PolicyModificationInvalidException fromMessage(@Nullable final String message,
             @Nullable final String description, final DittoHeaders dittoHeaders) {
-
-        final DittoRuntimeExceptionBuilder<PolicyModificationInvalidException> builder = new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message);
-        if (description != null) {
-            return builder.description(description).build();
-        } else {
-            return builder.build();
-        }
+        return DittoRuntimeException.fromMessage(message, dittoHeaders,
+                new Builder().description(() -> description != null ? description : DEFAULT_DESCRIPTION));
     }
 
     /**
@@ -121,7 +115,6 @@ public final class PolicyModificationInvalidException extends DittoRuntimeExcept
 
     /**
      * A mutable builder with a fluent API for a {@link PolicyModificationInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyModificationInvalidException> {

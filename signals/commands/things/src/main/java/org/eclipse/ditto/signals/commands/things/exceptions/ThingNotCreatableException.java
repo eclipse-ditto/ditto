@@ -99,20 +99,14 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param description the description which may be {@code null}.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new
-     * ThingNotCreatableException.
+     * @return the new ThingNotCreatableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ThingNotCreatableException fromMessage(final String message, @Nullable final String description,
+    public static ThingNotCreatableException fromMessage(@Nullable final String message,
+            @Nullable final String description,
             final DittoHeaders dittoHeaders) {
-
-        final DittoRuntimeExceptionBuilder<ThingNotCreatableException> exceptionBuilder = new Builder(true)
-                .dittoHeaders(dittoHeaders)
-                .message(message);
-        if (description != null) {
-            return exceptionBuilder.description(description).build();
-        } else {
-            return exceptionBuilder.build();
-        }
+        return DittoRuntimeException.fromMessage(message, dittoHeaders,
+                new Builder().description(() -> description != null ? description : DEFAULT_DESCRIPTION_GENERIC));
     }
 
     /**

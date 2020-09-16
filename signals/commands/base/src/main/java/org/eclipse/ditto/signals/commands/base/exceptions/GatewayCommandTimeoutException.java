@@ -74,11 +74,26 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @return the new GatewayCommandTimeoutException.
+     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
      */
+    @Deprecated
     public static GatewayCommandTimeoutException fromMessage(final String message) {
         return new Builder()
                 .message(message)
                 .build();
+    }
+
+    /**
+     * Constructs a new {@code GatewayCommandTimeoutException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayCommandTimeoutException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static GatewayCommandTimeoutException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

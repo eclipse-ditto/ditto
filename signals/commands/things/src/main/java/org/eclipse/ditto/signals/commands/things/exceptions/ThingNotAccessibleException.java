@@ -92,12 +92,11 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingNotAccessibleException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ThingNotAccessibleException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static ThingNotAccessibleException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

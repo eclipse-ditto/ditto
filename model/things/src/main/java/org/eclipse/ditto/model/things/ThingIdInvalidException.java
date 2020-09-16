@@ -43,7 +43,8 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
     private static final String DEFAULT_DESCRIPTION =
             "It must conform to the namespaced entity ID notation (see Ditto documentation)";
 
-    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
+    private static final URI DEFAULT_HREF =
+            URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = -2026814719409279158L;
 
@@ -53,7 +54,8 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param thingId the invalid Thing ID.
      */
     public ThingIdInvalidException(final String thingId) {
-        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null, DEFAULT_HREF);
+        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null,
+                DEFAULT_HREF);
     }
 
     private ThingIdInvalidException(final DittoHeaders dittoHeaders,
@@ -80,12 +82,10 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingIdInvalidException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ThingIdInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static ThingIdInvalidException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

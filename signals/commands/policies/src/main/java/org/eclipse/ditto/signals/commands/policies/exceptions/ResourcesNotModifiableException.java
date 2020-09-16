@@ -74,13 +74,11 @@ public final class ResourcesNotModifiableException extends DittoRuntimeException
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ResourcesNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ResourcesNotModifiableException fromMessage(final String message,
+    public static ResourcesNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -103,7 +101,6 @@ public final class ResourcesNotModifiableException extends DittoRuntimeException
 
     /**
      * A mutable builder with a fluent API for a {@link ResourcesNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ResourcesNotModifiableException> {

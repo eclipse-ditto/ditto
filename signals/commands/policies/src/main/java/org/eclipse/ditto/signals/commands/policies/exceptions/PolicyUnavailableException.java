@@ -72,12 +72,11 @@ public final class PolicyUnavailableException extends DittoRuntimeException impl
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyUnavailableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyUnavailableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static PolicyUnavailableException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -100,7 +99,6 @@ public final class PolicyUnavailableException extends DittoRuntimeException impl
 
     /**
      * A mutable builder with a fluent API for a {@link PolicyUnavailableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyUnavailableException> {

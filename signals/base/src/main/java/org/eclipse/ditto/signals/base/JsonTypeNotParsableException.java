@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.base;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -65,12 +66,11 @@ public final class JsonTypeNotParsableException extends DittoRuntimeException {
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new JsonTypeNotParsableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static JsonTypeNotParsableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static JsonTypeNotParsableException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -93,7 +93,6 @@ public final class JsonTypeNotParsableException extends DittoRuntimeException {
 
     /**
      * A mutable builder with a fluent API for a {@link JsonTypeNotParsableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<JsonTypeNotParsableException> {

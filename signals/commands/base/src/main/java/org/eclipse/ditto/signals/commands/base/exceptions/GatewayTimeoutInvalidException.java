@@ -72,12 +72,11 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayTimeoutInvalidException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayTimeoutInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static GatewayTimeoutInvalidException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**

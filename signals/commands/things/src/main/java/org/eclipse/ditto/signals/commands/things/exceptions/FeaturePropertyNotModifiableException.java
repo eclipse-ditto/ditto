@@ -66,7 +66,8 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
      * @param jsonPointer the JSON Pointer of the Property.
      * @return the builder.
      */
-    public static FeaturePropertyNotModifiableException.Builder newBuilder(final ThingId thingId, final String featureId,
+    public static FeaturePropertyNotModifiableException.Builder newBuilder(final ThingId thingId,
+            final String featureId,
             final JsonPointer jsonPointer) {
         return new FeaturePropertyNotModifiableException.Builder(thingId, featureId, jsonPointer);
     }
@@ -77,13 +78,11 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeaturePropertyNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static FeaturePropertyNotModifiableException fromMessage(final String message,
+    public static FeaturePropertyNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new FeaturePropertyNotModifiableException.Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
