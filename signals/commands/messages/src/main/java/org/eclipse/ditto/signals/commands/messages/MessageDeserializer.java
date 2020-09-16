@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -26,11 +27,6 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
  * @since 1.2.0
  */
 public final class MessageDeserializer {
-
-    private static final String TEXT_ANY = "text/";
-    private static final String APPLICATION_JSON = "application/json";
-    private static final String APPLICATION_VND = "application/vnd.";
-    private static final String VND_JSON_SUFFIX = "+json";
 
     private MessageDeserializer() {
         // Empty because this is a utility class.
@@ -84,9 +80,7 @@ public final class MessageDeserializer {
      * @since 1.3.0
      */
     public static boolean shouldBeInterpretedAsJson(final String contentTypeHeader) {
-        final String contentType = contentTypeHeader.toLowerCase();
-        return contentType.startsWith(APPLICATION_JSON) ||
-                (contentType.startsWith(APPLICATION_VND) && contentType.endsWith(VND_JSON_SUFFIX));
+        return ContentType.of(contentTypeHeader).isJson();
     }
 
     /**
@@ -97,7 +91,7 @@ public final class MessageDeserializer {
      * @since 1.3.0
      */
     public static boolean shouldBeInterpretedAsText(final String contentTypeHeader) {
-        return contentTypeHeader.toLowerCase().startsWith(TEXT_ANY);
+        return ContentType.of(contentTypeHeader).isText();
     }
 }
 
