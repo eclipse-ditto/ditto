@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -95,12 +96,12 @@ public final class DittoMessageMapperTest {
         final JsonifiableAdaptable adaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                         (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
-                .withHeaders(DittoHeaders.of(headers))
-                .withPayload(ProtocolFactory
-                        .newPayloadBuilder(JsonPointer.of("/features"))
-                        .withValue(JsonFactory.nullLiteral())
-                        .build())
-                .build());
+                        .withHeaders(DittoHeaders.of(headers))
+                        .withPayload(ProtocolFactory
+                                .newPayloadBuilder(JsonPointer.of("/features"))
+                                .withValue(JsonFactory.nullLiteral())
+                                .build())
+                        .build());
 
         // by default, the DittoMessageMapper should not automatically use all headers from the ExternalMessage
         //  those would have to be mapped by an explicit header mapping
@@ -120,7 +121,7 @@ public final class DittoMessageMapperTest {
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         final JsonObject json = JsonFactory.newObjectBuilder()
-                .set("path","/some/path")
+                .set("path", "/some/path")
                 .build();
 
         final List<Adaptable> expected = Collections.singletonList(
@@ -159,14 +160,20 @@ public final class DittoMessageMapperTest {
     private static Map<Adaptable, List<ExternalMessage>> createValidOutgoingMappings() {
         final Map<Adaptable, List<ExternalMessage>> mappings = new HashMap<>();
 
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("header-key", "header-value");
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        final String correlationId = UUID.randomUUID().toString();
+        final DittoHeaders expectedMessageHeaders = DittoHeaders.newBuilder()
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .correlationId(correlationId)
+                .build();
+        final DittoHeaders adaptableHeaders = expectedMessageHeaders.toBuilder()
+                .putHeader("header-key", "header-value")
+                .build();
+
 
         ThingId thingId = ThingId.of("org.eclipse.ditto:thing1");
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
                 (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
-                .withHeaders(DittoHeaders.of(headers))
+                .withHeaders(adaptableHeaders)
                 .withPayload(ProtocolFactory
                         .newPayloadBuilder(JsonPointer.of("/features"))
                         .withValue(JsonFactory.nullLiteral())
@@ -174,7 +181,7 @@ public final class DittoMessageMapperTest {
                 .build());
 
         List<ExternalMessage> message =
-                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(expectedMessageHeaders)
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(adaptable.toJsonString())
                         .build());
@@ -182,13 +189,13 @@ public final class DittoMessageMapperTest {
 
         final JsonObject json = JsonFactory.newObjectBuilder()
                 .set("topic", "org.eclipse.ditto/thing2/things/twin/commands/create")
-                .set("path","/some/path")
+                .set("path", "/some/path")
                 .build();
         adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
-                .withHeaders(DittoHeaders.of(headers)).build());
+                .withHeaders(adaptableHeaders).build());
 
-        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(expectedMessageHeaders)
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build());

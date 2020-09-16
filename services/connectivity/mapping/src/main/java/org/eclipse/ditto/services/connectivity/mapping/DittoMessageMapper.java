@@ -17,6 +17,7 @@ import static java.util.Collections.singletonList;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,8 +25,11 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
@@ -79,8 +83,12 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
 
         final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
         final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder()
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
+                .ifPresent(dittoHeadersBuilder::correlationId);
         return singletonList(
-                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                ExternalMessageFactory.newExternalMessageBuilder(dittoHeadersBuilder.build())
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(jsonString)
                         .asResponse(isResponse)
