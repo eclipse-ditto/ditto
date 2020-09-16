@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.model.base.common.DittoConstants;
+
 /**
  * Parses a string as content-type and provides information about how Ditto should treat the payload based in its
  * content-type.
@@ -83,6 +85,14 @@ public final class ContentType {
      */
     public String getValue() {
         return value;
+    }
+
+    /**
+     * @return whether this content-type matches the Ditto Protocol {@link DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE}.
+     */
+    public boolean isDittoContentType() {
+        final String mediaType = value.split(";")[0];
+        return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equals(mediaType);
     }
 
     /**

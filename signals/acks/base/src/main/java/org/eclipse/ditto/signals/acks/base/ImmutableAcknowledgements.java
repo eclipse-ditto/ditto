@@ -41,12 +41,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -279,7 +279,8 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     private static JsonObject buildHeadersJson(final DittoHeaders dittoHeaders) {
 
         final boolean containsDittoContentType = dittoHeaders.getContentType()
-                .filter(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE::equals)
+                .map(ContentType::of)
+                .filter(ContentType::isDittoContentType)
                 .isPresent();
         if (containsDittoContentType) {
             return dittoHeaders.toBuilder()

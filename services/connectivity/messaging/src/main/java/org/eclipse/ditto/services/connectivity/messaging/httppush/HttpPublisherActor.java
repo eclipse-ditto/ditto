@@ -33,7 +33,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -62,7 +61,6 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -71,7 +69,6 @@ import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -329,7 +326,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 } else if (NO_ACK_LABEL.equals(label)) {
                     // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
                     final boolean isDittoProtocolMessage = dittoHeaders.getContentType()
-                            .filter(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE::equals)
+                            .map(org.eclipse.ditto.model.base.headers.contenttype.ContentType::of)
+                            .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoContentType)
                             .isPresent();
                     if (isDittoProtocolMessage && body.isObject()) {
                         final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
@@ -436,8 +434,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final JsonValue jsonValue,
             final HttpStatusCode status) {
 
-        final boolean isDittoProtocolMessage =
-                dittoHeaders.getContentType().filter(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE::equals).isPresent();
+        final boolean isDittoProtocolMessage = dittoHeaders.getContentType()
+                .map(org.eclipse.ditto.model.base.headers.contenttype.ContentType::of)
+                .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoContentType)
+                .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
             final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
             if (commandResponse == null) {
