@@ -88,7 +88,6 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -197,6 +196,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final List<Acknowledgement> ackList = responsesList.stream()
                             .map(CommandResponseOrAcknowledgement::getAcknowledgement)
                             .flatMap(Optional::stream)
+                            .filter(this::shouldPublishAcknowledgement)
                             .collect(Collectors.toList());
                     issueAcknowledgements(multiMapped, sender, ackList);
 
@@ -213,9 +213,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
+    protected abstract boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement);
+
     private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
             final List<Acknowledgement> ackList) {
-        if (!ackList.isEmpty() && sender != null) {
+        if (sender == getSelf()) {
+            logIfDebug(multiMapped, l -> l.debug("Not sending acks <{}> because sender is this publisher actor," +
+                    " which can't handle acknowledgements.", ackList));
+        } else if (!ackList.isEmpty() && sender != null) {
             final Acknowledgements aggregatedAcks = appendConnectionId(
                     Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
             logIfDebug(multiMapped, l ->

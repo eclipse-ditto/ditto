@@ -124,6 +124,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
+    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
+        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
+    }
+
+    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport)
                 .matchEquals(START_PRODUCER, this::handleStartProducer);

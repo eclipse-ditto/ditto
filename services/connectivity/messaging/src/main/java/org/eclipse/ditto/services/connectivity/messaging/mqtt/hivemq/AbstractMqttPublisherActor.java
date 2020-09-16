@@ -127,6 +127,11 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
+    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
+        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
+    }
+
+    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
                 outbound -> log().info("Message dropped in dry run mode: {}", outbound));

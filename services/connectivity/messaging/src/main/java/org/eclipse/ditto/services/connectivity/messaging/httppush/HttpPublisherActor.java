@@ -164,6 +164,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
+    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
+        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
+    }
+
+    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         // noop
     }
