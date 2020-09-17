@@ -467,6 +467,82 @@ public final class PolicyCommandEnforcementTest {
         }};
     }
 
+    @Test
+    public void createPolicyWhenAuthSubjectHasWritePermission() {
+        new TestKit(system) {{
+            final CreatePolicy createPolicy = CreatePolicy.of(POLICY, DITTO_HEADERS);
+
+            enforcer.tell(createPolicy, getRef());
+
+            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            policiesShardRegionProbe.lastSender()
+                    .tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
+
+            expectMsgClass(PolicyNotAccessibleException.class);
+        }};
+    }
+
+    @Test
+    public void createPolicyWhenAuthSubjectHasOnlyReadPermission() {
+        testCreatePolicy(Collections.singleton(Permission.READ), true, true);
+    }
+
+    @Test
+    public void createPolicyWhenAuthSubjectHasOnlyWritePermission() {
+        testCreatePolicy(Collections.singleton(Permission.WRITE), false, false);
+    }
+
+    @Test
+    public void createPolicyWhenAuthSubjectHasOnlyReadPermissionWithoutPolicyLockoutPrevention() {
+        testCreatePolicy(Collections.singleton(Permission.READ), false, false);
+    }
+
+    @Test
+    public void createPolicyWhenAuthSubjectHasNoPermission() {
+        testCreatePolicy(Collections.emptyList(), true, true);
+    }
+
+    @Test
+    public void createPolicyWhenAuthSubjectHasNoPermissionWithoutPolicyLockoutPrevention() {
+        testCreatePolicy(Collections.emptyList(), false, false);
+    }
+
+    public void testCreatePolicy(final Iterable<String> grants, final boolean preventPolicyLockout,
+            final boolean shouldFail) {
+        new TestKit(system) {{
+
+            final PolicyEntry entry =
+                    PolicyEntry.newInstance("defaultLabel", Collections.singleton(AUTH_SUBJECT), Collections.singleton(
+                            Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
+                                    EffectedPermissions.newInstance(grants, Collections.emptySet()))));
+
+            final Policy policy = Policy.newBuilder(POLICY_ID)
+                    .setRevision(POLICY_REVISION)
+                    .set(entry)
+                    .build();
+
+            final CreatePolicy createPolicy = CreatePolicy.of(policy,
+                    DITTO_HEADERS.toBuilder().preventPolicyLockout(preventPolicyLockout).build());
+
+            enforcer.tell(createPolicy, getRef());
+
+            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            policiesShardRegionProbe.lastSender()
+                    .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
+                            policiesShardRegionProbe.ref());
+
+            if (shouldFail) {
+                expectMsgClass(PolicyNotAccessibleException.class);
+            } else {
+                policiesShardRegionProbe.expectMsg(createPolicy);
+                final CreatePolicyResponse mockResponse = CreatePolicyResponse.of(POLICY_ID, POLICY, DITTO_HEADERS);
+                policiesShardRegionProbe.lastSender().tell(mockResponse, policiesShardRegionProbe.ref());
+
+                expectMsg(mockResponse);
+            }
+        }};
+    }
+
     private static void assertRetrievePolicyResponse(final RetrievePolicyResponse actual,
             final RetrievePolicyResponse expected) {
 
