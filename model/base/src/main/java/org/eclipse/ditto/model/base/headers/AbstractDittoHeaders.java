@@ -325,6 +325,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public boolean isPreventPolicyLockout() {
+        return !isExpectedBoolean(DittoHeaderDefinition.PREVENT_POLICY_LOCKOUT, Boolean.FALSE);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
         forEach((key, value) -> {

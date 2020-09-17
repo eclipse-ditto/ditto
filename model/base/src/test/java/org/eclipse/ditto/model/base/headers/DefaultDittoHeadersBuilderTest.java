@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DefaultDittoHeadersBuilder.of;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
@@ -327,6 +326,24 @@ public final class DefaultDittoHeadersBuilderTest {
 
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasIsResponseRequired(false);
+    }
+
+    @Test
+    public void ensurePreventPolicyLockoutIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .preventPolicyLockout(false)
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasPreventPolicyLockout(false);
+    }
+
+    @Test
+    public void ensurePreventPolicyLockoutIsTrueWhenNotSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasPreventPolicyLockout(true);
     }
 
     @Test

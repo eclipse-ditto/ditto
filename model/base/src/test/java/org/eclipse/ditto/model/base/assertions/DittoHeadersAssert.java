@@ -135,4 +135,9 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
                 "flag indicating if a response is required");
     }
 
+    public DittoHeadersAssert hasPreventPolicyLockout(final boolean expected) {
+        return assertContains(Optional.of(actual.isPreventPolicyLockout()), expected,
+                "flag indicating if policy lockout prevention is enabled");
+    }
+
 }

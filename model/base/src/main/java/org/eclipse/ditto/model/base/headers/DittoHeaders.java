@@ -324,4 +324,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     MetadataHeaders getMetadataHeadersToPut();
 
+    /**
+     * Returns whether the policy lockout check is disabled.
+     *
+     * @return {@code false} if the check is disabled
+     * @since 1.3.0
+     */
+    boolean isPreventPolicyLockout();
+
 }
