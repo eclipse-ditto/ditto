@@ -44,10 +44,12 @@ public final class ContentType {
     public static final ContentType APPLICATION_JSON = ContentType.of("application/json");
 
     private final String value;
+    private final String mediaType;
     private final ParsingStrategy parsingStrategy;
 
-    private ContentType(final String value, final ParsingStrategy parsingStrategy) {
+    private ContentType(final String value, final String mediaType, final ParsingStrategy parsingStrategy) {
         this.value = value;
+        this.mediaType = mediaType;
         this.parsingStrategy = parsingStrategy;
     }
 
@@ -55,8 +57,8 @@ public final class ContentType {
      * Parses the given contentTypeValue into an instance of {@link ContentType}.
      *
      * @param contentTypeValue the content-type header value.
-     * @throws NullPointerException if {@code contentTypeValue} was {@code null}.
      * @return the new instance
+     * @throws NullPointerException if {@code contentTypeValue} was {@code null}.
      */
     public static ContentType of(final CharSequence contentTypeValue) {
         final String lowerCaseValue = checkNotNull(contentTypeValue, "contentTypeValue").toString()
@@ -70,7 +72,7 @@ public final class ContentType {
         } else {
             parsingStrategy = ParsingStrategy.BINARY;
         }
-        return new ContentType(lowerCaseValue, parsingStrategy);
+        return new ContentType(lowerCaseValue, mediaType, parsingStrategy);
     }
 
     /**
@@ -91,7 +93,6 @@ public final class ContentType {
      * @return whether this content-type matches the Ditto Protocol {@link DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE}.
      */
     public boolean isDittoProtocol() {
-        final String mediaType = value.split(";")[0];
         return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equals(mediaType);
     }
 
