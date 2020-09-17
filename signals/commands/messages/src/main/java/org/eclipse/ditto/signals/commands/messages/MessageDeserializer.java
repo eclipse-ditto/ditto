@@ -68,31 +68,10 @@ public final class MessageDeserializer {
      * @return whether the message payload should be interpreted as text or JSON.
      * @since 1.3.0
      */
-    public static boolean shouldBeInterpretedAsTextOrJson(final String contentTypeHeader) {
-        return shouldBeInterpretedAsText(contentTypeHeader) || shouldBeInterpretedAsJson(contentTypeHeader);
+    public static boolean shouldBeInterpretedAsTextOrJson(final ContentType contentTypeHeader) {
+        return contentTypeHeader.isText() || contentTypeHeader.isJson();
     }
 
-    /**
-     * Check if a content type header value indicates that the message payload should be interpreted as JSON.
-     *
-     * @param contentTypeHeader the content type header.
-     * @return whether the message payload should be interpreted as JSON.
-     * @since 1.3.0
-     */
-    public static boolean shouldBeInterpretedAsJson(final String contentTypeHeader) {
-        return ContentType.of(contentTypeHeader).isJson();
-    }
-
-    /**
-     * Check if a content type header value indicates that the message payload should be interpreted as text.
-     *
-     * @param contentTypeHeader the content type header.
-     * @return whether the message payload should be interpreted as text.
-     * @since 1.3.0
-     */
-    public static boolean shouldBeInterpretedAsText(final String contentTypeHeader) {
-        return ContentType.of(contentTypeHeader).isText();
-    }
 }
 
 

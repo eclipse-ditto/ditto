@@ -186,19 +186,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
         return myself;
     }
 
-    /**
-     * Sets the MIME contentType of the payload of the Message.
-     *
-     * @param contentType the MIME contentType of the payload of the message.
-     * @return this builder to allow method chaining.
-     * @throws IllegalArgumentException if {@code contentType} is empty.
-     */
-    @Override
-    public MessageHeadersBuilder contentType(@Nullable final CharSequence contentType) {
-        putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
-        return myself;
-    }
-
     @Override
     public MessageHeadersBuilder timeout(final Duration timeout) {
         return super.timeout(timeout);

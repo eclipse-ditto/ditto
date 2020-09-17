@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
@@ -177,6 +178,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @return this builder for Method Chaining.
      */
     B contentType(@Nullable CharSequence contentType);
+
+    /**
+     * Sets the contentType value.
+     *
+     * @param contentType the contentType value to be set.
+     * @return this builder for Method Chaining.
+     */
+    B contentType(@Nullable ContentType contentType);
 
     /**
      * Sets the ETag value.

@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.Message;
@@ -161,7 +162,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
         } else if (payload.asJson == null) {
             return null;
         } else {
-            final boolean isJson = MessageDeserializer.shouldBeInterpretedAsJson(payload.contentType);
+            final boolean isJson = ContentType.of(payload.contentType).isJson();
             final String representation = isJson ? payload.asJson.toString() : payload.asJson.formatAsString();
             return ByteBuffer.wrap(representation.getBytes());
         }
