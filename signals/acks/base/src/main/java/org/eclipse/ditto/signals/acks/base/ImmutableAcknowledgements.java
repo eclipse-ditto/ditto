@@ -278,9 +278,8 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
     private static JsonObject buildHeadersJson(final DittoHeaders dittoHeaders) {
 
-        final boolean containsDittoContentType = dittoHeaders.getContentType()
-                .map(ContentType::of)
-                .filter(ContentType::isDittoContentType)
+        final boolean containsDittoContentType = dittoHeaders.getDittoContentType()
+                .filter(ContentType::isDittoProtocol)
                 .isPresent();
         if (containsDittoContentType) {
             return dittoHeaders.toBuilder()

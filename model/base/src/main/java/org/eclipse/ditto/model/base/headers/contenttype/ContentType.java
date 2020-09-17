@@ -90,7 +90,7 @@ public final class ContentType {
     /**
      * @return whether this content-type matches the Ditto Protocol {@link DittoConstants#DITTO_PROTOCOL_CONTENT_TYPE}.
      */
-    public boolean isDittoContentType() {
+    public boolean isDittoProtocol() {
         final String mediaType = value.split(";")[0];
         return DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equals(mediaType);
     }

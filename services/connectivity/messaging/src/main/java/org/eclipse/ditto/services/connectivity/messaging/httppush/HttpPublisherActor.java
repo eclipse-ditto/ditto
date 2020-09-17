@@ -325,9 +325,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     acknowledgement = null; // Response is expected to be the live-response.
                 } else if (NO_ACK_LABEL.equals(label)) {
                     // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
-                    final boolean isDittoProtocolMessage = dittoHeaders.getContentType()
-                            .map(org.eclipse.ditto.model.base.headers.contenttype.ContentType::of)
-                            .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoContentType)
+                    final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
+                            .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
                             .isPresent();
                     if (isDittoProtocolMessage && body.isObject()) {
                         final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
@@ -434,9 +433,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final JsonValue jsonValue,
             final HttpStatusCode status) {
 
-        final boolean isDittoProtocolMessage = dittoHeaders.getContentType()
-                .map(org.eclipse.ditto.model.base.headers.contenttype.ContentType::of)
-                .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoContentType)
+        final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
+                .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
             final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
