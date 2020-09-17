@@ -60,6 +60,7 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.HttpsConnectionContext;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -237,11 +238,13 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), getConnection(false)));
             underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
-
+            final String customHeaderKey = "custom-header";
+            final String customHeaderValue = "custom-value";
             // WHEN: a thing event is sent to a target with header mapping content-type=application/json
             final ThingModifiedEvent<?> thingModifiedEvent = TestConstants.thingModified(Collections.emptyList())
                     .setDittoHeaders(DittoHeaders.newBuilder()
                             .correlationId("internal-correlation-id")
+                            .putHeader(customHeaderKey, customHeaderValue)
                             .build());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(HTTP_TARGET));
@@ -255,7 +258,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
             // THEN: only headers in the header mapping are retained
             assertThat(thingModifiedRequest.entity().getContentType()).isEqualTo(ContentTypes.APPLICATION_JSON);
-            assertThat(thingModifiedRequest.getHeader("correlation-id")).isEmpty();
+            assertThat(thingModifiedRequest.getHeader("correlation-id"))
+                    .contains(HttpHeader.parse("correlation-id", "internal-correlation-id"));
+            assertThat(thingModifiedRequest.getHeader(customHeaderKey)).isEmpty();
 
             // THEN: the payload is the JSON string of the event as a Ditto protocol message
             assertThat(thingModifiedRequest.entity()

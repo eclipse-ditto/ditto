@@ -14,8 +14,10 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
@@ -23,17 +25,36 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -46,6 +67,7 @@ import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.japi.Pair;
@@ -63,6 +85,8 @@ import scala.util.Try;
 public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final String CONTENT_TYPE = "APPLICATION/VND.ECLIPSE.DITTO+JSON ; PARAM_NAME=PARAM_VALUE";
+    private static final String CUSTOM_HEADER_NAME = "my-custom-header";
+    private static final String CUSTOM_HEADER_VALUE = "bumlux";
     private static final String BODY = "[\"The quick brown fox jumps over the lazy dog.\"]";
 
     private HttpPushFactory httpPushFactory;
@@ -75,7 +99,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void setupMocks(final TestProbe probe) {
-        httpPushFactory = mockHttpPushFactory(CONTENT_TYPE, BODY);
+        httpPushFactory = mockHttpPushFactory(CONTENT_TYPE, StatusCodes.OK, BODY);
 
         // activate debug log to show responses
         actorSystem.eventStream().setLogLevel(Attributes.logLevelDebug());
@@ -95,7 +119,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessage() throws Exception {
         final HttpRequest request = received.take();
-        assertThat(received).hasSize(0);
+        assertThat(received).isEmpty();
 
         // method
         assertThat(request.method()).isEqualTo(HttpMethods.PATCH);
@@ -132,12 +156,15 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
         assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
         assertThat(ack.getEntity()).contains(JsonFactory.readFrom(BODY));
+        assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
+                Map.of("content-type", "application/vnd.eclipse.ditto+json; PARAM_NAME=PARAM_VALUE", CUSTOM_HEADER_NAME,
+                        CUSTOM_HEADER_VALUE));
     }
 
     @Test
     public void testPlainTextAck() {
         new TestKit(actorSystem) {{
-            httpPushFactory = mockHttpPushFactory("text/plain", "hello!");
+            httpPushFactory = mockHttpPushFactory("text/plain", StatusCodes.OK, "hello!");
 
             final AcknowledgementLabel label = AcknowledgementLabel.of("please-verify");
             final Target target = decorateTarget(createTestTarget(label));
@@ -150,7 +177,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
             assertThat(acks.getAcknowledgement(label)).isNotEmpty();
             final Acknowledgement ack = acks.getAcknowledgement(label).orElseThrow();
-            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(Map.of("content-type", "text/plain"));
+            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
+                    Map.of("content-type", "text/plain", CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE));
             assertThat(ack.getEntity()).contains(JsonValue.of("hello!"));
         }};
     }
@@ -158,7 +186,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void testBinaryAck() {
         new TestKit(actorSystem) {{
-            httpPushFactory = mockHttpPushFactory("application/octet-stream", "hello!");
+            httpPushFactory = mockHttpPushFactory("application/octet-stream", StatusCodes.OK, "hello!");
 
             final AcknowledgementLabel label = AcknowledgementLabel.of("please-verify");
             final Target target = decorateTarget(createTestTarget(label));
@@ -171,15 +199,399 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
             assertThat(acks.getAcknowledgement(label)).isNotEmpty();
             final Acknowledgement ack = acks.getAcknowledgement(label).orElseThrow();
-            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(Map.of("content-type", "application/octet-stream"));
+            assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
+                    Map.of("content-type", "application/octet-stream", CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE));
             assertThat(ack.getEntity()).contains(JsonValue.of("aGVsbG8h"));
+        }};
+    }
+
+    @Test
+    public void testMessageCommandHttpPushCreatesCommandResponse() {
+        new TestKit(actorSystem) {{
+            final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
+            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
+            httpPushFactory = mockHttpPushFactory(customContentType, statusCode, jsonResponse.toString());
+
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address(getOutboundAddress())
+                    .originalAddress(getOutboundAddress())
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .headerMapping(TestConstants.HEADER_MAPPING)
+                    .issuedAcknowledgementLabel(DittoAcknowledgementLabel.LIVE_RESPONSE)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            final MessageDirection messageDirection = MessageDirection.FROM;
+            final String messageSubject = "please-respond";
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(messageDirection, TestConstants.Things.THING_ID, messageSubject)
+                            .build()
+            ).build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            final SendThingMessageResponse<JsonValue> sendThingMessageResponse =
+                    expectMsgClass(SendThingMessageResponse.class);
+            assertThat((CharSequence) sendThingMessageResponse.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat(sendThingMessageResponse.getStatusCode().toInt()).isEqualTo(statusCode.intValue());
+            assertThat(sendThingMessageResponse.getDittoHeaders().getCorrelationId())
+                    .contains(TestConstants.CORRELATION_ID);
+            final Message<JsonValue> responseMessage = sendThingMessageResponse.getMessage();
+            assertThat(responseMessage.getContentType()).contains(customContentType);
+            assertThat(responseMessage.getSubject()).isEqualTo(messageSubject);
+            assertThat(responseMessage.getDirection()).isEqualTo(messageDirection);
+            assertThat(responseMessage.getStatusCode()).contains(
+                    HttpStatusCode.forInt(statusCode.intValue()).orElseThrow());
+            assertThat(responseMessage.getPayload()).contains(jsonResponse);
+            final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
+            assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
+        }};
+    }
+
+    @Test
+    public void testMessageCommandHttpPushCreatesCommandResponseFromProtocolMessage() {
+        new TestKit(actorSystem) {{
+            final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
+            final String messageSubject = "please-respond";
+            final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final MessageHeaders messageHeaders =
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, messageSubject)
+                            .contentType(customContentType)
+                            .correlationId(TestConstants.CORRELATION_ID)
+                            .putHeader(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE)
+                            .build();
+            final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
+            final Message<JsonValue> response =
+                    Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
+            final SendThingMessageResponse<JsonValue> sendMessageResponse =
+                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatusCode.IM_A_TEAPOT,
+                            messageHeaders);
+            final Adaptable messageResponseAdaptable =
+                    DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
+            final JsonObject messageResponseJson =
+                    ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
+            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address(getOutboundAddress())
+                    .originalAddress(getOutboundAddress())
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .headerMapping(TestConstants.HEADER_MAPPING)
+                    .issuedAcknowledgementLabel(DittoAcknowledgementLabel.LIVE_RESPONSE)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            final MessageDirection messageDirection = MessageDirection.FROM;
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(messageDirection, TestConstants.Things.THING_ID, messageSubject)
+                            .build()
+            ).build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            final SendThingMessageResponse<JsonValue> sendThingMessageResponse =
+                    expectMsgClass(SendThingMessageResponse.class);
+            assertThat((CharSequence) sendThingMessageResponse.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat(sendThingMessageResponse.getStatusCode().toInt()).isEqualTo(statusCode.intValue());
+            assertThat(sendThingMessageResponse.getDittoHeaders().getCorrelationId())
+                    .contains(TestConstants.CORRELATION_ID);
+            final Message<JsonValue> responseMessage = sendThingMessageResponse.getMessage();
+            assertThat(responseMessage.getContentType()).contains(customContentType);
+            assertThat(responseMessage.getSubject()).isEqualTo(messageSubject);
+            assertThat(responseMessage.getDirection()).isEqualTo(messageDirection);
+            assertThat(responseMessage.getStatusCode()).contains(
+                    HttpStatusCode.forInt(statusCode.intValue()).orElseThrow());
+            assertThat(responseMessage.getPayload()).contains(jsonResponse);
+            final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
+            assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
+        }};
+    }
+
+    @Test
+    public void sendingLiveResponseWithWrongCorrelationIdDoesNotWork() {
+        new TestKit(actorSystem) {{
+            final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
+            final String messageSubject = "please-respond";
+            final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final MessageHeaders messageHeaders =
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, messageSubject)
+                            .contentType(customContentType)
+                            .correlationId("otherID")
+                            .putHeader(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE)
+                            .build();
+            final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
+            final Message<JsonValue> response =
+                    Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
+            final SendThingMessageResponse<JsonValue> sendMessageResponse =
+                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatusCode.IM_A_TEAPOT,
+                            messageHeaders);
+            final Adaptable messageResponseAdaptable =
+                    DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
+            final JsonObject messageResponseJson =
+                    ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
+            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address(getOutboundAddress())
+                    .originalAddress(getOutboundAddress())
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .headerMapping(TestConstants.HEADER_MAPPING)
+                    .issuedAcknowledgementLabel(DittoAcknowledgementLabel.LIVE_RESPONSE)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            final MessageDirection messageDirection = MessageDirection.FROM;
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(messageDirection, TestConstants.Things.THING_ID, messageSubject)
+                            .build()
+            ).build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
+            assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat(acknowledgements.getStatusCode()).isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
+                    .contains(TestConstants.CORRELATION_ID);
+            assertThat(acknowledgements.getSize()).isOne();
+            final Optional<Acknowledgement> acknowledgement =
+                    acknowledgements.getAcknowledgement(DittoAcknowledgementLabel.LIVE_RESPONSE);
+            assertThat(acknowledgement).isPresent();
+            assertThat(acknowledgement.get().toJson().toString())
+                    .contains("Correlation ID of response <otherID> does not match correlation ID of message " +
+                            "command <cid>");
+        }};
+    }
+
+    @Test
+    public void sendingLiveResponseToDifferentThingIdDoesNotWork() {
+        new TestKit(actorSystem) {{
+            final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
+            final String messageSubject = "please-respond";
+            final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final ThingId wrongThingId = ThingId.of("namespace:wrongthing");
+            final MessageHeaders messageHeaders =
+                    MessageHeaders.newBuilder(MessageDirection.FROM, wrongThingId, messageSubject)
+                            .contentType(customContentType)
+                            .correlationId(TestConstants.CORRELATION_ID)
+                            .putHeader(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE)
+                            .build();
+            final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
+            final Message<JsonValue> response =
+                    Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
+            final SendThingMessageResponse<JsonValue> sendMessageResponse =
+                    SendThingMessageResponse.of(wrongThingId, response, HttpStatusCode.IM_A_TEAPOT,
+                            messageHeaders);
+            final Adaptable messageResponseAdaptable =
+                    DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
+            final JsonObject messageResponseJson =
+                    ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
+            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address(getOutboundAddress())
+                    .originalAddress(getOutboundAddress())
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .headerMapping(TestConstants.HEADER_MAPPING)
+                    .issuedAcknowledgementLabel(DittoAcknowledgementLabel.LIVE_RESPONSE)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            final MessageDirection messageDirection = MessageDirection.FROM;
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(messageDirection, TestConstants.Things.THING_ID, messageSubject)
+                            .build()
+            ).build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
+            assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat(acknowledgements.getStatusCode()).isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
+                    .contains(TestConstants.CORRELATION_ID);
+            assertThat(acknowledgements.getSize()).isOne();
+            final Optional<Acknowledgement> acknowledgement =
+                    acknowledgements.getAcknowledgement(DittoAcknowledgementLabel.LIVE_RESPONSE);
+            assertThat(acknowledgement).isPresent();
+            assertThat(acknowledgement.get().toJson().toString())
+                    .contains("Live response does not target the correct thing. Expected thing ID <ditto:thing>, " +
+                            "but was <namespace:wrongthing>.");
+        }};
+    }
+
+    @Test
+    public void sendingWrongResponseTypeDoesNotWork() {
+        new TestKit(actorSystem) {{
+            final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
+            final String messageSubject = "please-respond";
+            final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final MessageHeaders messageHeaders =
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, messageSubject)
+                            .contentType(customContentType)
+                            .correlationId(TestConstants.CORRELATION_ID)
+                            .putHeader(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE)
+                            .featureId("wrongId")
+                            .build();
+            final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
+            final Message<JsonValue> response =
+                    Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
+            final SendFeatureMessageResponse<JsonValue> sendMessageResponse =
+                    SendFeatureMessageResponse.of(TestConstants.Things.THING_ID, "wrongId", response,
+                            HttpStatusCode.IM_A_TEAPOT,
+                            messageHeaders);
+            final Adaptable messageResponseAdaptable =
+                    DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
+            final JsonObject messageResponseJson =
+                    ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
+            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address(getOutboundAddress())
+                    .originalAddress(getOutboundAddress())
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .headerMapping(TestConstants.HEADER_MAPPING)
+                    .issuedAcknowledgementLabel(DittoAcknowledgementLabel.LIVE_RESPONSE)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            final MessageDirection messageDirection = MessageDirection.FROM;
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(messageDirection, TestConstants.Things.THING_ID, messageSubject)
+                            .build()
+            ).build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
+            assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat(acknowledgements.getStatusCode()).isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
+                    .contains(TestConstants.CORRELATION_ID);
+            assertThat(acknowledgements.getSize()).isOne();
+            final Optional<Acknowledgement> acknowledgement =
+                    acknowledgements.getAcknowledgement(DittoAcknowledgementLabel.LIVE_RESPONSE);
+            assertThat(acknowledgement).isPresent();
+            assertThat(acknowledgement.get().toJson().toString())
+                    .contains("Live response of type <messages.responses:featureResponseMessage> is not of " +
+                            "expected type <messages.responses:thingResponseMessage>.");
         }};
     }
 
     @Override
     protected void verifyPublishedMessageToReplyTarget() throws Exception {
         final HttpRequest request = received.take();
-        assertThat(received).hasSize(0);
+        assertThat(received).isEmpty();
         assertThat(request.method()).isEqualTo(HttpMethods.POST);
         assertThat(request.getUri().getPathString()).isEqualTo("/replyTarget/thing:id");
         assertThat(request.getHeader("correlation-id"))
@@ -197,11 +609,14 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         );
     }
 
-    private HttpPushFactory mockHttpPushFactory(final String contentType, final String body) {
+    private HttpPushFactory mockHttpPushFactory(final String contentType, final StatusCode statusCode,
+            final String body) {
+
         return new DummyHttpPushFactory("8.8.4.4", request -> {
             received.offer(request);
             return HttpResponse.create()
-                    .withStatus(StatusCodes.OK)
+                    .withStatus(statusCode)
+                    .addHeader(HttpHeader.parse(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE))
                     .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
                             (akka.http.scaladsl.model.ContentType) ContentTypes.parse(contentType),
                             ByteString.fromString(body)

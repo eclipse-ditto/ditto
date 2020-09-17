@@ -123,10 +123,10 @@ public interface MessageMapper {
      */
     static Optional<String> findContentType(final Adaptable adaptable) {
         checkNotNull(adaptable);
-        return adaptable.getHeaders().flatMap(h -> h.entrySet()
+        return adaptable.getDittoHeaders().entrySet()
                 .stream()
                 .filter(e -> ExternalMessage.CONTENT_TYPE_HEADER.equalsIgnoreCase(e.getKey()))
                 .findFirst()
-                .map(Map.Entry::getValue));
+                .map(Map.Entry::getValue);
     }
 }

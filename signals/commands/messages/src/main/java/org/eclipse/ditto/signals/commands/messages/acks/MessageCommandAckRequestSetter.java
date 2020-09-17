@@ -59,4 +59,9 @@ public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequ
     public Class<MessageCommand<?, ?>> getMatchedClass() {
         return (Class) MessageCommand.class;
     }
+
+    @Override
+    protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
+        return true;
+    }
 }

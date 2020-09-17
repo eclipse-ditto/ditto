@@ -78,10 +78,10 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
             final JsonValue propertyValue, final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
-        this.propertyPointer = checkPropertyPointer(propertyPointer);
-        this.propertyValue = checkNotNull(propertyValue, "Property Value");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId, "featureId");
+        this.propertyPointer = checkPropertyPointer(checkNotNull(propertyPointer, "propertyPointer"));
+        this.propertyValue = checkPropertyValue(checkNotNull(propertyValue, "propertyValue"));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 propertyValue::getUpperBoundForStringSize,
@@ -89,9 +89,15 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
                 () -> dittoHeaders);
     }
 
-    private JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
-        checkNotNull(propertyPointer, "Property JsonPointer");
+    private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
+    }
+
+    private static JsonValue checkPropertyValue(final JsonValue value) {
+        if (value.isObject()) {
+            ThingsModelFactory.validateJsonKeys(value.asObject());
+        }
+        return value;
     }
 
     /**

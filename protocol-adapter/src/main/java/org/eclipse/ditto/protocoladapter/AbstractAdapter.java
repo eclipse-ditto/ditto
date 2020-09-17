@@ -56,7 +56,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * @return the headers of the message.
      */
     protected static DittoHeaders dittoHeadersFrom(final Adaptable adaptable) {
-        return adaptable.getHeaders().orElseGet(DittoHeaders::empty);
+        return adaptable.getDittoHeaders();
     }
 
     protected static TopicPath.Action getAction(final TopicPath topicPath) {
@@ -75,7 +75,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         final String type = getType(externalAdaptable);
 
         // filter headers by header translator, then inject any missing information from topic path
-        final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders externalHeaders = externalAdaptable.getDittoHeaders();
         final DittoHeaders filteredHeaders = addTopicPathInfo(
                 DittoHeaders.of(headerTranslator.fromExternalHeaders(externalHeaders)),
                 externalAdaptable.getTopicPath());
