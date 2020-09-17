@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 
@@ -30,6 +31,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
  */
 @Immutable
 final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
+
+    // Representation of the supposedly most often occurring ack request header value.
+    private static final String TWIN_PERSISTED_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.TWIN_PERSISTED + "\"]";
+    private static final String LIVE_RESPONSE_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.LIVE_RESPONSE + "\"]";
 
     private static final JsonValue EMPTY_JSON_STRING = JsonValue.of("");
 
@@ -55,7 +60,8 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
     public String filterValue(final String key, final String value) {
         @Nullable final String result;
         if (isRequestedAcks(key)) {
-            if (value.isEmpty()) {
+            // optimization: for "twin-persisted" and "live-response" in array notation, no JSON parsing has to be done:
+            if (value.isEmpty() || isTwinPersistedOnly(value) || isLiveResponseOnly(value)) {
                 result = null;
             } else {
                 result = tryToParseAsJsonArrayAndFilter(value);
@@ -64,6 +70,14 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
            result = value;
         }
         return result;
+    }
+
+    private static boolean isTwinPersistedOnly(final String value) {
+        return TWIN_PERSISTED_ONLY_VALUE.equals(value);
+    }
+
+    private static boolean isLiveResponseOnly(final String value) {
+        return LIVE_RESPONSE_ONLY_VALUE.equals(value);
     }
 
     private static boolean isRequestedAcks(final String key) {
@@ -94,7 +108,7 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
     }
 
     private static boolean isDittoInternal(final JsonValue ackRequestLabelJsonValue) {
-        return DittoAcknowledgementLabel.TWIN_PERSISTED.toString().equals(ackRequestLabelJsonValue.asString());
+        return DittoAcknowledgementLabel.contains(AcknowledgementLabel.of(ackRequestLabelJsonValue.asString()));
     }
 
 }

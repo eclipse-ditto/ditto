@@ -325,7 +325,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             // THEN: the first mapped signal is without enrichment
             expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithoutEnrichment,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
 
             // THEN: the second mapped signal is without enrichment and applied 1 payload mapper arrives
@@ -344,17 +344,17 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             );
             expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
             expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithoutEnrichmentAnd2PayloadMappers,
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
 
             // THEN: Receive an outbound signal with extra fields.
             expectPublishedMappedMessage(publishMappedMessage, i++, signal, targetWithEnrichment,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
 
             // THEN: Receive an outbound signal with extra fields and with mapped payload.
@@ -370,12 +370,12 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
             expectPublishedMappedMessage(publishMappedMessage, i++, signal,
                     targetWithEnrichmentAnd2PayloadMappers,
                     mapped -> assertThat(mapped.getAdaptable().getPayload().getExtra()).contains(extra),
-                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).isEmpty()
+                    mapped -> assertThat(mapped.getExternalMessage().getHeaders()).containsOnlyKeys("content-type")
             );
             expectPublishedMappedMessage(publishMappedMessage, i, signal,
                     targetWithEnrichmentAnd2PayloadMappers,

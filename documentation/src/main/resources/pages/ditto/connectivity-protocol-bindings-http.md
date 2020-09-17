@@ -70,6 +70,18 @@ automatically created [acknowledement](protocol-specification-acks.html#acknowle
 * Acknowledgement.status: the HTTP response status code is used as acknowledgement status.
 * Acknowledgement.value: the HTTP response body is used as acknowledgement value - if the response body was of 
   `content-type: application/json`, the JSON is inlined into the acknowledgment, otherwise the payload is added as JSON string.
+  
+#### Responding to Messages
+
+For [Messages](basic-messages.html) that are sent via an HTTP target you have two different options to respond:
+
+* Respond to the HTTP request with a HTTP response containing a valid [Ditto Protocol Message Response](protocol-specification-things-messages.html#responding-to-a-message). 
+  This requires to set the `Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`.
+* Configure the `live-response` acknowledgement label [as automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label). 
+  In this case there are again two options:
+  * Provide the response as Ditto Protocol Message as described in the first option above.
+  * Use the payload you want to have in the Message response as payload of the HTTP response. 
+    The `Content-Type`, HTTP status and payload of the HTTP response will be used to generate the Message response.
 
 
 ### Specific configuration properties
@@ -78,7 +90,7 @@ The specific configuration properties contain the following optional keys:
 * `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes one outgoing 
 TCP connection. Default (if not provided): 1
 
-# Establishing connecting to an HTTP endpoint
+## Establishing connecting to an HTTP endpoint
 
 Ditto's [Connectivity service](architecture-services-connectivity.html) is responsible for creating new and managing 
 existing connections.
@@ -117,7 +129,7 @@ Example connection configuration to create a new HTTP connection in order to mak
 }
 ```
 
-## Client-certificate authentication
+### Client-certificate authentication
 
 Ditto supports certificate-based authentication for HTTP connections. Consult 
 [Certificates for Transport Layer Security](connectivity-tls-certificates.html)

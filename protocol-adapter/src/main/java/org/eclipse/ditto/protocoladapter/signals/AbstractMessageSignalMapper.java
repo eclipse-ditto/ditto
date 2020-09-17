@@ -95,7 +95,7 @@ abstract class AbstractMessageSignalMapper<T extends Signal<?> & WithThingId> ex
     DittoHeaders enhanceHeaders(final T command) {
         final MessageHeaders messageHeaders = extractMessageHeaders(command);
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        // merge inner message headers and ditto headers (ditto headers win in case of a conflict)
-        return messageHeaders.toBuilder().putHeaders(dittoHeaders).build();
+        // merge inner message headers and ditto headers (message headers win in case of a conflict)
+        return dittoHeaders.toBuilder().putHeaders(messageHeaders).build();
     }
 }

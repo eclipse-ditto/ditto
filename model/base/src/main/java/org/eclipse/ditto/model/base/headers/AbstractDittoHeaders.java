@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
@@ -121,6 +122,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public Optional<String> getContentType() {
         return getStringForDefinition(DittoHeaderDefinition.CONTENT_TYPE);
+    }
+
+    @Override
+    public Optional<ContentType> getDittoContentType() {
+        return getContentType().map(ContentType::of);
     }
 
     @Override

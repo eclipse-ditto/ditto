@@ -247,6 +247,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     .build();
             // headers shall be same:
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .acknowledgementRequests(Collections.emptyList())
                     .build();
 
             final ModifyAttributeResponse probeResponse =
@@ -360,6 +361,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     .build();
             // headers shall be same:
             final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .acknowledgementRequests(Collections.emptyList())
                     .build();
 
             final String contentType = "application/json";
