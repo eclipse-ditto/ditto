@@ -58,7 +58,7 @@ abstract class AbstractMappingStrategies<T extends Jsonifiable.WithPredicate<Jso
      * @return the headers of the message.
      */
     protected static DittoHeaders dittoHeadersFrom(final Adaptable adaptable) {
-        return adaptable.getHeaders().orElseGet(DittoHeaders::empty);
+        return adaptable.getDittoHeaders();
     }
 
     /**
