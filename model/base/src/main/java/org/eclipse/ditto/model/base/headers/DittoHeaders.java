@@ -152,6 +152,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Returns the parsed content-type of the entity.
      *
      * @return the parsed content-type.
+     * @since 1.3.0
      */
     Optional<ContentType> getDittoContentType();
 

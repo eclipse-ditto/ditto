@@ -367,7 +367,11 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S contentType(@Nullable final ContentType contentType) {
-        putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType.getValue());
+        if (null != contentType) {
+            putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType.getValue());
+        } else {
+            removeHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+        }
         return myself;
     }
 

@@ -180,10 +180,11 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B contentType(@Nullable CharSequence contentType);
 
     /**
-     * Sets the contentType value.
+     * Sets the Ditto typed contentType value.
      *
-     * @param contentType the contentType value to be set.
+     * @param contentType the Ditto typed contentType value to be set.
      * @return this builder for Method Chaining.
+     * @since 1.3.0
      */
     B contentType(@Nullable ContentType contentType);
 
