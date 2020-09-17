@@ -120,4 +120,16 @@ public final class AttributesModelFactory {
     public static JsonPointer validateAttributePointer(final JsonPointer jsonPointer) {
         return JsonKeyValidator.validate(jsonPointer);
     }
+
+    /**
+     * Validates the given attribute {@link JsonObject}.
+     *
+     * @param jsonObject {@code jsonObject} that is validated
+     * @throws JsonKeyInvalidException if {@code jsonObject} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.3.0
+     */
+    public static void validateAttributeKeys(final JsonObject jsonObject) {
+        JsonKeyValidator.validateJsonKeys(jsonObject);
+    }
 }

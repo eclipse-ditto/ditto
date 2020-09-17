@@ -74,8 +74,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
 
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
-        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
-        this.attributeValue = checkNotNull(attributeValue, "new attribute");
+        this.attributePointer = checkAttributePointer(checkNotNull(attributePointer, "attributePointer"), dittoHeaders);
+        this.attributeValue = checkAttributeValue(checkNotNull(attributeValue, "attributeValue"));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 attributeValue::getUpperBoundForStringSize,
@@ -84,13 +84,19 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
-        checkNotNull(pointer, "key of the attribute to be modified");
         if (pointer.isEmpty()) {
             throw AttributePointerInvalidException.newBuilder(pointer)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
         return AttributesModelFactory.validateAttributePointer(pointer);
+    }
+
+    private static JsonValue checkAttributeValue(final JsonValue value) {
+        if (value.isObject()) {
+            AttributesModelFactory.validateAttributeKeys(value.asObject());
+        }
+        return value;
     }
 
     /**
