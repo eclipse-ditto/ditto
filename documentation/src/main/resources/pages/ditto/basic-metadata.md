@@ -64,7 +64,7 @@ following example:
 ## Reading Metadata Information
 
 Currently, the only way to retrieve stored Metadata is by a full thing query, e.g. via the [HTTP API](http-api-doc.html).
-But, `get-metadata` has to be added to the queried fields together with `thingId,attributes,_metadata`.
+But, `_metadata` has to be added to the queried fields together with `thingId,attributes,_metadata`.
 
 For example a `GET` request to `https://{ditto-instance}/api/2/things/{namespace}:{thing}?fields=thingId,attributes,_metadata`
 will yield the Metadata stored for the given Thing, in the following format:
