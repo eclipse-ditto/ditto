@@ -71,12 +71,44 @@ will yield the Metadata stored for the given Thing, in the following format:
 
 ```json
 {
-    "thingId": ...,
-    "attributes": {
-        ...
-    },
-    "_metadata": {
-        ...
+  "thingId": "org.eclipse.ditto:thing-1",
+  "policyId": "...",
+  "features": {
+    "lamp": {
+      "properties": {
+        "on": true,
+        "color": {
+          "r": 0,
+          "g": 255,          
+          "b": 255,
+        }
+      }
     }
+  },
+  "_created": "2020-06-01T10:00:00Z",
+  "_modified": "2020-06-09T14:30:00Z",
+  "_revision": 42,
+  "_metadata": {
+    "features": {
+      "lamp": {
+        "properties": {
+          "on": {
+            "issuedAt": "2020-06-09T14:30:00Z"
+          },
+          "color": {
+            "r": {
+              "issuedAt": "2020-06-09T14:15:00Z"
+            },
+            "g": {
+              "issuedAt": "2020-06-09T14:15:00Z"
+            },
+            "b": {
+              "issuedAt": "2020-06-09T14:15:00Z"
+            }
+          }
+        }
+      }
+    }
+  }
 }
 ``` 
