@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
@@ -87,6 +88,22 @@ public interface MessageMapper {
     default JsonObject getDefaultOptions() {
         return JsonObject.empty();
     }
+
+    /**
+     * Returns the conditions to be checked before mapping incoming messages.
+     * @return the conditions.
+     *
+     * @since 1.3.0
+     */
+    Map<String, String> getIncomingConditions();
+
+    /**
+     * Returns the conditions to be checked before mapping outgoing messages.
+     * @return the conditions.
+     *
+     * @since 1.3.0
+     */
+    Map<String, String> getOutgoingConditions();
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

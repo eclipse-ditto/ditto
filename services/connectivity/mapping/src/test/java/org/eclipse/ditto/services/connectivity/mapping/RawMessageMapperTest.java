@@ -45,6 +45,8 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.protobuf.ByteString;
 
 /**
@@ -213,6 +215,59 @@ public final class RawMessageMapperTest {
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
         assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(payload);
+    }
+
+    @Test
+    public void mapToTextMessageWithContentTypeOverride() {
+        final Map<String, String> headers = Map.of(
+                "content-type", "application/octet-stream",
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id"
+        );
+        final String payload = "lorem ipsum dolor sit amet";
+        underTest.configure(DefaultMappingConfig.of(ConfigFactory.empty()),
+                DefaultMessageMapperConfiguration.of("RawMessage",
+                        Map.of("incomingMessageHeaders", JsonObject.newBuilder()
+                                .set("content-type", "text/plain")
+                                .build()
+                        ), Map.of(), Map.of()));
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withBytes(payload.getBytes())
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(SendThingMessage.class);
+        final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
+        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(payload);
+    }
+
+    @Test
+    public void mapToBinaryMessageWithContentTypeOverride() {
+        final Map<String, String> headers = Map.of(
+                "content-type", "text/plain",
+                "ditto-message-subject", "hello/world",
+                "ditto-message-thing-id", "thing:id"
+        );
+        final String payload = "lorem ipsum dolor sit amet";
+        underTest.configure(DefaultMappingConfig.of(ConfigFactory.empty()),
+                DefaultMessageMapperConfiguration.of("RawMessage",
+                        Map.of("incomingMessageHeaders", JsonObject.newBuilder()
+                                .set("content-type", "application/octet-stream")
+                                .build()
+                        ), Map.of(), Map.of()));
+        final List<Adaptable> adaptables =
+                underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withText(payload)
+                        .build());
+        assertThat(adaptables).hasSize(1);
+        final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
+        assertThat(signal).isInstanceOf(SendThingMessage.class);
+        final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
+        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getMessage().getPayload().orElseThrow())
+                .isEqualTo(ByteBuffer.wrap(payload.getBytes()));
     }
 
     @Test
