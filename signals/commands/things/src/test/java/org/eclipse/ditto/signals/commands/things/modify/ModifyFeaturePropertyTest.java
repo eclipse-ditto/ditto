@@ -53,14 +53,12 @@ public final class ModifyFeaturePropertyTest {
             .set(ModifyFeatureProperty.JSON_PROPERTY_VALUE, PROPERTY_VALUE)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureProperty.class,
                 areImmutable(),
                 provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -69,14 +67,12 @@ public final class ModifyFeaturePropertyTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
         ModifyFeatureProperty.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
                 PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
@@ -85,13 +81,11 @@ public final class ModifyFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
         ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, null, PROPERTY_JSON_POINTER, PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPropertyJsonPointer() {
@@ -99,7 +93,6 @@ public final class ModifyFeaturePropertyTest {
                 PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPropertyValue() {

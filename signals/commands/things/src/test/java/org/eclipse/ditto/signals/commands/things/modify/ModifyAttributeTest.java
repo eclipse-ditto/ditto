@@ -75,7 +75,6 @@ public final class ModifyAttributeTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, null,
                         TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "new attribute")
                 .withNoCause();
     }
 
@@ -84,7 +83,6 @@ public final class ModifyAttributeTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, null, KNOWN_ATTRIBUTE,
                         TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "key of the attribute to be modified")
                 .withNoCause();
 
     }
