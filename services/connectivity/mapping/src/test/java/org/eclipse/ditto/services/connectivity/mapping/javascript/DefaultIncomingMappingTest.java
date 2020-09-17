@@ -63,7 +63,7 @@ public class DefaultIncomingMappingTest {
 
         assertThat(adaptableList).isNotEmpty();
         final Adaptable adaptable = adaptableList.get(0);
-        assertThat(Optional.of(adaptable.getDittoHeaders())).contains(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
+        assertThat(adaptable.getDittoHeaders()).isEqualTo(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
         assertThat(adaptable.getTopicPath()).isEqualTo(expectedTopicPath);
         assertThat((CharSequence) adaptable.getPayload().getPath()).isEqualTo(expectedPath);
     }
@@ -84,7 +84,7 @@ public class DefaultIncomingMappingTest {
 
         assertThat(adaptableList).isNotEmpty();
         final Adaptable adaptable = adaptableList.get(0);
-        assertThat(Optional.of(adaptable.getDittoHeaders())).contains(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
+        assertThat(adaptable.getDittoHeaders()).isEqualTo(DittoHeaders.newBuilder().contentType(CONTENT_TYPE).build());
         assertThat(adaptable.getTopicPath()).isEqualTo(expectedTopicPath);
         assertThat((CharSequence) adaptable.getPayload().getPath()).isEqualTo(expectedPath);
     }

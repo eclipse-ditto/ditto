@@ -68,6 +68,7 @@ final class ImmutableAdaptable implements Adaptable {
     }
 
     @Override
+    @Deprecated
     public Optional<DittoHeaders> getHeaders() {
         return Optional.ofNullable(headers);
     }

@@ -87,7 +87,6 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * @throws NullPointerException if {@code adaptable} is {@code null}.
      * @throws IllegalArgumentException if {@code adaptable}
      * <ul>
-     * <li>has no headers,</li>
      * <li>contains headers with a value that did not represent its appropriate Java type or</li>
      * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
@@ -95,11 +94,6 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * value for {@link MessageHeaderDefinition#SUBJECT}.
      */
     protected static MessageHeaders messageHeadersFrom(final Adaptable adaptable) {
-
-        if (adaptable.getDittoHeaders().isEmpty()) {
-            throw new IllegalArgumentException("Adaptable did not have headers at all!");
-        }
-
         final TopicPath topicPath = adaptable.getTopicPath();
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = adaptable.getDittoHeaders().toBuilder();
 
