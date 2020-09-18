@@ -36,7 +36,7 @@ final class DefaultMdcEntry implements MdcEntry {
     }
 
     /**
-     * Returns an instance of ImmutableMdcEntry.
+     * Returns an instance of DefaultMdcEntry.
      *
      * @param key the key which identifies the diagnostic value.
      * @param value the diagnostic value which is identified by {@code key}.

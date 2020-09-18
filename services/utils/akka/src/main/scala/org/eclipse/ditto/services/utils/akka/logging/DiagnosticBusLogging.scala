@@ -14,10 +14,9 @@ package org.eclipse.ditto.services.utils.akka.logging
 
 import akka.event.{BusLogging, DiagnosticLoggingAdapter, LoggingBus, LoggingFilter}
 
-/**
- * This class combines [[BusLogging]] with [[DiagnosticLoggingAdapter]] for usage in Java.
+/** This class combines [[BusLogging]] with [[DiagnosticLoggingAdapter]] for usage in Java.
  *
- * @since 1.3.0
+ *  @since 1.3.0
  */
 final class DiagnosticBusLogging(bus: LoggingBus, logSource: String, logClass: Class[_], loggingFilter: LoggingFilter)
   extends BusLogging(bus, logSource, logClass, loggingFilter) with DiagnosticLoggingAdapter
