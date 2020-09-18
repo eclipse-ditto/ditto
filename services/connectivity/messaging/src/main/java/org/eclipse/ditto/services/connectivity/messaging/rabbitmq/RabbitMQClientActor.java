@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -171,7 +171,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
         final Duration internalReconnectTimeout = clientConfig.getTestingTimeout();
 
         // does explicitly not test the consumer so we won't consume any messages by accident.
-        return connect(testConnectionCommand.getConnection(), testConnectionCommand, createChannelTimeout,
+        final DittoHeaders dittoHeaders = testConnectionCommand.getDittoHeaders();
+        final String correlationId = dittoHeaders.getCorrelationId().orElse(null);
+        return connect(testConnectionCommand.getConnection(), correlationId, createChannelTimeout,
                 internalReconnectTimeout);
     }
 
@@ -247,11 +249,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private CompletionStage<Status.Status> connect(final Connection connection,
-            @Nullable final WithDittoHeaders<?> signal,
+            @Nullable final CharSequence correlationId,
             final Duration createChannelTimeout,
             final Duration internalReconnectTimeout) {
 
-        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(signal)
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(correlationId)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {

@@ -58,7 +58,6 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.Publish
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
@@ -310,6 +309,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))

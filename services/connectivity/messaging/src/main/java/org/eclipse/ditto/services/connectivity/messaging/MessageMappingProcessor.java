@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.text.MessageFormat;
 import java.util.Collection;
@@ -29,6 +28,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -82,7 +82,7 @@ public final class MessageMappingProcessor {
 
         this.connectionId = connectionId;
         this.registry = registry;
-        this.logger = logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+        this.logger = checkNotNull(logger, "logger");
         this.protocolAdapter = protocolAdapter;
         this.dittoHeadersSizeChecker = dittoHeadersSizeChecker;
     }
@@ -110,8 +110,12 @@ public final class MessageMappingProcessor {
             final ProtocolAdapterProvider protocolAdapterProvider,
             final ThreadSafeDittoLoggingAdapter logger) {
 
+        final ThreadSafeDittoLoggingAdapter loggerWithConnectionId =
+                logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), logger);
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(),
+                        loggerWithConnectionId);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
@@ -119,7 +123,7 @@ public final class MessageMappingProcessor {
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return new MessageMappingProcessor(connectionId, registry, logger,
+        return new MessageMappingProcessor(connectionId, registry, loggerWithConnectionId,
                 protocolAdapterProvider.getProtocolAdapter(null), dittoHeadersSizeChecker);
     }
 
@@ -143,7 +147,7 @@ public final class MessageMappingProcessor {
 
         final Map<String, String> messageHeaders = message.getHeaders();
         final List<MessageMapper> mappers = getMappers(message);
-        logger.withCorrelationId(messageHeaders.get(CORRELATION_ID.getKey()))
+        logger.withCorrelationId(messageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
                 .debug("Mappers resolved for message: {}", mappers);
         R result = resultHandler.emptyResult();
         for (final MessageMapper mapper : mappers) {
