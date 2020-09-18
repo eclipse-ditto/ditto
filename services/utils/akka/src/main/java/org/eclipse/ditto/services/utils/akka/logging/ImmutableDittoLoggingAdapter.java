@@ -93,25 +93,31 @@ final class ImmutableDittoLoggingAdapter extends ThreadSafeDittoLoggingAdapter {
     @Override
     public ImmutableDittoLoggingAdapter withMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         validateMdcEntryKey(key, "key");
-        final Map<String, Object> mdcCopy = getCopyOfMdc();
-        @Nullable final Object existingValue = mdcCopy.get(key.toString());
+        final Map<String, Object> currentMdc = getMdc();
+        @Nullable final Object existingValue = currentMdc.get(key.toString());
         final ImmutableDittoLoggingAdapter result;
         if (null != value) {
             if (value.equals(existingValue)) {
                 result = this;
             } else {
-                mdcCopy.put(key.toString(), value.toString());
-                result = newInstance(diagnosticLoggingAdapterFactory, mdcCopy);
+                final Map<String, Object> copyOfMdc = getCopyOfMdc();
+                copyOfMdc.put(key.toString(), value.toString());
+                result = newInstance(diagnosticLoggingAdapterFactory, copyOfMdc);
             }
         } else {
             if (null == existingValue) {
                 result = this;
             } else {
-                mdcCopy.remove(key.toString());
-                result = newInstance(diagnosticLoggingAdapterFactory, mdcCopy);
+                final Map<String, Object> copyOfMdc = getCopyOfMdc();
+                copyOfMdc.remove(key.toString());
+                result = newInstance(diagnosticLoggingAdapterFactory, copyOfMdc);
             }
         }
         return result;
+    }
+
+    private Map<String, Object> getMdc() {
+        return loggingAdapter.getMDC();
     }
 
     private static void validateMdcEntryKey(final CharSequence key, final String argumentName) {
@@ -199,10 +205,13 @@ final class ImmutableDittoLoggingAdapter extends ThreadSafeDittoLoggingAdapter {
     @Override
     public ImmutableDittoLoggingAdapter removeMdcEntry(final CharSequence key) {
         validateMdcEntryKey(key, "key");
-        final Map<String, Object> mdcCopy = getCopyOfMdc();
+        final Map<String, Object> currentMdc = getMdc();
+        final String keyAsString = key.toString();
         final ImmutableDittoLoggingAdapter result;
-        if (null != mdcCopy.remove(key.toString())) {
-            result = newInstance(diagnosticLoggingAdapterFactory, mdcCopy);
+        if (currentMdc.containsKey(keyAsString)) {
+            final Map<String, Object> copyOfMdc = getCopyOfMdc();
+            copyOfMdc.remove(keyAsString);
+            result = newInstance(diagnosticLoggingAdapterFactory, copyOfMdc);
         } else {
             result = this;
         }
