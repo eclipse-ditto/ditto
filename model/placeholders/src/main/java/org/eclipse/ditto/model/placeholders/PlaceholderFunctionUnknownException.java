@@ -89,7 +89,9 @@ public final class PlaceholderFunctionUnknownException extends DittoRuntimeExcep
      * Returns a mutable builder for this exception.
      *
      * @return the builder.
+     * @deprecated since 1.3.0; might be removed in future releases.
      */
+    @Deprecated
     public DittoRuntimeExceptionBuilder<PlaceholderFunctionUnknownException> toBuilder() {
         return new Builder()
                 .dittoHeaders(getDittoHeaders())

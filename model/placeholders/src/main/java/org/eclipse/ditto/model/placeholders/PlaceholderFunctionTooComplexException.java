@@ -90,6 +90,13 @@ public final class PlaceholderFunctionTooComplexException extends DittoRuntimeEx
      *
      * @return the builder.
      */
+    /**
+     * Returns a mutable builder for this exception.
+     *
+     * @return the builder.
+     * @deprecated since 1.3.0; might be removed in future releases.
+     */
+    @Deprecated
     public DittoRuntimeExceptionBuilder<PlaceholderFunctionTooComplexException> toBuilder() {
         return new Builder()
                 .dittoHeaders(getDittoHeaders())

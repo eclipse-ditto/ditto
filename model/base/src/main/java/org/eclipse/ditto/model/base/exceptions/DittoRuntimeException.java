@@ -382,6 +382,15 @@ public class DittoRuntimeException extends RuntimeException
         // empty per default
     }
 
+    protected <T extends DittoRuntimeException> DittoRuntimeExceptionBuilder<T> toBuilder(final DittoRuntimeExceptionBuilder<T> builder) {
+        builder.message(getMessage());
+        builder.dittoHeaders(getDittoHeaders());
+        builder.cause(getCause());
+        getHref().ifPresent(builder::href);
+        getDescription().ifPresent(builder::description);
+        return builder;
+    }
+
     /**
      * Deserialize an error whose java class isn't known.
      *
