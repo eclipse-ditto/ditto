@@ -101,8 +101,11 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingIdNotExplicitlySettableException.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static ThingIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

@@ -87,7 +87,6 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdNotAllowedException.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonObject} is empty.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
