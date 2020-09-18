@@ -314,13 +314,13 @@ public class DittoRuntimeException extends RuntimeException
      */
     public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
+        checkNotNull(builder, "builder");
         readDescription(jsonObject).ifPresent(builder::description);
-        builder.dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(builder.getDescription().orElse(null)))
-                .href(readHRef(jsonObject).orElse(builder.getHref().orElse(null)));
+        readHRef(jsonObject).ifPresent(builder::href);
 
-        return builder.build();
+        return builder.dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .build();
     }
 
     /**
@@ -335,10 +335,13 @@ public class DittoRuntimeException extends RuntimeException
      */
     public static <T extends DittoRuntimeException> T fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
-        builder.dittoHeaders(dittoHeaders)
-                .message(() -> message != null ? message : builder.getMessage().orElse(null));
+        checkNotNull(builder, "builder");
+        if (null != message) {
+            builder.message(message);
+        }
 
-        return builder.build();
+        return builder.dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
