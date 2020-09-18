@@ -157,6 +157,17 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
         }
 
         @Override
+        @Deprecated
+        public Builder loadJson(final JsonObject jsonObject) {
+            super.loadJson(jsonObject);
+            jsonObject.getValue(VALIDATION_ERRORS)
+                    .filter(JsonValue::isArray)
+                    .map(JsonValue::asArray)
+                    .ifPresent(this::validationErrors);
+            return this;
+        }
+
+        @Override
         protected MessageFormatInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
