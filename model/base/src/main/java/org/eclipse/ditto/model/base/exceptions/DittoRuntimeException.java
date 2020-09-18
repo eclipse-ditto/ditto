@@ -324,7 +324,7 @@ public class DittoRuntimeException extends RuntimeException
     }
 
     /**
-     * Creates a new {@code DittoRuntimeException} from a JSON object.
+     * Creates a new {@code DittoRuntimeException} from a message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders dittoHeaders the headers of the command which resulted in this exception.
@@ -336,11 +336,10 @@ public class DittoRuntimeException extends RuntimeException
     public static <T extends DittoRuntimeException> T fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
         checkNotNull(builder, "builder");
-        if (null != message) {
-            builder.message(message);
-        }
 
-        return builder.dittoHeaders(dittoHeaders)
+        return builder
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
