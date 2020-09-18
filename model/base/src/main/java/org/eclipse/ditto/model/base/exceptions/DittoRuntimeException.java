@@ -32,8 +32,10 @@ import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -160,7 +162,6 @@ public class DittoRuntimeException extends RuntimeException
     public static Builder newBuilder(final String errorCode, final HttpStatusCode statusCode) {
         return new Builder(errorCode, statusCode);
     }
-
     /**
      * Returns a new mutable builder with a fluent API for a {@code dittoRuntimeException}. The builder is already
      * initialized with the properties of the given exception.
@@ -182,18 +183,45 @@ public class DittoRuntimeException extends RuntimeException
                 .href(dittoRuntimeException.href);
     }
 
+    /**
+     * Read the href field from the json object.
+     * @param jsonObject the object.
+     * @return Optional containing the href if it was part of the json object.
+     * @throws NullPointerException if {@code jsonObject} was null.
+     * @deprecated since 1.3.0; might be removed from public API in future releases.
+     */
+    @Deprecated
     protected static Optional<URI> readHRef(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "jsonObject");
         return jsonObject.getValue(JsonFields.HREF).map(URI::create);
     }
 
+    /**
+     * Read the message field from the json object.
+     * @param jsonObject the object.
+     * @return the message.
+     * @throws NullPointerException if {@code jsonObject} was null.
+     * @throws JsonMissingFieldException if this JsonObject did not contain a value at all at the defined location.
+     * @throws JsonParseException if this JsonObject contained a value at the defined location with a type which is
+     * different from {@code T}.
+     * @deprecated since 1.3.0; might be removed from public API in future releases.
+     */
+    @Deprecated
     protected static String readMessage(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "jsonObject");
         return jsonObject.getValueOrThrow(JsonFields.MESSAGE);
     }
 
+    /**
+     * Read the description field from the json object.
+     * @param jsonObject the object.
+     * @return Optional containing the description if it was part of the json object.
+     * @throws NullPointerException if {@code jsonObject} was null.
+     * @deprecated since 1.3.0; might be removed from public API in future releases.
+     */
+    @Deprecated
     protected static Optional<String> readDescription(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "jsonObject");
         return jsonObject.getValue(JsonFields.DESCRIPTION);
     }
 
