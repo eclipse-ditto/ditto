@@ -18,8 +18,9 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -38,21 +39,16 @@ import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.Done;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpEntities;
@@ -92,8 +88,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-http-diagnostic");
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-
     private final HttpPushFactory factory;
 
     private final ActorMaterializer materializer;
@@ -105,19 +99,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         super(connection);
         this.factory = factory;
 
-        final ActorSystem system = getContext().getSystem();
-        final ConnectionConfig connectionConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()))
-                        .getConnectionConfig();
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
         materializer = ActorMaterializer.create(getContext());
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .viaMat(factory.createFlow(system, log), Keep.left())
+                        .viaMat(factory.createFlow(getContext().getSystem(), logger), Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
-                        .toMat(Sink.foreach(this::processResponse), Keep.both())
+                        .toMat(Sink.foreach(HttpPublisherActor::processResponse), Keep.both())
                         .run(materializer);
         sourceQueue = materialized.first().first();
         killSwitch = materialized.first().second();
@@ -166,11 +156,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return resultFuture;
     }
 
-    @Override
-    protected DittoDiagnosticLoggingAdapter log() {
-        return log;
-    }
-
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
         final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message);
         final HttpRequest requestWithoutEntity = factory.newRequest(publishTarget).addHeaders(headersPair.first());
@@ -186,8 +171,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         }
     }
 
-    private Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
-        final List<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
+    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
+        final Collection<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
         ContentType contentType = null;
         for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
             final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
@@ -203,13 +188,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     // Async callback. Must be thread-safe.
     private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message,
             final CompletableFuture<?> resultFuture) {
+
         return (queueOfferResult, error) -> {
             if (error != null) {
                 final String errorDescription = "Source queue failure";
-                log.error(error, errorDescription);
+                logger.error(error, errorDescription);
                 resultFuture.completeExceptionally(error);
                 escalate(error, errorDescription);
-            } else if (queueOfferResult == QueueOfferResult.dropped()) {
+            } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
                         .description("Please improve the performance of the HTTP server " +
@@ -222,7 +208,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     // Async callback. Must be thread-safe.
-    private void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithContext) {
+    private static void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithContext) {
         responseWithContext.second().onResponse(responseWithContext.first());
     }
 
@@ -235,16 +221,24 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
+
+            final ThreadSafeDittoLoggingAdapter l;
+            if (logger.isDebugEnabled()) {
+                l = logger.withCorrelationId(message.getInternalHeaders());
+            } else {
+                l = logger;
+            }
+
             if (tryResponse.isFailure()) {
                 final Throwable error = tryResponse.toEither().left().get();
                 final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
                         requestUri);
-                log.debug("Failed to send message <{}> due to <{}>", message, error);
+                l.debug("Failed to send message <{}> due to <{}>", message, error);
                 resultFuture.completeExceptionally(error);
                 escalate(error, errorDescription);
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
-                log.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+                l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
                 toAcknowledgement(signal, autoAckTarget, response, ackSizeQuota).thenAccept(resultFuture::complete)
                         .exceptionally(e -> {
                             resultFuture.completeExceptionally(e);

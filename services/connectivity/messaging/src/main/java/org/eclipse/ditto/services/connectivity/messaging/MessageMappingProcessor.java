@@ -15,10 +15,12 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -48,13 +50,13 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -68,19 +70,19 @@ public final class MessageMappingProcessor {
 
     private final ConnectionId connectionId;
     private final MessageMapperRegistry registry;
-    private final DittoDiagnosticLoggingAdapter logger;
+    private final ThreadSafeDittoLoggingAdapter logger;
     private final ProtocolAdapter protocolAdapter;
     private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
     private MessageMappingProcessor(final ConnectionId connectionId,
             final MessageMapperRegistry registry,
-            final DittoDiagnosticLoggingAdapter logger,
+            final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter protocolAdapter,
             final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
 
         this.connectionId = connectionId;
         this.registry = registry;
-        this.logger = logger;
+        this.logger = logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
         this.protocolAdapter = protocolAdapter;
         this.dittoHeadersSizeChecker = dittoHeadersSizeChecker;
     }
@@ -94,7 +96,7 @@ public final class MessageMappingProcessor {
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param protocolAdapterProvider provides the ProtocolAdapter to be used.
-     * @param log the log adapter.
+     * @param logger the logging adapter to be used for log statements.
      * @return the processor instance.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
      * one of the {@code mappingContext} is invalid.
@@ -106,10 +108,10 @@ public final class MessageMappingProcessor {
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
             final ProtocolAdapterProvider protocolAdapterProvider,
-            final DittoDiagnosticLoggingAdapter log) {
+            final ThreadSafeDittoLoggingAdapter logger) {
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), log);
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), logger);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
@@ -117,7 +119,7 @@ public final class MessageMappingProcessor {
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return new MessageMappingProcessor(connectionId, registry, log,
+        return new MessageMappingProcessor(connectionId, registry, logger,
                 protocolAdapterProvider.getProtocolAdapter(null), dittoHeadersSizeChecker);
     }
 
@@ -139,10 +141,10 @@ public final class MessageMappingProcessor {
     <R> R process(final ExternalMessage message,
             final MappingResultHandler<MappedInboundExternalMessage, R> resultHandler) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger,
-                message.getHeaders().get(CORRELATION_ID.getKey()), connectionId);
+        final Map<String, String> messageHeaders = message.getHeaders();
         final List<MessageMapper> mappers = getMappers(message);
-        logger.debug("Mappers resolved for message: {}", mappers);
+        logger.withCorrelationId(messageHeaders.get(CORRELATION_ID.getKey()))
+                .debug("Mappers resolved for message: {}", mappers);
         R result = resultHandler.emptyResult();
         for (final MessageMapper mapper : mappers) {
             final MappingTimer mappingTimer = MappingTimer.inbound(connectionId);
@@ -200,7 +202,6 @@ public final class MessageMappingProcessor {
         final Adaptable adaptable = outboundSignal.getExtra()
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
-        enhanceLogFromAdaptable(adaptable);
         resultHandler.onTopicPathResolved(adaptable.getTopicPath());
 
         R result = resultHandler.emptyResult();
@@ -208,7 +209,7 @@ public final class MessageMappingProcessor {
             final Signal<?> source = mappableSignal.getSource();
             final List<Target> targets = mappableSignal.getTargets();
             final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-            logger.withCorrelationId(source)
+            logger.withCorrelationId(adaptable)
                     .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
             // convert messages in the order of payload mapping and forward to result handler
             for (final MessageMapper mapper : mappers) {
@@ -246,7 +247,6 @@ public final class MessageMappingProcessor {
         checkNotNull(message, "message");
         R result = handler.emptyResult();
         try {
-
             if (shouldMapMessageByContentType(message, mapper) && shouldMapMessageByConditions(message, mapper)) {
                 logger.withCorrelationId(message.getInternalHeaders())
                         .debug("Mapping message using mapper {}.", mapper.getId());
@@ -255,13 +255,12 @@ public final class MessageMappingProcessor {
                     return handler.onMessageDropped();
                 } else {
                     for (final Adaptable adaptable : adaptables) {
-                        enhanceLogFromAdaptable(adaptable);
                         handler.onTopicPathResolved(adaptable.getTopicPath());
                         final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
                         dittoHeadersSizeChecker.check(signal.getDittoHeaders());
-                        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                        final DittoHeaders headersWithMapper =
-                                dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
+                        final DittoHeaders headersWithMapper = DittoHeaders.newBuilder(signal.getDittoHeaders())
+                                .inboundPayloadMapper(mapper.getId())
+                                .build();
                         final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
                         final MappedInboundExternalMessage mappedMessage =
                                 MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
@@ -305,8 +304,9 @@ public final class MessageMappingProcessor {
 
     private static boolean resolveIncomingConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
         boolean conditionBool = true;
-        for (String condition : mapper.getIncomingConditions().values()) {
-            final String template = "{{ fn:default('true') | " + condition + " }}";
+        final String templatePattern = "'{{' fn:default(''true'') | {0} '}}'";
+        for (final String condition : mapper.getIncomingConditions().values()) {
+            final String template = MessageFormat.format(templatePattern, condition);
             final String resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
             conditionBool &= Boolean.parseBoolean(resolvedCondition);
         }
@@ -315,8 +315,9 @@ public final class MessageMappingProcessor {
 
     private static boolean resolveOutgoingConditions(final MessageMapper mapper, final ExpressionResolver resolver) {
         boolean conditionBool = true;
-        for (String condition : mapper.getOutgoingConditions().values()) {
-            final String template = "{{ fn:default('true') | " + condition + " }}";
+        final String templatePattern = "'{{' fn:default(''true'') | {0} '}}'";
+        for (final String condition : mapper.getOutgoingConditions().values()) {
+            final String template = MessageFormat.format(templatePattern, condition);
             final String resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
             conditionBool &= Boolean.parseBoolean(resolvedCondition);
         }
@@ -335,7 +336,6 @@ public final class MessageMappingProcessor {
 
         R result = resultHandler.emptyResult();
         try {
-
             if (shouldMapMessageByConditions(outboundSignal, mapper)) {
                 logger.withCorrelationId(adaptable)
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
@@ -365,7 +365,7 @@ public final class MessageMappingProcessor {
                 }
             } else {
                 result = resultHandler.onMessageDropped();
-                logger.withCorrelationId(outboundSignal.getSource().getDittoHeaders())
+                logger.withCorrelationId(adaptable)
                         .debug("Not mapping message with mapper <{}> as MessageMapper conditions {} were not matched.",
                                 mapper.getId(), mapper.getIncomingConditions());
             }
@@ -403,10 +403,6 @@ public final class MessageMappingProcessor {
         } else {
             return mappings;
         }
-    }
-
-    private void enhanceLogFromAdaptable(final Adaptable adaptable) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, adaptable, connectionId);
     }
 
     private static MessageMappingFailedException buildMappingFailedException(final String direction,

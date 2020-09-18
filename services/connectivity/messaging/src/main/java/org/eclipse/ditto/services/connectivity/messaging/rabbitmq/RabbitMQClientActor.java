@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -37,9 +38,11 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -161,25 +164,30 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
+    protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
+
         // should be smaller than the global testing timeout to be able to send a response
         final Duration createChannelTimeout = clientConfig.getTestingTimeout().dividedBy(10L).multipliedBy(8L);
         final Duration internalReconnectTimeout = clientConfig.getTestingTimeout();
+
         // does explicitly not test the consumer so we won't consume any messages by accident.
-        return connect(connection, createChannelTimeout, internalReconnectTimeout);
+        return connect(testConnectionCommand.getConnection(), testConnectionCommand, createChannelTimeout,
+                internalReconnectTimeout);
     }
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         final boolean consuming = isConsuming();
         final ActorRef self = getSelf();
+
         // #connect() will only create the channel for the the producer, but not the consumer. We need to split the
         // connecting timeout to work for both channels before the global connecting timeout happens.
         // We choose about 45% of the global connecting timeout for this
-        final Duration splittedDuration = clientConfig.getConnectingMinTimeout().dividedBy(100L).multipliedBy(45L);
+        final Duration splitDuration = clientConfig.getConnectingMinTimeout().dividedBy(100L).multipliedBy(45L);
         final Duration internalReconnectTimeout = clientConfig.getConnectingMinTimeout();
-        connect(connection, splittedDuration, internalReconnectTimeout)
-                .thenAccept(status -> createConsumerChannelAndNotifySelf(status, consuming, self, splittedDuration));
+        final CompletionStage<Status.Status> connect =
+                connect(connection, null, splitDuration, internalReconnectTimeout);
+        connect.thenAccept(status -> createConsumerChannelAndNotifySelf(status, consuming, self, splitDuration));
     }
 
     @Override
@@ -203,7 +211,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-        log.debug("cleaning up");
+        logger.debug("cleaning up");
         stopCommandConsumers();
         stopChildActor(rmqPublisherActor);
         stopChildActor(rmqConnectionActor);
@@ -238,9 +246,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    private CompletionStage<Status.Status> connect(final Connection connection, final Duration createChannelTimeout,
+    private CompletionStage<Status.Status> connect(final Connection connection,
+            @Nullable final WithDittoHeaders<?> signal,
+            final Duration createChannelTimeout,
             final Duration internalReconnectTimeout) {
 
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(signal)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
             // complete the future if something went wrong during creation of the connection-factory-factory
@@ -256,7 +268,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                         FiniteDuration.apply(internalReconnectTimeout.getSeconds(), TimeUnit.SECONDS),
                         (rmqConnection, connectionActorRef) -> {
-                            log.info("Established RMQ connection: {}", rmqConnection);
+                            l.info("Established RMQ connection: {}", rmqConnection);
                             return null;
                         });
 
@@ -267,7 +279,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 // create publisher channel
                 final CreateChannel createChannel = CreateChannel.apply(
                         ChannelActor.props((channel, channelActor) -> {
-                            log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
+                            l.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
                                     channel);
                             // provide the new channel to the publisher after the channel was connected (also includes reconnects)
                             final ChannelCreated channelCreated = new ChannelCreated(channelActor);
@@ -289,7 +301,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 });
             }
         } else {
-            log.debug("Connection <{}> is already open.", connectionId());
+            l.debug("Connection <{}> is already open.", connection.getId());
             future.complete(new Status.Success("already connected"));
         }
         return future;
@@ -330,7 +342,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private void startCommandConsumers(final Channel channel) {
-        log.info("Starting to consume queues...");
+        logger.info("Starting to consume queues...");
         ensureQueuesExist(channel);
         stopCommandConsumers();
         startConsumers(channel);
@@ -349,12 +361,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,
                                     new RabbitMQMessageConsumer(consumer, channel, sourceAddress));
-                            log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
+                            logger.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
                             consumedTagsToAddresses.put(consumerTag, addressWithIndex);
                         } catch (final IOException e) {
                             connectionLogger.failure("Failed to consume queue {0}: {1}", addressWithIndex,
                                     e.getMessage());
-                            log.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
+                            logger.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
                         }
                     }
                 })
@@ -369,25 +381,25 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         channel.queueDeclarePassive(address);
                     } catch (final IOException e) {
                         missingQueues.add(address);
-                        log.warning("The queue <{}> does not exist.", address);
+                        logger.warning("The queue <{}> does not exist.", address);
                     } catch (final AlreadyClosedException e) {
                         if (!missingQueues.isEmpty()) {
                             // Our client will automatically close the connection if a queue does not exists. This will
                             // cause an AlreadyClosedException for the following queue (e.g. ['existing1', 'notExisting', -->'existing2'])
                             // That's why we will ignore this error if the missingQueues list isn't empty.
-                            log.warning(
+                            logger.warning(
                                     "Received exception of type {} when trying to declare queue {}. This happens when a previous " +
                                             "queue was missing and thus the connection got closed.",
                                     e.getClass().getName(), address);
                         } else {
-                            log.error(e, "Exception while declaring queue {}", address);
+                            logger.error(e, "Exception while declaring queue {}", address);
                             throw e;
                         }
                     }
                 })
         );
         if (!missingQueues.isEmpty()) {
-            log.warning("Stopping RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
+            logger.warning("Stopping RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
                     connectionId(), missingQueues);
             connectionLogger.failure("Can not connect to RabbitMQ as queues are missing: {0}", missingQueues);
             throw ConnectionFailedException.newBuilder(connectionId())
@@ -490,12 +502,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleConsumeOk(final String consumerTag) {
             super.handleConsumeOk(consumerTag);
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.success("Consume OK for consumer queue {0}", consumingQueueByTag);
-                log.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag, connectionId());
+                logger.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag,
+                        connectionId());
             }
 
             updateSourceStatus(ConnectivityStatus.OPEN, "Consumer started at " + Instant.now());
@@ -504,13 +516,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleCancel(final String consumerTag) throws IOException {
             super.handleCancel(consumerTag);
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.failure("Consumer with queue {0} was cancelled. This can happen for example " +
                         "when the queue was deleted.", consumingQueueByTag);
-                log.warning("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
+                logger.warning("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
 
@@ -520,14 +531,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleShutdownSignal(final String consumerTag, final ShutdownSignalException sig) {
             super.handleShutdownSignal(consumerTag, sig);
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.failure(
                         "Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                                 "been shut down.", consumingQueueByTag);
-                log.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
+                logger.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
@@ -538,9 +548,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleRecoverOk(final String consumerTag) {
             super.handleRecoverOk(consumerTag);
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
-            log.info("Recovered OK for consumer with tag <{}> on connection <{}>", consumerTag, connectionId());
+            logger.info("Recovered OK for consumer with tag <{}> on connection <{}>", consumerTag, connectionId());
 
             getSelf().tell((ClientConnected) Optional::empty, getSelf());
         }

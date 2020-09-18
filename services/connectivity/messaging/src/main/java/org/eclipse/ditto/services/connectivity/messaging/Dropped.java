@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.connectivity.messaging;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
+
+import javax.annotation.concurrent.NotThreadSafe;
+
+import org.eclipse.ditto.model.connectivity.GenericTarget;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+
+/**
+ * A dropped signal.
+ */
+@NotThreadSafe
+final class Dropped implements SendingOrDropped {
+
+    private final SendingContext sendingContext;
+
+    /**
+     * Constructs a new Dropped object.
+     *
+     * @param sendingContext context information for the dropped signal.
+     * @throws NullPointerException if {@code sendingContext} is {@code null}.
+     */
+    Dropped(final SendingContext sendingContext) {
+        this.sendingContext = checkNotNull(sendingContext, "sendingContext");
+    }
+
+    @Override
+    public Optional<CompletionStage<Acknowledgement>> monitorAndAcknowledge(
+            final ExceptionToAcknowledgementConverter exceptionToAcknowledgementConverter) {
+
+        final ConnectionMonitor droppedMonitor = sendingContext.getDroppedMonitor();
+        final OutboundSignal.Mapped outboundSignal = sendingContext.getMappedOutboundSignal();
+        final GenericTarget genericTarget = sendingContext.getGenericTarget();
+        droppedMonitor.success(outboundSignal.getSource(), "Signal dropped, target address unresolved: {0}",
+                genericTarget.getAddress());
+
+        return Optional.empty();
+    }
+
+}

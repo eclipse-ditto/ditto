@@ -61,6 +61,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
 
     AbstractMqttPublisherActor(final Connection connection, final Function<P, CompletableFuture<R>> client,
             final boolean dryRun) {
+
         super(connection);
         this.client = client;
         this.dryRun = dryRun;
@@ -83,7 +84,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @param message the PUBLISH message.
      * @return its topic.
      */
-    abstract String getTopic(final P message);
+    abstract String getTopic(P message);
 
     /**
      * Extract the payload from the PUBLISH message.
@@ -91,7 +92,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @param message the PUBLISH message.
      * @return its payload.
      */
-    abstract Optional<ByteBuffer> getPayload(final P message);
+    abstract Optional<ByteBuffer> getPayload(P message);
 
     /**
      * Create Props object for this publisher actor.
@@ -114,9 +115,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @param result the result of the PUBLISH message according to the broker as encapsulated by the client.
      * @return the acknowledgement.
      */
-    protected Acknowledgement toAcknowledgement(final Signal<?> signal,
-            @Nullable final Target target,
-            final R result) {
+    protected Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target target, final R result) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
@@ -129,7 +128,8 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
-                outbound -> log().info("Message dropped in dry run mode: {}", outbound));
+                outbound -> logger.withCorrelationId(outbound.getSource())
+                        .info("Message dropped in dry run mode: {}", outbound));
     }
 
     @Override
@@ -143,22 +143,19 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
-    protected DittoDiagnosticLoggingAdapter log() {
-        return log;
-    }
-
-    @Override
     protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final MqttPublishTarget publishTarget,
-            final ExternalMessage message, int ackSizeQuota) {
+            final ExternalMessage message,
+            final int ackSizeQuota) {
 
         try {
             final MqttQos qos = determineQos(autoAckTarget);
             final P mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
-            if (log().isDebugEnabled()) {
-                log().debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
-                        decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
+            if (logger.isDebugEnabled()) {
+                logger.withCorrelationId(signal)
+                        .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
+                                decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
             }
             return client.apply(mqttMessage).thenApply(result -> toAcknowledgement(signal, autoAckTarget, result));
         } catch (final Exception e) {
@@ -166,7 +163,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
         }
     }
 
-    private MqttQos determineQos(@Nullable final Target autoAckTarget) {
+    private static MqttQos determineQos(@Nullable final Target autoAckTarget) {
         if (autoAckTarget == null) {
             return MqttQos.AT_MOST_ONCE;
         } else {

@@ -39,11 +39,9 @@ import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -63,8 +61,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
 
@@ -78,7 +74,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         this.dryRun = dryRun;
         connectionFactory = factory;
 
-        startInternalKafkaProducer(connection);
+        startInternalKafkaProducer();
         reportInitialConnectionState();
     }
 
@@ -102,14 +98,15 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected ErrorConverter getErrorConverter() {
-        return KafkaErrorConverter.INSTANCE;
+    protected ExceptionToAcknowledgementConverter getExceptionConverter() {
+        return KafkaExceptionConverter.INSTANCE;
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
-                outbound -> log.info("Message dropped in dry run mode: {}", outbound))
+                outbound -> logger.withCorrelationId(outbound.getSource())
+                        .info("Message dropped in dry run mode: {}", outbound))
                 .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
     }
 
@@ -197,8 +194,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
     }
 
-    private void startInternalKafkaProducer(final Connection connection) {
-        logWithConnectionId().info("Starting internal Kafka producer.");
+    private void startInternalKafkaProducer() {
+        logger.info("Starting internal Kafka producer.");
         closeProducer();
         producer = connectionFactory.newProducer();
     }
@@ -211,28 +208,18 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     private void stopInternalKafkaProducer() {
-        logWithConnectionId().info("Stopping internal Kafka producer.");
+        logger.info("Stopping internal Kafka producer.");
         closeProducer();
     }
 
     private void reportInitialConnectionState() {
-        logWithConnectionId().info("Publisher ready");
+        logger.info("Publisher ready.");
         getContext().getParent().tell(new Status.Success(Done.done()), getSelf());
-    }
-
-    @Override
-    protected DittoDiagnosticLoggingAdapter log() {
-        return logWithConnectionId();
-    }
-
-    private DittoDiagnosticLoggingAdapter logWithConnectionId() {
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-        return log;
     }
 
     private void stopGracefully() {
         stopInternalKafkaProducer();
-        logWithConnectionId().debug("Stopping myself.");
+        logger.debug("Stopping myself.");
         getContext().stop(getSelf());
     }
 
@@ -328,18 +315,23 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     }
 
-    private static final class KafkaErrorConverter extends ErrorConverter {
+    private static final class KafkaExceptionConverter extends ExceptionToAcknowledgementConverter {
 
-        private static final ErrorConverter INSTANCE = new KafkaErrorConverter();
+        static final ExceptionToAcknowledgementConverter INSTANCE = new KafkaExceptionConverter();
+
+        private KafkaExceptionConverter() {
+            super();
+        }
 
         @Override
         protected HttpStatusCode getStatusCodeForGenericException(final Exception exception) {
-            // return 500 for retriable exceptions -> sender will retry
-            // return 400 for non-retriable exceptions -> sender will give up
+            // return 500 for retryable exceptions -> sender will retry
+            // return 400 for non-retryable exceptions -> sender will give up
             return exception instanceof RetriableException
                     ? HttpStatusCode.INTERNAL_SERVER_ERROR
                     : HttpStatusCode.BAD_REQUEST;
         }
+
     }
 
 }

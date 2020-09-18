@@ -16,10 +16,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -51,8 +51,6 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -68,7 +66,6 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -98,7 +95,6 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      */
     private final Duration pendingAckTTL;
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks = new ConcurrentSkipListMap<>();
     private final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget =
             new ConcurrentHashMap<>();
@@ -131,7 +127,6 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         receiveBuilder
                 .match(ChannelCreated.class, channelCreated -> {
                     channelActor = channelCreated.channel();
-
                     final ChannelMessage channelMessage = ChannelMessage.apply(this::onChannelCreated, false);
                     channelCreated.channel().tell(channelMessage, getSelf());
                 })
@@ -147,11 +142,6 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Override
     protected RabbitMQTarget toPublishTarget(final String address) {
         return RabbitMQTarget.fromTargetAddress(address);
-    }
-
-    @Override
-    protected DittoDiagnosticLoggingAdapter log() {
-        return log;
     }
 
     @Override
@@ -200,8 +190,9 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 computeNextPublishSeqNoConsumer(signal, autoAckTarget, publishTarget, resultFuture);
         final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
             try {
-                log.debug("Publishing to exchange <{}> and routing key <{}>: {}", publishTarget.getExchange(),
-                        publishTarget.getRoutingKey(), basicProperties);
+                logger.withCorrelationId(message.getInternalHeaders())
+                        .debug("Publishing to exchange <{}> and routing key <{}>: {}", publishTarget.getExchange(),
+                                publishTarget.getRoutingKey(), basicProperties);
                 nextPublishSeqNoConsumer.accept(channel.getNextPublishSeqNo());
                 channel.basicPublish(publishTarget.getExchange(), publishTarget.getRoutingKey(), true, basicProperties,
                         body);
@@ -263,7 +254,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private void handleChannelStatus(final ChannelStatus channelStatus) {
         if (channelStatus.confirmationException != null) {
-            log.error(channelStatus.confirmationException, "Failed to enter confirm mode.");
+            logger.error(channelStatus.confirmationException, "Failed to enter confirm mode.");
             confirmMode = ConfirmMode.INACTIVE;
         } else {
             confirmMode = ConfirmMode.ACTIVE;
@@ -274,9 +265,9 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     // called by ChannelActor; must be thread-safe.
     private Void onChannelCreated(final Channel channel) {
         final IOException confirmationStatus =
-                enterConfirmationMode(channel, outstandingAcks, outstandingAcksByTarget).orElse(null);
+                tryToEnterConfirmationMode(channel, outstandingAcks, outstandingAcksByTarget).orElse(null);
         final Map<Target, ResourceStatus> targetStatus =
-                declareExchangesPassive(channel, targets, this::toPublishTarget, log);
+                declareExchangesPassive(channel, this::toPublishTarget);
         getSelf().tell(new ChannelStatus(confirmationStatus, targetStatus), ActorRef.noSender());
         return null;
     }
@@ -303,59 +294,64 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final HttpStatusCode statusCode, @Nullable final String message) {
+
         final AcknowledgementLabel label =
                 Optional.ofNullable(autoAckTarget).flatMap(Target::getIssuedAcknowledgementLabel).orElse(NO_ACK_LABEL);
         return Acknowledgement.of(label, ThingId.of(signal.getEntityId()), statusCode, signal.getDittoHeaders(),
                 message == null ? null : JsonValue.of(message));
     }
 
-    private static Map<Target, ResourceStatus> declareExchangesPassive(final Channel channel,
-            final Collection<Target> targets,
-            final Function<String, RabbitMQTarget> toPublishTarget,
-            final LoggingAdapter log) {
+    private Map<Target, ResourceStatus> declareExchangesPassive(final Channel channel,
+            final Function<String, RabbitMQTarget> toPublishTarget) {
 
+        final List<Target> targets = connection.getTargets();
         final Map<String, Target> exchanges = targets.stream()
                 .collect(Collectors.toMap(
                         t -> toPublishTarget.apply(t.getAddress()).getExchange(),
-                        Function.identity()
-                ));
+                        Function.identity()));
         final Map<Target, ResourceStatus> declarationStatus = new HashMap<>();
         exchanges.forEach((exchange, target) -> {
-            log.debug("Checking for existence of exchange <{}>", exchange);
+            logger.debug("Checking for existence of exchange <{}>.", exchange);
             try {
                 channel.exchangeDeclarePassive(exchange);
             } catch (final IOException e) {
-                log.warning("Failed to declare exchange <{}> passively", exchange);
+                logger.warning("Failed to declare exchange <{}> passively.", exchange);
                 if (target != null) {
                     declarationStatus.put(target,
                             ConnectivityModelFactory.newTargetStatus(
                                     InstanceIdentifierSupplier.getInstance().get(),
                                     ConnectivityStatus.FAILED,
                                     target.getAddress(),
-                                    "Exchange '" + exchange + "' was missing at " + Instant.now())
-                    );
+                                    "Exchange '" + exchange + "' was missing at " + Instant.now()));
                 }
             }
         });
         return Collections.unmodifiableMap(declarationStatus);
     }
 
-    private static Optional<IOException> enterConfirmationMode(final Channel channel,
+    private static Optional<IOException> tryToEnterConfirmationMode(final Channel channel,
             final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks,
             final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget) {
 
         try {
-            channel.confirmSelect();
-            channel.clearConfirmListeners();
-            channel.clearReturnListeners();
-            final ActorConfirmListener confirmListener =
-                    new ActorConfirmListener(outstandingAcks, outstandingAcksByTarget);
-            channel.addConfirmListener(confirmListener);
-            channel.addReturnListener(confirmListener);
+            enterConfirmationMode(channel, outstandingAcks, outstandingAcksByTarget);
             return Optional.empty();
         } catch (final IOException e) {
             return Optional.of(e);
         }
+    }
+
+    private static void enterConfirmationMode(final Channel channel,
+            final ConcurrentSkipListMap<Long, OutstandingAck> outstandingAcks,
+            final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingAck>> outstandingAcksByTarget) throws IOException {
+
+        channel.confirmSelect();
+        channel.clearConfirmListeners();
+        channel.clearReturnListeners();
+        final ActorConfirmListener confirmListener =
+                new ActorConfirmListener(outstandingAcks, outstandingAcksByTarget);
+        channel.addConfirmListener(confirmListener);
+        channel.addReturnListener(confirmListener);
     }
 
     private static <T> CompletionStage<T> sendFailedFuture(final Signal<?> signal, final String errorMessage) {
