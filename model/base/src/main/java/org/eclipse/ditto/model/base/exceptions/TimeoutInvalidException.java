@@ -113,7 +113,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<TimeoutInvalidException> {
 
-        private Builder() {
+        public Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
