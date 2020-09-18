@@ -360,6 +360,8 @@ public abstract class AbstractConsumerActorTest<M> {
 
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
