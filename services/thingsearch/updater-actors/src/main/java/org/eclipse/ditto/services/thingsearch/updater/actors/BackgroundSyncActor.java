@@ -28,12 +28,14 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.Backgr
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
+import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 
 import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -105,14 +107,14 @@ public final class BackgroundSyncActor
     @Override
     protected void preEnhanceSleepingBehavior(final ReceiveBuilder sleepingReceiveBuilder) {
         sleepingReceiveBuilder.matchEquals(Control.BOOKMARK_THING_ID,
-                trigger -> {
+                trigger ->
                     // ignore scheduled bookmark messages when sleeping
-                    log.debug("Ignoring: <{}>", trigger);
-                })
-                .match(ThingId.class, thingId -> {
+                    log.debug("Ignoring: <{}>", trigger)
+                )
+                .match(ThingId.class, thingId ->
                     // got outdated progress update message after actor resumes sleeping; ignore it.
-                    log.debug("Ignoring: <{}>", thingId);
-                });
+                    log.debug("Ignoring: <{}>", thingId)
+                );
     }
 
     @Override
@@ -181,7 +183,19 @@ public final class BackgroundSyncActor
     private void handleInconsistency(final Metadata metadata) {
         final ThingId thingId = metadata.getThingId();
         thingsUpdater.tell(UpdateThing.of(thingId, DittoHeaders.empty()), ActorRef.noSender());
-        getSelf().tell(SyncEvent.inconsistency(metadata), ActorRef.noSender());
+        if(isInconsistentAgain(metadata)) {
+            getSelf().tell(SyncEvent.inconsistencyAgain(metadata), ActorRef.noSender());
+        } else {
+            getSelf().tell(SyncEvent.inconsistency(metadata), ActorRef.noSender());
+        }
+    }
+
+    private boolean isInconsistentAgain(final Metadata metadata) {
+        // check if the previous events already contain a SyncEvent for the same thing with the same revision
+        return this.getEventStream().map(Pair::second)
+                .filter(event -> SyncEvent.class.isAssignableFrom(event.getClass()))
+                .map(event -> (SyncEvent) event)
+                .anyMatch(event -> metadata.getThingId().equals(event.thingId) && metadata.getThingRevision() == event.thingRevision);
     }
 
     private Source<ThingId, NotUsed> getLowerBoundSource() {
@@ -233,13 +247,23 @@ public final class BackgroundSyncActor
     private static final class SyncEvent implements Event {
 
         private final String description;
+        private final ThingId thingId;
+        private final long thingRevision;
+        private final StatusDetailMessage.Level level;
 
-        private SyncEvent(final String description) {
+        private SyncEvent(final String description, final ThingId thingId, final long thingRevision, final StatusDetailMessage.Level level) {
             this.description = description;
+            this.thingId = thingId;
+            this.thingRevision = thingRevision;
+            this.level = level;
         }
 
         private static Event inconsistency(final Metadata metadata) {
-            return new SyncEvent("Inconsistent: " + metadata);
+            return new SyncEvent("Inconsistent: " + metadata, metadata.getThingId(), metadata.getThingRevision(), StatusDetailMessage.Level.DEFAULT);
+        }
+
+        private static Event inconsistencyAgain(final Metadata metadata) {
+            return new SyncEvent("Inconsistent again: " + metadata, metadata.getThingId(), metadata.getThingRevision(), StatusDetailMessage.Level.WARN);
         }
 
         @Override
@@ -251,6 +275,12 @@ public final class BackgroundSyncActor
         public String toString() {
             return description;
         }
+
+        @Override
+        public StatusDetailMessage.Level level() {
+            return level;
+        }
+
     }
 
     private static final class ProgressReport {
