@@ -2926,6 +2926,9 @@ paths:
         ### Create a new policy
         At the initial creation of a policy, at least one valid entry is required. However, you can create a full-fledged policy all at once.
 
+        By default the authorized subject needs WRITE permission on the root resource of the created policy. You can
+        however omit this check by setting the parameter `allow-policy-lockout` to `true`.
+
         Example: To create a policy for multiple coffee maker things,
         which gives **yourself** all permissions on all resources, set the policyId in the path,
         e.g. to "com.acme.coffeemaker:policy-01" and the body part, like in the following snippet.
@@ -2984,6 +2987,7 @@ paths:
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
         - $ref: '#/components/parameters/timeoutParam'
         - $ref: '#/components/parameters/responseRequiredParam'
+        - $ref: '#/components/parameters/allowPolicyLockoutParam'
       responses:
         '201':
           description: The policy was successfully created.
@@ -3035,6 +3039,7 @@ paths:
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the root `policy:/` resource,
                 without any revoke in a deeper path of the policy resource.
+                (You can omit this check by setting the `allow-policy-lockout` parameter.)
           content:
             application/json:
               schema:
@@ -4953,6 +4958,17 @@ components:
         sent back with a status code of `202` (Accepted).
 
         The default (if ommited) response is `true`.
+      required: false
+      schema:
+        type: boolean
+    allowPolicyLockoutParam:
+      name: allow-policy-lockout
+      in: query
+      description: |-
+        Defines whether a subject is allowed to create a policy without having WRITE permission on the policy
+        resource of the created policy.
+
+        The default (if ommited) is `false`.
       required: false
       schema:
         type: boolean
