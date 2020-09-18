@@ -24,17 +24,6 @@ import javax.annotation.concurrent.NotThreadSafe
 @NotThreadSafe
 abstract class AbstractDiagnosticLoggingAdapter extends DiagnosticLoggingAdapter {
 
-  /** Sets the given correlation ID for subsequent log operations until it gets discarded.
-   *
-   * @param correlationId the correlation ID to be put to the MDC.
-   * @return this logger instance to allow method chaining.
-   */
-  def setCorrelationId(@Nullable correlationId: CharSequence): AbstractDiagnosticLoggingAdapter
-
-  /** Removes the currently set correlation ID from the MDC.
-    */
-  def discardCorrelationId(): Unit
-
   /** Puts the specified diagnostic context value as identified by the specified key to this logger's MDC until it gets
    * removed.
    * <p>

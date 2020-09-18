@@ -14,16 +14,14 @@ package org.eclipse.ditto.services.utils.akka.logging
 
 import javax.annotation.Nullable
 
-/**
- *
- * This trait defines the means to put and remove entries to or from the MDC of a logger.
+/** This trait defines the means to put and remove entries to or from the MDC of a logger.
  *
  * @tparam L the type of the logger that implements this interface.
  * @since 1.3.0
  */
 trait MdcEntrySettable[L] {
-  /**
-   * Puts the specified diagnostic context value as identified by the specified key to this logger's MDC.
+
+  /** Puts the specified diagnostic context value as identified by the specified key to this logger's MDC.
    * <p>
    * Providing `null` as value has the same effect as calling [[MdcEntrySettable removeMdcEntry(CharSequence)]] with
    * the specified key.
@@ -37,8 +35,7 @@ trait MdcEntrySettable[L] {
    */
   def withMdcEntry(key: CharSequence, @Nullable value: CharSequence): L
 
-  /**
-   * Puts the specified diagnostic context values as identified by the specified keys to this logger's MDC.
+  /** Puts the specified diagnostic context values as identified by the specified keys to this logger's MDC.
    * <p>
    * Providing `null` for any value has the same effect as calling [[MdcEntrySettable removeMdcEntry(CharSequence)]]
    * with its associated key.
@@ -54,8 +51,7 @@ trait MdcEntrySettable[L] {
    */
   def withMdcEntries(k1: CharSequence, @Nullable v1: CharSequence, k2: CharSequence, @Nullable v2: CharSequence): L
 
-  /**
-   * Puts the specified diagnostic context values as identified by the specified keys to this logger's MDC.
+  /** Puts the specified diagnostic context values as identified by the specified keys to this logger's MDC.
    * <p>
    * Providing `null` for any value has the same effect as calling [[MdcEntrySettable removeMdcEntry(CharSequence)}]]
    * with its associated key.
@@ -75,16 +71,14 @@ trait MdcEntrySettable[L] {
                      k2: CharSequence, @Nullable v2: CharSequence,
                      k3: CharSequence, @Nullable v3: CharSequence): L
 
-  /**
-   * Puts the given entry (entries) to the MDC of this logger.
+  /** Puts the given entry (entries) to the MDC of this logger.
    *
    * @return this or a new logger instance for method chaining.
    * @throws NullPointerException if any argument is `null`.
    */
   @annotation.varargs def withMdcEntry(mdcEntry: MdcEntry, furtherMdcEntries: MdcEntry*): L
 
-  /**
-   * Removes the diagnostic context value identified by the specified key.
+  /** Removes the diagnostic context value identified by the specified key.
    * This method does nothing if there is no previous value associated with the specified key.
    *
    * @param key the key of the value to be removed.

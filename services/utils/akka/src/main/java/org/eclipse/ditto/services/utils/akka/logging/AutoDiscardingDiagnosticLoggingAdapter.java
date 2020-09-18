@@ -127,17 +127,6 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
     }
 
     @Override
-    public AutoDiscardingDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        loggingAdapter.setCorrelationId(correlationId);
-        return this;
-    }
-
-    @Override
-    public void discardCorrelationId() {
-        loggingAdapter.discardCorrelationId();
-    }
-
-    @Override
     public AutoDiscardingDiagnosticLoggingAdapter putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         loggingAdapter.putMdcEntry(key, value);
         return this;

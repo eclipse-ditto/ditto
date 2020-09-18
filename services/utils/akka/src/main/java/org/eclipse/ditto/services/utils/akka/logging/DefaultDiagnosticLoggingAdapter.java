@@ -135,16 +135,6 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     }
 
     @Override
-    public DefaultDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        return putMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
-    }
-
-    @Override
-    public void discardCorrelationId() {
-        removeMdcEntry(CommonMdcEntryKey.CORRELATION_ID);
-    }
-
-    @Override
     public DefaultDiagnosticLoggingAdapter putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         if (null != value) {
             localMdc.put(validateMdcEntryKey(key).toString(), value);

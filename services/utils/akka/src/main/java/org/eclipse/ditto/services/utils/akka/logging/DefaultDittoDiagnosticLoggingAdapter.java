@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -23,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.event.DiagnosticLoggingAdapter;
+import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
 /**
@@ -62,7 +64,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     @Override
     public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final CharSequence correlationId) {
         currentLogger = autoDiscardingLoggingAdapter;
-        currentLogger.setCorrelationId(correlationId);
+        currentLogger.putMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
         return this;
     }
 
@@ -79,9 +81,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        currentLogger = loggingAdapter;
-        currentLogger.setCorrelationId(correlationId);
-        return this;
+        return setMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
     }
 
     @Override
@@ -97,7 +97,78 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
     @Override
     public void discardCorrelationId() {
-        currentLogger.discardCorrelationId();
+        discardMdcEntry(CommonMdcEntryKey.CORRELATION_ID);
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+
+        putToMdcOfAllLoggerStates(key, value);
+        currentLogger = loggingAdapter;
+        return this;
+    }
+
+    private void putToMdcOfAllLoggerStates(final CharSequence key, @Nullable final CharSequence value) {
+        loggingAdapter.putMdcEntry(key, value);
+        autoDiscardingLoggingAdapter.putMdcEntry(key, value);
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2) {
+
+        putToMdcOfAllLoggerStates(k1, v1);
+        putToMdcOfAllLoggerStates(k2, v2);
+        currentLogger = loggingAdapter;
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2,
+            final CharSequence k3, @Nullable final CharSequence v3) {
+
+        putToMdcOfAllLoggerStates(k1, v1);
+        putToMdcOfAllLoggerStates(k2, v2);
+        putToMdcOfAllLoggerStates(k3, v3);
+        currentLogger = loggingAdapter;
+        return this;
+    }
+
+    @Override
+    public void discardMdcEntry(final CharSequence key) {
+        removeFromMdcOfAllLoggerStates(key);
+        currentLogger = loggingAdapter;
+    }
+
+    private void removeFromMdcOfAllLoggerStates(final CharSequence key) {
+        loggingAdapter.removeMdcEntry(key);
+        autoDiscardingLoggingAdapter.removeMdcEntry(key);
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final MdcEntry mdcEntry,
+            final Seq<MdcEntry> furtherMdcEntries) {
+
+        currentLogger = loggingAdapter;
+        putToMdcOfAllLoggerStates(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        final Collection<MdcEntry> furtherMdcEntriesCollection = JavaConverters.asJavaCollection(furtherMdcEntries);
+        furtherMdcEntriesCollection.forEach(furtherMdcEntry -> putToMdcOfAllLoggerStates(furtherMdcEntry.getKey(),
+                furtherMdcEntry.getValueOrNull()));
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final MdcEntry mdcEntry,
+            final MdcEntry... furtherMdcEntries) {
+
+        currentLogger = loggingAdapter;
+        putToMdcOfAllLoggerStates(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
+            putToMdcOfAllLoggerStates(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
+        }
+        return this;
     }
 
     @Override
