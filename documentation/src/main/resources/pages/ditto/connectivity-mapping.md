@@ -259,7 +259,7 @@ The created thing contains the values defined in the template, configured in the
  ```json
  {
    "thing": {
-   "thingId": "{{ header:device_id }}",
+   "thingId": "{%raw%}{{ header:device_id }}{%endraw%}",
    "attributes": {
      "CreatedBy": "ImplicitThingCreation"
    }
