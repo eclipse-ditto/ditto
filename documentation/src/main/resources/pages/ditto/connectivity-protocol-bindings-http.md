@@ -72,6 +72,11 @@ responds with a [Ditto Protocol Acknowledgement](protocol-specification-acks.htm
 `Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`, this received message is treated
 as custom [acknowledgement](basic-acknowledgements.html).
 
+This however is only the case if no 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) was configured
+for that target (see section below). If such an issued acknowledgement label was configured, this one always gets
+issued instead of a custom sent back Ditto Protocol Acknowledgement.
+
 ##### Implicitly create acknowledgement from HTTP response 
 
 When for the target an 
