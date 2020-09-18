@@ -325,8 +325,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public boolean isPreventPolicyLockout() {
-        return !isExpectedBoolean(DittoHeaderDefinition.PREVENT_POLICY_LOCKOUT, Boolean.FALSE);
+    public boolean isAllowPolicyLockout() {
+        return isExpectedBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, Boolean.TRUE);
     }
 
     @Override

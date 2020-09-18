@@ -214,15 +214,16 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         if (policyCommand instanceof CreatePolicy) {
             final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
             final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
-            if (policyCommand.getDittoHeaders().isPreventPolicyLockout()) {
+            if (policyCommand.getDittoHeaders().isAllowPolicyLockout()) {
+                return createPolicy;
+            } else {
+                // to prevent policy lockout, enforce that subject has WRITE on policy resource
                 final Optional<CreatePolicy> authorizedCommand = authorizePolicyCommand(createPolicy, enforcer);
                 if (authorizedCommand.isPresent()) {
                     return createPolicy;
                 } else {
                     throw errorForPolicyCommand(signal());
                 }
-            } else {
-                return createPolicy;
             }
         } else {
             throw PolicyNotAccessibleException.newBuilder(policyCommand.getEntityId())

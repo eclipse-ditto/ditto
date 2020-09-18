@@ -180,7 +180,8 @@ public final class PolicyCommandEnforcementTest {
             enforcer.tell(createPolicy, getRef());
 
             policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
-            policiesShardRegionProbe.lastSender().tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.lastSender()
+                    .tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -235,7 +236,8 @@ public final class PolicyCommandEnforcementTest {
             enforcer.tell(modifyPolicy, getRef());
 
             policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
-            policiesShardRegionProbe.lastSender().tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.lastSender()
+                    .tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
 
             expectMsgClass(PolicyNotModifiableException.class);
         }};
@@ -410,7 +412,8 @@ public final class PolicyCommandEnforcementTest {
             enforcer.tell(retrievePolicy, getRef());
 
             policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
-            policiesShardRegionProbe.lastSender().tell(createPolicyResponseWithoutRead(), policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.lastSender()
+                    .tell(createPolicyResponseWithoutRead(), policiesShardRegionProbe.ref());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -434,7 +437,7 @@ public final class PolicyCommandEnforcementTest {
     @Test
     public void retrievePolicyEntriesWhenAuthSubjectHasReadPermissionReturnsEntries() {
         new TestKit(system) {{
-        final RetrievePolicyEntries retrievePolicyEntries =
+            final RetrievePolicyEntries retrievePolicyEntries =
                     RetrievePolicyEntries.of(POLICY_ID, DITTO_HEADERS);
 
             enforcer.tell(retrievePolicyEntries, getRef());
@@ -484,7 +487,7 @@ public final class PolicyCommandEnforcementTest {
 
     @Test
     public void createPolicyWhenAuthSubjectHasOnlyReadPermission() {
-        testCreatePolicy(Collections.singleton(Permission.READ), true, true);
+        testCreatePolicy(Collections.singleton(Permission.READ), false, true);
     }
 
     @Test
@@ -493,21 +496,21 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void createPolicyWhenAuthSubjectHasOnlyReadPermissionWithoutPolicyLockoutPrevention() {
-        testCreatePolicy(Collections.singleton(Permission.READ), false, false);
+    public void createPolicyWhenAuthSubjectHasOnlyReadPermissionWithAllowPolicyLockout() {
+        testCreatePolicy(Collections.singleton(Permission.READ), true, false);
     }
 
     @Test
     public void createPolicyWhenAuthSubjectHasNoPermission() {
-        testCreatePolicy(Collections.emptyList(), true, true);
+        testCreatePolicy(Collections.emptyList(), false, true);
     }
 
     @Test
     public void createPolicyWhenAuthSubjectHasNoPermissionWithoutPolicyLockoutPrevention() {
-        testCreatePolicy(Collections.emptyList(), false, false);
+        testCreatePolicy(Collections.emptyList(), true, false);
     }
 
-    public void testCreatePolicy(final Iterable<String> grants, final boolean preventPolicyLockout,
+    public void testCreatePolicy(final Iterable<String> grants, final boolean allowPolicyLockout,
             final boolean shouldFail) {
         new TestKit(system) {{
 
@@ -522,7 +525,7 @@ public final class PolicyCommandEnforcementTest {
                     .build();
 
             final CreatePolicy createPolicy = CreatePolicy.of(policy,
-                    DITTO_HEADERS.toBuilder().preventPolicyLockout(preventPolicyLockout).build());
+                    DITTO_HEADERS.toBuilder().allowPolicyLockout(allowPolicyLockout).build());
 
             enforcer.tell(createPolicy, getRef());
 

@@ -111,7 +111,7 @@ public final class ImmutableDittoHeadersTest {
     private static final MetadataHeaderKey KNOWN_METADATA_HEADER_KEY = MetadataHeaderKey.parse("/foo/bar");
     private static final JsonValue KNOWN_METADATA_VALUE = JsonValue.of("knownMetadata");
     private static final MetadataHeaders KNOWN_METADATA_HEADERS;
-    private static final boolean KNOWN_PREVENT_POLICY_LOCKOUT = false;
+    private static final boolean KNOWN_ALLOW_POLICY_LOCKOUT = true;
 
     static {
         KNOWN_METADATA_HEADERS = MetadataHeaders.newInstance();
@@ -160,7 +160,7 @@ public final class ImmutableDittoHeadersTest {
                 .timeout(KNOWN_TIMEOUT)
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
-                .preventPolicyLockout(KNOWN_PREVENT_POLICY_LOCKOUT)
+                .allowPolicyLockout(KNOWN_ALLOW_POLICY_LOCKOUT)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -378,7 +378,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
                         expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
                 .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
-                .set(DittoHeaderDefinition.PREVENT_POLICY_LOCKOUT.getKey(), KNOWN_PREVENT_POLICY_LOCKOUT)
+                .set(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), KNOWN_ALLOW_POLICY_LOCKOUT)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -583,7 +583,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
                 expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES).toString());
         result.put(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJsonString());
-        result.put(DittoHeaderDefinition.PREVENT_POLICY_LOCKOUT.getKey(), String.valueOf(KNOWN_PREVENT_POLICY_LOCKOUT));
+        result.put(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), String.valueOf(KNOWN_ALLOW_POLICY_LOCKOUT));
 
         return result;
     }

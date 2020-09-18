@@ -329,21 +329,17 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
-    public void ensurePreventPolicyLockoutIsFalseWhenSet() {
+    public void ensureAllowPolicyLockoutIsFalseWhenSet() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .preventPolicyLockout(false)
+                .allowPolicyLockout(true)
                 .build();
-
-        DittoBaseAssertions.assertThat(dittoHeaders)
-                .hasPreventPolicyLockout(false);
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(true);
     }
 
     @Test
-    public void ensurePreventPolicyLockoutIsTrueWhenNotSet() {
+    public void ensureAllowPolicyLockoutIsFalseWhenNotSet() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
-
-        DittoBaseAssertions.assertThat(dittoHeaders)
-                .hasPreventPolicyLockout(true);
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(false);
     }
 
     @Test

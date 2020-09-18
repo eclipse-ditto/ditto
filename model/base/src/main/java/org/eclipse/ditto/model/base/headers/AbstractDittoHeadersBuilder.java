@@ -454,8 +454,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S preventPolicyLockout(final boolean preventPolicyLockout) {
-        putBoolean(DittoHeaderDefinition.PREVENT_POLICY_LOCKOUT, preventPolicyLockout);
+    public S allowPolicyLockout(final boolean allowPolicyLockout) {
+        putBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, allowPolicyLockout);
         return myself;
     }
 
