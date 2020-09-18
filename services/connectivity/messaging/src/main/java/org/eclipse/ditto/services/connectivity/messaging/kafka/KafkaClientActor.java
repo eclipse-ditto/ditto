@@ -20,7 +20,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
@@ -120,7 +120,9 @@ public final class KafkaClientActor extends BaseClientActor {
             return CompletableFuture.completedFuture(new Status.Failure(error));
         }
         testConnectionFuture = new CompletableFuture<>();
-        connectClient(true, testConnectionCommand.getConnectionEntityId(), testConnectionCommand);
+        final DittoHeaders dittoHeaders = testConnectionCommand.getDittoHeaders();
+        final String correlationId = dittoHeaders.getCorrelationId().orElse(null);
+        connectClient(true, testConnectionCommand.getConnectionEntityId(), correlationId);
         return testConnectionFuture;
     }
 
@@ -144,21 +146,20 @@ public final class KafkaClientActor extends BaseClientActor {
      *
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
      * @param connectionId the ID of the connection to connect the client for.
-     * @param signal the signal which provides a correlation ID for logging or {@code null} if no signal cause this
-     * method call.
+     * @param correlationId the correlation ID for logging or {@code null} if no correlation ID is known.
      */
     private void connectClient(final boolean dryRun, final ConnectionId connectionId,
-            @Nullable final WithDittoHeaders<?> signal) {
+            @Nullable final CharSequence correlationId) {
 
         // start publisher
-        startKafkaPublisher(dryRun, connectionId, signal);
+        startKafkaPublisher(dryRun, connectionId, correlationId);
         // no command consumers as we don't support consuming from sources yet
     }
 
     private void startKafkaPublisher(final boolean dryRun, final ConnectionId connectionId,
-            @Nullable final WithDittoHeaders<?> signal) {
+            @Nullable final CharSequence correlationid) {
 
-        logger.withCorrelationId(signal).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
+        logger.withCorrelationId(correlationid).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
                 .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
