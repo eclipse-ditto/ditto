@@ -73,6 +73,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final String THING_TEMPLATE = "thing";
+    private static final String ALLOW_POLICY_LOCKOUT_OPTION = "allowPolicyLockout";
     private static final String COMMAND_HEADERS = "commandHeaders";
     private static final String THING_ID = "thingId";
     private static final String THING_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + THING_ID;
@@ -81,6 +82,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
     private String thingTemplate;
     private Map<String, String> commandHeaders;
+    private boolean allowPolicyLockout;
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
@@ -113,6 +115,8 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
                 .ifPresent(ImplicitThingCreationMessageMapper::validatePolicyEntityId);
 
         LOGGER.debug("Configured with Thing template: {}", thingTemplate);
+
+        allowPolicyLockout = configuration.findProperty(ALLOW_POLICY_LOCKOUT_OPTION).map(Boolean::valueOf).orElse(true);
     }
 
     private static void validateThingEntityId(final String thingId) {
@@ -185,6 +189,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
                 .contentType(DITTO_PROTOCOL_CONTENT_TYPE)
                 .putHeaders(commandHeaders)
+                .allowPolicyLockout(allowPolicyLockout)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
