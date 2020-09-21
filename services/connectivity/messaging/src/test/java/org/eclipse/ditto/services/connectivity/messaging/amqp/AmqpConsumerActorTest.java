@@ -331,9 +331,11 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
                 actorSystem, TestConstants.CONNECTIVITY_CONFIG,

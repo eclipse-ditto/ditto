@@ -313,7 +313,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
