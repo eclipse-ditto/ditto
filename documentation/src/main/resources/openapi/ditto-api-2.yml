@@ -4943,7 +4943,7 @@ components:
       name: requested-acks
       in: query
       description: |-
-        Contains the "requested acknowledgements" for this modifying request as comma separated list. The HTTP call will
+        Contains the "requested acknowledgements" for this request as comma separated list. The HTTP call will
         block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
         parameter.
 
