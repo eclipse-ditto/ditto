@@ -4668,7 +4668,7 @@ components:
         _metadata:
           type: string
           description: |-
-            _(read-only)_ The Metadata of the Thing will be included in the Thing. This field is not returned by default but must be selected explicitly.
+            _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
     Policy:
       type: object
       description: policy consisting of policy entries
@@ -4864,13 +4864,25 @@ components:
       schema:
         type: string
     putMetadataParam:
-      name: Put-Metadata
+      name: put-metadata
       in: header
       description:  >-
         The `put-metadata` header, which sets Metadata information in the Thing.
       required: false
       schema:
-        type: string
+        type: array
+        description: An array of objects containing metadata to apply.
+        items:
+          type: object
+          description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
+          additionalProperties:
+            type: object
+              properties:
+                key:
+                  type: string
+                  description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leafs.
+                value:
+                  description: The arbitrary JSON value to set as metadata.
     featureIdPathPathParam:
       name: featureId
       in: path

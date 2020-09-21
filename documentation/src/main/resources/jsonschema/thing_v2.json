@@ -74,7 +74,7 @@
     },
     "_metadata": {
       "type": "string",
-      "description": "_(read-only)_ The Metadata of the Thing will be included in the Thing. This field is not returned by default but must be selected explicitly.",
+      "description": "_(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.",
     }
   },
   "required": [
