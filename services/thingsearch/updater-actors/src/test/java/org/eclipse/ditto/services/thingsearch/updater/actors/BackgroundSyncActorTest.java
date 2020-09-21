@@ -70,6 +70,10 @@ import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SourceRef;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.javadsl.TestKit;
@@ -254,11 +258,9 @@ public final class BackgroundSyncActorTest {
 
     private void thenRespondWithFailingPersistedThingsStream(final TestKit pubSub) {
         final CompletableFuture<StreamedSnapshot> failingSnapshot = new CompletableFuture<>();
+        failingSnapshot.completeExceptionally(new IllegalStateException("Fail the stream with error"));
         final Source<StreamedSnapshot, NotUsed> persistedThingSource = Source.fromCompletionStage(failingSnapshot);
-        persistedThingSource.runWith(StreamRefs.sourceRef(), ActorMaterializer.create(actorSystem))
-                .thenAccept(pubSub::reply)
-                .thenRun(() -> failingSnapshot.completeExceptionally(
-                        new IllegalStateException("Fail the stream with error")));
+        pubSub.reply(persistedThingSource.runWith(StreamRefs.sourceRef(), Materializer.apply(actorSystem)));
     }
 
     private void thenRespondWithPersistedThingsStream(final TestKit pubSub) {
@@ -266,9 +268,9 @@ public final class BackgroundSyncActorTest {
     }
 
     private void thenRespondWithPersistedThingsStream(final TestKit pubSub, final List<StreamedSnapshot> things) {
-        Source.from(things)
-                .runWith(StreamRefs.sourceRef(), ActorMaterializer.create(actorSystem))
-                .thenAccept(pubSub::reply);
+        final SourceRef<StreamedSnapshot> streamedSnapshotSourceRef = Source.from(things)
+                .runWith(StreamRefs.sourceRef(), Materializer.apply(actorSystem));
+        pubSub.reply(streamedSnapshotSourceRef);
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater) {

@@ -149,16 +149,16 @@ public final class EnforcementSchedulerTest {
             underTest.tell(retrieveThing2TaskSpy, getRef());
             underTest.tell(modifyPolicyId2TaskSpy, getRef());
 
-            inOrder.verify(retrieveThing1TaskSpy, timeout(1000)).start();
+            inOrder.verify(retrieveThing1TaskSpy, timeout(2000)).start();
             // Ensures that modifyPolicyId1 is scheduled without waiting for retrieveThing1 being finished.
-            inOrder.verify(modifyPolicyId1TaskSpy, timeout(1000)).start();
+            inOrder.verify(modifyPolicyId1TaskSpy, timeout(2000)).start();
             // Ensures that retrieveThing2 is blocked by modifyPolicyID1 which changes authorization and has a 3 second duration
-            verify(retrieveThing2TaskSpy, after(1000).never()).start();
+            verify(retrieveThing2TaskSpy, after(2000).never()).start();
             receiverProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), retrieveThing1);
             receiverProbe.expectMsg(modifyPolicyId1);
 
-            inOrder.verify(retrieveThing2TaskSpy, timeout(1000)).start();
-            inOrder.verify(modifyPolicyId2TaskSpy, timeout(1000)).start();
+            inOrder.verify(retrieveThing2TaskSpy, timeout(2000)).start();
+            inOrder.verify(modifyPolicyId2TaskSpy, timeout(2000)).start();
             receiverProbe.expectMsg(retrieveThing2);
             receiverProbe.expectMsg(modifyPolicyId2);
         }};

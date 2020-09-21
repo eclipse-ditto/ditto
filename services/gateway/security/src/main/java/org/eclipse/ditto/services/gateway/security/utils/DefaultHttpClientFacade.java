@@ -23,7 +23,6 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.settings.ConnectionPoolSettings;
-import akka.stream.ActorMaterializer;
 
 /**
  * Default implementation of {@link HttpClientFacade}.
@@ -34,13 +33,11 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
 
     private final ActorSystem actorSystem;
     private final ConnectionPoolSettings connectionPoolSettings;
-    private final ActorMaterializer actorMaterializer;
 
-    private DefaultHttpClientFacade(final ActorSystem actorSystem, final ActorMaterializer actorMaterializer,
+    private DefaultHttpClientFacade(final ActorSystem actorSystem,
             final ConnectionPoolSettings connectionPoolSettings) {
 
         this.actorSystem = actorSystem;
-        this.actorMaterializer = actorMaterializer;
         this.connectionPoolSettings = connectionPoolSettings;
     }
 
@@ -70,22 +67,21 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
         if (proxyConfig.isEnabled()) {
             connectionPoolSettings = connectionPoolSettings.withTransport(proxyConfig.toClientTransport());
         }
-        return new DefaultHttpClientFacade(actorSystem, ActorMaterializer.create(actorSystem), connectionPoolSettings);
+        return new DefaultHttpClientFacade(actorSystem, connectionPoolSettings);
     }
 
     @Override
     public CompletionStage<HttpResponse> createSingleHttpRequest(final HttpRequest request) {
-        return Http.get(actorSystem).singleRequest(request,
-                Http.get(actorSystem).defaultClientHttpsContext(),
-                connectionPoolSettings,
-                actorSystem.log(),
-                actorMaterializer
-        );
+        return Http.get(actorSystem)
+                .singleRequest(request, Http.get(actorSystem).defaultClientHttpsContext(),
+                        connectionPoolSettings,
+                        actorSystem.log()
+                );
     }
 
     @Override
-    public ActorMaterializer getActorMaterializer() {
-        return actorMaterializer;
+    public ActorSystem getActorSystem() {
+        return actorSystem;
     }
 
 }

@@ -18,7 +18,8 @@ import org.eclipse.ditto.model.rql.predicates.PredicateParser
 import org.eclipse.ditto.model.rql.predicates.ast.SingleComparisonNode.Type
 import org.eclipse.ditto.model.rql.predicates.ast._
 
-import scala.collection.{JavaConverters, immutable}
+import scala.jdk.javaapi.CollectionConverters
+import scala.collection.immutable
 import scala.util.{Failure, Success}
 
 /**
@@ -110,7 +111,7 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def MultiComparisonOp: Rule1[Node] = rule {
     MultiComparisonName ~ '(' ~ ComparisonProperty ~ MultiComparisonValues ~ ')' ~>
       ((compType: MultiComparisonNode.Type, compProp: String, compValues: Seq[java.lang.Object]) =>
-        new MultiComparisonNode(compType, compProp, JavaConverters.seqAsJavaList(compValues.map({
+        new MultiComparisonNode(compType, compProp, CollectionConverters.asJava(compValues.map({
           case None => null
           case default => default
         }))))
@@ -138,7 +139,7 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def MultiLogicalOp: Rule1[Node] = rule {
     MultiLogicalName ~ '(' ~ oneOrMore(Query).separatedBy(ws(',')) ~ ')' ~>
       ((logicalType: LogicalNode.Type, subQuery: Seq[Node]) =>
-        new LogicalNode(logicalType, JavaConverters.seqAsJavaList(subQuery)))
+        new LogicalNode(logicalType, CollectionConverters.asJava(subQuery)))
   }
 
   /**
@@ -179,7 +180,7 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
     * ExistsOp                   = "exists" '(', ComparisonProperty, ')'
     */
   private def ExistsOp: Rule1[Node] = rule {
-    "exists" ~ '(' ~ ComparisonProperty ~ ')' ~> ((property) => new ExistsNode(property))
+    "exists" ~ '(' ~ ComparisonProperty ~ ')' ~> (property => new ExistsNode(property))
   }
 
 

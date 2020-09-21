@@ -40,11 +40,11 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
     PreparedTimer record(long time, TimeUnit timeUnit);
 
     /**
-     * Gets recorded times in nanoseconds.
+     * Gets sum of all recorded times in nanoseconds.
      *
-     * @return recorded times in nanoseconds.
+     * @return sum of all recorded times in nanoseconds.
      */
-    Long[] getRecords();
+    Long getTotalTime();
 
     /**
      * Get number of records.

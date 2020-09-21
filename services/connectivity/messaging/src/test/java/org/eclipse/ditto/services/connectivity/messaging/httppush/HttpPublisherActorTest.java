@@ -71,8 +71,8 @@ import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -138,7 +138,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(request.getHeader("device_id").get().value()).isEqualTo(TestConstants.Things.THING_ID.toString());
 
         final HttpEntity.Strict entity = request.entity()
-                .toStrict(60_000L, ActorMaterializer.create(actorSystem))
+                .toStrict(60_000L, SystemMaterializer.get(actorSystem).materializer())
                 .toCompletableFuture()
                 .join();
         assertThat(entity.getData().utf8String()).isEqualTo("payload");

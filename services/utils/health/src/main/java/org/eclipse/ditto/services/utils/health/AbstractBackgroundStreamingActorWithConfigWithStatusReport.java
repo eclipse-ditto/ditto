@@ -44,9 +44,9 @@ import akka.Done;
 import akka.actor.AbstractActorWithTimers;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
+import akka.stream.Materializer;
 import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -73,7 +73,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     /**
      * The actor materializer to materialize streams.
      */
-    protected final ActorMaterializer materializer;
+    protected final Materializer materializer;
 
     private final Deque<Pair<Instant, Event>> events;
     private KillSwitch killSwitch;
@@ -86,7 +86,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     protected AbstractBackgroundStreamingActorWithConfigWithStatusReport(final C config) {
         this.config = config;
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        materializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
         events = new ArrayDeque<>(config.getKeptEvents() + 1);
 
         if (config.isEnabled()) {

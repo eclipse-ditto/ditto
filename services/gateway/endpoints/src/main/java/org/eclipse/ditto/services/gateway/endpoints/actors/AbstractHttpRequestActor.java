@@ -390,7 +390,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
-
+            // this is on purpose not .map(ContentTypes:parse) as this would throw an exception:
             final Optional<akka.http.scaladsl.model.ContentType> optionalContentType =
                     message.getContentType().map(ContentType$.MODULE$::parse)
                             .filter(Either::isRight)

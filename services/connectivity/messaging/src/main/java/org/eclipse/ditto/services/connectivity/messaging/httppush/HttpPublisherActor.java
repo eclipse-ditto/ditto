@@ -84,9 +84,9 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
+import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.UniqueKillSwitch;
@@ -118,7 +118,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final HttpPushFactory factory;
 
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
 
@@ -133,7 +133,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .getConnectionConfig();
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
-        materializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
@@ -519,7 +519,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response,
             final int maxBytes,
-            final ActorMaterializer materializer) {
+            final Materializer materializer) {
 
         return response.entity()
                 .withSizeLimit(maxBytes)
