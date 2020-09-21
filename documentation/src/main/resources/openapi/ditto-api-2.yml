@@ -4666,7 +4666,7 @@ components:
             _(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each
             modification of a Thing. This field is not returned by default but must be selected explicitly.
         _metadata:
-          type: string
+          type: object
           description: |-
             _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
     Policy:
@@ -4876,13 +4876,12 @@ components:
           type: object
           description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
           additionalProperties:
-            type: object
-              properties:
-                key:
-                  type: string
-                  description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leafs.
-                value:
-                  description: The arbitrary JSON value to set as metadata.
+            properties:
+              key:
+                type: string
+                description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
+              value:
+                description: The arbitrary JSON value to set as metadata.
     featureIdPathPathParam:
       name: featureId
       in: path
@@ -5067,6 +5066,10 @@ components:
         * `_modified`
 
           Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
+
+        * `_metadata`
+
+          Specifically selects the Metadata of the thing. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata.
 
         * `_policy`
 

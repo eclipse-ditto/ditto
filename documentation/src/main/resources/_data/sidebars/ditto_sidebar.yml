@@ -133,6 +133,9 @@ entries:
                   - title: Namespaces and Names
                     url: /basic-namespaces-and-names.html
                     output: web
+                  - title: Thing Metadata
+                    url: /basic-metadata.html
+                    output: web
                   - title: Errors
                     url: /basic-errors.html
                     output: web

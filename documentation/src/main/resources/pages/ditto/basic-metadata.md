@@ -1,60 +1,149 @@
 ---
-title: Metadata Support
-keywords: metadata, things
+title: Thing Metadata
+keywords: metadata, things, model, semantic
 tags: [model]
 permalink: basic-metadata.html
 ---
 
-Besides [features](basic-feature.html) a Thing in Ditto is also able to store Metadata information. 
-These information can be additional information for describing specific features or properties of the thing.
-A very simple example is the timestamp when the current value of the feature or property was set.
+A Thing in Ditto is also able to store Metadata information, e.g. about single 
+[feature properties](basic-feature.html#feature-properties), complete features and also [attributes](basic-thing.html#attributes)
+or other data stored in a digital twin ([thing](basic-thing.html)).
 
-Metadata can be manipulated by using the `put-metadata` header, see [here](protocol-specification.html#headers) for more information.
+This metadata can contain additionally information which shall not be treated as part of the twin's value, however may
+be useful to provide some context of the twin's data.
 
-## Predefined Metadata 
+Metadata has not its own API but can only be updated/set while modifying the state of a twin as a side effect.<br/>
+By default, metadata is not returned at API requests, but must be [asked for explicitly](#reading-metadata-information).
 
-Currently, there are no pre-defined Metadata keys.
+An example is the timestamp when the current value of e.g. a feature property was updated for the last time.
+Or the metadata information of a feature property may contain information about its type or its semantics (e.g. a unit 
+of measurement).
 
-## Setting custom Metadata
 
-The only way to set arbitrary `Metadata` is by using the `put-metadata` header, see [here](protocol-specification.html#headers) for more information.
-The format of the JSON array is 
+## Setting Metadata
 
+Setting arbitrary `Metadata` is possible by using the `put-metadata` header 
+(e.g. for HTTP requests, set it as HTTP header, for Ditto Protocol requests, put it in the `"headers"` section of the 
+protocol message), see [here for an overview of the available headers](protocol-specification.html#headers).
+
+The value of the `put-metadata` is a JSON array containing JSON objects with `"key"` and `"value"` parts:
+* `"key"`: describes the hierarchical position in the Thing where the metadata should be placed
+* `"value"`: is an arbitrary JSON value to set as metadata (could also be a nested JSON object)
+
+### Example for setting Metadata
+
+Assume you modify your twin's lamp color with a call: 
 ```json
-[
-  {
-    "key":"/features/lamp/properties/color/r",
-    "value":{"issuedAt":someTimestamp,"issuedBy":{"name":"me","mail":"me@mail.com"}}
-  },
-  {
-    "key":"*/foo",
-    "value": "bar"
-  },
-  ...
-]
+{
+  "thingId": "org.eclipse.ditto:my-lamp-1",
+  "features": {
+    "lamp": {
+      "properties": {
+        "color": {
+          "r": 100,
+          "g": 0,
+          "b": 255
+        }     
+      } 
+    } 
+  }
+}
 ```
 
-where `key` describes the hierarchical position in the Thing where the metadata is placed and 
-`value` is a map of Metadata keys to their respective values.
-
-A special syntax for the key is `*/{key}` which means that all affected JSON leafs of the modify operation will
-get the Metadata key `{key}` with the given value. So if, for example, only the affected JSON leafs should 
-get the timestamp where the changed values were recorded, one would set the `put-metadata` header as shown in the following example: 
+You want to specify to set metadata which affects all the changed properties (`"r"`, `"g"` and `"b"`) plus some 
+extra metadata to only set for the `"r"` property.<br/>
+The content of the `put-metadata` in order to do that would look like this:
 
 ```json
 [
   {
-    "key":"*/timestamp",
-    "value": someTimestamp
+    "key": "*/foo",
+    "value": "bar"
+  },
+  {
+    "key": "/features/lamp/properties/color/r",
+    "value": {
+      "foo": "bar",
+      "issuedAt": "someTimestamp",
+      "issuedBy": {
+        "name":"me",
+        "mail":"me@mail.com"
+      }
+    }
   }
 ]
 ```
 
-## Reading Metadata Information
+The resulting Thing JSON including its `_metadata` would look like this:
+```json
+{
+    "thingId": "org.eclipse.ditto:meta-test-1",
+    "features": {
+        "lamp": {
+            "properties": {
+                "color": {
+                    "r": 100,
+                    "g": 0,
+                    "b": 255
+                }
+            }
+        }
+    },
+    "_metadata": {
+        "features": {
+            "lamp": {
+                "properties": {
+                    "color": {
+                        "r": {
+                            "foo": "bar",
+                            "issuedAt": "someTimestamp",
+                            "issuedBy": {
+                                "name": "me",
+                                "mail": "me@mail.com"
+                            }
+                        },
+                        "g": {
+                            "foo": "bar"
+                        },
+                        "b": {
+                            "foo": "bar"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
 
-Currently the only way to retrieve stored Metadata is by querying a full thing, e.g. via the [HTTP API](http-api-doc.html), and specifying an (additional) [field selector](httpapi-concepts.html#with-field-selector) `_metadata`, e.g.: `?fields=thingId,attributes,_metadata`.
 
-For example a `GET` request to `https://{ditto-instance}/api/2/things/{namespace}:{name}?fields=thingId,policyId,features,_created,_modified,_revision,_metadata`
+### Setting Metadata to all affected JSON leaves
+
+A special syntax for the key is `*/{key}` which means that all affected JSON leaves of the modify operation will
+get the Metadata key `{key}` with the given value. So if, for example, only the affected JSON leaves should 
+get the timestamp where the changed values were recorded, one would set the `put-metadata` header as shown in the 
+following example: 
+
+```json
+[
+  {
+    "key": "*/timestamp",
+    "value": "someTimestamp"
+  }
+]
+```
+
+
+## Reading Metadata information
+
+Metadata of a Thing can be retrieved is by querying a full thing, e.g. via the [HTTP API](http-api-doc.html), and 
+specifying an (additional) [field selector](httpapi-concepts.html#with-field-selector) `_metadata`, 
+e.g.: `?fields=thingId,attributes,_metadata`.
+
+### Example for reading Metadata
+
+For example a `GET` request to 
+`https://{ditto-instance}/api/2/things/{namespace}:{name}?fields=thingId,policyId,features,_created,_modified,_revision,_metadata`
 will yield the Metadata stored for the given Thing, in the following format:
 
 ```json
@@ -68,7 +157,7 @@ will yield the Metadata stored for the given Thing, in the following format:
         "color": {
           "r": 0,
           "g": 255,          
-          "b": 255,
+          "b": 255
         }
       }
     }
