@@ -61,27 +61,67 @@ has READ permission on the thing, which is associated with a message.
 
 #### Target acknowledgement handling
 
-For HTTP targets, when configuring 
-[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
-acknowledgements are produced in the following way:
+For HTTP targets, whenever a message is published to the HTTP endpoint, you have two different options in order to 
+acknowledge receiving the message:
 
-The HTTP response for the HTTP target URL is consumed and following HTTP response information is mapped to the 
-automatically created [acknowledement](protocol-specification-acks.html#acknowledgement):
-* Acknowledgement.status: the HTTP response status code is used as acknowledgement status.
-* Acknowledgement.value: the HTTP response body is used as acknowledgement value - if the response body was of 
-  `content-type: application/json`, the JSON is inlined into the acknowledgment, otherwise the payload is added as JSON string.
+##### Explicitly responding with Ditto Protocol acknowledgement message
+
+Whenever an HTTP endpoint, which received a message 
+[requesting acknowledgements](basic-acknowledgements.html#requesting-acks),
+responds with a [Ditto Protocol Acknowledgement](protocol-specification-acks.html#acknowledgement) and sets the 
+`Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`, this received message is treated
+as custom [acknowledgement](basic-acknowledgements.html).
+
+This however is only the case if no 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) was configured
+for that target (see section below). If such an issued acknowledgement label was configured, this one always gets
+issued instead of a custom sent back Ditto Protocol Acknowledgement.
+
+##### Implicitly create acknowledgement from HTTP response 
+
+When for the target an 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) was configured 
+and the HTTP response was not a Ditto Protocol message (with Content-Type header `application/vnd.eclipse.ditto+json`), 
+an acknowledgement is produced automatically in the following way:
+
+The HTTP response and following HTTP response information is mapped to the 
+automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+* `Acknowledgement.headers`: the HTTP response headers are added.
+* `Acknowledgement.status`: the HTTP response status code is used.
+* `Acknowledgement.value`: the HTTP response body is used - if the response body was of 
+  `content-type: application/json`, the JSON is inlined into the acknowledgement, otherwise the payload is added as 
+  JSON string.
   
-#### Responding to Messages
+#### Responding to messages
 
-For [Messages](basic-messages.html) that are sent via an HTTP target you have two different options to respond:
+For [live messages](basic-messages.html) that are published via an HTTP target you have two different options to 
+respond to that message:
 
-* Respond to the HTTP request with a HTTP response containing a valid [Ditto Protocol Message Response](protocol-specification-things-messages.html#responding-to-a-message). 
-  This requires to set the `Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`.
-* Configure the `live-response` acknowledgement label [as automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label). 
-  In this case there are again two options:
-  * Provide the response as Ditto Protocol Message as described in the first option above.
-  * Use the payload you want to have in the Message response as payload of the HTTP response. 
-    The `Content-Type`, HTTP status and payload of the HTTP response will be used to generate the Message response.
+##### Explicitly responding with Ditto Protocol message response
+
+Whenever an HTTP endpoint, which received a [live message](basic-messages.html),
+responds with a [Ditto Protocol Message Response](protocol-specification-things-messages.html#responding-to-a-message) 
+and sets the `Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`, this received message 
+is treated as custom [live message response](basic-messages.html#responding-to-messages).
+
+In this case, the `correlation-id`, `thing-id` and potentially `feature-id` of the response have to match the 
+message properties to respond to.
+
+##### Implicitly responding via HTTP response 
+
+When for the target an 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) with the label 
+`live-response` was configured and the HTTP response was not a Ditto Protocol message 
+(with Content-Type header `application/vnd.eclipse.ditto+json`), a message response is produced automatically in the 
+following way:
+
+The HTTP response and following HTTP response information is mapped to the 
+automatically created [message response](protocol-specification-things-messages.html#responding-to-a-message):
+* `Message.headers`: the HTTP response headers are added.
+* `Message.status`: the HTTP response status code is used.
+* `Message.value`: the HTTP response body is used - if the response body was of 
+  `content-type: application/json`, the JSON is inlined into the acknowledgement, otherwise the payload is added as 
+  JSON string.
 
 
 ### Specific configuration properties
