@@ -131,7 +131,12 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     }
 
     @Override
-    protected Key<ORMultiMap<ActorRef, S>> getKey() {
+    public void receiveChanges(final ActorRef recipient) {
+        replicator.tell(new Replicator.Subscribe<>(getKey(), recipient), ActorRef.noSender());
+    }
+
+    @Override
+    public Key<ORMultiMap<ActorRef, S>> getKey() {
         return ORMultiMapKey.create(topicType);
     }
 

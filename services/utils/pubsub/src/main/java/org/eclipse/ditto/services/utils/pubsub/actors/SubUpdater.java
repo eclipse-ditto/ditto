@@ -83,7 +83,33 @@ public final class SubUpdater<T> extends AbstractUpdater<T, SubscriptionsReader>
     }
 
     @Override
-    protected CompletionStage<SubscriptionsReader> performDDataOp(final boolean forceUpdate,
+    protected void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
+        flushSubAcks(opSuccess.seqNr);
+        // race condition possible -- some published messages may arrive before the acknowledgement
+        // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
+        subscriber.tell(opSuccess.payload, getSelf());
+
+        // reset changed flags if there are no more pending changes
+        if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
+            localSubscriptionsChanged = false;
+            nextWriteConsistency = Replicator.writeLocal();
+        }
+    }
+
+    @Override
+    protected void tick(final Clock tick) {
+        performDDataOp(forceUpdate(), localSubscriptionsChanged, nextWriteConsistency)
+                .handle(handleDDataWriteResult(getSeqNr(), nextWriteConsistency));
+        moveAwaitUpdateToAwaitAcknowledge();
+    }
+
+    private void flushSubAcks(final int seqNr) {
+        for (final SubAck ack : exportAwaitSubAck(seqNr)) {
+            ack.getSender().tell(ack, getSelf());
+        }
+    }
+
+    private CompletionStage<SubscriptionsReader> performDDataOp(final boolean forceUpdate,
             final boolean localSubscriptionsChanged,
             final Replicator.WriteConsistency writeConsistency) {
         final SubscriptionsReader snapshot;
@@ -104,25 +130,5 @@ public final class SubUpdater<T> extends AbstractUpdater<T, SubscriptionsReader>
             topicMetric.set((long) subscriptions.countTopics());
         }
         return ddataOp.thenApply(_void -> snapshot);
-    }
-
-    @Override
-    protected void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
-        flushSubAcks(opSuccess.seqNr);
-        // race condition possible -- some published messages may arrive before the acknowledgement
-        // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
-        subscriber.tell(opSuccess.payload, getSelf());
-
-        // reset changed flags if there are no more pending changes
-        if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
-            localSubscriptionsChanged = false;
-            nextWriteConsistency = Replicator.writeLocal();
-        }
-    }
-
-    private void flushSubAcks(final int seqNr) {
-        for (final SubAck ack : exportAwaitSubAck(seqNr)) {
-            ack.getSender().tell(ack, getSelf());
-        }
     }
 }

@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import akka.actor.ActorRef;
+import akka.cluster.ddata.Key;
+import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import scala.collection.immutable.Set;
 
@@ -58,4 +60,17 @@ public interface DDataReader<T> {
      * @return its approximation in the distributed data.
      */
     T approximate(String topic);
+
+    /**
+     * Start sending distributed data change events to the recipient.
+     * No further events are sent once the recipient terminates.
+     *
+     * @param recipient the recipient of distributed data events.
+     */
+    void receiveChanges(ActorRef recipient);
+
+    /**
+     * @return Key of the distributed data.
+     */
+    Key<ORMultiMap<ActorRef, T>> getKey();
 }

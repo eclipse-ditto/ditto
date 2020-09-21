@@ -12,11 +12,10 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
@@ -38,9 +37,7 @@ import scala.collection.immutable.Set;
  * <li>On Subscribe with known duplicate label, reject right away.</li>
  * <li>On Subscribe, add ack labels to local store.</li>
  * <li>On clock, flush DData change to replicator.</li>
- * <li>On update complete, check if each added label retains this node as the lowest subscriber.</li>
- * <li>If this node is the lowest subscriber, ask SubUpdater then forward SubAck.</li>
- * <li>If this node is not the lowest subscriber, rollback and send negative SubAck.</li>
+ * <li>On DData change, fail local subscribers that lost a race against remote subscribers.</li>
  * </ol>
  */
 public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorRef, Set<String>>>
@@ -52,6 +49,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     public static final String ACTOR_NAME_PREFIX = "acksUpdater";
 
     private final DData<String, LiteralUpdate> acksDData;
+    @Nullable private Map<ActorRef, Set<String>> mmap;
 
     @SuppressWarnings("unused")
     private AcksUpdater(final PubSubConfig config,
@@ -60,6 +58,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
         super(ACTOR_NAME_PREFIX, config, subscriber, acksDData.createSubscriptions(), acksDData.getWriter());
         this.acksDData = acksDData;
         subscribeForClusterMemberRemovedAware();
+        acksDData.getReader().receiveChanges(getSelf());
     }
 
     /**
@@ -80,7 +79,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(DoSubscribe.class, this::doSubscribe)
+                .match(Replicator.Changed.class, this::onChanged)
                 .build()
                 .orElse(receiveClusterMemberRemoved())
                 .orElse(super.createReceive());
@@ -99,14 +98,12 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     @Override
     protected void subscribe(final Subscribe subscribe) {
         final ActorRef sender = getSender();
-        // read local DData for remote subscribers
-        areTopicsClaimedRemotely(subscribe).thenAccept(taken -> {
-            if (taken) {
-                failSubscribe(sender);
-            } else {
-                getSelf().tell(new DoSubscribe(subscribe, sender), ActorRef.noSender());
-            }
-        });
+        if (areAckLabelsDeclaredHere(subscribe) || areTopicsClaimedRemotely(subscribe)) {
+            failSubscribe(sender);
+        } else {
+            subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics());
+            getSender().tell(SubAck.of(subscribe, sender, 0), getSelf());
+        }
     }
 
     @Override
@@ -115,75 +112,31 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     }
 
     @Override
-    protected CompletionStage<Map<ActorRef, Set<String>>> performDDataOp(final boolean forceUpdate,
-            final boolean localSubscriptionsChanged,
-            final Replicator.WriteConsistency writeConsistency) {
-
-        // always read from cluster to discover local subscribers that lost a race
-        // TODO: add a separate config for acks-updater with slower clock ticks
-        // TODO: OR, switch subscribe to ddata-updated events
-        return writeLocalDData().thenCompose(_void -> acksDData.getReader().read(toReadConsistency(writeConsistency)));
+    protected void tick(final Clock tick) {
+        writeLocalDData();
     }
 
     @Override
     protected void ddataOpSuccess(final DDataOpSuccess<Map<ActorRef, Set<String>>> opSuccess) {
-        if (!opSuccess.payload.isEmpty()) {
-            final List<SubAck> subAcks = exportAwaitSubAck(opSuccess.seqNr);
-            final java.util.Set<ActorRef> newlyFailedSubscribers = new HashSet<>();
-
-            // Local losers are the actors whose declared ack labels are taken over concurrently by remote subscribers.
-            final java.util.Set<ActorRef> localLosers = getLocalLosers(opSuccess.payload);
-            // Remove local losers (replicated to cluster at the next Subscribe or the next clock tick at the latest)
-            localLosers.forEach(subscriptions::removeSubscriber);
-            for (final SubAck subAck : subAcks) {
-                if (localLosers.contains(subAck.getRequest().getSubscriber())) {
-                    newlyFailedSubscribers.add(subAck.getRequest().getSubscriber());
-                    failSubscribe(subAck.getSender());
-                } else {
-                    subAck.getSender().tell(subAck, ActorRef.noSender());
-                }
-            }
-
-            // There is a chance that a subscriber gets failure after SubAck due to unlucky timing.
-            // Send a failure to the subscriber directly so that it terminates.
-            localLosers.stream()
-                    .filter(localSubscriber -> !newlyFailedSubscribers.contains(localSubscriber))
-                    .forEach(this::failSubscribe);
-        }
+        log.warning("Unexpected DDataOpSuccess: sn=<{}> wc=<{}> payload=<{}>",
+                opSuccess.seqNr, opSuccess.writeConsistency, opSuccess.payload);
     }
 
-    private Replicator.ReadConsistency toReadConsistency(final Replicator.WriteConsistency writeConsistency) {
-        if (writeConsistency instanceof Replicator.WriteAll) {
-            return new Replicator.ReadAll(writeConsistency.timeout());
-        } else if (writeConsistency instanceof Replicator.WriteMajority) {
-            return new Replicator.ReadMajority(writeConsistency.timeout());
-        } else {
-            return Replicator.readLocal();
-        }
+    private void onChanged(final Replicator.Changed<?> event) {
+        mmap = JavaConverters.mapAsJavaMap(event.get(acksDData.getReader().getKey()).entries());
+        final java.util.Set<ActorRef> localLosers = getLocalLosers(mmap);
+        localLosers.forEach(this::failSubscribe);
+        localLosers.forEach(subscriptions::removeSubscriber);
     }
 
-    private void doSubscribe(final DoSubscribe doSubscribe) {
-        if (areAckLabelsDeclaredHere(doSubscribe.subscribe)) {
-            failSubscribe(doSubscribe.sender);
-        } else {
-            final boolean changed =
-                    subscriptions.subscribe(doSubscribe.subscribe.getSubscriber(), doSubscribe.subscribe.getTopics());
-            enqueueRequest(doSubscribe.subscribe, changed, doSubscribe.sender, awaitSubAck, awaitUpdateMetric);
-            if (changed) {
-                getContext().watch(doSubscribe.subscribe.getSubscriber());
-            }
-        }
-    }
-
-    private CompletionStage<Void> writeLocalDData() {
-        final int seqNr = getSeqNr();
-        return acksDData.getWriter()
+    private void writeLocalDData() {
+        acksDData.getWriter()
                 .put(subscriber, subscriptions.export(true), Replicator.writeLocal())
                 .whenComplete((_void, error) -> {
                     if (error != null) {
                         log.error(error, "Failed to update local DData");
                     } else {
-                        log.debug("Local update complete seqNr={}", seqNr);
+                        log.debug("Local update complete");
                     }
                 });
     }
@@ -217,27 +170,20 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
                 .collect(Collectors.toSet());
     }
 
-    private CompletionStage<Boolean> areTopicsClaimedRemotely(final Subscribe subscribe) {
-        return acksDData.getReader()
-                .getSubscribers(subscribe.getTopics())
-                .thenApply(allSubscribers -> allSubscribers.stream()
-                        .anyMatch(otherSubscriber -> !subscriber.equals(otherSubscriber))
-                );
+    private boolean areTopicsClaimedRemotely(final Subscribe subscribe) {
+        if (mmap != null) {
+            return mmap.entrySet().stream().anyMatch(entry ->
+                    !subscriber.equals(entry.getKey()) &&
+                            subscribe.getTopics().stream().anyMatch(entry.getValue()::contains)
+            );
+        } else {
+            // no info. be optimistic
+            return false;
+        }
     }
 
     private boolean isSmallerThanMySubscriber(final ActorRef otherSubscriber) {
         return otherSubscriber.compareTo(subscriber) < 0;
-    }
-
-    private static final class DoSubscribe {
-
-        private final Subscribe subscribe;
-        private final ActorRef sender;
-
-        private DoSubscribe(final Subscribe subscribe, final ActorRef sender) {
-            this.subscribe = subscribe;
-            this.sender = sender;
-        }
     }
 
 }

@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
@@ -112,7 +111,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
                 .match(Terminated.class, this::terminated)
                 .match(RemoveSubscriber.class, this::removeSubscriber)
                 .matchEquals(Clock.TICK, this::tick)
-                .match(DDataOpSuccess.class, this::onDDataOpSuccess)
+                .match(DDataOpSuccess.class, this::ddataOpSuccess)
                 .match(Status.Failure.class, this::updateFailure)
                 .matchAny(this::logUnhandled)
                 .build();
@@ -140,16 +139,11 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     protected abstract void unsubscribe(final Unsubscribe unsubscribe);
 
     /**
-     * Perform distributed data operation on clock tick.
+     * Handle a clock tick.
      *
-     * @param forceUpdate whether a force update is requested.
-     * @param localSubscriptionsChanged whether local subscriptions changed since the last successful update.
-     * @param writeConsistency the requested write consistency.
-     * @return future of the payload to self in case of success.
+     * @param tick the clock tick.
      */
-    protected abstract CompletionStage<P> performDDataOp(final boolean forceUpdate,
-            final boolean localSubscriptionsChanged,
-            final Replicator.WriteConsistency writeConsistency);
+    protected abstract void tick(final Clock tick);
 
     /**
      * What to do when DData update failed.
@@ -165,7 +159,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * @return whether the next update is a random force update.
      */
-    private boolean forceUpdate() {
+    protected boolean forceUpdate() {
         return random.nextDouble() < config.getForceUpdateProbability();
     }
 
@@ -189,10 +183,20 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
         }
     }
 
+    /**
+     * @return the sequence number of the last SubAck created by this#enqueueRequest.
+     */
     protected int getSeqNr() {
         return seqNr;
     }
 
+    /**
+     * Export the list of pending SubAck messages up to a sequence number.
+     * SubAck messages that are not exported stay in the queue.
+     *
+     * @param seqNr the final sequence number.
+     * @return the list of SubAck up to the sequence number.
+     */
     protected List<SubAck> exportAwaitSubAck(final int seqNr) {
         final List<SubAck> subAcks = new ArrayList<>(awaitSubAck.size());
         while (!awaitSubAck.isEmpty()) {
@@ -207,17 +211,10 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
         return Collections.unmodifiableList(subAcks);
     }
 
-    private void tick(final Clock tick) {
-        performDDataOp(forceUpdate(), localSubscriptionsChanged, nextWriteConsistency)
-                .handle(handleDDataWriteResult(seqNr, nextWriteConsistency));
-        moveAwaitUpdateToAwaitAcknowledge();
-    }
-
-    private void onDDataOpSuccess(final DDataOpSuccess<P> event) {
-        ddataOpSuccess(event);
-    }
-
-    private void moveAwaitUpdateToAwaitAcknowledge() {
+    /**
+     * Flush the "awaitUpdate" queue after a distributed data write started.
+     */
+    protected void moveAwaitUpdateToAwaitAcknowledge() {
         if (!awaitUpdate.isEmpty()) {
             awaitSubAck.addAll(awaitUpdate);
             awaitUpdate.clear();
@@ -226,7 +223,14 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
         }
     }
 
-    private BiFunction<P, Throwable, Void> handleDDataWriteResult(final int lastSeqNr,
+    /**
+     * Handle thje result of a distributed data write by sending a report to self.
+     *
+     * @param lastSeqNr the final sequence number of this update.
+     * @param writeConsistency the write consistency of this update.
+     * @return the function to handle the distributed data write result.
+     */
+    protected BiFunction<P, Throwable, Void> handleDDataWriteResult(final int lastSeqNr,
             final Replicator.WriteConsistency writeConsistency) {
         // this function is called asynchronously. it must be thread-safe.
         return (payload, error) -> {
@@ -462,7 +466,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
             this.seqNr = seqNr;
         }
 
-        private static SubAck of(final Request request, final ActorRef sender, final int seqNr) {
+        static SubAck of(final Request request, final ActorRef sender, final int seqNr) {
             return new SubAck(request, sender, seqNr);
         }
 
@@ -497,7 +501,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
         }
     }
 
-    private enum Clock {
+    protected enum Clock {
 
         /**
          * Clock tick to update distributed data.

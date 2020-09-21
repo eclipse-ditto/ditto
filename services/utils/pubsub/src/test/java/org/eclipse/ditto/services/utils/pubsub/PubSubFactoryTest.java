@@ -145,15 +145,10 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber4 = TestProbe.apply(system2);
 
             // GIVEN: subscribers of different topics exist on both actor systems
-            CompletableFuture.allOf(
-                    sub1.subscribeWithAck(asList("he", "av'n", "has", "no", "rage", "nor"), subscriber1.ref())
-                            .toCompletableFuture(),
-                    sub2.subscribeWithAck(asList("hell", "a", "fury"), subscriber2.ref())
-                            .toCompletableFuture(),
-                    sub1.subscribeWithAck(asList("like", "a", "woman", "scorn'd"), subscriber3.ref())
-                            .toCompletableFuture(),
-                    sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture()
-            ).join();
+            await(sub1.subscribeWithAck(asList("he", "av'n", "has", "no", "rage", "nor"), subscriber1.ref()));
+            await(sub2.subscribeWithAck(asList("hell", "a", "fury"), subscriber2.ref()));
+            await(sub1.subscribeWithAck(asList("like", "a", "woman", "scorn'd"), subscriber3.ref()));
+            await(sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture());
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -277,7 +272,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void failAckDeclarationDueToRemoteConflict() {
+    public void failAckDeclarationDueToRemoteConflict() throws Exception {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system
             final DistributedSub sub1 = factory1.startDistributedSub();
@@ -291,10 +286,8 @@ public final class PubSubFactoryTest {
             // GIVEN: "sit" is declared by a subscriber on system2
             await(sub2.declareAcknowledgementLabels(acks("dolor", "sit"), subscriber2.ref()));
 
-            // GIVEN: a full clock cycle has passed so that system1 receives the most up-to-date labels
-            // 2 subscription futures are required because WriteLocal does not impact ReadAll immediately???
-            await(sub1.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
-            await(sub1.declareAcknowledgementLabels(acks("consectetuer"), subscriber4.ref()));
+            // GIVEN: the update is replicated to system1 (sleep for 2 gossip intervals)
+            Thread.sleep(dilated(java.time.Duration.ofSeconds(6L)).toMillis());
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail
@@ -307,7 +300,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void raceAgainstLocalSubscriber() {
+    public void raceAgainstLocalAckLabelDeclaration() {
         new TestKit(system1) {{
             // comment-out the next line to get future failure logs
             disableLogging();
@@ -338,7 +331,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void raceAgainstRemoteSubscriber() {
+    public void raceAgainstRemoteAckLabelDeclaration() {
         new TestKit(system1) {{
             // comment-out the next line to get future failure logs
             disableLogging();

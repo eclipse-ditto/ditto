@@ -32,7 +32,7 @@ import akka.japi.pf.ReceiveBuilder;
  *     SubSupervisor
  *          +
  *          |
- *          |supervises one+for+many
+ *          |supervises one-for-many
  *          +---------------------------------+-----------------------+
  *          |                                 |                       |
  *          |                                 |                       |
@@ -40,15 +40,15 @@ import akka.japi.pf.ReceiveBuilder;
  *          |                                 |                       |
  *          |                                 |                       |
  *          v                                 v                       v
- *       SubUpdater +-----------------> Subscriber<-------------+AcksUpdater
- *          +  ^     update             (forwards   Block         +   +
- *          |  |     local               published  pending       |   |
- *          |  |     subscriptions       signals)   ack label     |   |
- *          |  |                                    declarations  |   |
- *          |  |                                                  |   |
- *          |  +--------------------------------------------------+   |
- *          |    rollback on ack label declaration failure            |
+ *       SubUpdater +-----------------> Subscriber               AcksUpdater
+ *          +        update             (forwards                     +
+ *          |        local               published                    |
+ *          |        subscriptions       signals)                     |
  *          |                                                         |
+ *          |                                                         |
+ *          |                                                         |
+ *          |                                              write-local|
+ *          |                                            on clock tick|
  *          |                                                         |
  *          |                                                         |
  *          |write with highest requested consistency                 |
