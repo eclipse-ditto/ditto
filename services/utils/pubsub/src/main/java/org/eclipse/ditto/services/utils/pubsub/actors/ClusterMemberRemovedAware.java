@@ -75,7 +75,7 @@ interface ClusterMemberRemovedAware extends Actor {
      * @param currentClusterState the CurrentClusterState message.
      */
     default void logCurrentClusterState(final ClusterEvent.CurrentClusterState currentClusterState) {
-        log().info("Got <{}>" + currentClusterState);
+        log().info("Got <{}>", currentClusterState);
     }
 
 }

@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
@@ -120,12 +119,10 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
             final boolean localSubscriptionsChanged,
             final Replicator.WriteConsistency writeConsistency) {
 
-        final CompletionStage<Void> writeStage =
-                localSubscriptionsChanged || forceUpdate ? writeLocalDData() : CompletableFuture.completedStage(null);
-
         // always read from cluster to discover local subscribers that lost a race
         // TODO: add a separate config for acks-updater with slower clock ticks
-        return writeStage.thenCompose(_void -> acksDData.getReader().read(toReadConsistency(writeConsistency)));
+        // TODO: OR, switch subscribe to ddata-updated events
+        return writeLocalDData().thenCompose(_void -> acksDData.getReader().read(toReadConsistency(writeConsistency)));
     }
 
     @Override
@@ -153,12 +150,6 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
                     .filter(localSubscriber -> !newlyFailedSubscribers.contains(localSubscriber))
                     .forEach(this::failSubscribe);
         }
-
-        if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
-            localSubscriptionsChanged = false;
-            // do not reset nextWriteConsistency - it stays WRITE_ALL after first update
-            // so that full READ is performed every tick.
-        }
     }
 
     private Replicator.ReadConsistency toReadConsistency(final Replicator.WriteConsistency writeConsistency) {
@@ -175,7 +166,8 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
         if (areAckLabelsDeclaredHere(doSubscribe.subscribe)) {
             failSubscribe(doSubscribe.sender);
         } else {
-            final boolean changed = subscriptions.subscribe(doSubscribe.sender, doSubscribe.subscribe.getTopics());
+            final boolean changed =
+                    subscriptions.subscribe(doSubscribe.subscribe.getSubscriber(), doSubscribe.subscribe.getTopics());
             enqueueRequest(doSubscribe.subscribe, changed, doSubscribe.sender, awaitSubAck, awaitUpdateMetric);
             if (changed) {
                 getContext().watch(doSubscribe.subscribe.getSubscriber());

@@ -33,7 +33,6 @@ import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -41,6 +40,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorContext;
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -48,6 +48,7 @@ import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Attributes;
+import akka.testkit.TestActor;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -200,6 +201,7 @@ public final class PubSubFactoryTest {
     // Can't test recovery after disassociation---no actor system can join a cluster twice.
     @Test
     public void removeSubscriberOfRemovedClusterMember() {
+        disableLogging();
         new TestKit(system1) {{
             final DistributedPub<String> pub = factory1.startDistributedPub();
             final DistributedSub sub = factory2.startDistributedSub();
@@ -280,18 +282,19 @@ public final class PubSubFactoryTest {
             // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system
             final DistributedSub sub1 = factory1.startDistributedSub();
             final DistributedSub sub2 = factory2.startDistributedSub();
+
             final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
             final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
             final TestProbe subscriber3 = TestProbe.apply("subscriber3", system1);
             final TestProbe subscriber4 = TestProbe.apply("subscriber4", system1);
 
-            // WHEN: 1 subscriber from each system declares disjoint labels
-            // THEN: the declarations should succeed
-            await(sub1.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+            // GIVEN: "sit" is declared by a subscriber on system2
             await(sub2.declareAcknowledgementLabels(acks("dolor", "sit"), subscriber2.ref()));
 
-            // wait 1 clock cycle for system1 to get the most up-to-date labels
-            sub1.declareAcknowledgementLabels(acks("consectetuer"), subscriber4.ref());
+            // GIVEN: a full clock cycle has passed so that system1 receives the most up-to-date labels
+            // 2 subscription futures are required because WriteLocal does not impact ReadAll immediately???
+            await(sub1.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+            await(sub1.declareAcknowledgementLabels(acks("consectetuer"), subscriber4.ref()));
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail
@@ -304,13 +307,79 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    @Ignore("TODO")
     public void raceAgainstLocalSubscriber() {
+        new TestKit(system1) {{
+            // comment-out the next line to get future failure logs
+            disableLogging();
+            // repeat the test to catch timing issues
+            final DistributedSub sub1 = factory1.startDistributedSub();
+            for (int i = 0; i < 10; ++i) {
+                // GIVEN: 2 subscribers exist in the same actor system
+                final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
+                final TestProbe subscriber2 = TestProbe.apply("subscriber2", system1);
+
+                // WHEN: 2 subscribers declare intersecting labels simultaneously
+                final CompletionStage<?> future1 =
+                        sub1.declareAcknowledgementLabels(acks("lorem" + i, "ipsum" + i), subscriber1.ref());
+                final CompletionStage<?> future2 =
+                        sub1.declareAcknowledgementLabels(acks("ipsum" + i, "dolor" + i), subscriber2.ref());
+
+                // THEN: exactly one of them fails
+                await(future1.handle((result1, error1) -> await(future2.handle((result2, error2) -> {
+                    if (error1 == null) {
+                        assertThat(error2).isNotNull();
+                    } else {
+                        assertThat(error2).isNull();
+                    }
+                    return null;
+                }))));
+            }
+        }};
     }
 
     @Test
-    @Ignore("TODO")
     public void raceAgainstRemoteSubscriber() {
+        new TestKit(system1) {{
+            // comment-out the next line to get future failure logs
+            disableLogging();
+            final DistributedSub sub1 = factory1.startDistributedSub();
+            final DistributedSub sub2 = factory2.startDistributedSub();
+
+            // run the test many times to catch timing issues
+            for (int i = 0; i < 10; ++i) {
+                final TestProbe eitherSubscriberProbe = TestProbe.apply(system1);
+                final TestActor.AutoPilot autoPilot = new TestActor.AutoPilot() {
+
+                    @Override
+                    public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                        eitherSubscriberProbe.ref().tell(msg, sender);
+                        return this;
+                    }
+                };
+
+                // GIVEN: 2 subscribers exist in different actor systems
+                final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
+                final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
+                subscriber1.setAutoPilot(autoPilot);
+                subscriber2.setAutoPilot(autoPilot);
+
+                // WHEN: 2 subscribers declare intersecting labels simultaneously
+                final CompletionStage<?> future1 =
+                        sub1.declareAcknowledgementLabels(acks("lorem" + i, "ipsum" + i), subscriber1.ref());
+                final CompletionStage<?> future2 =
+                        sub2.declareAcknowledgementLabels(acks("ipsum" + i, "dolor" + i), subscriber2.ref());
+
+                // THEN: exactly one of them fails, or both succeeds and one subscriber gets an exception later.
+                await(future1.handle((result1, error1) -> await(future2.handle((result2, error2) -> {
+                    if (error1 == null && error2 == null) {
+                        eitherSubscriberProbe.expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+                    } else if (error1 != null) {
+                        assertThat(error2).isNull();
+                    }
+                    return null;
+                }))));
+            }
+        }};
     }
 
     private void disableLogging() {
