@@ -30,7 +30,6 @@ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
-import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -43,8 +42,11 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Abstract super class of SubUpdater and AcksUpdater.
  * Implement the logic to aggregate subscription changes and to replicate the changes each clock tick.
+ *
+ * @param <T> type of topics in the distributed data.
+ * @param <P> type of payload of DDataOpSuccess messages.
  */
-public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
+public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
 
     // pseudo-random number generator for force updates. quality matters little.
     private final Random random = new Random();
@@ -110,25 +112,18 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
                 .match(Terminated.class, this::terminated)
                 .match(RemoveSubscriber.class, this::removeSubscriber)
                 .matchEquals(Clock.TICK, this::tick)
-                .match(DDataOpSuccess.class, s -> updateSuccess(s.snapshot, s.seqNr))
+                .match(DDataOpSuccess.class, this::onDDataOpSuccess)
                 .match(Status.Failure.class, this::updateFailure)
                 .matchAny(this::logUnhandled)
                 .build();
     }
 
     /**
-     * Flush pending SubAcks to senders.
-     *
-     * @param seqNr the last seqNr of the update.
-     */
-    protected abstract void flushSubAcks(final int seqNr);
-
-    /**
      * What to do when update succeeded.
      *
-     * @param snapshot the snapshot of the current subscription.
+     * @param opSuccess success message of a distributed data op.
      */
-    protected abstract void updateSuccess(final SubscriptionsReader snapshot, final int seqNr);
+    protected abstract void ddataOpSuccess(final DDataOpSuccess<P> opSuccess);
 
     /**
      * Handle a subscribe request.
@@ -144,6 +139,17 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
      */
     protected abstract void unsubscribe(final Unsubscribe unsubscribe);
 
+    /**
+     * Perform distributed data operation on clock tick.
+     *
+     * @param forceUpdate whether a force update is requested.
+     * @param localSubscriptionsChanged whether local subscriptions changed since the last successful update.
+     * @param writeConsistency the requested write consistency.
+     * @return future of the payload to self in case of success.
+     */
+    protected abstract CompletionStage<P> performDDataOp(final boolean forceUpdate,
+            final boolean localSubscriptionsChanged,
+            final Replicator.WriteConsistency writeConsistency);
 
     /**
      * What to do when DData update failed.
@@ -168,16 +174,23 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
      *
      * @param request the request.
      * @param changed whether the request changed ddata.
+     * @param queue the queue to enqueue the request.
+     * @param queueSizeMetric the metrics for the queue size.
      * @param sender sender of the request.
      */
-    protected void enqueueRequest(final Request request, final boolean changed, final ActorRef sender) {
+    protected void enqueueRequest(final Request request, final boolean changed, final ActorRef sender,
+            final Collection<SubAck> queue, final Gauge queueSizeMetric) {
         localSubscriptionsChanged |= changed;
         upgradeWriteConsistency(request.getWriteConsistency());
         if (request.shouldAcknowledge()) {
             final SubAck subAck = SubAck.of(request, sender, ++seqNr);
-            awaitUpdate.add(subAck);
-            awaitUpdateMetric.increment();
+            queue.add(subAck);
+            queueSizeMetric.increment();
         }
+    }
+
+    protected int getSeqNr() {
+        return seqNr;
     }
 
     protected List<SubAck> exportAwaitSubAck(final int seqNr) {
@@ -185,6 +198,7 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         while (!awaitSubAck.isEmpty()) {
             final SubAck ack = awaitSubAck.poll();
             subAcks.add(ack);
+            // Stop exporting after seqNr equal to the last added SubAck. Testing equality to tolerate overflow.
             if (ack.getSeqNr() == seqNr) {
                 break;
             }
@@ -194,49 +208,37 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
     }
 
     private void tick(final Clock tick) {
-        final boolean forceUpdate = forceUpdate();
-        if (!localSubscriptionsChanged && !forceUpdate) {
-            moveAwaitUpdateToAwaitAcknowledge();
-            flushSubAcks(seqNr);
-        } else {
-            final SubscriptionsReader snapshot;
-            final CompletionStage<Void> ddataOp;
-            if (subscriptions.isEmpty()) {
-                snapshot = subscriptions.snapshot();
-                ddataOp = topicsWriter.removeSubscriber(subscriber, nextWriteConsistency);
-                topicMetric.set(0L);
-            } else {
-                // export before taking snapshot so that implementations may output incremental update.
-                final T ddata = subscriptions.export(forceUpdate);
-                // take snapshot to give to the subscriber; clear accumulated incremental changes.
-                snapshot = subscriptions.snapshot();
-                ddataOp = topicsWriter.put(subscriber, ddata, nextWriteConsistency);
-                topicMetric.set((long) subscriptions.countTopics());
-            }
-            ddataOp.handle(handleDDataWriteResult(snapshot, seqNr));
-            moveAwaitUpdateToAwaitAcknowledge();
-            localSubscriptionsChanged = false;
-            nextWriteConsistency = Replicator.writeLocal();
-        }
+        performDDataOp(forceUpdate(), localSubscriptionsChanged, nextWriteConsistency)
+                .handle(handleDDataWriteResult(seqNr, nextWriteConsistency));
+        moveAwaitUpdateToAwaitAcknowledge();
+    }
+
+    private void onDDataOpSuccess(final DDataOpSuccess<P> event) {
+        ddataOpSuccess(event);
     }
 
     private void moveAwaitUpdateToAwaitAcknowledge() {
-        awaitSubAck.addAll(awaitUpdate);
-        awaitUpdate.clear();
-        awaitSubAckMetric.set((long) awaitSubAck.size());
-        awaitUpdateMetric.set(0L);
+        if (!awaitUpdate.isEmpty()) {
+            awaitSubAck.addAll(awaitUpdate);
+            awaitUpdate.clear();
+            awaitSubAckMetric.set((long) awaitSubAck.size());
+            awaitUpdateMetric.set(0L);
+        }
     }
 
-    private BiFunction<Void, Throwable, Void> handleDDataWriteResult(final SubscriptionsReader snapshot,
-            final int lastSeqNr) {
+    private BiFunction<P, Throwable, Void> handleDDataWriteResult(final int lastSeqNr,
+            final Replicator.WriteConsistency writeConsistency) {
         // this function is called asynchronously. it must be thread-safe.
-        return (_void, error) -> {
-            if (error == null) {
-                getSelf().tell(new DDataOpSuccess(snapshot, seqNr), ActorRef.noSender());
-            } else {
+        return (payload, error) -> {
+            if (error != null) {
                 getSelf().tell(new Status.Failure(error), ActorRef.noSender());
+            } else if (payload == null) {
+                // do nothing - no ddata op was performed
+                return null;
+            } else {
+                getSelf().tell(new DDataOpSuccess<>(payload, lastSeqNr, writeConsistency), ActorRef.noSender());
             }
-            return _void;
+            return null;
         };
     }
 
@@ -540,14 +542,21 @@ public abstract class AbstractUpdater<T> extends AbstractActorWithTimers {
         }
     }
 
-    private static final class DDataOpSuccess {
+    /**
+     * Package-private message to indicate success of a distributed data operation.
+     *
+     * @param <P> the payload type.
+     */
+    static final class DDataOpSuccess<P> {
 
-        private final SubscriptionsReader snapshot;
-        private final int seqNr;
+        final P payload;
+        final int seqNr;
+        final Replicator.WriteConsistency writeConsistency;
 
-        private DDataOpSuccess(final SubscriptionsReader snapshot, final int seqNr) {
-            this.snapshot = snapshot;
+        DDataOpSuccess(final P payload, final int seqNr, final Replicator.WriteConsistency writeConsistency) {
+            this.payload = payload;
             this.seqNr = seqNr;
+            this.writeConsistency = writeConsistency;
         }
     }
 }

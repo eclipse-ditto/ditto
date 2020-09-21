@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import akka.actor.ActorRef;
+import akka.cluster.ddata.Replicator;
 import scala.collection.immutable.Set;
 
 /**
@@ -39,7 +40,16 @@ public interface DDataReader<T> {
      *
      * @return the low-level map.
      */
-    CompletionStage<Map<ActorRef, Set<T>>> read();
+    default CompletionStage<Map<ActorRef, Set<T>>> read() {
+        return read(Replicator.readLocal());
+    }
+
+    /**
+     * Read a low-level map from the local replicator.
+     *
+     * @return the low-level map.
+     */
+    CompletionStage<Map<ActorRef, Set<T>>> read(Replicator.ReadConsistency readConsistency);
 
     /**
      * Map a topic to a key with which to read distributed data.

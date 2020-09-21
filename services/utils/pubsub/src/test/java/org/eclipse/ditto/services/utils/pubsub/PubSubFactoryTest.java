@@ -275,23 +275,23 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    @Ignore("TODO: fix overeager SubAck")
-    // TODO: add test about local & remote racing
     public void failAckDeclarationDueToRemoteConflict() {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system
             final DistributedSub sub1 = factory1.startDistributedSub();
             final DistributedSub sub2 = factory2.startDistributedSub();
-            final TestProbe subscriber1 = TestProbe.apply(system1);
-            final TestProbe subscriber2 = TestProbe.apply(system2);
-            final TestProbe subscriber3 = TestProbe.apply(system1);
+            final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
+            final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
+            final TestProbe subscriber3 = TestProbe.apply("subscriber3", system1);
+            final TestProbe subscriber4 = TestProbe.apply("subscriber4", system1);
 
             // WHEN: 1 subscriber from each system declares disjoint labels
             // THEN: the declarations should succeed
             await(sub1.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
             await(sub2.declareAcknowledgementLabels(acks("dolor", "sit"), subscriber2.ref()));
 
-            awaitSilently(system1, new CompletableFuture<>());
+            // wait 1 clock cycle for system1 to get the most up-to-date labels
+            sub1.declareAcknowledgementLabels(acks("consectetuer"), subscriber4.ref());
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail
@@ -301,6 +301,16 @@ public final class PubSubFactoryTest {
                     .hasFailedWithThrowableThat()
                     .isInstanceOf(AcknowledgementLabelNotUniqueException.class);
         }};
+    }
+
+    @Test
+    @Ignore("TODO")
+    public void raceAgainstLocalSubscriber() {
+    }
+
+    @Test
+    @Ignore("TODO")
+    public void raceAgainstRemoteSubscriber() {
     }
 
     private void disableLogging() {
@@ -318,7 +328,7 @@ public final class PubSubFactoryTest {
 
     private static <T> CompletionStage<T> await(final CompletionStage<T> stage) {
         final CompletableFuture<Object> future = stage.toCompletableFuture().thenApply(x -> x);
-        future.completeOnTimeout(new TimeoutException(), 10L, TimeUnit.SECONDS);
+        future.completeOnTimeout(new TimeoutException(), 30L, TimeUnit.SECONDS);
         future.thenCompose(x -> {
             if (x instanceof Throwable) {
                 return CompletableFuture.failedStage((Throwable) x);
