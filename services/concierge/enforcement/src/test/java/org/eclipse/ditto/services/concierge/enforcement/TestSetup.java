@@ -88,15 +88,14 @@ public final class TestSetup {
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor) {
 
-        return newEnforcerActor(system, testActorRef, mockEntitiesActor, null);
+        return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).build();
     }
 
     public static ActorRef newEnforcerActor(final ActorSystem system,
             final ActorRef testActorRef,
             final ActorRef mockEntitiesActor,
             @Nullable final PreEnforcer preEnforcer) {
-
-        return newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor, preEnforcer);
+        return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).setPreEnforcer(preEnforcer).build();
     }
 
     public static ActorRef newEnforcerActor(final ActorSystem system,
@@ -104,39 +103,83 @@ public final class TestSetup {
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             @Nullable final PreEnforcer preEnforcer) {
-
-        final ActorRef conciergeForwarder =
-                new TestProbe(system, createUniqueName()).ref();
-        final Duration askTimeout = CACHES_CONFIG.getAskTimeout();
-
-        final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
-        final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
-                CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
-        final AclEnforcerCacheLoader aclEnforcerCacheLoader =
-                new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
-        final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
-                CaffeineCache.of(Caffeine.newBuilder(), aclEnforcerCacheLoader);
-        final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
-                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
-        final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
-                CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
-
-        final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-        enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
-        enforcementProviders.add(
-                new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache,
-                        new DummyLiveSignalPub(testActorRef)));
-
-        final Props props =
-                EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null, null,
-                        null);
-        return system.actorOf(props, EnforcerActor.ACTOR_NAME);
+        return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion).setPreEnforcer(
+                preEnforcer).build();
     }
 
-    private static String createUniqueName() {
+    static class EnforcerActorBuilder {
+
+        private final ActorSystem system;
+        private final ActorRef testActorRef;
+        private final ActorRef thingsShardRegion;
+        private final ActorRef policiesShardRegion;
+        @Nullable private ActorRef conciergeForwarder;
+        @Nullable private PreEnforcer preEnforcer;
+
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
+                final ActorRef mockEntityActors) {
+            this.system = system;
+            this.testActorRef = testActorRef;
+            this.thingsShardRegion = mockEntityActors;
+            this.policiesShardRegion = mockEntityActors;
+        }
+
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
+                final ActorRef thingsShardRegion, final ActorRef policiesShardRegion) {
+            this.system = system;
+            this.testActorRef = testActorRef;
+            this.thingsShardRegion = thingsShardRegion;
+            this.policiesShardRegion = policiesShardRegion;
+        }
+
+        public EnforcerActorBuilder setPreEnforcer(@Nullable final PreEnforcer preEnforcer) {
+            this.preEnforcer = preEnforcer;
+            return this;
+        }
+
+        public EnforcerActorBuilder setConciergeForwarder(final ActorRef conciergeForwarder) {
+            this.conciergeForwarder = conciergeForwarder;
+            return this;
+        }
+
+        public ActorRef build() {
+
+            if (conciergeForwarder == null) {
+                conciergeForwarder = new TestProbe(system, createUniqueName()).ref();
+            }
+
+            final Duration askTimeout = CACHES_CONFIG.getAskTimeout();
+
+            final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
+                    new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
+                    CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
+            final AclEnforcerCacheLoader aclEnforcerCacheLoader =
+                    new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
+                    CaffeineCache.of(Caffeine.newBuilder(), aclEnforcerCacheLoader);
+            final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
+                    new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
+            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
+                    CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
+
+            final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
+            enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
+                    policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
+            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
+            enforcementProviders.add(
+                    new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache,
+                            new DummyLiveSignalPub(testActorRef)));
+
+            final Props props =
+                    EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null, null,
+                            null);
+            return system.actorOf(props, EnforcerActor.ACTOR_NAME);
+        }
+
+    }
+
+    static String createUniqueName() {
         return "conciergeForwarder-" + UUID.randomUUID();
     }
 

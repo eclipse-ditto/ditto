@@ -95,9 +95,14 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         final ResourceKey policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final boolean authorized;
-        if (command instanceof PolicyModifyCommand) {
-            final String permission = Permission.WRITE;
-            authorized = enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, permission);
+        if (command instanceof CreatePolicy) {
+            if (command.getDittoHeaders().isAllowPolicyLockout()) {
+                authorized = true;
+            } else {
+                authorized = hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext);
+            }
+        } else if (command instanceof PolicyModifyCommand) {
+            authorized = hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext);
         } else {
             final String permission = Permission.READ;
             authorized = enforcer.hasPartialPermissions(policyResourceKey, authorizationContext, permission);
@@ -106,6 +111,11 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         return authorized
                 ? Optional.of(command)
                 : Optional.empty();
+    }
+
+    private static boolean hasUnrestrictedWritePermission(final Enforcer enforcer, final ResourceKey policyResourceKey,
+            final AuthorizationContext authorizationContext) {
+        return enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, Permission.WRITE);
     }
 
     /**
@@ -214,16 +224,11 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         if (policyCommand instanceof CreatePolicy) {
             final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
             final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
-            if (policyCommand.getDittoHeaders().isAllowPolicyLockout()) {
+            final Optional<CreatePolicy> authorizedCommand = authorizePolicyCommand(createPolicy, enforcer);
+            if (authorizedCommand.isPresent()) {
                 return createPolicy;
             } else {
-                // to prevent policy lockout, enforce that subject has WRITE on policy resource
-                final Optional<CreatePolicy> authorizedCommand = authorizePolicyCommand(createPolicy, enforcer);
-                if (authorizedCommand.isPresent()) {
-                    return createPolicy;
-                } else {
-                    throw errorForPolicyCommand(signal());
-                }
+                throw errorForPolicyCommand(signal());
             }
         } else {
             throw PolicyNotAccessibleException.newBuilder(policyCommand.getEntityId())
