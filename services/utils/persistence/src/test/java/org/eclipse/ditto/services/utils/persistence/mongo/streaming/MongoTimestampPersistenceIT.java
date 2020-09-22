@@ -37,7 +37,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -52,7 +53,7 @@ public final class MongoTimestampPersistenceIT {
     private static final String KNOWN_COLLECTION = "knownCollection";
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
+    private Materializer materializer;
     private MongoTimestampPersistence syncPersistence;
 
     @BeforeClass
@@ -86,7 +87,7 @@ public final class MongoTimestampPersistenceIT {
     public void setUp() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        materializer = ActorMaterializer.create(actorSystem);
+        materializer = SystemMaterializer.get(actorSystem).materializer();
         syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }
 
@@ -131,7 +132,7 @@ public final class MongoTimestampPersistenceIT {
         runBlocking(syncPersistence.setTimestamp(Instant.now()));
         runBlocking(syncPersistence.setTimestamp(Instant.now()));
 
-        assertThat(runBlocking(Source.fromPublisher(collection.count()))).containsExactly(1L);
+        assertThat(runBlocking(Source.fromPublisher(collection.countDocuments()))).containsExactly(1L);
     }
 
     @Test

@@ -366,13 +366,13 @@ final class MessagesRoute extends AbstractRoute {
             final Function<ByteBuffer, MessageCommand<?, ?>> requestPayloadToCommandFunction) {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
-        payloadSource.fold(ByteString.empty(), ByteString::concat)
+        runWithSupervisionStrategy(payloadSource.fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::toArray)
                 .map(ByteBuffer::wrap)
                 .map(requestPayloadToCommandFunction)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
                         AbstractHttpRequestActor.COMPLETE_MESSAGE))
-                .run(materializer);
+        );
 
         return completeWithFuture(preprocessResponse(httpResponseFuture));
     }
@@ -380,7 +380,7 @@ final class MessagesRoute extends AbstractRoute {
     private Duration checkMessageTimeout(final Duration timeout) {
         // check if the timeout is smaller than the maximum possible message-timeout and > 0:
         if (timeout.isNegative() || timeout.getSeconds() > maxMessageTimeout.getSeconds()) {
-            throw  TimeoutInvalidException.newBuilder(timeout, maxMessageTimeout).build();
+            throw TimeoutInvalidException.newBuilder(timeout, maxMessageTimeout).build();
         }
         return timeout;
     }

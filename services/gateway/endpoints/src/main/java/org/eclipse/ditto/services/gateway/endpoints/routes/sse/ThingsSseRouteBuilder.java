@@ -51,8 +51,8 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
@@ -252,12 +252,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                     }
 
-                    final Source<SessionedJsonifiable, ActorRef> publisherSource =
-                            Source.actorPublisher(EventAndResponsePublisher.props(10));
+                    final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
+                            SupervisedStream.sourceQueue(10);
 
                     return publisherSource.viaMat(KillSwitches.single(), Keep.both())
                             .mapMaterializedValue(pair -> {
-                                final ActorRef publisherActor = pair.first();
+                                final SupervisedStream.WithQueue withQueue = pair.first();
                                 final KillSwitch killSwitch = pair.second();
                                 final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                         .orElseThrow(() -> new IllegalStateException(
@@ -265,9 +265,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                                 final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(JsonSchemaVersion.LATEST);
-                                sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
-                                        dittoHeaders);
-                                final Connect connect = new Connect(publisherActor, connectionCorrelationId,
+                                sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
+                                        connectionCorrelationId, dittoHeaders);
+                                final Connect connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null);
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
@@ -468,7 +468,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final class NoOpSseConnectionSupervisor implements SseConnectionSupervisor {
 
         @Override
-        public void supervise(final ActorRef sseConnectionActor, final CharSequence connectionCorrelationId,
+        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
                 final DittoHeaders dittoHeaders) {
 
             // Does nothing.

@@ -14,9 +14,9 @@ package org.eclipse.ditto.services.gateway.security.utils;
 
 import java.util.concurrent.CompletionStage;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.stream.ActorMaterializer;
 
 /**
  * Provides a pre-configured Akka HTTP client.
@@ -32,8 +32,8 @@ public interface HttpClientFacade {
     CompletionStage<HttpResponse> createSingleHttpRequest(HttpRequest request);
 
     /**
-     * @return an {@link ActorMaterializer} instance which can be used for stream execution.
+     * @return an {@link akka.actor.ActorSystem} instance which can be used for stream execution.
      */
-    ActorMaterializer getActorMaterializer();
+    ActorSystem getActorSystem();
 
 }

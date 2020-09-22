@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -55,14 +54,16 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
 import akka.stream.Graph;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.SourceShape;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -101,7 +102,6 @@ public final class SearchActor extends AbstractActor {
 
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
-    private final ActorMaterializer materializer;
 
     @SuppressWarnings("unused")
     private SearchActor(
@@ -110,7 +110,6 @@ public final class SearchActor extends AbstractActor {
 
         this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
-        materializer = ActorMaterializer.create(getContext());
     }
 
     /**
@@ -146,7 +145,7 @@ public final class SearchActor extends AbstractActor {
                 .info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
 
         Patterns.pipe(searchPersistence.generateNamespaceCountReport()
-                .runWith(Sink.head(), materializer), getContext().dispatcher())
+                .runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
                 .to(getSender());
     }
 
@@ -196,7 +195,8 @@ public final class SearchActor extends AbstractActor {
                 })
                 .via(stopTimerAndHandleError(countTimer, countCommand));
 
-        Patterns.pipe(replySource.runWith(Sink.head(), materializer), getContext().dispatcher()).to(sender);
+        Materializer.createMaterializer(this::getContext);
+        Patterns.pipe(replySource.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher()).to(sender);
     }
 
     private void stream(final StreamThings streamThings) {
@@ -212,22 +212,21 @@ public final class SearchActor extends AbstractActor {
                 ThingsSearchCursor.extractCursor(streamThings);
         final Source<SourceRef<String>, NotUsed> sourceRefSource = cursorSource.flatMapConcat(cursor -> {
             cursor.ifPresent(c -> c.logCursorCorrelationId(log, streamThings));
-            return createQuerySource(queryParser::parse, streamThings).flatMapConcat(parsedQuery -> {
+            return createQuerySource(queryParser::parse, streamThings).map(parsedQuery -> {
                 final Query query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                 stopTimer(queryParsingTimer);
                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
-                final List<String> subjectIds = streamThings.getDittoHeaders().getAuthorizationSubjects();
-                final CompletionStage<SourceRef<String>> sourceRefFuture =
-                        searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
-                                .map(ThingId::toString) // for serialization???
-                                .runWith(StreamRefs.sourceRef(), materializer);
-                return Source.fromCompletionStage(sourceRefFuture);
+                final List<String> subjectIds =
+                        streamThings.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds();
+                return searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
+                        .map(ThingId::toString) // for serialization???
+                        .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getSystem()).materializer());
             });
         });
         final Source<Object, NotUsed> replySourceWithErrorHandling =
                 sourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
+        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
                 .to(sender);
     }
 
@@ -244,7 +243,7 @@ public final class SearchActor extends AbstractActor {
         final Set<String> namespaces = queryThings.getNamespaces().orElse(null);
 
         final Source<Optional<ThingsSearchCursor>, ?> cursorSource =
-                ThingsSearchCursor.extractCursor(queryThings, materializer);
+                ThingsSearchCursor.extractCursor(queryThings, getSystem());
 
         final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
             cursor.ifPresent(c -> c.logCursorCorrelationId(log, queryThings));
@@ -277,8 +276,12 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, ?> replySourceWithErrorHandling =
                 replySource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), materializer), getContext().dispatcher())
+        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
                 .to(sender);
+    }
+
+    private ActorSystem getSystem() {
+        return getContext().getSystem();
     }
 
     private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,

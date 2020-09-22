@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -43,12 +42,10 @@ import akka.testkit.javadsl.TestKit;
 public final class BackgroundSyncStreamTest {
 
     private static ActorSystem actorSystem;
-    private static ActorMaterializer materializer;
 
     @BeforeClass
     public static void init() {
         actorSystem = ActorSystem.create();
-        materializer = ActorMaterializer.create(actorSystem);
     }
 
     @AfterClass
@@ -88,7 +85,7 @@ public final class BackgroundSyncStreamTest {
             final CompletionStage<List<String>> inconsistentThingIds =
                     underTest.filterForInconsistencies(persisted, indexed)
                             .map(metadata -> metadata.getThingId().toString())
-                            .runWith(Sink.seq(), materializer);
+                            .runWith(Sink.seq(), actorSystem);
 
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:5"), DittoHeaders.empty()));
             reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:5"), 6L, DittoHeaders.empty()));

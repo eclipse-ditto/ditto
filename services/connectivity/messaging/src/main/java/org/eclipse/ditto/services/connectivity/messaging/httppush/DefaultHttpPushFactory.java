@@ -174,7 +174,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
      */
     private static ConnectionPoolSettings disambiguateByConnectionId(final ActorSystem system, final ConnectionId id) {
 
-        final ParserSettings parserSettings = ParserSettings.create(system);
+        final ParserSettings parserSettings = ParserSettings.forClient(system);
 
         // start with the default maximum cached value per header of Akka HTTP.
         // "default=12" should be kept consistent with akka-http reference.conf

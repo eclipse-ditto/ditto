@@ -58,6 +58,11 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Attributes;
+import akka.stream.OverflowStrategy;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -101,12 +106,18 @@ public final class StreamingSessionActorHeaderInteractionTest {
     private final TestProbe subscriptionManagerProbe = TestProbe.apply("subscriptionManager", actorSystem);
     private final DittoProtocolSub dittoProtocolSub = Mockito.mock(DittoProtocolSub.class);
 
+    private final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
+
     public StreamingSessionActorHeaderInteractionTest(final Duration timeout, final Boolean responseRequired,
             final List<AcknowledgementRequest> requestedAcks, final Boolean isSuccess) {
         this.timeout = timeout;
         this.responseRequired = responseRequired;
         this.requestedAcks = requestedAcks;
         this.isSuccess = isSuccess;
+
+        final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
+                Source.queue(10, OverflowStrategy.fail());
+        sourceQueue = source.toMat(Sink.actorRef(eventResponsePublisherProbe.ref(), "COMPLETE"), Keep.left()).run(actorSystem);
     }
 
     @BeforeClass
@@ -151,7 +162,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
     private ActorRef createStreamingSessionActor() {
         final Connect connect =
-                new Connect(eventResponsePublisherProbe.ref(), "connectionCorrelationId", "ws",
+                new Connect(sourceQueue, "connectionCorrelationId", "ws",
                         JsonSchemaVersion.V_2, null);
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultAcknowledgementConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),

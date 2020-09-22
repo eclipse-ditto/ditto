@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * The Concierge service for Eclipse Ditto.
@@ -57,11 +56,9 @@ public final class ConciergeService extends DittoService<ConciergeConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final ConciergeConfig serviceSpecificConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected Props getMainRootActorProps(final ConciergeConfig serviceSpecificConfig, final ActorRef pubSubMediator) {
 
-        return ConciergeRootActor.props(serviceSpecificConfig, pubSubMediator, new DefaultEnforcerActorFactory(),
-                materializer);
+        return ConciergeRootActor.props(serviceSpecificConfig, pubSubMediator, new DefaultEnforcerActorFactory());
     }
 
 }

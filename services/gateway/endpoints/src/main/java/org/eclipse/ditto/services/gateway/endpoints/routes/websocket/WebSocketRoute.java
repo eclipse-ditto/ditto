@@ -67,9 +67,9 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.IncomingSignal;
 import org.eclipse.ditto.services.gateway.streaming.StreamControlMessage;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
+import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
@@ -412,30 +412,35 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final ProtocolMessageExtractor protocolMessageExtractor =
                 new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
-        return Filter.multiplexByEither(cmdString -> {
-            final Optional<StreamControlMessage> streamControlMessage = protocolMessageExtractor.apply(cmdString);
-            if (streamControlMessage.isPresent()) {
-                return Right.apply(Left.apply(streamControlMessage.get()));
-            } else {
-                try {
-                    final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
-                            connectionAuthContext, additionalHeaders, adapter, headerTranslator);
-                    return Right.apply(Right.apply(signal));
-                } catch (final DittoRuntimeException dre) {
-                    // This is a client error usually; log at level DEBUG without stack trace.
-                    LOGGER.withCorrelationId(dre)
-                            .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
-                    return Left.apply(dre);
-                } catch (final Exception throwable) {
-                    LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
-                            throwable.getClass().getSimpleName(), throwable.getMessage());
-                    final DittoRuntimeException dittoRuntimeException = GatewayInternalErrorException.newBuilder()
-                            .cause(throwable)
-                            .build();
-                    return Left.apply(dittoRuntimeException);
-                }
-            }
-        });
+        return Filter.<String, Either<StreamControlMessage, Signal<?>>, DittoRuntimeException>multiplexByEither(
+                cmdString -> {
+                    final Optional<StreamControlMessage> streamControlMessage =
+                            protocolMessageExtractor.apply(cmdString);
+                    Either<DittoRuntimeException, Either<StreamControlMessage, Signal<?>>> result;
+                    if (streamControlMessage.isPresent()) {
+                        result = Right.apply(Left.apply(streamControlMessage.get()));
+                    } else {
+                        try {
+                            final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
+                                    connectionAuthContext, additionalHeaders, adapter, headerTranslator);
+                            result = Right.apply(Right.apply(signal));
+                        } catch (final DittoRuntimeException dre) {
+                            // This is a client error usually; log at level DEBUG without stack trace.
+                            LOGGER.withCorrelationId(dre)
+                                    .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
+                            result = Left.apply(dre);
+                        } catch (final Exception throwable) {
+                            LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
+                                    throwable.getClass().getSimpleName(), throwable.getMessage());
+                            final DittoRuntimeException dittoRuntimeException =
+                                    GatewayInternalErrorException.newBuilder()
+                                            .cause(throwable)
+                                            .build();
+                            result = Left.apply(dittoRuntimeException);
+                        }
+                    }
+                    return result;
+                });
     }
 
     private Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> createOutgoing(
@@ -449,14 +454,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
-        final Source<SessionedJsonifiable, ActorRef> publisherSource =
-                Source.actorPublisher(EventAndResponsePublisher.props(
-                        websocketConfig.getPublisherBackpressureBufferSize()));
+        final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
+                SupervisedStream.sourceQueue(websocketConfig.getPublisherBackpressureBufferSize());
 
         final Source<SessionedJsonifiable, Connect> sourceToPreMaterialize = publisherSource.mapMaterializedValue(
-                publisherActor -> {
-                    webSocketSupervisor.supervise(publisherActor, connectionCorrelationId, additionalHeaders);
-                    return new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_WS, version,
+                withQueue -> {
+                    webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
+                            additionalHeaders);
+                    return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
                             optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null));
                 })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
@@ -465,12 +470,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     LOGGER.withCorrelationId(connectionCorrelationId)
                                             .info("WebSocket connection terminated because JWT expired!");
                                     return Source.empty();
-                                }).match(GatewayWebsocketSessionClosedException.class,
+                                })
+                        .match(GatewayWebsocketSessionClosedException.class,
                                 ex -> {
                                     LOGGER.withCorrelationId(connectionCorrelationId).info("WebSocket connection" +
                                             " terminated because authorization context changed!");
                                     return Source.empty();
                                 })
+                        .match(DittoRuntimeException.class, ex -> Source.single(SessionedJsonifiable.error(ex)))
                         .build());
 
         final Pair<Connect, Source<SessionedJsonifiable, NotUsed>> sourcePair =
@@ -762,12 +769,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
 
         @Override
-        public void supervise(final ActorRef webSocketActor, final CharSequence connectionCorrelationId,
+        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
                 final DittoHeaders dittoHeaders) {
 
             // Does nothing.
         }
-
     }
 
 }

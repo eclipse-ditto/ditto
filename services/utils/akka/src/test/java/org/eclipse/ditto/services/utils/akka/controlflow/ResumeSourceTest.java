@@ -25,7 +25,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
 import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.StreamLimitReachedException;
 import akka.stream.javadsl.Sink;
@@ -42,7 +41,6 @@ import akka.testkit.javadsl.TestKit;
 public final class ResumeSourceTest {
 
     private ActorSystem system;
-    private ActorMaterializer mat;
     private TestPublisher.Probe<Integer> sourceProbe;
     private TestSubscriber.Probe<Integer> sinkProbe;
     private Source<Integer, NotUsed> testSource;
@@ -51,13 +49,12 @@ public final class ResumeSourceTest {
     @Before
     public void init() {
         system = ActorSystem.create();
-        mat = ActorMaterializer.create(system);
 
         rematerializeSource();
 
         // materialize sink once - it never fails.
         final Sink<Integer, TestSubscriber.Probe<Integer>> sink = TestSink.probe(system);
-        final Pair<TestSubscriber.Probe<Integer>, Sink<Integer, NotUsed>> sinkPair = sink.preMaterialize(mat);
+        final Pair<TestSubscriber.Probe<Integer>, Sink<Integer, NotUsed>> sinkPair = sink.preMaterialize(system);
         sinkProbe = sinkPair.first();
         testSink = sinkPair.second();
     }
@@ -75,7 +72,7 @@ public final class ResumeSourceTest {
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), -1);
 
-            underTest.runWith(testSink, mat);
+            underTest.runWith(testSink, system);
 
             // start stream with demand
             sinkProbe.request(100L);
@@ -97,7 +94,7 @@ public final class ResumeSourceTest {
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), -1);
 
-            underTest.runWith(testSink, mat);
+            underTest.runWith(testSink, system);
 
             // start stream with demand
             sinkProbe.request(2L);
@@ -117,7 +114,7 @@ public final class ResumeSourceTest {
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), -1);
 
-            underTest.runWith(testSink, mat);
+            underTest.runWith(testSink, system);
 
             // start stream with demand
             sinkProbe.request(100L);
@@ -157,7 +154,7 @@ public final class ResumeSourceTest {
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), 0);
 
-            underTest.runWith(testSink, mat);
+            underTest.runWith(testSink, system);
 
             // start stream with demand
             sinkProbe.request(100L);
@@ -177,7 +174,7 @@ public final class ResumeSourceTest {
 
     private void rematerializeSource() {
         final Source<Integer, TestPublisher.Probe<Integer>> source = TestSource.probe(system);
-        final Pair<TestPublisher.Probe<Integer>, Source<Integer, NotUsed>> sourcePair = source.preMaterialize(mat);
+        final Pair<TestPublisher.Probe<Integer>, Source<Integer, NotUsed>> sourcePair = source.preMaterialize(system);
         sourceProbe = sourcePair.first();
         testSource = sourcePair.second();
     }

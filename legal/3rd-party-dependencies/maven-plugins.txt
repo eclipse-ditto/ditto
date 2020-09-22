@@ -1,6 +1,6 @@
 com.github.siom79.japicmp:japicmp-maven-plugin:maven-plugin:0.14.3:runtime
 com.mycila:license-maven-plugin:maven-plugin:3.0:runtime
-net.alchim31.maven:scala-maven-plugin:maven-plugin:4.1.0:runtime
+net.alchim31.maven:scala-maven-plugin:maven-plugin:4.4.0:runtime
 org.apache.felix:maven-bundle-plugin:maven-plugin:4.2.1:runtime
 org.apache.maven.plugins:maven-assembly-plugin:maven-plugin:3.1.0:runtime
 org.apache.maven.plugins:maven-clean-plugin:maven-plugin:2.5:runtime

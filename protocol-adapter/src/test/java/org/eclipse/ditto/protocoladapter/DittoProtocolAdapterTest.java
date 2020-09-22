@@ -422,12 +422,12 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void acknowledgementToAdaptable() {
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+                Acknowledgement.of(AcknowledgementLabel.of("my-twin-persisted"), ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
 
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acknowledgement);
 
         assertThat(adaptable.getTopicPath())
-                .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks/twin-persisted"));
+                .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks/my-twin-persisted"));
         assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
         assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.CONTINUE);
     }

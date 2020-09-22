@@ -13,23 +13,15 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
-import akka.actor.ActorRef;
+import org.eclipse.ditto.services.gateway.streaming.actors.StreamSupervisor;
+import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 
 /**
- * Provides the means to supervise a particular SSE connection actor.
+ * Provides the means to supervise a particular SSE connection.
  */
-public interface SseConnectionSupervisor {
+public interface SseConnectionSupervisor extends StreamSupervisor {
 
-    /**
-     * Supervises the given SSE connection actor.
-     *
-     * @param sseConnectionActor the SSE connection actor to be supervised.
-     * @param connectionCorrelationId the correlation ID of the SSE connection to be supervised.
-     * @param dittoHeaders provide information which may be useful for supervision.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code connectionCorrelationId} is empty.
-     */
-    void supervise(ActorRef sseConnectionActor, CharSequence connectionCorrelationId, DittoHeaders dittoHeaders);
+    @Override
+    void supervise(SupervisedStream supervisedStream, CharSequence connectionCorrelationId, DittoHeaders dittoHeaders);
 
 }

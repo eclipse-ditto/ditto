@@ -56,15 +56,15 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
      * @param event provides modified paths and headers.
      * @param entity provides existing metadata to be extended.
      * @return the instance.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code event} is {@code null}.
      */
-    public static MetadataFromEvent of(final Event<?> event, final Entity<?> entity) {
-        return new MetadataFromEvent(checkNotNull(event, "event"), getMetadataOrNull(checkNotNull(entity, "entity")));
+    public static MetadataFromEvent of(final Event<?> event, @Nullable final Entity<?> entity) {
+        return new MetadataFromEvent(checkNotNull(event, "event"), getMetadataOrNull(entity));
     }
 
     @Nullable
-    private static Metadata getMetadataOrNull(final Entity<?> entity) {
-        return entity.getMetadata().orElse(null);
+    private static Metadata getMetadataOrNull(@Nullable final Entity<?> entity) {
+        return null == entity ? null : entity.getMetadata().orElse(null);
     }
 
     /**

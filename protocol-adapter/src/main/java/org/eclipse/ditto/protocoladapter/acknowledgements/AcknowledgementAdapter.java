@@ -26,6 +26,8 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabelExternalUseForbiddenException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -98,6 +100,12 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         final TopicPath topicPath = adaptable.getTopicPath();
         return topicPath.getSubject()
                 .map(AcknowledgementLabel::of)
+                .map(ackLabel ->  {
+                    if (DittoAcknowledgementLabel.contains(ackLabel)) {
+                        throw new DittoAcknowledgementLabelExternalUseForbiddenException(ackLabel);
+                    }
+                    return ackLabel;
+                })
                 .orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPath)
                         .description("Adaptable TopicPath for Acknowledgement did not contain required <subject> value")
                         .build());
@@ -111,6 +119,9 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     @Override
     public Adaptable toAdaptable(final Acknowledgement acknowledgement, final TopicPath.Channel channel) {
+        if (DittoAcknowledgementLabel.contains(acknowledgement.getLabel())) {
+            throw new DittoAcknowledgementLabelExternalUseForbiddenException(acknowledgement.getLabel());
+        }
         return Adaptable.newBuilder(getTopicPath(acknowledgement, channel))
                 .withPayload(getPayload(acknowledgement))
                 .withHeaders(getExternalHeaders(acknowledgement.getDittoHeaders()))
