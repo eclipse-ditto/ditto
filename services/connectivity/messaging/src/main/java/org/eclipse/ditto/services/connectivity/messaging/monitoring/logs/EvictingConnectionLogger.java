@@ -135,7 +135,11 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
-        exception(infoProvider, defaultExceptionMessage);
+        if (null != exception) {
+            exception(infoProvider, defaultExceptionMessage, exception.getMessage());
+        } else {
+            exception(infoProvider, defaultExceptionMessage, FALLBACK_EXCEPTION_TEXT);
+        }
     }
 
     @Override

@@ -151,7 +151,7 @@ final class ConnectionLoggerFactory {
             case PUBLISHED:
                 builder.withDefaultSuccessMessage("Successfully published signal.")
                         .withDefaultFailureMessage("Ran into a failure when publishing signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when publishing signal.")
+                        .withDefaultExceptionMessage("Unexpected failure when publishing signal: {0}")
                         .logHeadersAndPayload();
                 break;
             default:

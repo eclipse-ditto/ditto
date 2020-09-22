@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
@@ -275,6 +276,46 @@ public final class EvictingConnectionLoggerTest {
     }
 
     @Test
+    public void exceptionsUsesMessageOfExceptionOrElseDefault() {
+        final String defaultSuccessMessage = "this is a success";
+        final String defaultFailureMessage = "this is also success";
+        final String defaultExceptionMessage = "hey there: {0}";
+
+        final String test = "test";
+        final String notSpecified = "not specified";
+
+        final EvictingConnectionLogger logger = builder()
+                .withDefaultSuccessMessage(defaultSuccessMessage)
+                .withDefaultFailureMessage(defaultFailureMessage)
+                .withDefaultExceptionMessage(defaultExceptionMessage).build();
+
+        logger.exception(randomInfoProvider(), new Exception(test));
+        LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
+                .hasMessage(formatString(defaultExceptionMessage, test));
+
+        logger.clear();
+        logger.exception(randomInfoProvider(), null);
+        LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
+                .hasMessage(formatString(defaultExceptionMessage, notSpecified));
+
+        final String withoutFormatting = "withoutAnyFormatting";
+
+        final EvictingConnectionLogger logger1 = builder()
+                .withDefaultSuccessMessage(defaultSuccessMessage)
+                .withDefaultFailureMessage(defaultFailureMessage)
+                .withDefaultExceptionMessage(withoutFormatting).build();
+
+        logger1.exception(randomInfoProvider(), new Exception(test));
+        LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger1))
+                .hasMessage(withoutFormatting);
+
+        logger1.clear();
+        logger1.exception(randomInfoProvider(), null);
+        LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger1))
+                .hasMessage(withoutFormatting);
+    }
+
+    @Test
     public void failureDoesntFailOnNullException() {
         final EvictingConnectionLogger logger = builder().build();
 
@@ -319,6 +360,10 @@ public final class EvictingConnectionLoggerTest {
         Stream.iterate(0, UnaryOperator.identity())
                 .limit(n)
                 .forEach(unused -> logger.accept(randomInfoProvider()));
+    }
+
+    private String formatString(final String format, final String value) {
+        return new MessageFormat(format).format(new Object[] {value});
     }
 
     private LogEntry getFirstAndOnlyEntry(final ConnectionLogger logger) {
