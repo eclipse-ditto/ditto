@@ -41,7 +41,7 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 
 /**
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
@@ -94,7 +94,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
         jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
         subscriptionManagerProps =
                 SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator, conciergeForwarder,
-                        ActorMaterializer.create(getContext()));
+                        Materializer.createMaterializer(getContext()));
         scheduleScrapeStreamSessionsCounter();
     }
 
