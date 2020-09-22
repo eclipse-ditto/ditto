@@ -47,10 +47,8 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.protobuf.ByteString;
-
 /**
- * Tests {@link org.eclipse.ditto.services.connectivity.mapping.RawMessageMapper}.
+ * Tests {@link RawMessageMapper}.
  */
 public final class RawMessageMapperTest {
 
@@ -102,8 +100,8 @@ public final class RawMessageMapperTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getBytePayload()).satisfies(byteBufferOptional -> {
             assertThat(byteBufferOptional).isNotEmpty();
-            assertThat(ByteString.copyFrom(byteBufferOptional.get()))
-                    .isEqualTo(ByteString.copyFrom(new byte[]{1, 2, 3, 4, 5, 6}));
+            assertThat(byteBufferOptional.get())
+                    .isEqualTo(ByteBuffer.wrap(new byte[]{1, 2, 3, 4, 5, 6}));
         });
         assertThat(result.get(0).getTextPayload()).isEmpty();
         assertThat(result.get(0).getHeaders()).containsAllEntriesOf(message.getHeaders());
@@ -183,10 +181,10 @@ public final class RawMessageMapperTest {
                 "ditto-message-subject", "hello/world",
                 "ditto-message-thing-id", "thing:id"
         );
-        final ByteString payload = ByteString.copyFrom(new byte[]{1, 2, 3, 4, 5, 6});
+        final ByteBuffer payload = ByteBuffer.wrap(new byte[]{1, 2, 3, 4, 5, 6});
         final List<Adaptable> adaptables =
                 underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
-                        .withBytes(payload.toByteArray())
+                        .withBytes(payload.array())
                         .build());
         assertThat(adaptables).hasSize(1);
         assertThat(adaptables.get(0).getPayload().getValue()).contains(JsonValue.of("AQIDBAUG"));
@@ -194,7 +192,7 @@ public final class RawMessageMapperTest {
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
         assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
-        assertThat(ByteString.copyFrom(sendThingMessage.getMessage().getRawPayload().orElseThrow())).isEqualTo(payload);
+        assertThat(sendThingMessage.getMessage().getRawPayload().orElseThrow()).isEqualTo(payload);
     }
 
     @Test

@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
@@ -83,7 +82,7 @@ public final class Resolvers {
         final Adaptable adaptable = mappedOutboundSignal.getAdaptable();
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator -> creator.create(adaptable.getHeaders().orElse(DittoHeaders.empty()), signal,
+                        .map(creator -> creator.create(adaptable.getDittoHeaders(), signal,
                                 externalMessage.getTopicPath().orElse(null),
                                 signal.getDittoHeaders().getAuthorizationContext()))
                         .toArray(PlaceholderResolver[]::new)

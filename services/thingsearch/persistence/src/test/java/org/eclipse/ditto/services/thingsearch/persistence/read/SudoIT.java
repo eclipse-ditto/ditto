@@ -63,7 +63,7 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
     public void generateNamespaceCountReport() {
         final SearchNamespaceReportResult namespaceReportResult =
                 readPersistence.generateNamespaceCountReport()
-                        .runWith(Sink.head(), actorMaterializer)
+                        .runWith(Sink.head(), actorSystem)
                         .toCompletableFuture()
                         .join();
 

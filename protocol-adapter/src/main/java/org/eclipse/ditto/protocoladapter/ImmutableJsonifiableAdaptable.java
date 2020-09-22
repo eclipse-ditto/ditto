@@ -88,6 +88,7 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
     }
 
     @Override
+    @Deprecated
     public Optional<DittoHeaders> getHeaders() {
         return delegateAdaptable.getHeaders();
     }
@@ -99,7 +100,7 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
 
     @Override
     public JsonObject toJson() {
-        return toJson(getHeaders().orElse(ProtocolFactory.emptyHeaders()));
+        return toJson(getDittoHeaders());
     }
 
     @Override

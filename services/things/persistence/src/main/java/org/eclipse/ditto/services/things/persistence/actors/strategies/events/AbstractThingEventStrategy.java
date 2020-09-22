@@ -56,7 +56,8 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return null;
     }
 
-    private ThingBuilder.FromCopy setMetadata(final T event, final Thing thing, final ThingBuilder.FromCopy builder) {
+    private ThingBuilder.FromCopy setMetadata(final T event, @Nullable final Thing thing,
+            final ThingBuilder.FromCopy builder) {
         final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
         return builder.setMetadata(metadataFromEvent.get());
     }

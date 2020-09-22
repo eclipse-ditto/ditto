@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -69,20 +70,6 @@ public final class MessageCommandAckRequestSetterTest {
     }
 
     @Test
-    public void doNothingIfNoResponseRequired() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .channel("live")
-                .responseRequired(false)
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
-                .randomCorrelationId()
-                .build();
-        final MessageCommand<?, ?> command = SendThingMessage.of(THING_ID, MESSAGE, dittoHeaders);
-        final MessageCommandAckRequestSetter underTest = MessageCommandAckRequestSetter.getInstance();
-
-        assertThat(underTest.apply(command)).isEqualTo(command);
-    }
-
-    @Test
     public void addLiveResponseAckLabelByDefault() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .channel("live")
@@ -96,6 +83,51 @@ public final class MessageCommandAckRequestSetterTest {
         final MessageCommandAckRequestSetter underTest = MessageCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(expected);
+    }
+
+    @Test
+    public void removeLiveResponseAckLabelWhenResponseRequiredFalse() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .channel("live")
+                .responseRequired(false)
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .randomCorrelationId()
+                .build();
+        final MessageCommand<?, ?> command = SendThingMessage.of(THING_ID, MESSAGE, dittoHeaders);
+        final DittoHeaders expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .acknowledgementRequests(Collections.emptyList())
+                .responseRequired(false)
+                .build();
+        final MessageCommand<?, ?> expected = command.setDittoHeaders(expectedHeaders);
+        final MessageCommandAckRequestSetter underTest = MessageCommandAckRequestSetter.getInstance();
+
+        final MessageCommand<?, ?> appliedCommand = underTest.apply(command);
+        assertThat(appliedCommand.getDittoHeaders()).isEqualTo(expectedHeaders);
+        assertThat(appliedCommand).isEqualTo(expected);
+    }
+
+    @Test
+    public void removeLiveResponseAckLabelFromOthersWhenResponseRequiredFalse() {
+        final AcknowledgementRequest ackRequest1 = AcknowledgementRequest.of(AcknowledgementLabel.of("FOO"));
+        final AcknowledgementRequest ackRequest2 = AcknowledgementRequest.of(AcknowledgementLabel.of("BAR"));
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .channel("live")
+                .responseRequired(false)
+                .acknowledgementRequest(ackRequest1, AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE),
+                        ackRequest2)
+                .randomCorrelationId()
+                .build();
+        final MessageCommand<?, ?> command = SendThingMessage.of(THING_ID, MESSAGE, dittoHeaders);
+        final DittoHeaders expectedHeaders = DittoHeaders.newBuilder(dittoHeaders)
+                .acknowledgementRequest(ackRequest1, ackRequest2)
+                .responseRequired(false)
+                .build();
+        final MessageCommand<?, ?> expected = command.setDittoHeaders(expectedHeaders);
+        final MessageCommandAckRequestSetter underTest = MessageCommandAckRequestSetter.getInstance();
+
+        final MessageCommand<?, ?> appliedCommand = underTest.apply(command);
+        assertThat(appliedCommand.getDittoHeaders()).isEqualTo(expectedHeaders);
+        assertThat(appliedCommand).isEqualTo(expected);
     }
 
     @Test
@@ -118,7 +150,7 @@ public final class MessageCommandAckRequestSetterTest {
     }
 
     @Test
-    public void doNotAddLiveResponseAckLabelToAlreadyRequiredAckLabels() {
+    public void addLiveResponseAckLabelToAlreadyRequiredAckLabels() {
         final AcknowledgementRequest ackRequest1 = AcknowledgementRequest.of(AcknowledgementLabel.of("FOO"));
         final AcknowledgementRequest ackRequest2 = AcknowledgementRequest.of(AcknowledgementLabel.of("BAR"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -130,7 +162,15 @@ public final class MessageCommandAckRequestSetterTest {
         final MessageCommand<?, ?> command = SendThingMessage.of(THING_ID, MESSAGE, dittoHeaders);
         final MessageCommandAckRequestSetter underTest = MessageCommandAckRequestSetter.getInstance();
 
-        assertThat(underTest.apply(command)).isEqualTo(command);
+        final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                .acknowledgementRequest(ackRequest1, ackRequest2,
+                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .build();
+        final MessageCommand<?, ?> expectedCommand = command.setDittoHeaders(expectedHeaders);
+
+        final MessageCommand<?, ?> appliedCommand = underTest.apply(command);
+        assertThat(appliedCommand.getDittoHeaders()).isEqualTo(expectedHeaders);
+        assertThat(appliedCommand).isEqualTo(expectedCommand);
     }
 
 }

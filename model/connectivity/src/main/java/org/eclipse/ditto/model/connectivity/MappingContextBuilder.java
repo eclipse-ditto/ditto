@@ -13,13 +13,8 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
  * A builder for a {@link org.eclipse.ditto.model.connectivity.MappingContext} with a fluent API.

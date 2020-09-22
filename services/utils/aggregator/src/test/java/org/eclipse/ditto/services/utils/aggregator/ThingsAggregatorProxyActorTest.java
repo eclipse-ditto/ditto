@@ -46,8 +46,8 @@ public class ThingsAggregatorProxyActorTest {
             GatewayInternalErrorException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
     private static final RetrieveThings RETRIEVE_THINGS_COMMAND =
             RetrieveThings.getBuilder(ThingId.of("ditto", "thing"))
-            .dittoHeaders(DITTO_HEADERS)
-            .build();
+                    .dittoHeaders(DITTO_HEADERS)
+                    .build();
 
     private static ActorSystem actorSystem;
 

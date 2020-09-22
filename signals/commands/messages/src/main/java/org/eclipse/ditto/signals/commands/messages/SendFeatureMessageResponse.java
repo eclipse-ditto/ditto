@@ -14,7 +14,9 @@ package org.eclipse.ditto.signals.commands.messages;
 
 import static java.util.Objects.requireNonNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
@@ -68,6 +71,7 @@ public final class SendFeatureMessageResponse<T>
 
         super(TYPE, thingId, message, responseStatusCode, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The featureId cannot be null.");
+        validateMessageFeatureId(this.featureId, message, dittoHeaders);
     }
 
     @Override
@@ -157,6 +161,27 @@ public final class SendFeatureMessageResponse<T>
 
                     return of(thingId, featureId, message, statusCode, dittoHeaders);
                 });
+    }
+
+    private static void validateMessageFeatureId(final String expectedFeatureId, final Message<?> message,
+            final DittoHeaders dittoHeaders) {
+
+        final Optional<String> messageFeatureIdOptional = message.getFeatureId();
+        if (!messageFeatureIdOptional.isPresent()) {
+            final String msgPattern = "The Message did not contain a feature ID at all! Expected was feature ID <{0}>.";
+            throw FeatureIdInvalidException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, expectedFeatureId))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        final String messageFeatureId = messageFeatureIdOptional.get();
+        if (!messageFeatureId.equals(expectedFeatureId)) {
+            final String msgPattern = "The Message contained feature ID <{0}>. Expected was feature ID <{1}>.";
+            throw FeatureIdInvalidException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, messageFeatureId, expectedFeatureId))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     @Override

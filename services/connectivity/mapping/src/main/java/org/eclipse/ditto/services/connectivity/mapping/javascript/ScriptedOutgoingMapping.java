@@ -27,7 +27,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.script.Bindings;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -98,11 +97,11 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
             });
         } catch (final RhinoException e) {
             throw buildMessageMappingFailedException(e, MessageMapper.findContentType(adaptable).orElse(""),
-                    adaptable.getHeaders().orElseGet(DittoHeaders::empty));
+                    adaptable.getDittoHeaders());
         } catch (final Throwable e) {
             throw MessageMappingFailedException.newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
                     .description(e.getMessage())
-                    .dittoHeaders(adaptable.getHeaders().orElseGet(DittoHeaders::empty))
+                    .dittoHeaders(adaptable.getDittoHeaders())
                     .cause(e)
                     .build();
         }
@@ -139,7 +138,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
         } else {
             throw MessageMappingFailedException.newBuilder("")
                     .description("Neither <bytePayload> nor <textPayload> were defined in the outgoing script")
-                    .dittoHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
+                    .dittoHeaders(adaptable.getDittoHeaders())
                     .build();
         }
 

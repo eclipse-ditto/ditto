@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.metric.AtomicLongGauge;
+import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link Gauge}.
@@ -59,14 +59,14 @@ public class KamonGauge implements Gauge {
 
     @Override
     public void set(final Long value) {
-        getKamonInternalGauge().set(value);
+        getKamonInternalGauge().update(value);
     }
 
     @Override
     public Long get() {
         final kamon.metric.Gauge kamonInternalGauge = getKamonInternalGauge();
-        if (kamonInternalGauge instanceof AtomicLongGauge) {
-            return ((AtomicLongGauge) kamonInternalGauge).snapshot().value();
+        if (kamonInternalGauge instanceof kamon.metric.Gauge.Volatile) {
+            return (long) ((kamon.metric.Gauge.Volatile) kamonInternalGauge).snapshot(false);
         }
         throw new IllegalStateException("Could not get value from kamon gauge");
     }
@@ -103,13 +103,13 @@ public class KamonGauge implements Gauge {
      */
     @Override
     public boolean reset() {
-        getKamonInternalGauge().set(0);
+        getKamonInternalGauge().update(0);
         LOGGER.trace("Reset histogram with name <{}>.", name);
         return true;
     }
 
     private kamon.metric.Gauge getKamonInternalGauge() {
-        return Kamon.gauge(name).refine(tags);
+        return Kamon.gauge(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
 

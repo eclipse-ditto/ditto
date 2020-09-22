@@ -40,7 +40,6 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -52,7 +51,6 @@ import akka.testkit.javadsl.TestKit;
 public final class BulkWriteResultAckFlowTest {
 
     private final ActorSystem actorSystem = ActorSystem.create();
-    private final ActorMaterializer materializer = ActorMaterializer.create(actorSystem);
     private final TestProbe updaterShardProbe = TestProbe.apply("updater", actorSystem);
     private final BulkWriteResultAckFlow underTest = BulkWriteResultAckFlow.of(updaterShardProbe.ref());
 
@@ -150,7 +148,7 @@ public final class BulkWriteResultAckFlowTest {
     private String runBulkWriteResultAckFlowAndGetFirstLogEntry(final WriteResultAndErrors writeResultAndErrors) {
         return Source.single(writeResultAndErrors)
                 .via(underTest.start())
-                .runWith(Sink.head(), materializer)
+                .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
                 .join();
     }

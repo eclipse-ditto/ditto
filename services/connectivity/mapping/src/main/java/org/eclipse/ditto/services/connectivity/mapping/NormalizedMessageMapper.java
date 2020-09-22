@@ -133,7 +133,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         builder.set(Payload.JsonFields.PATH, payload.getPath().toString());
         payload.getFields().ifPresent(fields -> builder.set(Payload.JsonFields.FIELDS, fields.toString()));
         builder.set(JsonifiableAdaptable.JsonFields.HEADERS,
-                dittoHeadersToJson(adaptable.getHeaders().orElse(DittoHeaders.empty())));
+                dittoHeadersToJson(adaptable.getDittoHeaders()));
         return builder.build();
     }
 

@@ -18,7 +18,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
@@ -48,6 +53,33 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
                 .setCreated(TIMESTAMP)
+                .build();
+
+        assertThat(thingWithEventApplied).isEqualTo(expected);
+    }
+
+    @Test
+    public void appliesThingCreatedWithMetadata() {
+        final ThingCreatedStrategy strategy = new ThingCreatedStrategy();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("*/answer")), JsonValue.of(42))
+                .build();
+        final ThingCreated event = ThingCreated.of(THING, REVISION, TIMESTAMP, dittoHeaders);
+
+        final Thing thingWithEventApplied = strategy.handle(event, null, NEXT_REVISION);
+
+        final JsonObject metadataJson = JsonObject.newBuilder()
+                .set("answer", 42)
+                .build();
+
+        final Thing expected = THING.toBuilder()
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
+                .setCreated(TIMESTAMP)
+                .setMetadata(Metadata.newBuilder()
+                        .set(Thing.JsonFields.ID.getPointer(), metadataJson)
+                        .build())
                 .build();
 
         assertThat(thingWithEventApplied).isEqualTo(expected);

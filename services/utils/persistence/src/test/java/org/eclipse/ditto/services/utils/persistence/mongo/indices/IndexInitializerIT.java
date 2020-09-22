@@ -22,8 +22,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
@@ -41,7 +41,8 @@ import com.mongodb.MongoCommandException;
 
 import akka.Done;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -90,11 +91,11 @@ public final class IndexInitializerIT {
 
     @Nullable private static MongoDbResource mongoResource;
 
-    @Nullable private ActorSystem system;
-    @Nullable private ActorMaterializer materializer;
-    @Nullable private DittoMongoClient mongoClient;
-    @Nullable private IndexInitializer indexInitializerUnderTest;
-    @Nullable private IndexOperations indexOperations;
+    private ActorSystem system;
+    private Materializer materializer;
+    private DittoMongoClient mongoClient;
+    private IndexInitializer indexInitializerUnderTest;
+    private IndexOperations indexOperations;
 
     @BeforeClass
     public static void startMongoResource() {
@@ -102,7 +103,6 @@ public final class IndexInitializerIT {
         mongoResource.start();
     }
 
-    @SuppressWarnings("ConstantConditions")
     @AfterClass
     public static void stopMongoResource() {
         if (mongoResource != null) {
@@ -113,7 +113,7 @@ public final class IndexInitializerIT {
     @Before
     public void before() {
         system = ActorSystem.create("AkkaTestSystem");
-        materializer = ActorMaterializer.create(system);
+        materializer = SystemMaterializer.get(system).materializer();
 
         requireNonNull(mongoResource);
         requireNonNull(materializer);
@@ -225,8 +225,10 @@ public final class IndexInitializerIT {
         // WHEN / THEN
         final List<Index> newIndices = Arrays.asList(INDEX_BAR,
                 INDEX_FOO_CONFLICTING_NAME_OPTION, INDEX_BAZ);
-        assertThatExceptionOfType(MongoCommandException.class).isThrownBy(() -> initialize(collectionName, newIndices))
-                .satisfies(e -> assertThat(e.getErrorCode()).isEqualTo(MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE));
+        assertThatExceptionOfType(CompletionException.class).isThrownBy(() -> initialize(collectionName, newIndices))
+                .withCauseInstanceOf(MongoCommandException.class)
+                .satisfies(e -> assertThat(((MongoCommandException) e.getCause()).getErrorCode())
+                        .isEqualTo(MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE));
         // verify that bar has been created nevertheless (cause it has been initialized before the error), in
         // contrast to baz
         assertIndices(collectionName, Arrays.asList(INDEX_BAR, INDEX_FOO));
@@ -289,18 +291,8 @@ public final class IndexInitializerIT {
                 expectedIndices, true);
     }
 
-    private static <T> T runBlocking(final CompletionStage<T> completionStage) {
-        try {
-            return completionStage.toCompletableFuture().get();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw mapToRuntimeException(e);
-        } catch (final ExecutionException e) {
-            if (e.getCause() != null) {
-                throw mapToRuntimeException(e.getCause());
-            }
-            throw mapToRuntimeException(e);
-        }
+    private static <T> void runBlocking(final CompletionStage<T> completionStage) {
+        completionStage.toCompletableFuture().join();
     }
 
     private static RuntimeException mapToRuntimeException(final Throwable t) {

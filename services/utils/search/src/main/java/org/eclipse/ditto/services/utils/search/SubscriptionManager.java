@@ -44,7 +44,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -63,7 +63,7 @@ public final class SubscriptionManager extends AbstractActor {
     private final Duration idleTimeout;
     private final ActorRef pubSubMediator;
     private final ActorRef proxyActor;
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
     private final DittoDiagnosticLoggingAdapter log;
 
     private final int defaultPageSize;
@@ -74,7 +74,7 @@ public final class SubscriptionManager extends AbstractActor {
     SubscriptionManager(final Duration idleTimeout,
             final ActorRef pubSubMediator,
             final ActorRef proxyActor,
-            final ActorMaterializer materializer) {
+            final Materializer materializer) {
         this.idleTimeout = idleTimeout;
         this.pubSubMediator = pubSubMediator;
         this.proxyActor = proxyActor;
@@ -99,7 +99,7 @@ public final class SubscriptionManager extends AbstractActor {
     public static Props props(final Duration idleTimeout,
             final ActorRef pubSubMediator,
             final ActorRef proxyActor,
-            final ActorMaterializer materializer) {
+            final Materializer materializer) {
 
         return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, proxyActor, materializer);
     }

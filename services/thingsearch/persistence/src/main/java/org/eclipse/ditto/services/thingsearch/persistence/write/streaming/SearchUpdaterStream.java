@@ -32,11 +32,10 @@ import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
+import akka.actor.ActorContext;
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.dispatch.MessageDispatcher;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -119,16 +118,15 @@ public final class SearchUpdaterStream {
     /**
      * Start a perpetual search updater stream killed only by the kill-switch.
      *
-     * @param actorRefFactory where to create actors for this stream.
+     * @param actorContext where to create actors for this stream.
      * @return kill-switch to terminate the stream.
      */
-    public KillSwitch start(final ActorRefFactory actorRefFactory) {
+    public KillSwitch start(final ActorContext actorContext) {
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
-        final ActorMaterializer actorMaterializer = ActorMaterializer.create(actorRefFactory);
         return restartSource.viaMat(KillSwitches.single(), Keep.right())
                 .toMat(restartSink, Keep.left())
-                .run(actorMaterializer);
+                .run(actorContext.system());
     }
 
     private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {

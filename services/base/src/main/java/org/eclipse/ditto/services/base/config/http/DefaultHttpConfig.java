@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.base.config.http;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,10 +33,12 @@ public final class DefaultHttpConfig implements HttpConfig, WithConfigPath {
 
     private final String hostname;
     private final int port;
+    private final Duration coordinatedShutdownTimeout;
 
     private DefaultHttpConfig(final ConfigWithFallback config) {
         hostname = config.getString(HttpConfigValue.HOSTNAME.getConfigPath());
         port = config.getInt(HttpConfigValue.PORT.getConfigPath());
+        coordinatedShutdownTimeout = config.getDuration(HttpConfigValue.COORDINATED_SHUTDOWN_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -59,6 +62,11 @@ public final class DefaultHttpConfig implements HttpConfig, WithConfigPath {
         return port;
     }
 
+    @Override
+    public Duration getCoordinatedShutdownTimeout() {
+        return coordinatedShutdownTimeout;
+    }
+
     /**
      * @return always {@value #CONFIG_PATH}.
      */
@@ -76,12 +84,14 @@ public final class DefaultHttpConfig implements HttpConfig, WithConfigPath {
             return false;
         }
         final DefaultHttpConfig that = (DefaultHttpConfig) o;
-        return port == that.port && Objects.equals(hostname, that.hostname);
+        return port == that.port
+                && Objects.equals(hostname, that.hostname)
+                && Objects.equals(coordinatedShutdownTimeout, that.coordinatedShutdownTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hostname, port);
+        return Objects.hash(hostname, port, coordinatedShutdownTimeout);
     }
 
     @Override
@@ -89,6 +99,7 @@ public final class DefaultHttpConfig implements HttpConfig, WithConfigPath {
         return getClass().getSimpleName() + " [" +
                 "hostname=" + hostname +
                 ", port=" + port +
+                ", coordinatedShutdownTimeout=" + coordinatedShutdownTimeout +
                 "]";
     }
 

@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collections;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
@@ -46,7 +48,7 @@ public final class ThingLiveCommandAckRequestSetterTest {
     }
 
     @Test
-    public void doNothingIfNoResponseRequired() {
+    public void removeLiveResponseAckLabelIfNoResponseRequired() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .channel("live")
                 .responseRequired(false)
@@ -56,7 +58,12 @@ public final class ThingLiveCommandAckRequestSetterTest {
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
 
-        assertThat(underTest.apply(command)).isEqualTo(command);
+        final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                .acknowledgementRequests(Collections.emptyList())
+                .build();
+        final CreateThing expectedCommand = command.setDittoHeaders(expectedHeaders);
+
+        assertThat(underTest.apply(command)).isEqualTo(expectedCommand);
     }
 
     @Test
@@ -95,7 +102,7 @@ public final class ThingLiveCommandAckRequestSetterTest {
     }
 
     @Test
-    public void doNotAddLiveResponseAckLabelToAlreadyRequiredAckLabels() {
+    public void addLiveResponseAckLabelToAlreadyRequiredAckLabels() {
         final AcknowledgementRequest ackRequest1 = AcknowledgementRequest.of(AcknowledgementLabel.of("FOO"));
         final AcknowledgementRequest ackRequest2 = AcknowledgementRequest.of(AcknowledgementLabel.of("BAR"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -107,7 +114,13 @@ public final class ThingLiveCommandAckRequestSetterTest {
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
 
-        assertThat(underTest.apply(command)).isEqualTo(command);
+        final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                .acknowledgementRequest(ackRequest1, ackRequest2,
+                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .build();
+        final CreateThing expectedCommand = command.setDittoHeaders(expectedHeaders);
+
+        assertThat(underTest.apply(command)).isEqualTo(expectedCommand);
     }
 
 }

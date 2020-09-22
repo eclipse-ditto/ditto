@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -372,11 +371,10 @@ public final class MessageMappingProcessor {
         } catch (final DittoRuntimeException e) {
             result = resultHandler.combineResults(result, resultHandler.onException(e));
         } catch (final Exception e) {
-            final Optional<DittoHeaders> headers = adaptable.getHeaders();
-            final String contentType = headers.map(h -> h.get(ExternalMessage.CONTENT_TYPE_HEADER)).orElse("");
+            final DittoHeaders headers = adaptable.getDittoHeaders();
+            final String contentType = headers.getOrDefault(ExternalMessage.CONTENT_TYPE_HEADER, "");
             final MessageMappingFailedException mappingFailedException =
-                    buildMappingFailedException("outbound", contentType, mapper.getId(),
-                            headers.orElseGet(DittoHeaders::empty), e);
+                    buildMappingFailedException("outbound", contentType, mapper.getId(), headers, e);
             result = resultHandler.combineResults(result, resultHandler.onException(mappingFailedException));
         }
         return result;

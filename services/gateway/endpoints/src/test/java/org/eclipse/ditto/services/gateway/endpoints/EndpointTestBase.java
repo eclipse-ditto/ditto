@@ -32,7 +32,15 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.gateway.util.config.endpoints.*;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultPublicHealthConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.PublicHealthConfig;
 import org.eclipse.ditto.services.gateway.util.config.health.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
@@ -57,13 +65,11 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 
 /**
  * Abstract base class for Endpoint tests for the gateway.
@@ -117,21 +123,6 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     }
 
     /**
-     * Returns the config used for testing.
-     *
-     * @return the config
-     */
-    protected Config getConfig() {
-        return systemResource().config();
-    }
-
-
-    protected ActorMaterializer actorMaterializer() {
-        // materializer is always of type ActorMaterializer (for akka-http-testkit_${scala.version}-10.0.4)
-        return (ActorMaterializer) materializer();
-    }
-
-    /**
      * Creates a actor which creates a dummy response message as response to all received messages.
      *
      * @return the actor
@@ -160,15 +151,6 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     protected HttpRequest withDevopsCredentials(final HttpRequest httpRequest) {
         return httpRequest.addCredentials(EndpointTestConstants.DEVOPS_CREDENTIALS);
-    }
-
-    protected String entityToString(final HttpEntity entity) {
-        final int timeoutMillis = 10_000;
-        return entity.toStrict(timeoutMillis, materializer())
-                .toCompletableFuture()
-                .join()
-                .getData()
-                .utf8String();
     }
 
     protected static void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {
@@ -215,7 +197,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         private static Optional<Object> echo(final Object m) {
             final DittoHeaders dittoHeaders;
             if (m instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders) m).getDittoHeaders();
+                dittoHeaders = ((WithDittoHeaders<?>) m).getDittoHeaders();
             } else {
                 dittoHeaders = DittoHeaders.empty();
             }
@@ -223,7 +205,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
                     new DummyThingModifyCommandResponse("testonly.response.type",
                             HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
                                     .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
-                            dittoHeaders, m instanceof Jsonifiable ? ((Jsonifiable) m).toJson() : null);
+                            dittoHeaders, m instanceof Jsonifiable ? ((Jsonifiable<?>) m).toJson() : null);
             return Optional.of(response);
         }
 

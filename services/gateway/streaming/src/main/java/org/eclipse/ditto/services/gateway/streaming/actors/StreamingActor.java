@@ -47,8 +47,8 @@ import akka.stream.ActorMaterializer;
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
  * Manages WebSocket configuration.
  */
-public final class StreamingActor extends AbstractActorWithTimers
-        implements RetrieveConfigBehavior, ModifyConfigBehavior {
+public final class StreamingActor extends AbstractActorWithTimers implements RetrieveConfigBehavior,
+        ModifyConfigBehavior {
 
     /**
      * The name of this Actor.
@@ -137,8 +137,6 @@ public final class StreamingActor extends AbstractActorWithTimers
     private Receive createConnectAndMetricsBehavior() {
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
-                    eventAndResponsePublisher.forward(connect, getContext());
                     final String sessionActorName = getUniqueChildActorName(connect.getConnectionCorrelationId());
                     final ActorRef streamingSessionActor = getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub,
