@@ -92,20 +92,21 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
      * @return the authentication result.
      */
     @Override
-    protected AuthenticationResult tryToAuthenticate(final RequestContext requestContext,
+    protected CompletableFuture<AuthenticationResult> tryToAuthenticate(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
 
         final Optional<JsonWebToken> jwtOptional = extractJwtFromRequest(requestContext);
         if (jwtOptional.isEmpty()) {
             LOGGER.withCorrelationId(dittoHeaders).debug("JWT is missing.");
-            return DefaultAuthenticationResult.failed(dittoHeaders, buildMissingJwtException(dittoHeaders));
+            return CompletableFuture.completedFuture(
+                    DefaultAuthenticationResult.failed(dittoHeaders, buildMissingJwtException(dittoHeaders)));
         }
 
         final CompletableFuture<AuthenticationResult> authenticationResultFuture =
                 getAuthenticationResult(jwtOptional.get(), dittoHeaders)
                         .exceptionally(throwable -> toFailedAuthenticationResult(throwable, dittoHeaders));
 
-        return waitForResult(authenticationResultFuture, dittoHeaders);
+        return failOnTimeout(authenticationResultFuture, dittoHeaders);
     }
 
     private static Optional<JsonWebToken> extractJwtFromRequest(final RequestContext requestContext) {

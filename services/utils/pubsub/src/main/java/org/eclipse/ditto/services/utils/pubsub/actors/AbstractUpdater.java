@@ -50,6 +50,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     // pseudo-random number generator for force updates. quality matters little.
     private final Random random = new Random();
 
+    // TODO: check if this should be thread-safe.
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     protected final PubSubConfig config;

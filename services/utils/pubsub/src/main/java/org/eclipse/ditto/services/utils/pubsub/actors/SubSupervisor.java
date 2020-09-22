@@ -26,7 +26,6 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Supervisor of actors dealing with subscriptions.
- * TODO: update picture
  * <pre>
  * {@code
  *     SubSupervisor

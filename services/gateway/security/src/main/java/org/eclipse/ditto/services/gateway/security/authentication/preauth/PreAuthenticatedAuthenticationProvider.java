@@ -16,6 +16,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -96,22 +97,23 @@ public final class PreAuthenticatedAuthenticationProvider
     }
 
     @Override
-    protected AuthenticationResult tryToAuthenticate(final RequestContext requestContext,
+    protected CompletableFuture<AuthenticationResult> tryToAuthenticate(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
 
         final Optional<String> preAuthOpt = getPreAuthenticated(requestContext);
 
         if (preAuthOpt.isEmpty()) {
-            return DefaultAuthenticationResult.failed(dittoHeaders, getAuthenticationFailedException(dittoHeaders));
+            return CompletableFuture.completedFuture(
+                    DefaultAuthenticationResult.failed(dittoHeaders, getAuthenticationFailedException(dittoHeaders)));
         }
 
         final String preAuthenticatedSubject = preAuthOpt.get();
 
         final List<AuthorizationSubject> authorizationSubjects = getAuthorizationSubjects(preAuthenticatedSubject);
         if (authorizationSubjects.isEmpty()) {
-            return toFailedAuthenticationResult(
+            return CompletableFuture.completedFuture(toFailedAuthenticationResult(
                     buildFailedToExtractAuthorizationSubjectsException(preAuthenticatedSubject, dittoHeaders),
-                    dittoHeaders);
+                    dittoHeaders));
         }
 
         final AuthorizationContext authContext =
@@ -121,7 +123,7 @@ public final class PreAuthenticatedAuthenticationProvider
         LOGGER.withCorrelationId(dittoHeaders)
                 .info("Pre-authentication has been applied resulting in AuthorizationContext <{}>.", authContext);
 
-        return DefaultAuthenticationResult.successful(dittoHeaders, authContext);
+        return CompletableFuture.completedFuture(DefaultAuthenticationResult.successful(dittoHeaders, authContext));
     }
 
     private static Optional<String> getPreAuthenticated(final RequestContext requestContext) {

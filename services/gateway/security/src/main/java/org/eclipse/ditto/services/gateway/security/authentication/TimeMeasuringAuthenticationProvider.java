@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.security.authentication;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Future;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -56,27 +56,47 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     }
 
     @Override
-    public final R authenticate(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
+    public final CompletableFuture<R> authenticate(final RequestContext requestContext,
+            final DittoHeaders dittoHeaders) {
         final AuthorizationContextType authorizationContextType = getType(requestContext);
         final StartedTimer timer = TraceUtils.newAuthFilterTimer(authorizationContextType).build();
+        CompletableFuture<R> resultFuture;
         try {
-            final R authenticationResult = tryToAuthenticate(requestContext, dittoHeaders);
-            timer.tag(AUTH_SUCCESS_TAG, authenticationResult.isSuccess());
-            return authenticationResult;
-        } catch (final DittoRuntimeException e) {
-            timer.tag(AUTH_SUCCESS_TAG, false);
-            if (isInternalError(e.getStatusCode())) {
-                logger.withCorrelationId(dittoHeaders)
-                        .warn("An unexpected error occurred during authentication of type <{}>.",
-                                authorizationContextType, e);
-                timer.tag(AUTH_ERROR_TAG, true);
-            }
-            return toFailedAuthenticationResult(e, dittoHeaders);
-        } catch (final Exception e) {
-            timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true);
-            return toFailedAuthenticationResult(e, dittoHeaders);
-        } finally {
-            timer.stop();
+            resultFuture = tryToAuthenticate(requestContext, dittoHeaders);
+        } catch (final Throwable e) {
+            resultFuture = CompletableFuture.failedFuture(e);
+        }
+        resultFuture = resultFuture.thenApply(
+                authenticationResult -> {
+                    timer.tag(AUTH_SUCCESS_TAG, authenticationResult.isSuccess());
+                    return authenticationResult;
+                })
+                .exceptionally(error -> {
+                    final Throwable rootCause = getRootCause(error);
+                    if (rootCause instanceof DittoRuntimeException) {
+                        final DittoRuntimeException e = (DittoRuntimeException) rootCause;
+                        timer.tag(AUTH_SUCCESS_TAG, false);
+                        if (isInternalError(e.getStatusCode())) {
+                            logger.withCorrelationId(dittoHeaders)
+                                    .warn("An unexpected error occurred during authentication of type <{}>.",
+                                            authorizationContextType, e);
+                            timer.tag(AUTH_ERROR_TAG, true);
+                        }
+                        return toFailedAuthenticationResult(e, dittoHeaders);
+                    } else {
+                        timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true);
+                        return toFailedAuthenticationResult(rootCause, dittoHeaders);
+                    }
+                });
+        resultFuture.whenComplete((result, error) -> timer.stop());
+        return resultFuture;
+    }
+
+    private static Throwable getRootCause(final Throwable error) {
+        if (error instanceof CompletionException && error.getCause() != null) {
+            return error.getCause();
+        } else {
+            return error;
         }
     }
 
@@ -100,7 +120,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      * @param dittoHeaders the (potentially not completely set) DittoHeaders of the request.
      * @return the authentication result.
      */
-    protected abstract R tryToAuthenticate(RequestContext requestContext, DittoHeaders dittoHeaders);
+    protected abstract CompletableFuture<R> tryToAuthenticate(RequestContext requestContext, DittoHeaders dittoHeaders);
 
     /**
      * Creates failed authentication result with a {@link AuthenticationResult#getReasonOfFailure() reason of failure}
@@ -158,8 +178,10 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
         return unwrapDittoRuntimeException(throwable.getCause(), dittoHeaders);
     }
 
-    protected R waitForResult(final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
-        return AuthenticationResultWaiter.of(authenticationResultFuture, dittoHeaders).get();
+    protected CompletableFuture<R> failOnTimeout(
+            final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
+        return AuthenticationResultWaiter.of(authenticationResultFuture, dittoHeaders).get()
+                .exceptionally(e -> toFailedAuthenticationResult(e, dittoHeaders));
     }
 
     protected static DittoRuntimeException buildInternalErrorException(final Throwable cause,
@@ -170,5 +192,4 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
                 .cause(cause)
                 .build();
     }
-
 }

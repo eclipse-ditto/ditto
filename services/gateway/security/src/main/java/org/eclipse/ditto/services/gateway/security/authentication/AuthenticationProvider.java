@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
@@ -39,6 +41,6 @@ public interface AuthenticationProvider<R extends AuthenticationResult> {
      * @param dittoHeaders the (potentially not completely set) DittoHeaders of the request.
      * @return the authentication result.
      */
-    R authenticate(RequestContext requestContext, DittoHeaders dittoHeaders);
+    CompletableFuture<R> authenticate(RequestContext requestContext, DittoHeaders dittoHeaders);
 
 }

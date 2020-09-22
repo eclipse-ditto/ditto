@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -160,7 +159,7 @@ public final class RootRoute extends AllDirectives {
                                         statsRoute.buildStatsRoute(correlationId), // /stats
                                         cachingHealthRoute.buildHealthRoute(), // /health
                                         api(ctx, correlationId, queryParameters), // /api
-                                        ws(ctx, correlationId), // /ws
+                                        ws(ctx, correlationId, queryParameters), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
                                         overallStatusRoute.buildOverallStatusRoute(), // /overall
                                         devopsRoute.buildDevOpsRoute(ctx, queryParameters) // /devops
@@ -304,7 +303,8 @@ public final class RootRoute extends AllDirectives {
      *
      * @return route for Websocket resource.
      */
-    private Route ws(final RequestContext ctx, final CharSequence correlationId) {
+    private Route ws(final RequestContext ctx, final CharSequence correlationId,
+            final Map<String, String> queryParameters) {
         return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
                         wsAuthentication(wsVersion, correlationId, initialHeadersBuilder -> {
@@ -312,7 +312,7 @@ public final class RootRoute extends AllDirectives {
                                             rootRouteHeadersStepBuilder
                                                     .withInitialDittoHeadersBuilder(initialHeadersBuilder)
                                                     .withRequestContext(ctx)
-                                                    .withQueryParameters(Collections.emptyMap())
+                                                    .withQueryParameters(queryParameters)
                                                     .build(CustomHeadersHandler.RequestType.WS);
 
                                     return withDittoHeaders(dittoHeadersPromise, dittoHeaders -> {
