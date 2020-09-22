@@ -34,25 +34,26 @@ public class PreparedKamonTimerTest {
     public void getRecords() {
         sut.record(1, TimeUnit.SECONDS);
         sut.record(5, TimeUnit.NANOSECONDS);
-        final Long[] records = sut.getRecords();
-        assertThat(records.length).isEqualTo(2);
-        assertThat(records[1]).isCloseTo(TimeUnit.SECONDS.toNanos(1), Percentage.withPercentage(1));
-        assertThat(records[0]).isCloseTo(TimeUnit.NANOSECONDS.toNanos(5), Percentage.withPercentage(1));
+
+        final Long totalTime = sut.getTotalTime();
+
+        final long expectedTotalTime = TimeUnit.SECONDS.toNanos(1) + TimeUnit.NANOSECONDS.toNanos(5);
+        assertThat(totalTime).isCloseTo(expectedTotalTime, Percentage.withPercentage(1));
     }
 
     @Test
     public void getRecordsDoesNotResetRecords() {
         sut.record(1, TimeUnit.SECONDS);
-        assertThat(sut.getRecords().length).isEqualTo(1);
-        assertThat(sut.getRecords().length).isEqualTo(1);
+        assertThat(sut.getTotalTime()).isGreaterThan(0);
+        assertThat(sut.getTotalTime()).isGreaterThan(0);
     }
 
     @Test
     public void reset() {
         sut.record(1, TimeUnit.SECONDS);
-        assertThat(sut.getRecords().length).isEqualTo(1);
+        assertThat(sut.getTotalTime()).isCloseTo(TimeUnit.SECONDS.toNanos(1), Percentage.withPercentage(1));
         sut.reset();
-        assertThat(sut.getRecords().length).isEqualTo(0);
+        assertThat(sut.getTotalTime()).isEqualTo(0);
     }
 
     @Test

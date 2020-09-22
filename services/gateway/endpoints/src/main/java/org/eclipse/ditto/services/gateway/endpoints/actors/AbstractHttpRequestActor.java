@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -71,7 +72,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
-import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpHeader;
@@ -100,8 +100,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
      */
     public static final String COMPLETE_MESSAGE = "complete";
 
-    private static final ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
-    private static final ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
+    private static final akka.http.javadsl.model.ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
+    private static final akka.http.javadsl.model.ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
 
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -323,14 +323,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                             responseWithoutHeaders, commandResponse.getDittoHeaders());
 
                     final Optional<String> entityPlainStringOptional = withEntity.getEntityPlainString();
+                    final ContentType contentType = getContentType(commandResponse.getDittoHeaders());
                     final HttpResponse response;
                     if (entityPlainStringOptional.isPresent()) {
                         response = addEntityAccordingToContentType(responseWithoutBody,
-                                entityPlainStringOptional.get(), commandResponse.getDittoHeaders());
+                                entityPlainStringOptional.get(), contentType);
                     } else {
                         response = addEntityAccordingToContentType(responseWithoutBody,
                                 withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
-                                commandResponse.getDittoHeaders());
+                                contentType);
                     }
                     completeWithResult(response);
                 })
@@ -389,26 +390,33 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
-            final Optional<ContentType> optionalContentType = message.getContentType().map(ContentType$.MODULE$::parse)
-                    .filter(Either::isRight)
-                    .map(Either::right)
-                    .map(Either.RightProjection::get);
+            // this is on purpose not .map(ContentTypes:parse) as this would throw an exception:
+            final Optional<akka.http.scaladsl.model.ContentType> optionalContentType =
+                    message.getContentType().map(ContentType$.MODULE$::parse)
+                            .filter(Either::isRight)
+                            .map(Either::right)
+                            .map(Either.RightProjection::get);
+
+            final boolean isBinary = optionalContentType
+                    .map(akka.http.scaladsl.model.ContentType::value)
+                    .map(ContentType::of)
+                    .filter(ContentType::isBinary)
+                    .isPresent();
 
             httpResponse = HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
 
-            if (optionalPayload.isPresent() && optionalContentType.isPresent()) {
+            if (optionalPayload.isPresent() && optionalContentType.isPresent() && !isBinary) {
+                final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
                 final Object payload = optionalPayload.get();
-                httpResponse = httpResponse.withEntity(
-                        HttpEntities.create(optionalContentType.get(), ByteString.fromString(payload.toString())));
-            } else if (optionalRawPayload.isPresent()) {
-
+                final ByteString responsePayload = ByteString.fromString(payload.toString());
+                httpResponse = httpResponse.withEntity(HttpEntities.create(contentType, responsePayload));
+            } else if (optionalRawPayload.isPresent() && optionalContentType.isPresent() && isBinary) {
+                final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
                 final ByteBuffer rawPayload = optionalRawPayload.get();
-                if (optionalContentType.isPresent()) {
-                    httpResponse = httpResponse.withEntity(
-                            HttpEntities.create(optionalContentType.get(), rawPayload.array()));
-                } else {
-                    httpResponse = httpResponse.withEntity(HttpEntities.create(rawPayload.array()));
-                }
+                httpResponse = httpResponse.withEntity(HttpEntities.create(contentType, rawPayload.array()));
+            } else if (optionalRawPayload.isPresent()) {
+                final ByteBuffer rawPayload = optionalRawPayload.get();
+                httpResponse = httpResponse.withEntity(HttpEntities.create(rawPayload.array()));
             }
         } else {
             // if payload was missing OR statusCode was NO_CONTENT:
@@ -464,8 +472,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
 
         logger.debug("Enhancing response with external headers <{}>.", externalHeaders);
-        final List<HttpHeader> externalHttpHeaders = new ArrayList<>(externalHeaders.size());
-        externalHeaders.forEach((k, v) -> externalHttpHeaders.add(RawHeader.create(k, v)));
+        final List<HttpHeader> externalHttpHeaders = externalHeaders
+                .entrySet()
+                .stream()
+                /*
+                 * Content type is set by the entity. See response.entity().getContentType().
+                 * If we set it here this will cause a WARN log.
+                 */
+                .filter(entry -> !entry.getKey().equalsIgnoreCase(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
+                .map(entry -> RawHeader.create(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
         logger.discardCorrelationId();
 
         return response.withHeaders(externalHttpHeaders);
@@ -498,16 +514,35 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
-            final DittoHeaders dittoHeaders) {
+            final ContentType contentType) {
 
-        return response.withEntity(getContentType(dittoHeaders), ByteString.fromString(entityPlain));
+        final ByteString byteString;
+
+        if (contentType.isBinary()) {
+            byteString = ByteString.fromArray(Base64.getDecoder().decode(entityPlain));
+        } else {
+            byteString = ByteString.fromString(entityPlain);
+        }
+
+        return response.withEntity(ContentTypes.parse(contentType.getValue()), byteString);
+    }
+
+    private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final JsonValue entity,
+            final ContentType contentType) {
+
+        final String entityString;
+
+        if (contentType.isJson()) {
+            entityString = entity.toString();
+        } else {
+            entityString = entity.asString();
+        }
+
+        return addEntityAccordingToContentType(response, entityString, contentType);
     }
 
     private static ContentType getContentType(final DittoHeaders dittoHeaders) {
-        if ("text/plain".equalsIgnoreCase(dittoHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.name()))) {
-            return CONTENT_TYPE_TEXT;
-        }
-        return CONTENT_TYPE_JSON;
+        return dittoHeaders.getDittoContentType().orElse(ContentType.APPLICATION_JSON);
     }
 
     private HttpResponse createCommandResponse(final DittoHeaders dittoHeaders, final HttpStatusCode statusCode,
@@ -535,17 +570,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion()
                     .orElse(dittoHeaders.getImplementedSchemaVersion());
             return withOptionalEntity.getEntity(schemaVersion)
-                    .map(entity -> addEntityAccordingToContentType(response, entity, dittoHeaders))
+                    .map(entity -> addEntityAccordingToContentType(response, entity, getContentType(dittoHeaders)))
                     .orElse(response);
         };
-    }
-
-    private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final JsonValue entity,
-            final DittoHeaders dittoHeaders) {
-
-        final ContentType contentType = getContentType(dittoHeaders);
-        final String entityString = CONTENT_TYPE_TEXT.equals(contentType) ? entity.asString() : entity.toString();
-        return response.withEntity(contentType, ByteString.fromString(entityString));
     }
 
     private static HttpResponse createHttpResponseWithHeadersAndBody(final HttpStatusCode statusCode,

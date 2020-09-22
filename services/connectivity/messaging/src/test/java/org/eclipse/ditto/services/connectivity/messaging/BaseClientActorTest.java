@@ -363,7 +363,7 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectCleanupResourcesCalledAfterTimeout(final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 200).atLeastOnce()).cleanupResourcesForConnection();
+        verify(delegate, timeout(connectingTimeout.toMillis() + 500).atLeastOnce()).cleanupResourcesForConnection();
     }
 
     private static void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection,

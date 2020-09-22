@@ -96,14 +96,6 @@ public final class MetadataFromEventTest {
     }
 
     @Test
-    public void tryToGetInstanceWithNullEntity() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> MetadataFromEvent.of(event, null))
-                .withMessage("The entity must not be null!")
-                .withNoCause();
-    }
-
-    @Test
     public void getMetadataWhenEventHasNoEntityAndEntityHasNullExistingMetadata() {
         Mockito.when(event.getEntity(Mockito.any())).thenReturn(Optional.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());

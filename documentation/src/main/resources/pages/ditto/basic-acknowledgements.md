@@ -286,9 +286,8 @@ successful update of twin in Ditto's managed database, [request the acknowledgem
 the [built-in "twin-persisted"](#built-in-acknowledgement-labels) acknowledgement label.
 
 ### Assure QoS until processing of a live command/message by a subscriber - live-response
-In order to ensure that a live command or live message is processed by a subscriber,
-[request the acknowledgement](#requesting-acks) for
-the [built-in "live-response"](#built-in-acknowledgement-labels) acknowledgement label.
+In order to ensure that a live command or live message is processed by a subscriber, set `response-required` to true.
+This way the [built-in "live-response" acknowledgement label](#built-in-acknowledgement-labels) is [automatically requested](#requesting-acks) for the live command/message.
 This acknowledgement request is fulfilled when the subscriber sends a live response or message response.
 
 ### Assure QoS until processing of a twin event or live command/message by subscribers - custom label
@@ -300,7 +299,7 @@ without any live or message response, [request the acknowledgement](#requesting-
 ## Interaction between headers
 Three headers control how Ditto responds to a command: `response-required`, `requested-acks`, `timeout`.
 * `response-required`: `true` or `false`.
-   It governs whether the user gets a (detailed) reply.
+   It governs whether the user gets a (detailed) reply. In case of a live message or a live command it also has impact on the `requested-acks`. If `response-required` is `true`, the acknowledgement label `live-response` will be added to `requested-acks` if not present. If it is `false`, the acknowledgement label `live-response` will be removed from `requested-acks` if present.
 * `requested-acks`: JSON array of acknowledgement requests.
    It determines the content of the response and transport-layer message settlement.
 * `timeout`: Duration.

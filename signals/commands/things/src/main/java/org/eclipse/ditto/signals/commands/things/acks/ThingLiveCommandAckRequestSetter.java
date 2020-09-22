@@ -60,4 +60,8 @@ public final class ThingLiveCommandAckRequestSetter extends AbstractCommandAckRe
         return (Class) ThingCommand.class;
     }
 
+    @Override
+    protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
+        return true;
+    }
 }

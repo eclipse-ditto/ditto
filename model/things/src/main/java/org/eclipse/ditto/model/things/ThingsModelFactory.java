@@ -560,6 +560,18 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Validates the given {@link JsonObject} containing only valid keys.
+     *
+     * @param jsonObject {@code jsonObject} that is validated
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code jsonObject} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.3.0
+     */
+    public static void validateJsonKeys(final JsonObject jsonObject) {
+        JsonKeyValidator.validateJsonKeys(jsonObject);
+    }
+
+    /**
      * Returns a new immutable empty {@link Metadata}.
      *
      * @return the new immutable empty {@code Metadata}.

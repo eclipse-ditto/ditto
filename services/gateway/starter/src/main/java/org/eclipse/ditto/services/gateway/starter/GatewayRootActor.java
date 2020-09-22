@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.agrona.concurrent.SystemEpochMicroClock;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
@@ -70,22 +68,18 @@ import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SystemMaterializer;
 
@@ -106,8 +100,7 @@ final class GatewayRootActor extends DittoRootActor {
     private final CompletionStage<ServerBinding> httpBinding;
 
     @SuppressWarnings("unused")
-    private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -166,23 +159,20 @@ final class GatewayRootActor extends DittoRootActor {
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
-                .bindAndHandle(routeWithLogging.flow(actorSystem, materializer),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
-
-        httpBinding.thenAccept(theBinding -> {
+                .newServerAt(hostname, httpConfig.getPort())
+                .bindFlow(routeWithLogging.flow(actorSystem))
+                .thenApply(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
-                    CoordinatedShutdown.get(actorSystem).addTask(
-                            CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
-                                log.info("Gracefully shutting down user HTTP endpoint ...");
-                                return theBinding.terminate(Duration.ofSeconds(10))
-                                        .handle((httpTerminated, e) -> Done.getInstance());
-                            });
-                }
-        ).exceptionally(failure -> {
-            log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            actorSystem.terminate();
-            return null;
-        });
+                    return theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), actorSystem);
+                })
+                .exceptionally(failure -> {
+                    log.error(failure,
+                            "Could not create the server binding for the Gateway route because of: <{}>",
+                            failure.getMessage());
+                    log.error("Terminating the actor system");
+                    actorSystem.terminate();
+                    return null;
+                });
     }
 
     /**
@@ -190,13 +180,11 @@ final class GatewayRootActor extends DittoRootActor {
      *
      * @param gatewayConfig the configuration settings of this service.
      * @param pubSubMediator the pub-sub mediator.
-     * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
-        return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator, materializer);
+        return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator);
     }
 
     @Override
@@ -206,7 +194,9 @@ final class GatewayRootActor extends DittoRootActor {
                     final ActorRef sender = getSender();
                     httpBinding.thenAccept(binding -> sender.tell(
                             GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
-                }).build().orElse(super.createReceive());
+                })
+                .build()
+                .orElse(super.createReceive());
     }
 
     private static Route createRoute(final ActorSystem actorSystem,

@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * Entry point of the Things Service.
@@ -60,10 +59,9 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator) {
 
-        return ThingsRootActor.props(thingsConfig, pubSubMediator, materializer,
+        return ThingsRootActor.props(thingsConfig, pubSubMediator,
                 DefaultThingPersistenceActorPropsFactory.getInstance());
     }
 

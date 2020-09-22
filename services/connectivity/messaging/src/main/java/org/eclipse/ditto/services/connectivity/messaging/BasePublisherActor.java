@@ -28,26 +28,35 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -57,9 +66,14 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -67,11 +81,14 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -151,39 +168,74 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final int quota = computeMaxAckPayloadBytesForSignal(multiMapped);
         final ExceptionToAcknowledgementConverter errorConverter = getExceptionConverter();
         final List<OutboundSignal.Mapped> mappedOutboundSignals = multiMapped.getMappedOutboundSignals();
-        final CompletableFuture<Acknowledgement>[] sendMonitorAndAckFutures = mappedOutboundSignals.stream()
+        final CompletableFuture<CommandResponseOrAcknowledgement>[] sendMonitorAndResponseFutures = mappedOutboundSignals.stream()
                 // message sending step
                 .flatMap(outbound -> sendMappedOutboundSignal(outbound, quota))
                 // monitor and acknowledge step
                 .flatMap(sendingOrDropped -> sendingOrDropped.monitorAndAcknowledge(errorConverter).stream())
                 // convert to completable future array for aggregation
                 .map(CompletionStage::toCompletableFuture)
-                .<CompletableFuture<Acknowledgement>>toArray(CompletableFuture[]::new);
+                .<CompletableFuture<CommandResponseOrAcknowledgement>>toArray(CompletableFuture[]::new);
 
-        final Signal<?> multiMappedSource = multiMapped.getSource();
-        aggregateNonNullFutures(sendMonitorAndAckFutures)
-                .thenAccept(ackList -> {
+        aggregateNonNullFutures(sendMonitorAndResponseFutures)
+                .thenAccept(responsesList -> {
                     final ActorRef sender = multiMapped.getSender().orElse(null);
-                    if (!ackList.isEmpty() && sender != null) {
-                        final Acknowledgements aggregatedAcks = appendConnectionId(
-                                Acknowledgements.of(ackList, multiMappedSource.getDittoHeaders()));
-                        if (logger.isDebugEnabled()) {
-                            logger.withCorrelationId(multiMappedSource)
-                                    .debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks);
-                        }
-                        sender.tell(aggregatedAcks, getSelf());
-                    } else if (ackList.isEmpty() && logger.isDebugEnabled()) {
-                        logger.withCorrelationId(multiMappedSource).debug("Message sent: No acks requested.");
-                    } else {
-                        logger.withCorrelationId(multiMappedSource)
-                                .error("Message sent: Acks requested, but no sender: <{}>", multiMappedSource);
-                    }
+
+                    final List<Acknowledgement> ackList = responsesList.stream()
+                            .map(CommandResponseOrAcknowledgement::getAcknowledgement)
+                            .flatMap(Optional::stream)
+                            .filter(this::shouldPublishAcknowledgement)
+                            .collect(Collectors.toList());
+                    issueAcknowledgements(multiMapped, sender, ackList);
+
+                    final List<CommandResponse<?>> nonAcknowledgementsResponses = responsesList.stream()
+                            .map(CommandResponseOrAcknowledgement::getCommandResponse)
+                            .flatMap(Optional::stream)
+                            .collect(Collectors.toList());
+                    sendBackResponses(multiMapped, sender, nonAcknowledgementsResponses);
                 })
                 .exceptionally(e -> {
-                    logger.withCorrelationId(multiMappedSource)
-                            .error("Message sending failed unexpectedly: <{}>", multiMapped, e);
+                    logger.withCorrelationId(multiMapped.getSource())
+                            .error(e, "Message sending failed unexpectedly: <{}>", multiMapped);
                     return null;
                 });
+    }
+
+    protected abstract boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement);
+
+    private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
+            final Collection<Acknowledgement> ackList) {
+
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
+        if (Objects.equals(sender, getSelf())) {
+            l.debug("Not sending acks <{}> because sender is this publisher actor," +
+                    " which can't handle acknowledgements.", ackList);
+        } else if (!ackList.isEmpty() && sender != null) {
+            final Acknowledgements aggregatedAcks = appendConnectionId(
+                    Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
+            l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks);
+            sender.tell(aggregatedAcks, getSelf());
+        } else if (ackList.isEmpty()) {
+            l.debug("Message sent: No acks requested.");
+        } else {
+            l.error("Message sent: Acks requested, but no sender: <{}>", multiMapped.getSource());
+        }
+    }
+
+    private void sendBackResponses(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
+            final Collection<CommandResponse<?>> nonAcknowledgementsResponses) {
+
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
+        if (!nonAcknowledgementsResponses.isEmpty() && sender != null) {
+            nonAcknowledgementsResponses.forEach(response -> {
+                l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender, response);
+                sender.tell(response, getSelf());
+            });
+        } else if (nonAcknowledgementsResponses.isEmpty()) {
+            l.debug("No CommandResponse created from HTTP response.");
+        } else {
+            l.error("CommandResponse created from HTTP response, but no sender: <{}>", multiMapped.getSource());
+        }
     }
 
     /**
@@ -247,7 +299,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final int acks = (int) sendingContexts.stream().filter(SendingContext::shouldAcknowledge).count();
             final int maxPayloadBytes = acks == 0 ? maxPayloadBytesForSignal : maxPayloadBytesForSignal / acks;
             return sendingContexts.stream()
-                    .map(sendingContext -> tryToPublishToGenericTarget(resolver, sendingContext, maxPayloadBytes, l));
+                    .map(sendingContext -> tryToPublishToGenericTarget(resolver, sendingContext,
+                            maxPayloadBytesForSignal, maxPayloadBytes, l));
         }
     }
 
@@ -319,11 +372,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private SendingOrDropped tryToPublishToGenericTarget(final ExpressionResolver resolver,
             final SendingContext sendingContext,
+            final int maxTotalMessageSize,
             final int quota,
             final ThreadSafeDittoLoggingAdapter logger) {
 
         try {
-            return publishToGenericTarget(resolver, sendingContext, quota, logger);
+            return publishToGenericTarget(resolver, sendingContext, maxTotalMessageSize, quota, logger);
         } catch (final Exception e) {
             return new Sending(sendingContext, CompletableFuture.failedFuture(e), logger);
         }
@@ -331,6 +385,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private SendingOrDropped publishToGenericTarget(final ExpressionResolver resolver,
             final SendingContext sendingContext,
+            final int maxTotalMessageSize,
             final int quota,
             final ThreadSafeDittoLoggingAdapter logger) {
 
@@ -348,10 +403,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final CompletionStage<Acknowledgement> ackFuture =
-                    publishMessage(outboundSource, autoAckTarget, publishTarget, mappedMessage, quota);
+            final CompletionStage<CommandResponseOrAcknowledgement> responsesFuture =
+                    publishMessage(outboundSource, autoAckTarget, publishTarget, mappedMessage,
+                                maxTotalMessageSize, quota);
             // set the external message after header mapping for the result of header mapping to show up in log
-            result = new Sending(sendingContext.setExternalMessage(mappedMessage), ackFuture, logger);
+            result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture, logger);
         } else {
             result = new Dropped(sendingContext);
         }
@@ -397,14 +453,18 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * produced and delivered.
      * @param publishTarget the {@link PublishTarget} to publish to.
      * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
+     * @param maxTotalMessageSize the total max message size in bytes of the payload of an automatically created
+     * response.
      * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not
      * send any acknowledgement.
-     * @return future of acknowledgement to reply to sender, or future of null if ackSizeQuota is 0.
+     * @return future of command responses (acknowledgements and potentially responses to live commands / live messages)
+     * to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    protected abstract CompletionStage<Acknowledgement> publishMessage(Signal<?> signal,
+    protected abstract CompletionStage<CommandResponseOrAcknowledgement> publishMessage(Signal<?> signal,
             @Nullable Target autoAckTarget,
             T publishTarget,
             ExternalMessage message,
+            int maxTotalMessageSize,
             int ackSizeQuota);
 
     /**
@@ -480,6 +540,31 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .map(AcknowledgementRequest::getLabel)
                 .collect(Collectors.toSet());
         return target.getIssuedAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
+    }
+
+    /**
+     * A CommandResponse created by publishing a message or an Acknowledgement created by this publishing or even both.
+     */
+    protected static class CommandResponseOrAcknowledgement {
+
+        @Nullable private final CommandResponse<?> commandResponse;
+        @Nullable private final Acknowledgement acknowledgement;
+
+        public CommandResponseOrAcknowledgement(
+                @Nullable final CommandResponse<?> commandResponse,
+                @Nullable final Acknowledgement acknowledgement) {
+            this.commandResponse = commandResponse;
+            this.acknowledgement = acknowledgement;
+        }
+
+        protected Optional<CommandResponse<?>> getCommandResponse() {
+            return Optional.ofNullable(commandResponse);
+        }
+
+        protected Optional<Acknowledgement> getAcknowledgement() {
+            return Optional.ofNullable(acknowledgement);
+        }
+
     }
 
 }

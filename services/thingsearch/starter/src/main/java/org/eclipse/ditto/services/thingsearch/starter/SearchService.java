@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * Entry point for the Things Search service.
@@ -56,10 +55,9 @@ public class SearchService extends DittoService<SearchConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
-        return SearchRootActor.props(searchConfig, pubSubMediator, materializer);
+        return SearchRootActor.props(searchConfig, pubSubMediator);
     }
 
 }

@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -44,7 +45,7 @@ class MessagePayloadSerializer {
 
         final Optional<ByteBuffer> rawPayloadOptional = message.getRawPayload();
         final Optional<T> payloadOptional = message.getPayload();
-        final String contentType = message.getContentType().orElse("");
+        final ContentType contentType = message.getContentType().map(ContentType::of).orElse(ContentType.of(""));
         final JsonValue payloadValue;
         if (rawPayloadOptional.isPresent() && !payloadOptional.filter(p -> p instanceof JsonValue).isPresent()) {
             final ByteBuffer rawPayload = rawPayloadOptional.get();
@@ -65,8 +66,8 @@ class MessagePayloadSerializer {
         injectMessagePayload(messageBuilder, predicate, payloadValue, message.getHeaders());
     }
 
-    private static JsonValue interpretAsJsonValue(final String payloadString, final String contentType) {
-        final boolean isJson = MessageDeserializer.shouldBeInterpretedAsJson(contentType);
+    private static JsonValue interpretAsJsonValue(final String payloadString, final ContentType contentType) {
+        final boolean isJson = contentType.isJson();
         final JsonValue readJsonValue =
                 isJson ? JsonFactory.readFrom(payloadString) : JsonFactory.newValue(payloadString);
         if (isJson && readJsonValue.isString()) {
@@ -96,9 +97,9 @@ class MessagePayloadSerializer {
     static void deserialize(@Nullable final JsonValue payload, final MessageBuilder<Object> messageBuilder,
             final MessageHeaders messageHeaders) {
 
-        final String contentType = messageHeaders.getContentType().orElse("");
+        final ContentType contentType = messageHeaders.getDittoContentType().orElse(ContentType.of(""));
         if (payload != null) {
-            final boolean isJson = MessageDeserializer.shouldBeInterpretedAsJson(contentType);
+            final boolean isJson = contentType.isJson();
 
             // JSON content type should maintain payload's JSON representation.
             // All other content types just read the content.
@@ -110,7 +111,7 @@ class MessagePayloadSerializer {
             if (isJson) {
                 messageBuilder.payload(payload)
                         .rawPayload(ByteBuffer.wrap(payloadBytes));
-            } else if (MessageDeserializer.shouldBeInterpretedAsText(contentType)) {
+            } else if (contentType.isText()) {
                 messageBuilder.payload(payloadStr)
                         .rawPayload(ByteBuffer.wrap(payloadBytes));
             } else {

@@ -126,6 +126,11 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
+    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
+        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
+    }
+
+    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
                 outbound -> logger.withCorrelationId(outbound.getSource())
@@ -143,11 +148,12 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
-    protected CompletionStage<Acknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final MqttPublishTarget publishTarget,
             final ExternalMessage message,
-            final int ackSizeQuota) {
+            final int maxTotalMessageSize,
+            int ackSizeQuota) {
 
         try {
             final MqttQos qos = determineQos(autoAckTarget);
@@ -157,7 +163,8 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                         .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
                                 decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
             }
-            return client.apply(mqttMessage).thenApply(result -> toAcknowledgement(signal, autoAckTarget, result));
+            return client.apply(mqttMessage).thenApply(result ->
+                    new CommandResponseOrAcknowledgement(null, toAcknowledgement(signal, autoAckTarget, result)));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }

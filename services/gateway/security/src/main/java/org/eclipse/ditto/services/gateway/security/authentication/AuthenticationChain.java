@@ -115,8 +115,9 @@ public final class AuthenticationChain {
                         authProviderName, requestUri);
                 return authenticationResult;
             } else {
-                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed.", authProviderName,
-                        requestUri, authenticationResult.getReasonOfFailure());
+                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed due to {}: {}", authProviderName,
+                        requestUri, authenticationResult.getReasonOfFailure().getClass().getSimpleName(),
+                        authenticationResult.getReasonOfFailure().getMessage());
                 failedAuthenticationResults.add(authenticationResult);
             }
         }

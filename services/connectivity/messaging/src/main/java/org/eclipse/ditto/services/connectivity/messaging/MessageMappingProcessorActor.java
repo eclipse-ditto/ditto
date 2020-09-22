@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -1202,6 +1203,36 @@ public final class MessageMappingProcessorActor
 
         private Mapped asMapped() {
             return (Mapped) delegate;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "delegate=" + delegate +
+                    ", entityId=" + entityId +
+                    ", sender=" + sender +
+                    ", extra=" + extra +
+                    "]";
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final OutboundSignalWithId that = (OutboundSignalWithId) o;
+            return Objects.equals(delegate, that.delegate) &&
+                    Objects.equals(entityId, that.entityId) &&
+                    Objects.equals(sender, that.sender) &&
+                    Objects.equals(extra, that.extra);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(delegate, entityId, sender, extra);
         }
 
     }

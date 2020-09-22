@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * Entry point of the Connectivity service.
@@ -64,10 +63,9 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     }
 
     @Override
-    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
 
-        return ConnectivityRootActor.props(connectivityConfig, pubSubMediator, materializer, UnaryOperator.identity());
+        return ConnectivityRootActor.props(connectivityConfig, pubSubMediator, UnaryOperator.identity());
     }
 
 }

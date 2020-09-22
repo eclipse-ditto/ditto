@@ -54,7 +54,6 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.Authorization;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitches;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
@@ -75,7 +74,6 @@ public final class HttpPushFactoryTest {
     private final Queue<CompletableFuture<Void>> killSwitchTrigger = new ConcurrentLinkedQueue<>();
 
     private ActorSystem actorSystem;
-    private ActorMaterializer mat;
     private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
@@ -92,7 +90,6 @@ public final class HttpPushFactoryTest {
         connectionConfig = DefaultConnectionConfig.of(
                 DittoServiceConfig.of(
                         DefaultScopedConfig.dittoScoped(TestConstants.CONFIG), "connectivity"));
-        mat = ActorMaterializer.create(actorSystem);
         newBinding();
         connection = createHttpPushConnection(binding);
     }
@@ -237,7 +234,9 @@ public final class HttpPushFactoryTest {
                                     .thenAccept(_void -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
-        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
+        binding = Http.get(actorSystem)
+                .newServerAt("127.0.0.1", 0)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
     }
@@ -255,7 +254,7 @@ public final class HttpPushFactoryTest {
                 .viaMat(underTest.createFlow(actorSystem, actorSystem.log()), Keep.left())
                 .map(Pair::first)
                 .toMat(Sink.queue(), Keep.both())
-                .run(mat);
+                .run(actorSystem);
     }
 
     private static Try<HttpResponse> pullResponse(final SinkQueueWithCancel<Try<HttpResponse>> responseQueue) {
