@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.event.DiagnosticLoggingAdapter;
 import scala.collection.JavaConverters;
-import scala.collection.Seq;
+import scala.collection.immutable.Seq;
 
 /**
  * Default implementation of {@link DittoDiagnosticLoggingAdapter}.
