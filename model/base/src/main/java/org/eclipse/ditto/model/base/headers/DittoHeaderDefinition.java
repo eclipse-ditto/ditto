@@ -200,6 +200,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     REQUESTED_ACKS("requested-acks", JsonArray.class, true, true, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
+     * Header definition for defining the acknowledgement labels a subscriber may send.
+     * <p>
+     * Key: {@code "declared-acks"}, Java type: {@link JsonArray}.
+     * </p>
+     *
+     * @since 1.3.0
+     */
+    DECLARED_ACKS("declared-acks", JsonArray.class, true, false, HeaderValueValidators.getJsonArrayValidator()),
+
+    /**
      * Header definition for the timeout of a command or message.
      * <p>
      * Key: {@code "timeout"}, Java type: {@code String}.

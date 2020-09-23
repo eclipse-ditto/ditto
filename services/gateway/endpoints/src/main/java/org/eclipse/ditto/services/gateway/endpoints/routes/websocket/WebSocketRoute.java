@@ -96,7 +96,7 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
-import akka.http.javadsl.model.ws.UpgradeToWebSocket;
+import akka.http.javadsl.model.ws.WebSocketUpgrade;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.Pair;
@@ -244,12 +244,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final DittoHeaders dittoHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
-        return Directives.extractUpgradeToWebSocket(
-                upgradeToWebSocketHeader -> Directives.extractRequest(
+        return Directives.extractWebSocketUpgrade(
+                websocketUpgrade -> Directives.extractRequest(
                         request -> {
                             authorizationEnforcer.checkAuthorization(dittoHeaders);
                             return Directives.completeWithFuture(
-                                    createWebSocket(upgradeToWebSocketHeader, version, correlationId.toString(),
+                                    createWebSocket(websocketUpgrade, version, correlationId.toString(),
                                             dittoHeaders, chosenProtocolAdapter, request));
                         }));
     }
@@ -259,7 +259,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
     }
 
-    private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
+    private CompletionStage<HttpResponse> createWebSocket(final WebSocketUpgrade upgradeToWebSocket,
             final JsonSchemaVersion version,
             final String connectionCorrelationId,
             final DittoHeaders dittoHeaders,
@@ -462,7 +462,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
                             additionalHeaders);
                     return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
-                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null));
+                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
+                            additionalHeaders.getDeclaredAcknowledgementLabels());
                 })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,

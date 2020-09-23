@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -268,7 +269,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
                                         connectionCorrelationId, dittoHeaders);
                                 final Connect connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
-                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null);
+                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of());
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                 dittoHeaders.getAuthorizationContext())

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -25,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -63,6 +63,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -81,9 +82,7 @@ import akka.Done;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.actor.Terminated;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.SourceQueueWithComplete;
@@ -108,7 +107,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final JwtValidator jwtValidator;
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
-    private final DittoDiagnosticLoggingAdapter logger;
+    private final DittoDiagnosticLoggingAdapter logger; // TODO: make this thread-safe
 
     @Nullable private Cancellable sessionTerminationCancellable;
     private AuthorizationContext authorizationContext;
@@ -151,6 +150,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
         eventAndResponsePublisher.watchCompletion()
                 .whenComplete((done, error) -> getSelf().tell(Control.TERMINATED, getSelf()));
+
+        declareAcknowledgementLabels(connect.getDeclaredAcknowledgementLabels());
     }
 
     /**
@@ -189,9 +190,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     @Override
     public Receive createReceive() {
         return createIncomingSignalBehavior()
-                .orElse(createOutgoingSignalBehavior())
                 .orElse(createPubSubBehavior())
                 .orElse(createSelfTerminationBehavior())
+                .orElse(createOutgoingSignalBehavior())
                 .orElse(logUnknownMessage());
     }
 
@@ -324,16 +325,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
                 .match(InvalidJwt.class, invalidJwtToken -> cancelSessionTimeout())
-                .match(Terminated.class, terminated -> {
+                .match(DittoRuntimeException.class, this::isAckLabelNotUnique, this::ackLabelDeclarationFailed)
+                .matchEquals(Control.TERMINATED, terminated -> {
                     logger.setCorrelationId(connectionCorrelationId);
                     logger.debug("EventAndResponsePublisher was terminated.");
                     // In Cluster: Unsubscribe from ThingEvents:
                     logger.info("<{}> connection was closed, unsubscribing from Streams in Cluster ...", type);
 
-                    dittoProtocolSub.removeSubscriber(getSelf());
-
-                    final PoisonPill poisonPill = PoisonPill.getInstance();
-                    getTimers().startSingleTimer(poisonPill, poisonPill, Duration.ofSeconds(1L));
+                    terminateWebsocketStream();
                 })
                 .build();
     }
@@ -359,6 +358,24 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private boolean isSameOrigin(final Signal<?> signal) {
         return signal.getDittoHeaders().getOrigin().stream().anyMatch(connectionCorrelationId::equals);
+    }
+
+    private boolean isAckLabelNotUnique(final DittoRuntimeException exception) {
+        return AcknowledgementLabelNotUniqueException.ERROR_CODE.equals(exception.getErrorCode());
+    }
+
+    private void ackLabelDeclarationFailed(final DittoRuntimeException exception) {
+        logger.info("ackLabelDeclarationFailed cause=<{}>", exception.getCause());
+        eventAndResponsePublisher.offer(SessionedJsonifiable.error(exception));
+        terminateWebsocketStream();
+    }
+
+    private void terminateWebsocketStream() {
+        dittoProtocolSub.removeSubscriber(getSelf());
+        eventAndResponsePublisher.complete();
+
+        // TODO: check if the 1s delay was necessary.
+        getContext().stop(getSelf());
     }
 
     // precondition: signal has ack requests
@@ -533,6 +550,25 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
             }
         });
+    }
+
+    /**
+     * Attempt to declare the acknowledgement labels.
+     * Only need to be done once per actor.
+     */
+    private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
+        final ActorRef self = getSelf();
+        logger.debug("Declaring acknowledgement labels <{}>", acknowledgementLabels);
+        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
+                .thenAccept(_void -> logger.debug("Acknowledgement label declaration successful."))
+                .exceptionally(error -> {
+                    final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
+                    final DittoRuntimeException dittoRuntimeException =
+                            DittoRuntimeException.asDittoRuntimeException(error,
+                                    cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
+                    self.tell(dittoRuntimeException, ActorRef.noSender());
+                    return null;
+                });
     }
 
     private static StreamingType determineStreamingType(final Signal<?> signal) {

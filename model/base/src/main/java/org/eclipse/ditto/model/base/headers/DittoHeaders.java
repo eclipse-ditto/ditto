@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -311,6 +312,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @since 1.1.0
      */
     Set<AcknowledgementRequest> getAcknowledgementRequests();
+
+    /**
+     * Returns the set of labels of acknowledgements that a subscriber declares.
+     * A subscriber may not send any acknowledgement whose label is not in the set of labels it declared.
+     * Declared acknowledgement labels are unique between subscribers.
+     *
+     * @return the set of declared acknowledgement labels.
+     * @since 1.3.0
+     */
+    Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 
     /**
      * Returns the timeout of a command or message.

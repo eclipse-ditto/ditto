@@ -26,12 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -102,6 +102,8 @@ public final class ImmutableDittoHeadersTest {
     private static final AcknowledgementRequest KNOWN_ACK_REQUEST =
             AcknowledgementRequest.of(AcknowledgementLabel.of("ack-label-1"));
     private static final List<AcknowledgementRequest> KNOWN_ACK_REQUESTS = Lists.list(KNOWN_ACK_REQUEST);
+    private static final List<AcknowledgementLabel> KNOWN_ACK_LABELS =
+            Lists.list(AcknowledgementLabel.of("ack-label-2"));
     private static final List<ResponseType> KNOWN_EXPECTED_RESPONSE_TYPES =
             Lists.list(ResponseType.RESPONSE, ResponseType.NACK);
     private static final String KNOWN_ENTITY_ID = "known:entityId";
@@ -155,6 +157,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
                 .putHeader(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
+                .declaredAcknowledgementLabels(KNOWN_ACK_LABELS)
                 .putMetadata(KNOWN_METADATA_HEADER_KEY, KNOWN_METADATA_VALUE)
                 .timeout(KNOWN_TIMEOUT)
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
@@ -355,7 +358,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL)
                 .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), KNOWN_RESPONSE_REQUIRED)
                 .set(DittoHeaderDefinition.DRY_RUN.getKey(), false)
-                .set(DittoHeaderDefinition.READ_SUBJECTS.getKey(), stringCollectionToJsonArray(KNOWN_READ_SUBJECTS))
+                .set(DittoHeaderDefinition.READ_SUBJECTS.getKey(), charSequencesToJsonArray(KNOWN_READ_SUBJECTS))
                 .set(DittoHeaderDefinition.READ_REVOKED_SUBJECTS.getKey(),
                         authorizationSubjectsToJsonArray(KNOWN_READ_REVOKED_SUBJECTS))
                 .set(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH.toString())
@@ -367,6 +370,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
                 .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
+                .set(DittoHeaderDefinition.DECLARED_ACKS.getKey(), charSequencesToJsonArray(KNOWN_ACK_LABELS))
                 .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
                 .set(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .set(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
@@ -374,7 +378,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION)
                 .set(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .set(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
-                        expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
+                        charSequencesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
                 .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -558,7 +562,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));
         result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(),
-                stringCollectionToJsonArray(KNOWN_READ_SUBJECTS).toString());
+                charSequencesToJsonArray(KNOWN_READ_SUBJECTS).toString());
         result.put(DittoHeaderDefinition.READ_REVOKED_SUBJECTS.getKey(),
                 authorizationSubjectsToJsonArray(KNOWN_READ_REVOKED_SUBJECTS).toString());
         result.put(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH.toString());
@@ -571,6 +575,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR);
         result.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
                 ackRequestsToJsonArray(KNOWN_ACK_REQUESTS).toString());
+        result.put(DittoHeaderDefinition.DECLARED_ACKS.getKey(),
+                charSequencesToJsonArray(KNOWN_ACK_LABELS).toString());
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
         result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID);
         result.put(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO);
@@ -578,37 +584,30 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.LOCATION.getKey(), KNOWN_LOCATION);
         result.put(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID);
         result.put(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey(),
-                expectedResponseTypesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES).toString());
+                charSequencesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES).toString());
         result.put(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJsonString());
 
         return result;
     }
 
-    private static JsonArray stringCollectionToJsonArray(final Iterable<String> stringCollection) {
-        final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
-        stringCollection.forEach(jsonArrayBuilder::add);
-        return jsonArrayBuilder.build();
-    }
-
     private static JsonArray authorizationSubjectsToJsonArray(
             final Collection<AuthorizationSubject> authorizationSubjects) {
 
-        return authorizationSubjects.stream()
-                .map(AuthorizationSubject::getId)
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray());
+        return collectionToJsonArray(authorizationSubjects, AuthorizationSubject::getId);
     }
 
     private static JsonArray ackRequestsToJsonArray(final Collection<AcknowledgementRequest> ackRequests) {
-        return ackRequests.stream()
-                .map(AcknowledgementRequest::toString)
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray());
+        return collectionToJsonArray(ackRequests, AcknowledgementRequest::toString);
     }
 
-    private static JsonArray expectedResponseTypesToJsonArray(final Collection<ResponseType> responseTypes) {
-        return responseTypes.stream()
-                .map(ResponseType::getName)
+    private static JsonArray charSequencesToJsonArray(final Collection<? extends CharSequence> charSequences) {
+        return collectionToJsonArray(charSequences, Function.identity());
+    }
+
+    private static <T> JsonArray collectionToJsonArray(final Collection<T> collection,
+            final Function<T, ? extends CharSequence> converter) {
+        return collection.stream()
+                .map(converter)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
     }

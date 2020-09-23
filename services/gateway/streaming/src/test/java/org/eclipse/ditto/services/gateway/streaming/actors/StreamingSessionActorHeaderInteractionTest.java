@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -163,7 +164,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
     private ActorRef createStreamingSessionActor() {
         final Connect connect =
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
-                        JsonSchemaVersion.V_2, null);
+                        JsonSchemaVersion.V_2, null, Set.of());
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultAcknowledgementConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
                 Props.create(TestProbeForwarder.class, subscriptionManagerProbe), Mockito.mock(JwtValidator.class),

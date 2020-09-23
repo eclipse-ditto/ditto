@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
@@ -88,6 +89,14 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     @Override
     public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber, final Collection<String> topics) {
         return twinEventSub.unsubscribeWithAck(topics, subscriber).thenApply(ack -> null);
+    }
+
+    @Override
+    public CompletionStage<Void> declareAcknowledgementLabels(
+            final Collection<AcknowledgementLabel> acknowledgementLabels,
+            final ActorRef subscriber) {
+        return twinEventSub.declareAcknowledgementLabels(acknowledgementLabels, subscriber).thenApply(ack -> null);
+        // no need to declare the labels for liveSignalSub because acks distributed data does not start there
     }
 
     private CompletionStage<Void> partitionByStreamingTypes(final Collection<StreamingType> types,

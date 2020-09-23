@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.concierge.pubsub;
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 import akka.actor.ActorContext;
@@ -62,6 +63,22 @@ public interface DittoProtocolSub {
      * @return future that completes or fails according to the acknowledgement.
      */
     CompletionStage<Void> removeTwinSubscriber(ActorRef subscriber, Collection<String> topics);
+
+    /**
+     * Declare acknowledgement labels for a subscriber.
+     * Declared acknowledgement labels are globally unique for each subscriber.
+     * When racing against another subscriber on another node, the future may still complete successfully,
+     * but the subscriber losing the race will receive an {@code AcknowledgementLabelNotUniqueException} later.
+     * This method will always return a failed future if a distributed data for declared labels is not provided.
+     *
+     * @param acknowledgementLabels the acknowledgement labels to declare.
+     * @param subscriber the subscriber making the declaration.
+     * @return a future that completes successfully when the initial declaration succeeds and fails if duplicate labels
+     * are known. Subscribers losing a race against remote subscribers may receive an
+     * {@code AcknowledgementLabelNotUniqueException} later.
+     */
+    CompletionStage<Void> declareAcknowledgementLabels(Collection<AcknowledgementLabel> acknowledgementLabels,
+            ActorRef subscriber);
 
     /**
      * Create {@code DittoProtocolSub} for an actor system.

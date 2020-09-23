@@ -28,8 +28,8 @@ import akka.actor.Props;
 import akka.cluster.ddata.Replicator;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import scala.collection.JavaConverters;
 import scala.collection.immutable.Set;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Manages local declared acknowledgement labels.
@@ -101,7 +101,9 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
         if (areAckLabelsDeclaredHere(subscribe) || areTopicsClaimedRemotely(subscribe)) {
             failSubscribe(sender);
         } else {
-            subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics());
+            if (subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics())) {
+                getContext().watch(subscribe.getSubscriber());
+            }
             getSender().tell(SubAck.of(subscribe, sender, 0), getSelf());
         }
     }
@@ -123,7 +125,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     }
 
     private void onChanged(final Replicator.Changed<?> event) {
-        mmap = JavaConverters.mapAsJavaMap(event.get(acksDData.getReader().getKey()).entries());
+        mmap = CollectionConverters.asJava(event.get(acksDData.getReader().getKey()).entries());
         final java.util.Set<ActorRef> localLosers = getLocalLosers(mmap);
         localLosers.forEach(this::failSubscribe);
         localLosers.forEach(subscriptions::removeSubscriber);
@@ -135,8 +137,6 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
                 .whenComplete((_void, error) -> {
                     if (error != null) {
                         log.error(error, "Failed to update local DData");
-                    } else {
-                        log.debug("Local update complete");
                     }
                 });
     }
@@ -163,7 +163,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
         return remoteAckLabels.entrySet()
                 .stream()
                 .filter(entry -> isSmallerThanMySubscriber(entry.getKey()))
-                .flatMap(entry -> JavaConverters.asJavaCollection(entry.getValue())
+                .flatMap(entry -> CollectionConverters.asJava(entry.getValue())
                         .stream()
                         .flatMap(subscriptions::streamSubscribers)
                 )

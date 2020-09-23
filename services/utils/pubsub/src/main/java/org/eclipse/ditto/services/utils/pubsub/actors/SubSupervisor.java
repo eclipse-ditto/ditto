@@ -64,7 +64,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     private final PubSubTopicExtractor<T> topicExtractor;
 
     private final DData<?, U> topicsDData;
-    private final DData<String, LiteralUpdate> acksDData;
+    @Nullable private final DData<String, LiteralUpdate> acksDData;
 
     @Nullable private ActorRef updater;
     @Nullable private ActorRef acksUpdater;
@@ -73,7 +73,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DData<?, U> topicsDData,
-            final DData<String, LiteralUpdate> acksDData) {
+            @Nullable final DData<String, LiteralUpdate> acksDData) {
         super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
@@ -87,7 +87,8 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
      * @param topicsDData access to the distributed data of topics.
-     * @param acksDData access to the distributed data of acknowledgement labels.
+     * @param acksDData access to the distributed data of acknowledgement labels, or null if acknowledgement labels
+     * are not managed here.
      * @param <T> type of messages.
      * @param <U> type of ddata updates.
      * @return the Props object.
@@ -95,7 +96,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DData<?, U> topicsDData,
-            final DData<String, LiteralUpdate> acksDData) {
+            @Nullable final DData<String, LiteralUpdate> acksDData) {
 
         return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData, acksDData);
     }
@@ -127,14 +128,18 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
 
-        final Props acksUpdaterProps = AcksUpdater.props(config, subscriber, acksDData);
-        acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
+        if (acksDData != null) {
+            final Props acksUpdaterProps = AcksUpdater.props(config, subscriber, acksDData);
+            acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
+        }
     }
 
     private void subscriberTerminated(final Terminated terminated) {
         log.error("Subscriber terminated. Removing subscriber from DData: <{}>", terminated.getActor());
         topicsDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
-        acksDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
+        if (acksDData != null) {
+            acksDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
+        }
     }
 
     private boolean isUpdaterAvailable() {
@@ -157,10 +162,12 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
     private void updaterUnavailable(final SubUpdater.Request request) {
         log.error("SubUpdater unavailable. Dropping <{}>", request);
+        getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }
 
     private void acksUpdaterUnavailable(final AbstractUpdater.DeclareAckLabels request) {
-        log.error("AcksUpdater unavailable. Dropping <{}>", request);
+        log.error("AcksUpdater unavailable. Failing <{}>", request);
+        getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }
 
 }

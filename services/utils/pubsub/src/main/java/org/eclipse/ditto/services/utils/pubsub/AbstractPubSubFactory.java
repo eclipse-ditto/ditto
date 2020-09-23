@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
@@ -46,7 +48,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final DistributedDataConfig ddataConfig;
     protected final DData<?, ?> ddata;
-    protected final DData<String, LiteralUpdate> acksDdata;
+    @Nullable protected final DData<String, LiteralUpdate> acksDdata;
 
     /**
      * Create a pub-sub factory.
@@ -61,7 +63,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DDataProvider provider,
-            final LiteralDDataProvider acksProvider) {
+            @Nullable final LiteralDDataProvider acksProvider) {
 
         this.actorRefFactory = context;
         this.messageClass = messageClass;
@@ -69,7 +71,11 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
         this.topicExtractor = topicExtractor;
         ddataConfig = provider.getConfig(context.system());
         ddata = CompressedDData.of(context.system(), provider);
-        acksDdata = LiteralDData.of(context.system(), acksProvider);
+        if (acksProvider != null) {
+            acksDdata = LiteralDData.of(context.system(), acksProvider);
+        } else {
+            acksDdata = null;
+        }
     }
 
     @Override
