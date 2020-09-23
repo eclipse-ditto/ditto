@@ -76,7 +76,7 @@ import akka.actor.ActorSystem;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.PFBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
 
@@ -107,8 +107,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 .withReadPreference(ReadPreference.secondaryPreferred());
 
         log = Logging.getLogger(actorSystem, getClass());
-        final ActorMaterializer materializer = ActorMaterializer.create(actorSystem);
-        indexInitializer = IndexInitializer.of(database, materializer);
+        indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         hints = MongoHints.empty();
     }
@@ -187,7 +186,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 .limit(query.getLimit())
                 .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
 
-        return Source.fromPublisher(collection.count(queryFilter, countOptions))
+        return Source.fromPublisher(collection.countDocuments(queryFilter, countOptions))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("count");
     }

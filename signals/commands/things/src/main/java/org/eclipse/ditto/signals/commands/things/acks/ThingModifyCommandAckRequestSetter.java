@@ -76,4 +76,8 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
         return (Class) ThingModifyCommand.class;
     }
 
+    @Override
+    protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
+        return false;
+    }
 }

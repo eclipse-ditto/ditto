@@ -99,6 +99,7 @@ public final class DittoAckRequestsFilterTest {
                 .collect(JsonCollectors.valuesToArray());
         final String value = allAcknowledgementRequestsJsonArray.toString();
         final JsonArray externalAcknowledgementRequests = allAcknowledgementRequestsJsonArray.toBuilder()
+                .remove(2) // "live-response"
                 .remove(1) // "twin-persisted"
                 .build();
         final String expected = externalAcknowledgementRequests.toString();

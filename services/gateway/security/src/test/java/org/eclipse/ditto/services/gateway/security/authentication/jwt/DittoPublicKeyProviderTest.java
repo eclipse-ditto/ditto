@@ -47,7 +47,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
-import akka.stream.ActorMaterializer;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DittoPublicKeyProviderTest {
@@ -72,7 +71,7 @@ public final class DittoPublicKeyProviderTest {
     @Before
     public void setup() {
         actorSystem = ActorSystem.create(getClass().getSimpleName());
-        when(httpClientMock.getActorMaterializer()).thenReturn(ActorMaterializer.create(actorSystem));
+        when(httpClientMock.getActorSystem()).thenReturn(actorSystem);
         final JwtSubjectIssuersConfig subjectIssuersConfig = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(
                 Collections.singleton(new JwtSubjectIssuerConfig("google.com", SubjectIssuer.GOOGLE)));
         when(cacheConfigMock.getMaximumSize()).thenReturn(100L);

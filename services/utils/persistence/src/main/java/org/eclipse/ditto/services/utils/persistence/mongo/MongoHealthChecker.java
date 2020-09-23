@@ -34,7 +34,7 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -49,7 +49,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
 
     private final DittoMongoClient mongoClient;
     private final MongoCollection<Document> collection;
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
 
     private MongoHealthChecker() {
 
@@ -66,7 +66,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
         collection = mongoClient.getCollection(TEST_COLLECTION_NAME)
                 .withReadPreference(ReadPreference.primaryPreferred());
 
-        materializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**

@@ -59,6 +59,7 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 
@@ -204,11 +205,11 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         if (!response.status().isSuccess()) {
             handleNonSuccessResponse(response);
         }
-        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+        return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
-                .runWith(Sink.head(), httpClient.getActorMaterializer());
+                .runWith(Sink.head(), SystemMaterializer.get(httpClient.getActorSystem()).materializer());
     }
 
     private void handleNonSuccessResponse(final HttpResponse response) {
@@ -223,9 +224,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     private CompletionStage<String> getBodyAsString(final HttpResponse response) {
-        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+        return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .runWith(Sink.head(), httpClient.getActorMaterializer());
+                .runWith(Sink.head(), SystemMaterializer.get(httpClient.getActorSystem()).materializer());
     }
 
     private static PublicKeyProviderUnavailableException handleUnexpectedException(final Throwable e,

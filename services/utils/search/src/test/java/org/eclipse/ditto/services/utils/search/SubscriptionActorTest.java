@@ -40,7 +40,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -53,13 +52,11 @@ public final class SubscriptionActorTest {
 
     private int i = 0;
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
 
     @Before
     public void init() {
         final Config config = ConfigFactory.parseString("akka.log-dead-letters=0");
         actorSystem = ActorSystem.create(getClass().getSimpleName() + i++, config);
-        materializer = ActorMaterializer.create(actorSystem);
     }
 
     @After
@@ -155,7 +152,7 @@ public final class SubscriptionActorTest {
     private void connect(final ActorRef subscriptionActor, final Source<JsonArray, ?> pageSource,
             final TestKit testKit) {
         final Subscriber<JsonArray> subscriber = SubscriptionActor.asSubscriber(subscriptionActor);
-        pageSource.runWith(Sink.fromSubscriber(subscriber), materializer);
+        pageSource.runWith(Sink.fromSubscriber(subscriber), actorSystem);
         testKit.expectMsgClass(SubscriptionCreated.class);
     }
 

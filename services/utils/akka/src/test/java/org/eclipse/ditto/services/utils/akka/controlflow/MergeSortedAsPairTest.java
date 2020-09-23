@@ -25,7 +25,6 @@ import org.junit.Test;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
 import akka.stream.FanInShape2;
 import akka.stream.Graph;
 import akka.stream.SourceShape;
@@ -46,7 +45,6 @@ import scala.concurrent.duration.FiniteDuration;
 public final class MergeSortedAsPairTest {
 
     private static ActorSystem system;
-    private static ActorMaterializer mat;
 
     // these become available after calling materializeTestProbes()
     private TestPublisher.Probe<Integer> source1Probe;
@@ -56,7 +54,6 @@ public final class MergeSortedAsPairTest {
     @BeforeClass
     public static void init() {
         system = ActorSystem.create();
-        mat = ActorMaterializer.create(system);
     }
 
     @AfterClass
@@ -215,7 +212,7 @@ public final class MergeSortedAsPairTest {
                 probes =
                 mergeSortedAsPairWithMat(TestSource.probe(system), TestSource.probe(system))
                         .toMat(TestSink.probe(system), Keep.both())
-                        .run(mat);
+                        .run(system);
         source1Probe = probes.first().first();
         source2Probe = probes.first().second();
         sinkProbe = probes.second();
@@ -266,6 +263,6 @@ public final class MergeSortedAsPairTest {
     }
 
     private static <T> List<T> runSource(final Source<T, ?> source) {
-        return source.runWith(Sink.<T>seq(), mat).toCompletableFuture().join();
+        return source.runWith(Sink.seq(), system).toCompletableFuture().join();
     }
 }

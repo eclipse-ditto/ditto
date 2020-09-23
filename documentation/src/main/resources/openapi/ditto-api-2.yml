@@ -2442,7 +2442,8 @@ paths:
         The decision whether to grant access (by setting permissions) is
         completely up to the client(s) which handle the "claim" message.
 
-        The HTTP request blocks until a response to the issued "claim" message is
+        The HTTP request blocks until all acknowledgement requests are fulfilled.
+        By default, it blocks until a response to the issued "claim" message is
         available or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
 
@@ -2465,6 +2466,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/messageClaimTimeoutParam'
+        - $ref: '#/components/parameters/liveMessageRequestedAcksParam'
+
       responses:
         '200':
           description: |-
@@ -2532,9 +2535,8 @@ paths:
         identified by the `thingId` path parameter. The request body contains
         the message payload and the `Content-Type` header defines its type.
 
-        The API does not provide any kind of acknowledgement that the thing has received the message.
-
-        The HTTP request blocks until a response to the message is available
+        The HTTP request blocks until all acknowledgement requests are fulfilled.
+        By default, it blocks until a response to the message is available
         or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
 
@@ -2564,6 +2566,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/messageSubjectPathParam'
         - $ref: '#/components/parameters/messageTimeoutParam'
+        - $ref: '#/components/parameters/liveMessageRequestedAcksParam'
       responses:
         '202':
           description: |-
@@ -2622,7 +2625,8 @@ paths:
         identified by the `thingId` path parameter. The request body contains
         the message payload and the `Content-Type` header defines its type.
 
-        The HTTP request blocks until a response to the message is available
+        The HTTP request blocks until all acknowledgement requests are fulfilled.
+        By default, it blocks until a response to the message is available
         or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
 
@@ -2643,6 +2647,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/messageSubjectPathParam'
         - $ref: '#/components/parameters/messageTimeoutParam'
+        - $ref: '#/components/parameters/liveMessageRequestedAcksParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -2699,10 +2704,10 @@ paths:
         Send a message with the subject `messageSubject` **to** the feature
         specified by the `featureId` and `thingId` path parameter. The request
         body contains the message payload and the `Content-Type` header defines
-        its type. The API does not provide any kind of acknowledgement that the
-        message was received by the feature.
+        its type.
 
-        The HTTP request blocks until a response to the message is available
+        The HTTP request blocks until all acknowledgement requests are fulfilled.
+        By default, it blocks until a response to the message is available
         or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
 
@@ -2724,6 +2729,7 @@ paths:
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/messageSubjectPathParam'
         - $ref: '#/components/parameters/messageTimeoutParam'
+        - $ref: '#/components/parameters/liveMessageRequestedAcksParam'
       responses:
         '202':
           description: |-
@@ -2784,7 +2790,8 @@ paths:
         body contains the message payload and the `Content-Type` header defines
         its type.
 
-        The HTTP request blocks until a response to the message is available
+        The HTTP request blocks until all acknowledgement requests are fulfilled.
+        By default, it blocks until a response to the message is available
         or until the `timeout` is expired. If many clients respond to
         the issued message, the first response will complete the HTTP request.
 
@@ -2806,6 +2813,7 @@ paths:
         - $ref: '#/components/parameters/featureIdPathPathParam'
         - $ref: '#/components/parameters/messageSubjectPathParam'
         - $ref: '#/components/parameters/messageTimeoutParam'
+        - $ref: '#/components/parameters/liveMessageRequestedAcksParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -4946,6 +4954,19 @@ components:
 
         The default (if omitted) requested acks is `requested-acks=twin-persisted` which will block the
         HTTP call until the change was persited to the twin.
+      required: false
+      schema:
+        type: string
+    liveMessageRequestedAcksParam:
+      name: requested-acks
+      in: query
+      description: |-
+        Contains the "requested acknowledgements" for this request as comma separated list. The HTTP call will
+        block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
+        parameter.
+
+        The default (if omitted) requested acks is `requested-acks=live-response` which will block the
+        HTTP call until a subscriber of the live message sends a response.
       required: false
       schema:
         type: string

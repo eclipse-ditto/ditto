@@ -26,8 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.metric.LongAdderCounter;
-import kamon.metric.MetricValue;
+import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link Counter}.
@@ -101,29 +100,34 @@ public final class KamonCounter implements Counter {
 
     @Override
     public long getCount() {
-        return getSnapshot(false).value();
+        return getSnapshot();
     }
 
-    private MetricValue getSnapshot(final boolean reset) {
+    private long getSnapshot() {
         final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
-        if (kamonInternalCounter instanceof LongAdderCounter) {
-            return ((LongAdderCounter) kamonInternalCounter).snapshot(reset);
+        if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
+            return ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(false);
         }
         throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>!", name));
     }
 
     private kamon.metric.Counter getKamonInternalCounter() {
-        return Kamon.counter(name).refine(tags);
+        return Kamon.counter(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
     @Override
     public boolean reset() {
         try {
-            getSnapshot(true);
-            LOGGER.trace("Reset histogram with name <{}>.", name);
-            return true;
+            final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
+            if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
+                ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(true);
+                LOGGER.trace("Reset counter with name <{}>.", name);
+                return true;
+            }
+            LOGGER.warn("Could not reset counter with name <{}>.", name);
+            return false;
         } catch (final IllegalStateException e) {
-            LOGGER.warn("Could not reset histogram with name <{}>.", name);
+            LOGGER.warn("Could not reset counter with name <{}>.", name);
             return false;
         }
     }

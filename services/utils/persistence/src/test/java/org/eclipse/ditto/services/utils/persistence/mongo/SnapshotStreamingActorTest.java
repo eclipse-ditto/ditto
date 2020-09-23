@@ -37,7 +37,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -49,7 +48,6 @@ import akka.testkit.javadsl.TestKit;
 public final class SnapshotStreamingActorTest {
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
     private DittoMongoClient mockClient;
     private MongoReadJournal mockReadJournal;
 
@@ -57,7 +55,6 @@ public final class SnapshotStreamingActorTest {
     public void initActorSystem() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        materializer = ActorMaterializer.create(actorSystem);
         mockClient = Mockito.mock(DittoMongoClient.class);
         mockReadJournal = Mockito.mock(MongoReadJournal.class);
 
@@ -82,7 +79,7 @@ public final class SnapshotStreamingActorTest {
             // THEN
             final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
             final List<?> results = sourceRef.getSource()
-                    .runWith(Sink.seq(), materializer)
+                    .runWith(Sink.seq(), actorSystem)
                     .toCompletableFuture()
                     .join();
 
@@ -115,7 +112,7 @@ public final class SnapshotStreamingActorTest {
             final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
             final List<Object> results = sourceRef.getSource()
                     .<Object>map(x -> x)
-                    .runWith(Sink.seq(), materializer)
+                    .runWith(Sink.seq(), actorSystem)
                     .toCompletableFuture()
                     .join();
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.base.config.http;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -37,6 +39,13 @@ public interface HttpConfig {
     int getPort();
 
     /**
+     * Timeout after which all requests and connections shall be forcefully terminated during coordinated shutdown.
+     *
+     * @return the timeout
+     */
+    Duration getCoordinatedShutdownTimeout();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpConfig}.
      */
@@ -50,7 +59,9 @@ public interface HttpConfig {
         /**
          * The port number of the HTTP endpoint.
          */
-        PORT("port", 8080);
+        PORT("port", 8080),
+
+        COORDINATED_SHUTDOWN_TIMEOUT("coordinated-shutdown-timeout", Duration.ofSeconds(1));
 
         private final String path;
         private final Object defaultValue;

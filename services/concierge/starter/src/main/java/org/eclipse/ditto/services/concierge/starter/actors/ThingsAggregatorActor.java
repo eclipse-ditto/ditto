@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -40,12 +39,11 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
+import akka.stream.SourceRef;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
-import scala.concurrent.ExecutionContext;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -61,21 +59,17 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
-    private final ExecutionContext aggregatorDispatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
-    private final ActorMaterializer actorMaterializer;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
-        aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
         final ThingsAggregatorConfig aggregatorConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getThingsAggregatorConfig();
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
-        actorMaterializer = ActorMaterializer.create(getContext());
     }
 
     /**
@@ -137,7 +131,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<?> commandResponseSource = Source.from(thingIds)
+        final SourceRef<Jsonifiable> commandResponseSource = Source.from(thingIds)
                 .filter(Objects::nonNull)
                 .map(thingId -> {
                     final Command<?> toBeWrapped;
@@ -157,10 +151,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
                 .log("command-response", log)
-                .runWith(StreamRefs.sourceRef(), actorMaterializer);
+                .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getContext().getSystem()).materializer());
 
-        Patterns.pipe(commandResponseSource, aggregatorDispatcher)
-                .to(resultReceiver);
+        resultReceiver.tell(commandResponseSource, getSelf());
     }
 
     private int calculateParallelism(final Collection<ThingId> thingIds) {

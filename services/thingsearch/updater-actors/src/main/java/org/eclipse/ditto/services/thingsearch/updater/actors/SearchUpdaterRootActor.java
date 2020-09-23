@@ -50,7 +50,6 @@ import akka.actor.SupervisorStrategy;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitch;
 
 /**
@@ -85,7 +84,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
 
@@ -176,19 +174,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      *
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer actor materializer to create stream actors.
      * @param thingsSearchPersistence persistence to access the search index in read-only mode.
      * @param backgroundSyncPersistence persistence for background synchronization.
      * @return a Props object to create this actor.
      */
     public static Props props(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
 
-        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
-                thingsSearchPersistence, backgroundSyncPersistence);
+        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, thingsSearchPersistence,
+                backgroundSyncPersistence);
     }
 
     @Override

@@ -28,11 +28,10 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorEx
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
-import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
-import akka.stream.ActorMaterializerSettings;
+import akka.stream.ActorAttributes;
 import akka.stream.Attributes;
+import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.Supervision;
@@ -52,7 +51,7 @@ import akka.stream.javadsl.SourceQueueWithComplete;
 public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     protected final DittoDiagnosticLoggingAdapter logger;
-    protected final ActorMaterializer materializer;
+    protected final Materializer materializer;
 
     private final Class<M> matchClass;
     private final Counter receiveCounter;
@@ -78,7 +77,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
 
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        materializer = ActorMaterializer.create(getActorMaterializerSettings(), getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
@@ -129,24 +128,23 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 .build();
     }
 
-    private ActorMaterializerSettings getActorMaterializerSettings() {
+    private Attributes getSupervisionStrategyAttribute() {
         final String graphActorClassName = getClass().getSimpleName();
-        return ActorMaterializerSettings.create(getContext().getSystem())
-                .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
-                            if (exc instanceof DittoRuntimeException) {
-                                logger.withCorrelationId((WithDittoHeaders<?>) exc)
-                                        .warning("DittoRuntimeException in stream of {}: [{}] {}",
-                                                graphActorClassName, exc.getClass().getSimpleName(), exc.getMessage());
-                            } else {
-                                logger.error(exc, "Exception in stream of {}: {}",
-                                        graphActorClassName, exc.getMessage());
-                            }
-                            return Supervision.resume(); // in any case, resume!
-                        }
-                );
+        return ActorAttributes.withSupervisionStrategy(exc -> {
+                    if (exc instanceof DittoRuntimeException) {
+                        logger.withCorrelationId((WithDittoHeaders<?>) exc)
+                                .warning("DittoRuntimeException in stream of {}: [{}] {}",
+                                        graphActorClassName, exc.getClass().getSimpleName(), exc.getMessage());
+                    } else {
+                        logger.error(exc, "Exception in stream of {}: {}",
+                                graphActorClassName, exc.getMessage());
+                    }
+                    return Supervision.resume(); // in any case, resume!
+                }
+        );
     }
 
-    private SourceQueueWithComplete<T> getSourceQueue(final ActorMaterializer materializer) {
+    private SourceQueueWithComplete<T> getSourceQueue(final Materializer materializer) {
         // Log stream completion and failure at level ERROR because the stream is supposed to survive forever.
         final Attributes streamLogLevels =
                 Attributes.logLevels(Attributes.logLevelDebug(), Attributes.logLevelError(),
@@ -155,14 +153,12 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         return Source.<T>queue(getBufferSize(), OverflowStrategy.dropNew())
                 .map(this::incrementDequeueCounter)
                 .log("graph-actor-stream-1-dequeued", logger)
-                .withAttributes(streamLogLevels)
                 .via(Flow.fromFunction(this::beforeProcessMessage))
                 .log("graph-actor-stream-2-preprocessed", logger)
-                .withAttributes(streamLogLevels)
                 .via(processMessageFlow())
                 .log("graph-actor-stream-3-processed", logger)
-                .withAttributes(streamLogLevels)
                 .to(processedMessageSink())
+                .withAttributes(streamLogLevels.and(getSupervisionStrategyAttribute()))
                 .run(materializer);
     }
 

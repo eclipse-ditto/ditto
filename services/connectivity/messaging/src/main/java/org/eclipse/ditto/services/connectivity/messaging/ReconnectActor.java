@@ -37,7 +37,7 @@ import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -56,10 +56,10 @@ public final class ReconnectActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorMaterializer materializer;
     private final ActorRef connectionShardRegion;
     private final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier;
     private final ReconnectConfig reconnectConfig;
+    private final Materializer materializer;
 
     private Cancellable reconnectCheck;
     private boolean reconnectInProgress = false;
@@ -70,19 +70,19 @@ public final class ReconnectActor extends AbstractActor {
 
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
+        materializer = Materializer.createMaterializer(this::getContext);
         reconnectConfig = getReconnectConfig(getContext());
-        materializer = ActorMaterializer.create(getContext());
     }
 
     @SuppressWarnings("unused")
     private ReconnectActor(final ActorRef connectionShardRegion, final MongoReadJournal readJournal) {
         this.connectionShardRegion = connectionShardRegion;
         reconnectConfig = getReconnectConfig(getContext());
-        materializer = ActorMaterializer.create(getContext());
 
-        currentPersistenceIdsSourceSupplier =
-                () -> readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(),
-                        reconnectConfig.getInterval(), materializer);
+        materializer = Materializer.createMaterializer(this::getContext);
+        currentPersistenceIdsSourceSupplier = () ->
+                readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(), reconnectConfig.getInterval(),
+                        materializer);
     }
 
     /**

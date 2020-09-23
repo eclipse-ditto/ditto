@@ -53,10 +53,12 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final String actorPropsFactoryFullQualifiedClassname;
     private final Set<HeaderDefinition> queryParamsAsHeaders;
     private final Set<String> additionalAcceptedMediaTypes;
+    private final Duration coordinatedShutdownTimeout;
 
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig) {
         hostname = basicHttpConfig.getHostname();
         port = basicHttpConfig.getPort();
+        coordinatedShutdownTimeout = basicHttpConfig.getCoordinatedShutdownTimeout();
         schemaVersions = Collections.unmodifiableSet(getJsonSchemaVersions(scopedConfig));
         forceHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.FORCE_HTTPS.getConfigPath());
         redirectToHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.REDIRECT_TO_HTTPS.getConfigPath());
@@ -158,6 +160,11 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
+    public Duration getCoordinatedShutdownTimeout() {
+        return coordinatedShutdownTimeout;
+    }
+
+    @Override
     public Set<JsonSchemaVersion> getSupportedSchemaVersions() {
         return schemaVersions;
     }
@@ -213,6 +220,7 @@ public final class GatewayHttpConfig implements HttpConfig {
         }
         final GatewayHttpConfig that = (GatewayHttpConfig) o;
         return port == that.port &&
+                Objects.equals(coordinatedShutdownTimeout, that.coordinatedShutdownTimeout) &&
                 forceHttps == that.forceHttps &&
                 redirectToHttps == that.redirectToHttps &&
                 enableCors == that.enableCors &&
@@ -227,7 +235,7 @@ public final class GatewayHttpConfig implements HttpConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(hostname, port, schemaVersions, forceHttps, redirectToHttps,
+        return Objects.hash(hostname, port, coordinatedShutdownTimeout, schemaVersions, forceHttps, redirectToHttps,
                 redirectToHttpsBlocklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
                 queryParamsAsHeaders, additionalAcceptedMediaTypes);
     }
@@ -237,6 +245,7 @@ public final class GatewayHttpConfig implements HttpConfig {
         return getClass().getSimpleName() + " [" +
                 "hostname=" + hostname +
                 ", port=" + port +
+                ", coordinatedShutdownTimeout=" + coordinatedShutdownTimeout +
                 ", schemaVersions=" + schemaVersions +
                 ", forceHttps=" + forceHttps +
                 ", redirectToHttps=" + redirectToHttps +

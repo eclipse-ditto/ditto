@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
@@ -361,6 +362,16 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S contentType(@Nullable final CharSequence contentType) {
         putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
+        return myself;
+    }
+
+    @Override
+    public S contentType(@Nullable final ContentType contentType) {
+        if (null != contentType) {
+            putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType.getValue());
+        } else {
+            removeHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+        }
         return myself;
     }
 
