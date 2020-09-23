@@ -75,7 +75,6 @@ public final class ModifyAttributeTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, null,
                         TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "new attribute")
                 .withNoCause();
     }
 
@@ -84,7 +83,6 @@ public final class ModifyAttributeTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, null, KNOWN_ATTRIBUTE,
                         TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "key of the attribute to be modified")
                 .withNoCause();
 
     }
@@ -107,6 +105,22 @@ public final class ModifyAttributeTest {
     public void tryToCreateInstanceWithInvalidAttributePointer() {
         ModifyAttribute.of(TestConstants.Thing.THING_ID, INVALID_JSON_POINTER, KNOWN_ATTRIBUTE,
                 TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidJsonValue() {
+        final JsonValue invalid = JsonValue.of(JsonObject.of("{\"bar/baz\":false}"));
+
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, VALID_JSON_POINTER,
+                invalid, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test
+    public void tryToCreateInstanceWithValidJsonObjectAsValue() {
+        final JsonValue valid = JsonValue.of(JsonObject.of("{\"bar.baz\":false}"));
+
+        ModifyAttribute.of(TestConstants.Thing.THING_ID, VALID_JSON_POINTER,
+                valid, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = AttributePointerInvalidException.class)

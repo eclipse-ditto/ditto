@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
@@ -68,7 +67,7 @@ public class WrappingMessageMapperTest {
         when(mockMapper.getId()).thenReturn("mockMapper");
         when(mockMapper.getDefaultOptions()).thenReturn(DEFAULT_OPTIONS);
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
-        when(mockAdaptable.getHeaders()).thenReturn(Optional.of(DittoHeaders.empty()));
+        when(mockAdaptable.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
         mapperLimitsConfig = DefaultMappingConfig.of(ConfigFactory.load("mapping-test"));
         underTest = WrappingMessageMapper.wrap(mockMapper);
@@ -98,7 +97,7 @@ public class WrappingMessageMapperTest {
     public void mapAdaptable() {
         final DittoHeaders headers =
                 DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
-        when(mockAdaptable.getHeaders()).thenReturn(Optional.of(headers));
+        when(mockAdaptable.getDittoHeaders()).thenReturn(headers);
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
@@ -127,7 +126,7 @@ public class WrappingMessageMapperTest {
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
-        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getHeaders();
+        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getDittoHeaders();
         verify(mockMapper).map(mockAdaptable);
     }
 

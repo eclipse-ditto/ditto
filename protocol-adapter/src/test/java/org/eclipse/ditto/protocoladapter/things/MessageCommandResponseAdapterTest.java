@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -162,7 +163,9 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                 .messages()
                 .subject(subject)
                 .build();
-        final JsonPointer path = JsonPointer.of("/outbox/messages/" + subject);
+        final String box = "outbox";
+        final String preamble = isFeatureResponse() ? String.format("features/%s/%s", FEATURE_ID, box) : box;
+        final JsonPointer path = JsonPointer.of(String.format("/%s/messages/%s", preamble, subject));
 
         final DittoHeaders expectedHeaders = TestConstants.DITTO_HEADERS_V_2.toBuilder()
                 .contentType(contentType)
@@ -178,6 +181,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
         final Message<Object> theMessage = Message.newBuilder(
                 MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject)
                         .contentType(contentType)
+                        .featureId(isFeatureResponse() ? FEATURE_ID : null)
                         .correlationId(CORRELATION_ID)
                         .statusCode(statusCode)
                         .schemaVersion(JsonSchemaVersion.V_2)

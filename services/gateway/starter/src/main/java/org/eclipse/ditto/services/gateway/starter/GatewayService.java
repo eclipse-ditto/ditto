@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * The Gateway service for Eclipse Ditto.
@@ -63,10 +62,9 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
-        return GatewayRootActor.props(gatewayConfig, pubSubMediator, materializer);
+        return GatewayRootActor.props(gatewayConfig, pubSubMediator);
     }
 
 }

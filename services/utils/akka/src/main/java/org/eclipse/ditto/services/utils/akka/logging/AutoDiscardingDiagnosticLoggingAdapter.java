@@ -19,7 +19,8 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import scala.collection.Seq;
+import scala.collection.immutable.Seq;
+
 
 /**
  * This implementation of {@link AbstractDiagnosticLoggingAdapter} discards the correlation ID automatically after

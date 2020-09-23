@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.japi.pf.PFBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -46,12 +45,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingsSearchCursorTest {
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
 
     @Before
     public void init() {
         actorSystem = ActorSystem.create();
-        materializer = ActorMaterializer.create(actorSystem);
     }
 
     @After
@@ -60,7 +57,6 @@ public final class ThingsSearchCursorTest {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
-        materializer = null;
     }
 
     @Test
@@ -72,8 +68,8 @@ public final class ThingsSearchCursorTest {
     public void encodeAndDecodeAreInverse() {
         final ThingsSearchCursor input = randomCursor();
         final ThingsSearchCursor decoded =
-                ThingsSearchCursor.decode(input.encode(), materializer)
-                        .runWith(Sink.head(), materializer)
+                ThingsSearchCursor.decode(input.encode(), actorSystem)
+                        .runWith(Sink.head(), actorSystem)
                         .toCompletableFuture().join();
 
         assertThat(decoded).isEqualTo(input);
@@ -104,10 +100,10 @@ public final class ThingsSearchCursorTest {
     @Test
     public void decodingInvalidCursorsFailsWithInvalidCursorException() {
         assertThat(
-                ThingsSearchCursor.decode("null", materializer)
+                ThingsSearchCursor.decode("null", actorSystem)
                         .<Object>map(x -> x)
                         .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
-                        .runWith(Sink.head(), materializer)
+                        .runWith(Sink.head(), actorSystem)
                         .toCompletableFuture()
                         .join())
                 .isInstanceOf(InvalidOptionException.class);

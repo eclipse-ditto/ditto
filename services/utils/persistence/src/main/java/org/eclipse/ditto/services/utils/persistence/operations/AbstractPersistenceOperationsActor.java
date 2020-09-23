@@ -41,7 +41,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -61,7 +61,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     private final EntityType entityType;
     @Nullable private final NamespacePersistenceOperations namespaceOps;
     @Nullable private final EntityPersistenceOperations entitiesOps;
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
     private final Collection<Closeable> toCloseWhenStopped;
 
     private final Duration delayAfterPersistenceActorShutdown;
@@ -81,7 +81,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         this.namespaceOps = namespaceOps;
         this.entitiesOps = entitiesOps;
         this.toCloseWhenStopped = Collections.unmodifiableCollection(toCloseWhenStopped);
-        materializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
         delayAfterPersistenceActorShutdown = persistenceOperationsConfig.getDelayAfterPersistenceActorShutdown();
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     }
@@ -107,7 +107,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             @Nullable final EntityPersistenceOperations entitiesOps,
             final PersistenceOperationsConfig persistenceOperationsConfig,
             final Closeable toCloseWhenStopped,
-            final Closeable ... optionalToCloseWhenStopped) {
+            final Closeable... optionalToCloseWhenStopped) {
 
         this(pubSubMediator, entityType, namespaceOps, entitiesOps, persistenceOperationsConfig,
                 toList(toCloseWhenStopped, optionalToCloseWhenStopped));

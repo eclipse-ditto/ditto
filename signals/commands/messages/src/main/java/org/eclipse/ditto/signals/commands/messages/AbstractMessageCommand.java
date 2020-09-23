@@ -134,7 +134,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
 
     @Override
     public String toString() {
-        return "thingId=" + thingId + ", message=" + message;
+        return super.toString() + ", thingId=" + thingId + ", message=" + message;
     }
 
     @Override

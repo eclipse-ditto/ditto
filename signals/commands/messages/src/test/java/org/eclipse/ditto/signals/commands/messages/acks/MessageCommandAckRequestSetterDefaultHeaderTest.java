@@ -73,8 +73,8 @@ public final class MessageCommandAckRequestSetterDefaultHeaderTest {
         final Validity ofOutput = new Validity(output.getDittoHeaders());
         if (ofInput.isHeaderValid) {
             assertThat(ofOutput.isHeaderValid)
-                    .describedAs(String.format("isTimeoutZero=%b isResponseRequired=%b areAcksNonempty=%b",
-                            ofOutput.isTimeoutZero, ofOutput.isResponseRequired, ofOutput.areAcksNonempty))
+                    .describedAs(String.format("isTimeoutZero=%b isResponseRequired=%b areAcksNonempty=%b\noutput.dittoHeaders=%s",
+                            ofOutput.isTimeoutZero, ofOutput.isResponseRequired, ofOutput.areAcksNonempty, output.getDittoHeaders()))
                     .isTrue();
         }
     }

@@ -41,7 +41,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.RestartSink;
 import akka.stream.javadsl.Sink;
@@ -121,7 +120,7 @@ public final class MongoSearchUpdaterFlowTest {
                         latch.countDown();
                         return source;
                     })
-                    .runWith(restartSink, ActorMaterializer.create(actorSystem));
+                    .runWith(restartSink, actorSystem);
 
             // THEN: MongoSearchUpdaterFlow should keep restarting and keep consuming changes from the stream
 

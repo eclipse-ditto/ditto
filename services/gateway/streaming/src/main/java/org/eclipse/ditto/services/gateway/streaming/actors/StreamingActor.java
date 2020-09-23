@@ -41,14 +41,14 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 
 /**
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
  * Manages WebSocket configuration.
  */
-public final class StreamingActor extends AbstractActorWithTimers
-        implements RetrieveConfigBehavior, ModifyConfigBehavior {
+public final class StreamingActor extends AbstractActorWithTimers implements RetrieveConfigBehavior,
+        ModifyConfigBehavior {
 
     /**
      * The name of this Actor.
@@ -94,7 +94,7 @@ public final class StreamingActor extends AbstractActorWithTimers
         jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
         subscriptionManagerProps =
                 SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator, conciergeForwarder,
-                        ActorMaterializer.create(getContext()));
+                        Materializer.createMaterializer(getContext()));
         scheduleScrapeStreamSessionsCounter();
     }
 
@@ -137,8 +137,6 @@ public final class StreamingActor extends AbstractActorWithTimers
     private Receive createConnectAndMetricsBehavior() {
         return ReceiveBuilder.create()
                 .match(Connect.class, connect -> {
-                    final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
-                    eventAndResponsePublisher.forward(connect, getContext());
                     final String sessionActorName = getUniqueChildActorName(connect.getConnectionCorrelationId());
                     final ActorRef streamingSessionActor = getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub,

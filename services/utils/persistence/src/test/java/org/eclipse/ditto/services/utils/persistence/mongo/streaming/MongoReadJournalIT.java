@@ -33,7 +33,8 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -51,7 +52,7 @@ public final class MongoReadJournalIT {
     private static DittoMongoClient mongoClient;
 
     private ActorSystem actorSystem;
-    private ActorMaterializer materializer;
+    private Materializer materializer;
     private MongoReadJournal readJournal;
 
     @BeforeClass
@@ -88,7 +89,7 @@ public final class MongoReadJournalIT {
         final Config config = ConfigFactory.load("mongo-read-journal-test")
                 .withValue("akka.contrib.persistence.mongodb.mongo.mongouri", ConfigValueFactory.fromAnyRef(mongoUri));
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        materializer = ActorMaterializer.create(actorSystem);
+        materializer = SystemMaterializer.get(actorSystem).materializer();
         readJournal = MongoReadJournal.newInstance(config, mongoClient);
     }
 

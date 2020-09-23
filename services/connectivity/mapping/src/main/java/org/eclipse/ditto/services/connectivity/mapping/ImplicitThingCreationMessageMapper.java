@@ -222,7 +222,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
             final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
             final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
 
-            return Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(commandHeaders)
+            return Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                     .withTopicPath(adaptable.getTopicPath())
                     .withText(jsonString)
                     .asResponse(isResponse)

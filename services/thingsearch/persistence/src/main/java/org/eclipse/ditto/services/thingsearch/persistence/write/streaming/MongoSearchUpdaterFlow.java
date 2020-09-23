@@ -132,7 +132,7 @@ final class MongoSearchUpdaterFlow {
 
     private static <T> Flow<List<T>, StartedTimer, NotUsed> createStartTimerFlow() {
         return Flow.fromFunction(writeModels -> {
-            Kamon.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record(writeModels.size());
+            DittoMetrics.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record((long) writeModels.size());
             return DittoMetrics.expiringTimer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").build();
         });
     }

@@ -49,13 +49,11 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.HttpsConnectionContext;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.Uri;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -166,9 +164,8 @@ public abstract class AbstractBaseClientActorTest {
 
         final ActorSystem actorSystem = getActorSystem();
         final ServerBinding binding = Http.get(actorSystem)
-                .bindAndHandle(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()),
-                        ConnectHttp.toHostHttps("127.0.0.1", 0).withCustomHttpsContext(invalidHttpsContext),
-                        ActorMaterializer.create(actorSystem))
+                .newServerAt("127.0.0.1", 0)
+                .bindFlow(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()))
                 .toCompletableFuture()
                 .join();
 
