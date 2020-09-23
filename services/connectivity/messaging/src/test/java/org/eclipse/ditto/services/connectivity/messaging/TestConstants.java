@@ -54,6 +54,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -249,6 +250,12 @@ public final class TestConstants {
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
                 doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> declareAcknowledgementLabels(
+                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
                 return CompletableFuture.completedFuture(null);
             }
 

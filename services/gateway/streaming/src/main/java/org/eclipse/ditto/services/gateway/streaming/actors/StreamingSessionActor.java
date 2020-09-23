@@ -558,17 +558,19 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      */
     private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
         final ActorRef self = getSelf();
-        logger.debug("Declaring acknowledgement labels <{}>", acknowledgementLabels);
-        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
-                .thenAccept(_void -> logger.debug("Acknowledgement label declaration successful."))
-                .exceptionally(error -> {
-                    final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
-                    final DittoRuntimeException dittoRuntimeException =
-                            DittoRuntimeException.asDittoRuntimeException(error,
-                                    cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
-                    self.tell(dittoRuntimeException, ActorRef.noSender());
-                    return null;
-                });
+        if (!acknowledgementLabels.isEmpty()) {
+            logger.debug("Declaring acknowledgement labels <{}>", acknowledgementLabels);
+            dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
+                    .thenAccept(_void -> logger.debug("Acknowledgement label declaration successful."))
+                    .exceptionally(error -> {
+                        final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
+                        final DittoRuntimeException dittoRuntimeException =
+                                DittoRuntimeException.asDittoRuntimeException(error,
+                                        cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
+                        self.tell(dittoRuntimeException, ActorRef.noSender());
+                        return null;
+                    });
+        }
     }
 
     private static StreamingType determineStreamingType(final Signal<?> signal) {

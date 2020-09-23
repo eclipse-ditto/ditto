@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -157,6 +158,12 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
             @Override
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> declareAcknowledgementLabels(
+                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
                 return CompletableFuture.completedFuture(null);
             }
         };
