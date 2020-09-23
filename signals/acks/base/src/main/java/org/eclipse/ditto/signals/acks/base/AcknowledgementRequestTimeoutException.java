@@ -102,17 +102,14 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new exception.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} misses a required field.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an unexpected value type.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static AcknowledgementRequestTimeoutException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new AcknowledgementRequestTimeoutException(dittoHeaders,
-                readMessage(jsonObject),
-                readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION),
-                null,
-                readHRef(jsonObject).orElse(null));
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
@@ -127,7 +124,7 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
 
         private Builder(final Duration timeout) {
             this();
-            message(getMessage(timeout));
+            message(AcknowledgementRequestTimeoutException.getMessage(timeout));
         }
 
         @Override
@@ -136,7 +133,7 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            
+
             return new AcknowledgementRequestTimeoutException(dittoHeaders, message, description, cause, href);
         }
 
