@@ -272,7 +272,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
         private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message.";
         private static final String DEFAULT_FAILURE_MESSAGE = "Failure while processing message : {0}";
-        private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while processing message.";
+        private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while processing message: {0}";
 
         private final int successCapacity;
         private final int failureCapacity;
