@@ -88,18 +88,14 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected.
      */
     public static SignalEnrichmentFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .status(jsonObject.getValue(JsonFields.STATUS)
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders,
+                new Builder().status(jsonObject.getValue(JsonFields.STATUS)
                         .flatMap(HttpStatusCode::forInt)
-                        .orElse(DEFAULT_STATUS_CODE))
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+                        .orElse(DEFAULT_STATUS_CODE)));
     }
 
     /**

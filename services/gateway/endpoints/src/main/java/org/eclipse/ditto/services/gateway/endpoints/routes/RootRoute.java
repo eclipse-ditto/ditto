@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringD
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.SecurityResponseHeadersDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
@@ -189,20 +188,18 @@ public final class RootRoute extends AllDirectives {
                 EncodingEnsuringDirective.ensureEncoding(() ->
                         httpsDirective.ensureHttps(correlationId, () ->
                                 corsDirective.enableCors(() ->
-                                        SecurityResponseHeadersDirective.addSecurityResponseHeaders(() ->
-                                            /* handling the rejections is done by akka automatically, but if we
-                                               do it here explicitly, we are able to log the status code for the
-                                               rejection (e.g. 404 or 405) in a wrapping directive. */
-                                                handleRejections(rejectionHandler, () ->
-                                                    /* the inner handleExceptions is for handling exceptions
-                                                       occurring in the route route. It makes sure that the
-                                                       wrapping directives such as addSecurityResponseHeaders are
-                                                       even called in an error case in the route route. */
-                                                        handleExceptions(exceptionHandler, () ->
-                                                                rootRoute.apply(correlationId)
-                                                        )
-                                                )
-                                        )
+                                        /* handling the rejections is done by akka automatically, but if we
+                                           do it here explicitly, we are able to log the status code for the
+                                           rejection (e.g. 404 or 405) in a wrapping directive. */
+                                            handleRejections(rejectionHandler, () ->
+                                                /* the inner handleExceptions is for handling exceptions
+                                                   occurring in the route route. It makes sure that the
+                                                   wrapping directives such as addSecurityResponseHeaders are
+                                                   even called in an error case in the route route. */
+                                                    handleExceptions(exceptionHandler, () ->
+                                                            rootRoute.apply(correlationId)
+                                                    )
+                                            )
                                 )
                         )
                 );

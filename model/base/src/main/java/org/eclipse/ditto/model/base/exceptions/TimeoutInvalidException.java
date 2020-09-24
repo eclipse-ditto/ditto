@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown when timeout value can not be parsed.
+ *
  * @since 1.2.0
  */
 @Immutable
@@ -38,7 +39,8 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      */
     public static final String ERROR_CODE = "timeout.invalid";
 
-    private static final String DEFAULT_MESSAGE = "The timeout <{0}{2}> is not inside its allowed bounds <0{2} - {1}{2}>";
+    private static final String DEFAULT_MESSAGE =
+            "The timeout <{0}{2}> is not inside its allowed bounds <0{2} - {1}{2}>";
 
     private static final String DEFAULT_DESCRIPTION = "Please choose a valid timeout.";
 
@@ -66,6 +68,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
 
     /**
      * A mutable builder for {@code TimeoutInvalidException}.
+     *
      * @param timeout the received timeout.
      * @param maxTimeout the maximum allowed timeout.
      * @return a mutable builder.
@@ -78,6 +81,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
 
     /**
      * A mutable builder for {@code TimeoutInvalidException}.
+     *
      * @param message the message of the exception.
      * @return a mutable builder.
      */
@@ -95,16 +99,12 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new DittoHeaderInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static TimeoutInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
@@ -112,6 +112,10 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<TimeoutInvalidException> {
+
+        public Builder() {
+            description(DEFAULT_DESCRIPTION);
+        }
 
         @Override
         protected TimeoutInvalidException doBuild(final DittoHeaders dittoHeaders,

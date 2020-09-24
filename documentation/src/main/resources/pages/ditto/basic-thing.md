@@ -60,6 +60,12 @@ A Thing may contain an arbitrary amount of [Features](basic-feature.html).
 many Features" max-width=100 %}
 
 
+### Metadata
+
+A Thing may contain additional [metadata](basic-metadata.html) for all of its attributes and features describing the
+semantics of the data or adding other useful information about the data points of the twin.
+
+
 ### Model specification
 
 #### API version 1 - Deprecated
