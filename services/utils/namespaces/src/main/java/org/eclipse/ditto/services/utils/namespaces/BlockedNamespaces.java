@@ -113,7 +113,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     }
 
     @Override
-    public Key<ORSet<String>> getKey() {
+    protected Key<ORSet<String>> getKey() {
         return KEY;
     }
 

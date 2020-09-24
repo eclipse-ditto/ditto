@@ -110,7 +110,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
     /**
      * @return key of the distributed collection. Should be unique among collections of the same type.
      */
-    public abstract Key<R> getKey();
+    protected abstract Key<R> getKey();
 
     /**
      * @return initial value of the distributed data.

@@ -101,7 +101,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
         awaitUpdateMetric = DittoMetrics.gauge("pubsub-await-update").tag("name", tagName);
         awaitSubAckMetric = DittoMetrics.gauge("pubsub-await-acknowledge").tag("name", tagName);
 
-        getTimers().startPeriodicTimer(Clock.TICK, Clock.TICK, config.getUpdateInterval());
+        getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
     }
 
     @Override
