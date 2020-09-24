@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -221,7 +222,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message,
@@ -231,18 +232,18 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         if (!isInBackOffMode) {
             return doPublishMessage(signal, autoAckTarget, publishTarget, message);
         } else {
-            final CompletableFuture<CommandResponseOrAcknowledgement> backOffModeFuture = new CompletableFuture<>();
+            final CompletableFuture<CommandResponse<?>> backOffModeFuture = new CompletableFuture<>();
             backOffModeFuture.completeExceptionally(getBackOffModeError(message, publishTarget.getJmsDestination()));
             return backOffModeFuture;
         }
     }
 
-    private CompletionStage<CommandResponseOrAcknowledgement> doPublishMessage(@Nullable final Signal<?> signal,
+    private CompletionStage<CommandResponse<?>> doPublishMessage(@Nullable final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message) {
 
-        final CompletableFuture<CommandResponseOrAcknowledgement> sendResult = new CompletableFuture<>();
+        final CompletableFuture<CommandResponse<?>> sendResult = new CompletableFuture<>();
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
@@ -262,8 +263,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         if (signal == null) {
                             sendResult.complete(null);
                         } else {
-                            final Acknowledgement ack = toAcknowledgement(signal, autoAckTarget);
-                            sendResult.complete(new CommandResponseOrAcknowledgement(null, ack));
+                            sendResult.complete(toAcknowledgement(signal, autoAckTarget));
                         }
                         l.debug("Sent: <{}>", jmsMessage);
                     }

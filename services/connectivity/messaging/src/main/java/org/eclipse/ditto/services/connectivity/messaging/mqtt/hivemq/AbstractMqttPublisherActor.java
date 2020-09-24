@@ -32,10 +32,9 @@ import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValida
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
@@ -55,7 +54,6 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     private static final int DEFAULT_TARGET_QOS = 0;
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-mqtt-diagnostic");
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final Function<P, CompletableFuture<R>> client;
     private final boolean dryRun;
 
@@ -148,7 +146,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
-    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final MqttPublishTarget publishTarget,
             final ExternalMessage message,
@@ -163,8 +161,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                         .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
                                 decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
             }
-            return client.apply(mqttMessage).thenApply(result ->
-                    new CommandResponseOrAcknowledgement(null, toAcknowledgement(signal, autoAckTarget, result)));
+            return client.apply(mqttMessage).thenApply(result -> toAcknowledgement(signal, autoAckTarget, result));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }

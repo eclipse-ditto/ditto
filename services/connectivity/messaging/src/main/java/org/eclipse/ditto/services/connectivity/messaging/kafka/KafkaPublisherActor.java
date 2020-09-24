@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.Done;
 import akka.actor.Props;
@@ -126,7 +127,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final KafkaPublishTarget publishTarget,
             final ExternalMessage message,
@@ -142,7 +143,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             return CompletableFuture.failedFuture(error);
         } else {
             final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
-            final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture = new CompletableFuture<>();
+            final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
             final Callback callBack = new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture,
                     this::escalateIfNotRetryable, connection);
             producer.send(record, callBack);
@@ -247,7 +248,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private final Signal<?> signal;
         @Nullable private final Target autoAckTarget;
         private final int ackSizeQuota;
-        private final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture;
+        private final CompletableFuture<CommandResponse<?>> resultFuture;
         private final Consumer<Exception> checkException;
         private int currentQuota;
         private final Connection connection;
@@ -255,7 +256,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private ProducerCallBack(final Signal<?> signal,
                 @Nullable final Target autoAckTarget,
                 final int ackSizeQuota,
-                final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture,
+                final CompletableFuture<CommandResponse<?>> resultFuture,
                 final Consumer<Exception> checkException,
                 final Connection connection) {
 
@@ -273,7 +274,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 resultFuture.completeExceptionally(exception);
                 checkException.accept(exception);
             } else {
-                resultFuture.complete(new CommandResponseOrAcknowledgement(null, ackFromMetadata(metadata)));
+                resultFuture.complete(ackFromMetadata(metadata));
             }
         }
 

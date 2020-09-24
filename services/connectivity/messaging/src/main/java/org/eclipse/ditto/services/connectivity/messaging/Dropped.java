@@ -22,7 +22,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * A dropped signal.
@@ -42,8 +42,9 @@ final class Dropped implements SendingOrDropped {
         this.sendingContext = checkNotNull(sendingContext, "sendingContext");
     }
 
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     @Override
-    public Optional<CompletionStage<Acknowledgement>> monitorAndAcknowledge(
+    public Optional<CompletionStage<CommandResponse>> monitorAndAcknowledge(
             final ExceptionToAcknowledgementConverter exceptionToAcknowledgementConverter) {
 
         final ConnectionMonitor droppedMonitor = sendingContext.getDroppedMonitor();

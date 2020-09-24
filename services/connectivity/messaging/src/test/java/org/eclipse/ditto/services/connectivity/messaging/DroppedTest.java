@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -62,7 +62,7 @@ public final class DroppedTest {
 
         final Dropped underTest = new Dropped(sendingContext);
 
-        final Optional<CompletionStage<Acknowledgement>> result = underTest.monitorAndAcknowledge(null);
+        final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(null);
 
         assertThat(result).isEmpty();
         Mockito.verify(droppedMonitor).success(source, "Signal dropped, target address unresolved: {0}", address);

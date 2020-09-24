@@ -55,6 +55,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
@@ -150,7 +151,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
             final ExternalMessage message,
@@ -190,7 +191,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     .orElse(new byte[]{});
         }
 
-        final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture = new CompletableFuture<>();
+        final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
         // create consumer outside channel message: need to check actor state and decide whether to handle acks.
         final LongConsumer nextPublishSeqNoConsumer =
                 computeNextPublishSeqNoConsumer(signal, autoAckTarget, publishTarget, resultFuture);
@@ -217,19 +218,20 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private LongConsumer computeNextPublishSeqNoConsumer(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
-            final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture) {
+            final CompletableFuture<CommandResponse<?>> resultFuture) {
 
         if (confirmMode == ConfirmMode.ACTIVE) {
             return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, autoAckTarget, publishTarget, pendingAckTTL);
         } else {
             final Acknowledgement unsupportedAck = getUnsupportedAck(signal, autoAckTarget);
-            return seqNo -> resultFuture.complete(new CommandResponseOrAcknowledgement(null, unsupportedAck));
+            return seqNo -> resultFuture.complete(unsupportedAck);
         }
     }
 
     // Thread-safe
-    private void addOutstandingAck(final Long seqNo, final Signal<?> signal,
-            final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture,
+    private void addOutstandingAck(final Long seqNo,
+            final Signal<?> signal,
+            final CompletableFuture<CommandResponse<?>> resultFuture,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
             final Duration timeoutDuration) {
@@ -239,7 +241,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         // index the outstanding ack by delivery tag
         outstandingAcks.put(seqNo, outstandingAck);
-        resultFuture.completeOnTimeout(new CommandResponseOrAcknowledgement(null, timeoutAck),
+        resultFuture.completeOnTimeout(timeoutAck,
                 timeoutDuration.toMillis(), TimeUnit.MILLISECONDS)
                 // Only remove future from cache. Actual logging/reporting done elsewhere.
                 .whenComplete((ack, error) -> outstandingAcks.remove(seqNo));
@@ -478,22 +480,22 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         private final Signal<?> signal;
         @Nullable private final Target autoAckTarget;
-        private final CompletableFuture<CommandResponseOrAcknowledgement> future;
+        private final CompletableFuture<CommandResponse<?>> future;
 
-        private OutstandingAck(final Signal<?> signal,
-                @Nullable final Target autoAckTarget,
-                final CompletableFuture<CommandResponseOrAcknowledgement> future) {
+        private OutstandingAck(final Signal<?> signal, @Nullable final Target autoAckTarget,
+                final CompletableFuture<CommandResponse<?>> future) {
+
             this.signal = signal;
             this.autoAckTarget = autoAckTarget;
             this.future = future;
         }
 
         private void completeWithSuccess() {
-            future.complete(new CommandResponseOrAcknowledgement(null, getSuccessAck(signal, autoAckTarget)));
+            future.complete(getSuccessAck(signal, autoAckTarget));
         }
 
         private void completeWithFailure() {
-            future.complete(new CommandResponseOrAcknowledgement(null, getFailureAck(signal, autoAckTarget)));
+            future.complete(getFailureAck(signal, autoAckTarget));
         }
 
         private static Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target target) {
@@ -502,8 +504,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         }
 
         private void completeForReturn(final int replyCode, final String replyText) {
-            future.complete(new CommandResponseOrAcknowledgement(null,
-                    getReturnAck(signal, autoAckTarget, replyCode, replyText)));
+            future.complete(getReturnAck(signal, autoAckTarget, replyCode, replyText));
         }
 
         private static Acknowledgement getReturnAck(final Signal<?> signal,

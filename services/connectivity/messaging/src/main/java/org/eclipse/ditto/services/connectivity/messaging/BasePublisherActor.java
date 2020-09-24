@@ -19,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,35 +29,26 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -66,14 +58,9 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -87,8 +74,6 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -168,31 +153,34 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final int quota = computeMaxAckPayloadBytesForSignal(multiMapped);
         final ExceptionToAcknowledgementConverter errorConverter = getExceptionConverter();
         final List<OutboundSignal.Mapped> mappedOutboundSignals = multiMapped.getMappedOutboundSignals();
-        final CompletableFuture<CommandResponseOrAcknowledgement>[] sendMonitorAndResponseFutures = mappedOutboundSignals.stream()
+        final CompletableFuture<CommandResponse<?>>[] sendMonitorAndResponseFutures = mappedOutboundSignals.stream()
                 // message sending step
                 .flatMap(outbound -> sendMappedOutboundSignal(outbound, quota))
                 // monitor and acknowledge step
                 .flatMap(sendingOrDropped -> sendingOrDropped.monitorAndAcknowledge(errorConverter).stream())
                 // convert to completable future array for aggregation
                 .map(CompletionStage::toCompletableFuture)
-                .<CompletableFuture<CommandResponseOrAcknowledgement>>toArray(CompletableFuture[]::new);
+                .<CompletableFuture<CommandResponse<?>>>toArray(CompletableFuture[]::new);
 
         aggregateNonNullFutures(sendMonitorAndResponseFutures)
                 .thenAccept(responsesList -> {
                     final ActorRef sender = multiMapped.getSender().orElse(null);
 
-                    final List<Acknowledgement> ackList = responsesList.stream()
-                            .map(CommandResponseOrAcknowledgement::getAcknowledgement)
-                            .flatMap(Optional::stream)
-                            .filter(this::shouldPublishAcknowledgement)
-                            .collect(Collectors.toList());
-                    issueAcknowledgements(multiMapped, sender, ackList);
+                    final Collection<Acknowledgement> acknowledgements = new ArrayList<>();
+                    final Collection<CommandResponse<?>> nonAcknowledgements = new ArrayList<>();
+                    responsesList.forEach(response -> {
+                        if (response instanceof Acknowledgement){
+                            final Acknowledgement acknowledgement = (Acknowledgement) response;
+                            if (shouldPublishAcknowledgement(acknowledgement)) {
+                                acknowledgements.add(acknowledgement);
+                            }
+                        } else {
+                            nonAcknowledgements.add(response);
+                        }
+                    });
 
-                    final List<CommandResponse<?>> nonAcknowledgementsResponses = responsesList.stream()
-                            .map(CommandResponseOrAcknowledgement::getCommandResponse)
-                            .flatMap(Optional::stream)
-                            .collect(Collectors.toList());
-                    sendBackResponses(multiMapped, sender, nonAcknowledgementsResponses);
+                    issueAcknowledgements(multiMapped, sender, acknowledgements);
+                    sendBackResponses(multiMapped, sender, nonAcknowledgements);
                 })
                 .exceptionally(e -> {
                     logger.withCorrelationId(multiMapped.getSource())
@@ -403,9 +391,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final CompletionStage<CommandResponseOrAcknowledgement> responsesFuture =
-                    publishMessage(outboundSource, autoAckTarget, publishTarget, mappedMessage,
-                                maxTotalMessageSize, quota);
+            final CompletionStage<CommandResponse<?>> responsesFuture =
+                    publishMessage(outboundSource, autoAckTarget, publishTarget, mappedMessage, maxTotalMessageSize,
+                            quota);
             // set the external message after header mapping for the result of header mapping to show up in log
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture, logger);
         } else {
@@ -460,7 +448,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return future of command responses (acknowledgements and potentially responses to live commands / live messages)
      * to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    protected abstract CompletionStage<CommandResponseOrAcknowledgement> publishMessage(Signal<?> signal,
+    protected abstract CompletionStage<CommandResponse<?>> publishMessage(Signal<?> signal,
             @Nullable Target autoAckTarget,
             T publishTarget,
             ExternalMessage message,
@@ -540,31 +528,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .map(AcknowledgementRequest::getLabel)
                 .collect(Collectors.toSet());
         return target.getIssuedAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
-    }
-
-    /**
-     * A CommandResponse created by publishing a message or an Acknowledgement created by this publishing or even both.
-     */
-    protected static class CommandResponseOrAcknowledgement {
-
-        @Nullable private final CommandResponse<?> commandResponse;
-        @Nullable private final Acknowledgement acknowledgement;
-
-        public CommandResponseOrAcknowledgement(
-                @Nullable final CommandResponse<?> commandResponse,
-                @Nullable final Acknowledgement acknowledgement) {
-            this.commandResponse = commandResponse;
-            this.acknowledgement = acknowledgement;
-        }
-
-        protected Optional<CommandResponse<?>> getCommandResponse() {
-            return Optional.ofNullable(commandResponse);
-        }
-
-        protected Optional<Acknowledgement> getAcknowledgement() {
-            return Optional.ofNullable(acknowledgement);
-        }
-
     }
 
 }

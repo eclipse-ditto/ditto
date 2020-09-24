@@ -50,8 +50,12 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -111,6 +115,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final HttpPushFactory factory;
 
+    private final ConnectionLogger connectionLogger;
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
@@ -122,6 +127,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
+        connectionLogger = getConnectionLogger(connection);
         materializer = Materializer.createMaterializer(this::getContext);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
@@ -141,6 +147,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     static Props props(final Connection connection, final HttpPushFactory factory) {
         return Props.create(HttpPublisherActor.class, connection, factory);
+    }
+
+    private ConnectionLogger getConnectionLogger(final Connection connection) {
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
+        final ConnectionLoggerRegistry connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(loggerConfig);
+        return connectionLoggerRegistry.forConnection(connection.getId());
     }
 
     @Override
@@ -170,14 +183,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpPublishTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
-        final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture = new CompletableFuture<>();
+        final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
         final HttpRequest request = createRequest(publishTarget, message);
         final HttpPushContext context = newContext(signal, autoAckTarget, request, message, maxTotalMessageSize,
                 ackSizeQuota, resultFuture);
@@ -248,7 +261,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota,
-            final CompletableFuture<CommandResponseOrAcknowledgement> resultFuture) {
+            final CompletableFuture<CommandResponse<?>> resultFuture) {
 
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
@@ -282,7 +295,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         };
     }
 
-    private CompletionStage<CommandResponseOrAcknowledgement> toCommandResponseOrAcknowledgement(final Signal<?> signal,
+    private CompletionStage<CommandResponse<?>> toCommandResponseOrAcknowledgement(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpResponse response,
             final int maxTotalMessageSize,
@@ -304,18 +317,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final boolean isMessageCommand = signal instanceof MessageCommand;
             final int maxResponseSize = isMessageCommand ? maxTotalMessageSize : ackSizeQuota;
             return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
-                @Nullable final CommandResponse<?> commandResponse;
-                @Nullable final Acknowledgement acknowledgement;
+                @Nullable final CommandResponse<?> result;
                 final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
                     // Live-Response is declared as issued ack => parse live response from response
                     if (isMessageCommand) {
-                        commandResponse = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders,
-                                body, statusCode);
+                        result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, statusCode);
                     } else {
-                        commandResponse = null;
+                        result = null;
                     }
-                    acknowledgement = null; // Response is expected to be the live-response.
                 } else if (NO_ACK_LABEL.equals(label)) {
                     // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
                     final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
@@ -324,31 +334,25 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     if (isDittoProtocolMessage && body.isObject()) {
                         final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
                         if (parsedResponse instanceof Acknowledgement) {
-                            commandResponse = null;
-                            acknowledgement = (Acknowledgement) parsedResponse;
+                            result = parsedResponse;
                         } else if (parsedResponse instanceof MessageCommandResponse) {
-                            commandResponse = parsedResponse;
-                            acknowledgement = null;
+                            result = parsedResponse;
                         } else {
-                            commandResponse = null;
-                            acknowledgement = null;
+                            result = null;
                         }
                     } else {
-                        commandResponse = null;
-                        acknowledgement = null;
+                        result = null;
                     }
                 } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
-                    commandResponse = null;
-                    acknowledgement = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
+                    result = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
                 }
 
-                if (commandResponse != null && isMessageCommand) {
+                if (result != null && isMessageCommand) {
                     // Do only add command response for live commands with a correct response.
-                    return new CommandResponseOrAcknowledgement(
-                            validateLiveResponse(commandResponse, (MessageCommand<?, ?>) signal), null);
+                    return validateLiveResponse(result, (MessageCommand<?, ?>) signal);
                 }
-                return new CommandResponseOrAcknowledgement(null, acknowledgement);
+                return result;
             });
         }
     }
