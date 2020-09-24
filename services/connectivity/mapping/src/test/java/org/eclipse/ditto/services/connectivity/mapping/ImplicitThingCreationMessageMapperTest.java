@@ -133,6 +133,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getDittoHeaders().get("other-test-header")).isEqualTo(GATEWAY_ID);
         assertThat(createThing.getDittoHeaders().get("test-header")).isEqualTo("this-is-a-test-header");
         assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isEqualTo(true);
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
     }
 
@@ -154,6 +155,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isEqualTo(true);
     }
 
     @Test
@@ -175,6 +177,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getInitialPolicy()).contains(INITIAL_POLICY);
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isEqualTo(true);
     }
 
     @Test

@@ -166,10 +166,15 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedTemplate);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
-        LOGGER.withCorrelationId(message.getInternalHeaders())
-                .debug("Mapped ExternalMessage to Adaptable: {}", adaptable);
+        // we cannot set the header on CreateThing directly because it is filtered when mapped to an adaptable
+        final DittoHeaders modifiedHeaders =
+                adaptable.getDittoHeaders().toBuilder().allowPolicyLockout(allowPolicyLockout).build();
+        final Adaptable adaptableWithModifiedHeaders = adaptable.setDittoHeaders(modifiedHeaders);
 
-        return Collections.singletonList(adaptable);
+        LOGGER.withCorrelationId(message.getInternalHeaders())
+                .debug("Mapped ExternalMessage to Adaptable: {}", adaptableWithModifiedHeaders);
+
+        return Collections.singletonList(adaptableWithModifiedHeaders);
     }
 
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {
@@ -189,7 +194,6 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
                 .contentType(DITTO_PROTOCOL_CONTENT_TYPE)
                 .putHeaders(commandHeaders)
-                .allowPolicyLockout(allowPolicyLockout)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
