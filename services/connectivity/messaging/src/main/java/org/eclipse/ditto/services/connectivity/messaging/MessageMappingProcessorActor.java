@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -566,6 +567,9 @@ public final class MessageMappingProcessorActor
         final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
+                .correlationId(outboundSignal.getSource().getDittoHeaders().getCorrelationId()
+                        .orElseGet(() -> UUID.randomUUID().toString()) + "-enrichment"
+                )
                 // schema version is always the latest for connectivity signal enrichment.
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
