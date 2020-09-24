@@ -161,6 +161,13 @@ public final class PlaceholderFactory {
         return new ImmutableExpressionResolver(placeholderResolvers, stringUsedInPlaceholderValidation);
     }
 
+    /**
+     * @return new instance of the {@link SourceAddressPlaceholder}
+     */
+    public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
+        return ImmutableSourceAddressPlaceholder.INSTANCE;
+    }
+
     private PlaceholderFactory() {
         throw new AssertionError();
     }
