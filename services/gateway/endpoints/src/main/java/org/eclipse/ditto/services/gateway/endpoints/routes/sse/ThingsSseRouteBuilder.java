@@ -243,11 +243,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final SignalEnrichmentFacade facade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
-        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
-                dittoHeadersStage.thenApply(dittoHeaders -> {
-
-                    sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
-
+        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage = dittoHeadersStage.thenCompose(
+                dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(_void -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
@@ -298,7 +295,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             // sniffer shouldn't sniff heartbeats
                             .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
-                });
+                })
+        );
 
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
@@ -457,8 +455,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
-            // Does nothing.
+        public CompletionStage<Void> checkAuthorization(final RequestContext requestContext,
+                final DittoHeaders dittoHeaders) {
+            return CompletableFuture.completedStage(null);
         }
 
     }

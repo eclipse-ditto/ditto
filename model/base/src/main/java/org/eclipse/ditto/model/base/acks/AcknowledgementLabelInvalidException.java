@@ -79,6 +79,24 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
     }
 
     /**
+     * Create an {@code AcknowledgementLabelInvalidException} with custom description, hyperlink and headers.
+     *
+     * @param label the invalid label.
+     * @param description the custom description.
+     * @param href hyperlink in the exception.
+     * @param dittoHeaders the headers of the exception.
+     * @return the exception.
+     */
+    public static AcknowledgementLabelInvalidException of(final CharSequence label,
+            @Nullable final String description,
+            @Nullable final URI href,
+            final DittoHeaders dittoHeaders) {
+
+        return new AcknowledgementLabelInvalidException(dittoHeaders, MessageFormat.format(MESSAGE_TEMPLATE, label),
+                description, null, href);
+    }
+
+    /**
      * Constructs a new {@code AcknowledgementLabelInvalidException} object with the exception message extracted from
      * the given JSON object.
      *

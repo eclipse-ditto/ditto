@@ -244,14 +244,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final DittoHeaders dittoHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
-        return Directives.extractWebSocketUpgrade(
-                websocketUpgrade -> Directives.extractRequest(
-                        request -> {
-                            authorizationEnforcer.checkAuthorization(dittoHeaders);
-                            return Directives.completeWithFuture(
-                                    createWebSocket(websocketUpgrade, version, correlationId.toString(),
-                                            dittoHeaders, chosenProtocolAdapter, request));
-                        }));
+        return Directives.extractWebSocketUpgrade(websocketUpgrade -> Directives.extractRequest(request -> {
+            final CompletionStage<Void> checkAuthorization =
+                    authorizationEnforcer.checkAuthorization(dittoHeaders);
+            return Directives.completeWithFuture(checkAuthorization.thenCompose(_void ->
+                    createWebSocket(websocketUpgrade, version, correlationId.toString(),
+                            dittoHeaders, chosenProtocolAdapter, request)));
+        }));
     }
 
     private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
@@ -757,11 +756,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final DittoHeaders dittoHeaders) {
-
-            // Does nothing.
+        public CompletionStage<Void> checkAuthorization(final DittoHeaders dittoHeaders) {
+            return CompletableFuture.completedStage(null);
         }
-
     }
 
     /**
