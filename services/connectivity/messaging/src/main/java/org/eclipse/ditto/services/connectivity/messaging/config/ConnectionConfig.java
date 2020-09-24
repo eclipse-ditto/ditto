@@ -59,6 +59,20 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     SnapshotConfig getSnapshotConfig();
 
     /**
+     * Returns the maximum number of Targets within a connection.
+     *
+     * @return the config.
+     */
+    Integer getMaxNumberOfTargets();
+
+    /**
+     * Returns the maximum number of Sources within a connection.
+     *
+     * @return the config.
+     */
+    Integer getMaxNumberOfSources();
+
+    /**
      * Returns the config specific to Acknowledgements for connections.
      *
      * @return the config.
@@ -120,7 +134,17 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * A comma separated list of blocked hostnames to which no http requests will be sent out.
          */
-        BLOCKED_HOSTNAMES("blocked-hostnames", "");
+        BLOCKED_HOSTNAMES("blocked-hostnames", ""),
+
+        /**
+         * The limitation number of sources within a connection.
+         */
+        MAX_SOURCE_NUMBER("max-source-number", 4),
+
+        /**
+         * The limitation number of targets within a connection.
+         */
+        MAX_TARGET_NUMBER("max-target-number", 4);
 
         private final String path;
         private final Object defaultValue;

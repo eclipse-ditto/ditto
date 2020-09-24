@@ -28,9 +28,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -124,6 +128,51 @@ public class ConnectionValidatorTest {
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithInvalidNumberOfSources() {
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
+                        ConnectivityStatus.OPEN, "amqp://localhost:5671")
+                        .sources(getListFromFunction(
+                                () -> ConnectivityModelFactory.newSourceBuilder()
+                                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                        .consumerCount(0)
+                                        .index(1)
+                                        .build(),
+                                TestConstants.INVALID_NUMBER_OF_SOURCES))
+                        .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithInvalidNumberOfTargets() {
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
+                        ConnectivityStatus.OPEN, "amqp://localhost:5671")
+                        .targets(getListFromFunction(
+                                () -> ConnectivityModelFactory.newTargetBuilder()
+                                        .address("")
+                                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                        .topics(Topic.LIVE_MESSAGES)
+                                        .build(),
+                                TestConstants.INVALID_NUMBER_OF_TARGETS))
+                        .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    private <T extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>> List<T> getListFromFunction(
+            final Supplier<T> functionToRun,
+            final int numberOfRepetitions) {
+
+        return IntStream.range(0, numberOfRepetitions).mapToObj(i -> functionToRun.get()).collect(Collectors.toList());
     }
 
     @Test

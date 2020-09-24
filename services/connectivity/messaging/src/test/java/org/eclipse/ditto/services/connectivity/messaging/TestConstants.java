@@ -179,6 +179,11 @@ public final class TestConstants {
             MAPPING_CONFIG.getMapperLimitsConfig().getMaxTargetMappers();
     public static final int INVALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS = VALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS + 1;
 
+    private static final int VALID_NUMBER_OF_SOURCES = CONNECTION_CONFIG.getMaxNumberOfSources();
+    public static final int INVALID_NUMBER_OF_SOURCES = VALID_NUMBER_OF_SOURCES + 1;
+    private static final int VALID_NUMBER_OF_TARGETS = CONNECTION_CONFIG.getMaxNumberOfTargets();
+    public static final int INVALID_NUMBER_OF_TARGETS = VALID_NUMBER_OF_TARGETS + 1;
+
     /**
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */

@@ -53,6 +53,9 @@ public final class ConnectionValidator {
     private final int mappingNumberLimitSource;
     private final int mappingNumberLimitTarget;
 
+    private final int maxNumberOfSources;
+    private final int maxNumberOfTargets;
+
     private final HostValidator hostValidator;
 
     private ConnectionValidator(
@@ -69,6 +72,9 @@ public final class ConnectionValidator {
         final MapperLimitsConfig mapperLimitsConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
         mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
+
+        maxNumberOfSources = connectivityConfig.getConnectionConfig().getMaxNumberOfSources();
+        maxNumberOfTargets = connectivityConfig.getConnectionConfig().getMaxNumberOfTargets();
 
         hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
     }
@@ -97,8 +103,7 @@ public final class ConnectionValidator {
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
-        validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
-        checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
+        validateSourcesAndTargets(connection, dittoHeaders);
         validateFormatOfCertificates(connection, dittoHeaders);
         hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
         if (spec != null) {
@@ -109,12 +114,49 @@ public final class ConnectionValidator {
         }
     }
 
+    private void validateSourcesAndTargets(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+        checkNumberOfSourcesAndTargets(connection, dittoHeaders);
+        validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
+        checkMappingNumberOfSourcesAndTargets(connection, dittoHeaders);
+    }
+
+    /**
+     * Check if number of sources and targets within a connection is valid
+     *
+     * @param connection the connection to validate.
+     * @param dittoHeaders headers of the command that triggered the connection validation.
+     * @throws ConnectionConfigurationInvalidException if number is over predefined limit
+     */
+    private void checkNumberOfSourcesAndTargets(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+        final String errorMessage = "The number of configured sources or targets within a connection exceeded.";
+        if (connection.getSources().size() > maxNumberOfSources) {
+            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                    .description(
+                            "The number of configured sources for connection: " + connection.getId() +
+                                    " is above the " +
+                                    "limit of " + maxNumberOfSources + ".")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        } else if (connection.getTargets().size() > maxNumberOfTargets) {
+            throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                    .description(
+                            "The number of configured targets for connection: " + connection.getId() + " is above the" +
+                                    " limit of " + maxNumberOfTargets + ".")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
     /**
      * Check if number of mappings are valid
      *
+     * @param connection the connection to validate.
+     * @param dittoHeaders headers of the command that triggered the connection validation.
      * @throws ConnectionConfigurationInvalidException if payload number is over predefined limit
      */
-    private void checkMappingNumberOfSourcesAndTargets(final DittoHeaders dittoHeaders, final Connection connection) {
+    private void checkMappingNumberOfSourcesAndTargets(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getSources().forEach(source -> checkPayloadMappingLimit(source.getPayloadMapping(),
                 mappingNumberLimitSource, "source", String.join(",", source.getAddresses()), dittoHeaders));
         connection.getTargets().forEach(target -> checkPayloadMappingLimit(target.getPayloadMapping(),
@@ -135,6 +177,13 @@ public final class ConnectionValidator {
         }
     }
 
+    /**
+     * Check if source and target address is not empty
+     *
+     * @param connection the connection to validate.
+     * @param dittoHeaders headers of the command that triggered the connection validation.
+     * @throws ConnectionConfigurationInvalidException if address is empty
+     */
     private void validateSourceAndTargetAddressesAreNonempty(final Connection connection,
             final DittoHeaders dittoHeaders) {
 

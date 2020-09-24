@@ -51,6 +51,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final KafkaConfig kafkaConfig;
     private final HttpPushConfig httpPushConfig;
     private final ActivityCheckConfig activityCheckConfig;
+    private final Integer maxNumberOfTargets;
+    private final Integer maxNumberOfSources;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
@@ -65,6 +67,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
+        maxNumberOfTargets = config.getInt(ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath());
+        maxNumberOfSources = config.getInt(ConnectionConfigValue.MAX_SOURCE_NUMBER.getConfigPath());
     }
 
     /**
@@ -108,6 +112,16 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public SnapshotConfig getSnapshotConfig() {
         return snapshotConfig;
+    }
+
+    @Override
+    public Integer getMaxNumberOfTargets() {
+        return maxNumberOfTargets;
+    }
+
+    @Override
+    public Integer getMaxNumberOfSources() {
+        return maxNumberOfSources;
     }
 
     @Override
