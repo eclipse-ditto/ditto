@@ -45,6 +45,7 @@ public enum BaseClientState implements Jsonifiable<JsonObject> {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
      * expected format.
+     * @throws java.lang.IllegalArgumentException if the passed jsonObject contains a name that is no constant of this enum.
      */
     public static BaseClientState fromJson(final JsonObject jsonObject) {
         final String name = checkNotNull(jsonObject, "jsonObject").getValueOrThrow(JSON_KEY_NAME);
