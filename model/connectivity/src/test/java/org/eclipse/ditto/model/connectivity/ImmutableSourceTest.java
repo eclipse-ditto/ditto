@@ -14,6 +14,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -79,6 +80,7 @@ public final class ImmutableSourceTest {
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
+                    .declaredAcknowledgementLabels(Collections.singleton(AcknowledgementLabel.of("ack")))
                     .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
@@ -109,6 +111,7 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.REPLY_TARGET, ImmutableReplyTargetTest.REPLY_TARGET_JSON)
             .set(Source.JsonFields.REPLY_TARGET_ENABLED, true)
+            .set(Source.JsonFields.DECLARED_ACKS, JsonArray.of("[\"ack\"]"))
             .build();
 
     private static final String MQTT_SOURCE1 = "mqtt/source1";
@@ -169,7 +172,9 @@ public final class ImmutableSourceTest {
                         FilteredAcknowledgementRequest.class,
                         HeaderMapping.class,
                         PayloadMapping.class,
-                        ReplyTarget.class).areAlsoImmutable());
+                        ReplyTarget.class).areAlsoImmutable(),
+                assumingFields("declaredAcknowledgementLabels")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

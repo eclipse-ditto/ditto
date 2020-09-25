@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -90,6 +91,7 @@ final class ImmutableSource implements Source {
     private final PayloadMapping payloadMapping;
     private final boolean replyTargetEnabled;
     @Nullable private final ReplyTarget replyTarget;
+    private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
 
     private ImmutableSource(final Builder builder) {
         this.addresses = Collections.unmodifiableSet(
@@ -104,6 +106,7 @@ final class ImmutableSource implements Source {
         this.payloadMapping = builder.payloadMapping;
         this.replyTargetEnabled = builder.replyTargetEnabled;
         this.replyTarget = builder.replyTarget;
+        this.declaredAcknowledgementLabels = builder.declaredAcknowledgementLabels;
     }
 
     @Override
@@ -162,6 +165,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels() {
+        return declaredAcknowledgementLabels;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -207,6 +215,10 @@ final class ImmutableSource implements Source {
         if (!(replyTargetEnabled && replyTarget == null)) {
             // only set replyTargetEnabled if it is not set by reply-target migration
             jsonObjectBuilder.set(JsonFields.REPLY_TARGET_ENABLED, replyTargetEnabled, predicate);
+        }
+
+        if (!declaredAcknowledgementLabels.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.DECLARED_ACKS, declaredAcksToJson(declaredAcknowledgementLabels));
         }
 
         return jsonObjectBuilder.build();
@@ -264,6 +276,11 @@ final class ImmutableSource implements Source {
                         .flatMap(ImmutableReplyTarget::fromJsonOptional)
                         .orElse(null);
 
+        final Set<AcknowledgementLabel> declaredAcknowledgementLabels =
+                jsonObject.getValue(JsonFields.DECLARED_ACKS)
+                        .map(ImmutableSource::declaredAcksFromJson)
+                        .orElse(Collections.emptySet());
+
         return new Builder()
                 .addresses(readSources)
                 .qos(readQos)
@@ -276,6 +293,7 @@ final class ImmutableSource implements Source {
                 .payloadMapping(readPayloadMapping)
                 .replyTargetEnabled(replyTargetEnabled)
                 .replyTarget(readReplyTarget)
+                .declaredAcknowledgementLabels(declaredAcknowledgementLabels)
                 .build();
     }
 
@@ -294,14 +312,15 @@ final class ImmutableSource implements Source {
                 Objects.equals(payloadMapping, that.payloadMapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 replyTargetEnabled == that.replyTargetEnabled &&
-                Objects.equals(replyTarget, that.replyTarget);
+                Objects.equals(replyTarget, that.replyTarget) &&
+                Objects.equals(declaredAcknowledgementLabels, that.declaredAcknowledgementLabels);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement,
                 acknowledgementRequests,
-                headerMapping, payloadMapping, replyTargetEnabled, replyTarget);
+                headerMapping, payloadMapping, replyTargetEnabled, replyTarget, declaredAcknowledgementLabels);
     }
 
     @Override
@@ -315,9 +334,10 @@ final class ImmutableSource implements Source {
                 ", enforcement=" + enforcement +
                 ", acknowledgementRequests=" + acknowledgementRequests +
                 ", headerMapping=" + headerMapping +
+                ", payloadMapping=" + payloadMapping +
                 ", replyTargetEnabled=" + replyTargetEnabled +
                 ", replyTarget=" + replyTarget +
-                ", payloadMapping=" + payloadMapping +
+                ", declaredAcknowledgementLabels=" + declaredAcknowledgementLabels +
                 "]";
     }
 
@@ -357,6 +377,19 @@ final class ImmutableSource implements Source {
                 .build();
     }
 
+    private static Set<AcknowledgementLabel> declaredAcksFromJson(final JsonArray jsonArray) {
+        return jsonArray.stream()
+                .map(JsonValue::formatAsString)
+                .map(AcknowledgementLabel::of)
+                .collect(Collectors.toSet());
+    }
+
+    private static JsonArray declaredAcksToJson(final Set<AcknowledgementLabel> declaredAcks) {
+        return declaredAcks.stream()
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
+    }
+
     /**
      * Builder for {@code ImmutableSource}.
      */
@@ -374,6 +407,7 @@ final class ImmutableSource implements Source {
         @Nullable private FilteredAcknowledgementRequest acknowledgementRequests;
         private boolean replyTargetEnabled = DEFAULT_REPLY_TARGET_ENABLED;
         @Nullable private ReplyTarget replyTarget;
+        private Set<AcknowledgementLabel> declaredAcknowledgementLabels = Collections.emptySet();
 
         // optional with default:
         private PayloadMapping payloadMapping = ConnectivityModelFactory.emptyPayloadMapping();
@@ -390,6 +424,7 @@ final class ImmutableSource implements Source {
                     .qos(source.getQos().orElse(null))
                     .acknowledgementRequests(source.getAcknowledgementRequests().orElse(null))
                     .replyTarget(source.getReplyTarget().orElse(null))
+                    .declaredAcknowledgementLabels(source.getDeclaredAcknowledgementLabels())
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
                     .consumerCount(source.getConsumerCount());
@@ -467,6 +502,12 @@ final class ImmutableSource implements Source {
         @Override
         public Builder replyTargetEnabled(final boolean replyTargetEnabled) {
             this.replyTargetEnabled = replyTargetEnabled;
+            return this;
+        }
+
+        @Override
+        public Builder declaredAcknowledgementLabels(final Set<AcknowledgementLabel> declaredAcknowledgmentLabels) {
+            this.declaredAcknowledgementLabels = declaredAcknowledgmentLabels;
             return this;
         }
 

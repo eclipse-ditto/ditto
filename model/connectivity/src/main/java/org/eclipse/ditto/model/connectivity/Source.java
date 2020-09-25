@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -109,6 +110,14 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return whether reply-target is enabled.
      */
     boolean isReplyTargetEnabled();
+
+    /**
+     * The declared acknowledgement labels are those of acknowledgements this source is allowed to send.
+     *
+     * @return the declared acknowledgement labels.
+     * @since 1.3.0
+     */
+    Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -212,6 +221,16 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<Boolean> REPLY_TARGET_ENABLED =
                 JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field for declared acknowledgement labels, namely the labels of acknowledgements the connection
+         * source is allowed to send.
+         *
+         * @since 1.3.0
+         */
+        public static final JsonFieldDefinition<JsonArray> DECLARED_ACKS =
+                JsonFactory.newJsonArrayFieldDefinition("declaredAcks", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {
