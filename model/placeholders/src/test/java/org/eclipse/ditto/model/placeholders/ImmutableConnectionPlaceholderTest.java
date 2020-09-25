@@ -23,7 +23,7 @@ import org.junit.Test;
 
 public final class ImmutableConnectionPlaceholderTest {
 
-    private final ImmutableConnectionPlaceholder underTest = ImmutableConnectionPlaceholder.INSTANCE;
+    private final ImmutableConnectionIdPlaceholder underTest = ImmutableConnectionIdPlaceholder.INSTANCE;
     private final List<String> SUPPORTED_PLACEHOLDERS = Collections.singletonList("id");
 
     @Test

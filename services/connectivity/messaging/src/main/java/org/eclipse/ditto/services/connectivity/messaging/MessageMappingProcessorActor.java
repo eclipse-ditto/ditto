@@ -447,7 +447,7 @@ public final class MessageMappingProcessorActor
         if (additionalAcknowledgementRequests.isEmpty()) {
             // do not change the signal's header if no additional acknowledgementRequests are defined in the Source
             // to preserve the default behavior for signals without the header 'requested-acks'
-            return filterAcknowledgements(signal, filter);
+            return filterAcknowledgements(signal, filter, connectionId);
         } else {
             // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
             final Set<AcknowledgementRequest> combinedRequestedAcks =
@@ -459,7 +459,8 @@ public final class MessageMappingProcessorActor
                             .toBuilder()
                             .acknowledgementRequests(combinedRequestedAcks)
                             .build()),
-                    filter);
+                    filter,
+                    connectionId);
         }
     }
 
@@ -869,7 +870,8 @@ public final class MessageMappingProcessorActor
         return externalMessage.getHeaderMapping()
                 .map(mapping -> {
                     final ExpressionResolver expressionResolver =
-                            Resolvers.forInbound(externalMessage, signal, topicPath, authorizationContext);
+                            Resolvers.forInbound(externalMessage, signal, topicPath, authorizationContext,
+                                    connectionId);
 
                     final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
 
@@ -938,12 +940,22 @@ public final class MessageMappingProcessorActor
                 });
     }
 
-    static Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter) {
+    /**
+     * Only used for testing
+     * TODO: Extract logic into separate class and test it there.
+     *
+     * @param signal signal to filter requested acknowledges for
+     * @param filter the filter string
+     * @param connectionId the connection ID receiving the signal.
+     * @return the filtered signal.
+     */
+    static Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter,
+            final ConnectionId connectionId) {
         if (filter != null) {
             final String requestedAcks = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
             final boolean headerDefined = signal.getDittoHeaders().containsKey(requestedAcks);
             final String fullFilter = "header:" + requestedAcks + "|fn:default('[]')|" + filter;
-            final ExpressionResolver resolver = Resolvers.forSignal(signal);
+            final ExpressionResolver resolver = Resolvers.forSignal(signal, connectionId);
             final Optional<String> resolverResult = resolver.resolveAsPipelineElement(fullFilter).toOptional();
             if (resolverResult.isEmpty()) {
                 // filter tripped: set requested-acks to []

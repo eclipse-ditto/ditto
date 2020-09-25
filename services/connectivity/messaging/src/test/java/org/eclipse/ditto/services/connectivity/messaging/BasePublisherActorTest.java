@@ -21,6 +21,7 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -46,6 +47,7 @@ public final class BasePublisherActorTest {
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("correlation-id", "{{ header:my-cor-id-important }}")
                     .set("thing-id", "{{ header:device_id }}")
+                    .set("connection-id", "{{ connection:id }}")
                     .set("eclipse", "ditto")
                     .build());
 
@@ -75,6 +77,7 @@ public final class BasePublisherActorTest {
                 .putHeader("foo", "bar")
                 .putHeader("reply-to", replyTo)
                 .build();
+        final ConnectionId connectionId = ConnectionId.generateRandom();
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                         .withText("payload")
@@ -91,13 +94,15 @@ public final class BasePublisherActorTest {
         // when
         final ExternalMessage headerMappedExternalMessage = BasePublisherActor.applyHeaderMapping(mappedOutboundSignal,
                 target.getHeaderMapping().orElse(null),
-                Mockito.mock(DiagnosticLoggingAdapter.class)
+                Mockito.mock(DiagnosticLoggingAdapter.class),
+                connectionId
         );
 
         // then
         final Map<String, String> actualHeaders = headerMappedExternalMessage.getHeaders();
         Assertions.assertThat(actualHeaders).containsEntry("correlation-id", correlationIdImportant);
         Assertions.assertThat(actualHeaders).containsEntry("thing-id", deviceId);
+        Assertions.assertThat(actualHeaders).containsEntry("connection-id", connectionId.toString());
         Assertions.assertThat(actualHeaders).containsEntry("eclipse", "ditto");
     }
 }

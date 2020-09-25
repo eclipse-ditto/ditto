@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -91,6 +92,8 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class MessageMappingProcessorActorTest extends AbstractMessageMappingProcessorActorTest {
 
+    private static final ConnectionId connectionId = ConnectionId.generateRandom();
+
     @Test
     public void testRequestedAcknowledgementFilter() {
         // GIVEN
@@ -105,24 +108,25 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
         // WHEN/THEN
 
         final Signal<?> notFilteredSignal =
-                filterAcknowledgements(signal, "fn:filter('2+2','ne','5')");
+                filterAcknowledgements(signal, "fn:filter('2+2','ne','5')", connectionId);
         assertThat(notFilteredSignal.getDittoHeaders()).doesNotContainKey(requestedAcks);
 
         final Signal<?> filteredSignal =
-                filterAcknowledgements(signal, "fn:filter('2+2','eq','5')");
+                filterAcknowledgements(signal, "fn:filter('2+2','eq','5')", connectionId);
         assertThat(filteredSignal.getDittoHeaders()).contains(Map.entry(requestedAcks, "[]"));
 
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                filterAcknowledgements(signal, "fn:filter('2','+','2','eq','5')")
+                filterAcknowledgements(signal, "fn:filter('2','+','2','eq','5')", connectionId)
         );
 
         final Signal<?> defaultValueSetSignal =
-                filterAcknowledgements(signal, "fn:default('[\"twin-persisted\"]')");
+                filterAcknowledgements(signal, "fn:default('[\"twin-persisted\"]')", connectionId);
         assertThat(defaultValueSetSignal.getDittoHeaders().getAcknowledgementRequests())
                 .containsExactly(twinPersistedAckRequest);
 
         final Signal<?> transformedSignal =
-                filterAcknowledgements(signalWithRequestedAcks, "fn:filter('2+2','eq','5')|fn:default('[\"custom\"]')");
+                filterAcknowledgements(signalWithRequestedAcks, "fn:filter('2+2','eq','5')|fn:default('[\"custom\"]')",
+                        connectionId);
         assertThat(transformedSignal.getDittoHeaders().getAcknowledgementRequests())
                 .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("custom"));
     }

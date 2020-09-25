@@ -297,7 +297,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             return Stream.empty();
         } else {
             // message not dropped
-            final ExpressionResolver resolver = Resolvers.forOutbound(outbound);
+            final ExpressionResolver resolver = Resolvers.forOutbound(outbound, connectionId);
             final int acks = (int) sendingContexts.stream().filter(SendingContext::shouldAcknowledge).count();
             final int maxPayloadBytes = acks == 0 ? maxPayloadBytesForSignal : maxPayloadBytesForSignal / acks;
             return sendingContexts.stream()
@@ -482,7 +482,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     /**
      * Applies the optional "header mapping" potentially configured on the passed {@code target} on the passed {@code
-     * outboundSignal}.
+     * outboundSignal}. This method is only used for testing. TODO: Extract logic into separate class and test it there.
      *
      * @param outboundSignal the OutboundSignal containing the {@link ExternalMessage} with headers potentially
      * containing placeholders.
@@ -492,9 +492,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      */
     static ExternalMessage applyHeaderMapping(final OutboundSignal.Mapped outboundSignal,
             final @Nullable HeaderMapping mapping,
-            final DiagnosticLoggingAdapter log) {
+            final DiagnosticLoggingAdapter log,
+            final ConnectionId connectionId) {
 
-        return applyHeaderMapping(Resolvers.forOutbound(outboundSignal), outboundSignal, mapping, log);
+        return applyHeaderMapping(Resolvers.forOutbound(outboundSignal, connectionId), outboundSignal, mapping, log);
     }
 
     private static ExternalMessage applyHeaderMapping(final ExpressionResolver expressionResolver,

@@ -293,13 +293,13 @@ public final class MessageMappingProcessor {
                 .orElse(true);
     }
 
-    private static boolean shouldMapMessageByConditions(final ExternalMessage message, final MessageMapper mapper) {
-        return resolveIncomingConditions(mapper, Resolvers.forExternalMessage(message));
+    private boolean shouldMapMessageByConditions(final ExternalMessage message, final MessageMapper mapper) {
+        return resolveIncomingConditions(mapper, Resolvers.forExternalMessage(message, connectionId));
     }
 
-    private static boolean shouldMapMessageByConditions(final OutboundSignal.Mappable mappable,
+    private boolean shouldMapMessageByConditions(final OutboundSignal.Mappable mappable,
             final MessageMapper mapper) {
-        return resolveOutgoingConditions(mapper, Resolvers.forOutboundSignal(mappable));
+        return resolveOutgoingConditions(mapper, Resolvers.forOutboundSignal(mappable, connectionId));
     }
 
     private static boolean resolveIncomingConditions(final MessageMapper mapper, final ExpressionResolver resolver) {

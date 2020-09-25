@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
  * @since 1.3.0
  */
 @Immutable
-final class ImmutableConnectionPlaceholder implements EntityPlaceholder {
+final class ImmutableConnectionIdPlaceholder implements ConnectionIdPlaceholder {
 
     private static final String ID_PLACEHOLDER = "id";
 
@@ -39,7 +39,7 @@ final class ImmutableConnectionPlaceholder implements EntityPlaceholder {
     /**
      * Singleton instance of the ImmutableThingPlaceholder.
      */
-    static final ImmutableConnectionPlaceholder INSTANCE = new ImmutableConnectionPlaceholder();
+    static final ImmutableConnectionIdPlaceholder INSTANCE = new ImmutableConnectionIdPlaceholder();
 
     @Override
     public String getPrefix() {

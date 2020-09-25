@@ -168,7 +168,16 @@ public final class PlaceholderFactory {
         return ImmutableSourceAddressPlaceholder.INSTANCE;
     }
 
+    /**
+     * @return the singleton instance of {@link ConnectionIdPlaceholder}.
+     * @since 1.3.0
+     */
+    public static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
+        return ImmutableConnectionIdPlaceholder.INSTANCE;
+    }
+
     private PlaceholderFactory() {
         throw new AssertionError();
     }
+
 }
