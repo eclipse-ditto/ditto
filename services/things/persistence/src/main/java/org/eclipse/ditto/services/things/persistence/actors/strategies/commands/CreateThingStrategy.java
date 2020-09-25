@@ -109,16 +109,15 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         }
 
         final Instant now = Instant.now();
-        // provide modified and revision only in the response, not in the event (it is defined by the persistence)
-        final Thing newThingWithModifiedAndRevision = newThing.toBuilder()
+        final Thing newThingWithImplicits = newThing.toBuilder()
                 .setModified(now)
                 .setCreated(now)
                 .setRevision(nextRevision)
                 .build();
-        final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, now, commandHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders),
-                newThingWithModifiedAndRevision);
+        final ThingCreated thingCreated = ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                CreateThingResponse.of(newThingWithImplicits, commandHeaders),
+                newThingWithImplicits);
 
         return newMutationResult(command, thingCreated, response, true, false);
     }

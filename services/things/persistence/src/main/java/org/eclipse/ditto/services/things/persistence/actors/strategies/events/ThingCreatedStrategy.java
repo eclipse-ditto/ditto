@@ -33,8 +33,8 @@ final class ThingCreatedStrategy extends AbstractThingEventStrategy<ThingCreated
                 .toBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .setCreated(event.getTimestamp().orElse(null))
+                .setModified(event.getTimestamp().orElseGet(() -> event.getThing().getModified().orElse(null)))
+                .setCreated(event.getTimestamp().orElseGet(() -> event.getThing().getCreated().orElse(null)))
                 .setMetadata(metadataFromEvent.get())
                 .build();
     }

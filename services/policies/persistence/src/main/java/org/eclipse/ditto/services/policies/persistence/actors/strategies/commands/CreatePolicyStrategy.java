@@ -60,16 +60,16 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
         if (validator.isValid()) {
             final Instant timestamp = getEventTimestamp();
-            final Policy newPolicyWithTimestampAndRevision = newPolicyWithLifecycle.toBuilder()
+            final Policy newPolicyWithImplicits = newPolicyWithLifecycle.toBuilder()
                     .setModified(timestamp)
                     .setCreated(timestamp)
                     .setRevision(nextRevision)
                     .build();
             final PolicyCreated policyCreated =
-                    PolicyCreated.of(newPolicyWithLifecycle, nextRevision, timestamp, dittoHeaders);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                    CreatePolicyResponse.of(context.getState(), newPolicyWithTimestampAndRevision, dittoHeaders),
-                    newPolicyWithTimestampAndRevision);
+                    PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, dittoHeaders);
+            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                    CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, dittoHeaders),
+                    newPolicyWithImplicits);
             context.getLog().debug("Created new Policy with ID <{}>.", context.getState());
             return ResultFactory.newMutationResult(command, policyCreated, response, true, false);
         } else {
