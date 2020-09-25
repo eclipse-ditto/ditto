@@ -261,6 +261,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
 
     private void doRemoveSubscriber(final ActorRef subscriber) {
         localSubscriptionsChanged |= subscriptions.removeSubscriber(subscriber);
+        getContext().unwatch(subscriber);
     }
 
     private void upgradeWriteConsistency(final Replicator.WriteConsistency nextWriteConsistency) {
@@ -433,9 +434,12 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
      */
     public static final class RemoveSubscriber extends Request {
 
+        private final boolean forAcknowledgementLabelDeclaration;
+
         private RemoveSubscriber(final ActorRef subscriber, final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge) {
+                final boolean acknowledge, final boolean forAcknowledgementLabelDeclaration) {
             super(Collections.emptySet(), subscriber, writeConsistency, acknowledge);
+            this.forAcknowledgementLabelDeclaration = forAcknowledgementLabelDeclaration;
         }
 
         /**
@@ -448,7 +452,25 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
          */
         public static RemoveSubscriber of(final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge);
+            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge, false);
+        }
+
+        /**
+         * Create a copy of this request with 'forAcknowledgementLabelDeclaration' set to true.
+         *
+         * @return the copy.
+         */
+        public RemoveSubscriber forAcknowledgementLabelDeclaration() {
+            return new RemoveSubscriber(getSubscriber(), getWriteConsistency(), shouldAcknowledge(), true);
+        }
+
+        /**
+         * Check whether this request is for acknowledgement declaration.
+         *
+         * @return if this request is for acknowledgement declaration.
+         */
+        public boolean isForAcknowledgementLabelDeclaration() {
+            return forAcknowledgementLabelDeclaration;
         }
     }
 

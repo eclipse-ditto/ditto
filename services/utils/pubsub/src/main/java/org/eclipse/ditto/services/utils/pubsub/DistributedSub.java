@@ -93,6 +93,13 @@ public interface DistributedSub {
             final ActorRef subscriber);
 
     /**
+     * Remove the acknowledgement label declaration of a subscriber.
+     *
+     * @param subscriber the subscriber.
+     */
+    void removeAcknowledgementLabelDeclaration(final ActorRef subscriber);
+
+    /**
      * Create subscription access from an already-started sub-supervisor and a distributed data config.
      *
      * @param config the distributed-data config.

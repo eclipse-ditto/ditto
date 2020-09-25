@@ -106,6 +106,9 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         return ReceiveBuilder.create()
                 .match(AbstractUpdater.DeclareAckLabels.class, this::isAcksUpdaterAvailable, this::declareAckLabels)
                 .match(AbstractUpdater.DeclareAckLabels.class, this::acksUpdaterUnavailable)
+                .match(AbstractUpdater.RemoveSubscriber.class,
+                        AbstractUpdater.RemoveSubscriber::isForAcknowledgementLabelDeclaration,
+                        this::removeAcknowledgementLabelDeclaration)
                 .match(AbstractUpdater.Request.class, this::isUpdaterAvailable, this::request)
                 .match(AbstractUpdater.Request.class, this::updaterUnavailable)
                 .match(Terminated.class, this::subscriberTerminated)
@@ -168,6 +171,14 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     private void acksUpdaterUnavailable(final AbstractUpdater.DeclareAckLabels request) {
         log.error("AcksUpdater unavailable. Failing <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
+    }
+
+    private void removeAcknowledgementLabelDeclaration(final AbstractUpdater.RemoveSubscriber removeSubscriber) {
+        if (isAcksUpdaterAvailable()) {
+            acksUpdater.tell(removeSubscriber, getSender());
+        } else {
+            updaterUnavailable(removeSubscriber);
+        }
     }
 
 }

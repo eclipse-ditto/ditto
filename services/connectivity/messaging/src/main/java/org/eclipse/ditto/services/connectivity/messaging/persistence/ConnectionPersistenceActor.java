@@ -21,15 +21,18 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -43,6 +46,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.WithThingId;
@@ -87,6 +91,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -176,6 +181,14 @@ public final class ConnectionPersistenceActor
 
     private int subscriptionCounter = 0;
     private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
+
+    /**
+     * Whether this actor holds the declared ack labels.
+     * Reset on start-up and whenever the connection is modified.
+     * While false, the actor will attempt to declare the ack labels repeatedly until the declaration succeeds.
+     * While false, target-issued acknowledgements are disabled.
+     */
+    private boolean ackLabelsDeclared = false;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
@@ -354,6 +367,7 @@ public final class ConnectionPersistenceActor
             restoreOpenConnection();
         }
         becomeCreatedOrDeletedHandler();
+        initializeAckLabelsDeclared();
     }
 
     @Override
@@ -363,6 +377,7 @@ public final class ConnectionPersistenceActor
             interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
+            initializeAckLabelsDeclared();
         }
     }
 
@@ -383,7 +398,7 @@ public final class ConnectionPersistenceActor
      *
      * @param command the staged command.
      */
-   private void interpretStagedCommand(final StagedCommand command) {
+    private void interpretStagedCommand(final StagedCommand command) {
         if (!command.hasNext()) {
             // execution complete
             return;
@@ -395,6 +410,7 @@ public final class ConnectionPersistenceActor
             case APPLY_EVENT:
                 entity = getEventStrategy().handle(command.getEvent(), entity, getRevisionNumber());
                 interpretStagedCommand(command.next());
+                initializeAckLabelsDeclared();
                 break;
             case SEND_RESPONSE:
                 command.getSender().tell(command.getResponse(), getSelf());
@@ -469,7 +485,13 @@ public final class ConnectionPersistenceActor
                 // other signals: can only be outgoing; the incoming path does not go through here
                 .match(Signal.class, this::handleSignal)
 
-                .matchEquals(CheckLoggingActive.INSTANCE, this::checkLoggingEnabled)
+                .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
+
+                // maintaining the flag this.ackLabelsDeclared
+                .matchEquals(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, this::declareAcknowledgementLabels)
+                .matchEquals(Control.ACKNOWLEDGEMENT_LABELS_DECLARED, this::acknowledgementLabelsAreConsideredDeclared)
+                .match(AcknowledgementLabelNotUniqueException.class, this::acknowledgementLabelNotUnique)
+
                 .matchAny(message -> log.warning("Unknown message: {}", message))
                 .build();
     }
@@ -614,7 +636,7 @@ public final class ConnectionPersistenceActor
         return Integer.toHexString(getClientCount()).length();
     }
 
-    private void checkLoggingEnabled(final CheckLoggingActive message) {
+    private void checkLoggingEnabled(final Control message) {
         final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
         broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
@@ -748,11 +770,11 @@ public final class ConnectionPersistenceActor
     }
 
     private void cancelEnabledLoggingChecker() {
-        timers().cancel(CheckLoggingActive.INSTANCE);
+        timers().cancel(Control.CHECK_LOGGING_ACTIVE);
     }
 
     private void startEnabledLoggingChecker() {
-        timers().startPeriodicTimer(CheckLoggingActive.INSTANCE, CheckLoggingActive.INSTANCE,
+        timers().startTimerWithFixedDelay(Control.CHECK_LOGGING_ACTIVE, Control.CHECK_LOGGING_ACTIVE,
                 checkLoggingActiveInterval);
     }
 
@@ -970,6 +992,82 @@ public final class ConnectionPersistenceActor
         return entity != null && !entity.getSources().isEmpty();
     }
 
+    /**
+     * Initialize this.ackLabelsDeclared and start or cancel the associated timer on recovery
+     * and on each connection modification.
+     */
+    private void initializeAckLabelsDeclared() {
+        final Set<AcknowledgementLabel> labelsToDeclare = getAckLabelsToDeclare();
+        if (labelsToDeclare.isEmpty()) {
+            noAcknowledgementLabelToDeclare();
+        } else {
+            acknowledgementLabelsAreToBeDeclared();
+        }
+    }
+
+    private void noAcknowledgementLabelToDeclare() {
+        dittoProtocolSub.removeAcknowledgementLabelDeclaration(getSelf());
+        acknowledgementLabelsAreConsideredDeclared(null);
+    }
+
+    private void acknowledgementLabelNotUnique(final AcknowledgementLabelNotUniqueException exception) {
+        log.error(exception, "Failed to declare acknowledgement labels.");
+        acknowledgementLabelsAreToBeDeclared();
+    }
+
+    private void acknowledgementLabelsAreConsideredDeclared(@Nullable final Control event) {
+        ackLabelsDeclared = true;
+        timers().cancel(Control.DECLARE_ACKNOWLEDGEMENT_LABELS);
+    }
+
+    private void acknowledgementLabelsAreToBeDeclared() {
+        ackLabelsDeclared = false;
+        if (!timers().isTimerActive(Control.DECLARE_ACKNOWLEDGEMENT_LABELS)) {
+            // start timer to declare ack labels
+            timers().startTimerWithFixedDelay(Control.DECLARE_ACKNOWLEDGEMENT_LABELS,
+                    Control.DECLARE_ACKNOWLEDGEMENT_LABELS, config.getAckLabelDeclareInterval());
+
+            // send self another trigger to declare ack labels right away
+            getSelf().tell(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, ActorRef.noSender());
+        }
+    }
+
+    /**
+     * Compute the acknowledgement labels to declare. Closed or deleted connections do not declare any acknowledgement
+     * labels.
+     *
+     * @return The set of acknowledgement labels to declare.
+     */
+    private Set<AcknowledgementLabel> getAckLabelsToDeclare() {
+        if (entity == null || entity.getConnectionStatus() != ConnectivityStatus.OPEN) {
+            return Set.of();
+        } else {
+            final Stream<AcknowledgementLabel> sourceDeclaredAcks = entity.getSources()
+                    .stream()
+                    .map(Source::getDeclaredAcknowledgementLabels)
+                    .flatMap(Set::stream);
+            final Stream<AcknowledgementLabel> targetIssuedAcks = entity.getTargets()
+                    .stream()
+                    .map(Target::getIssuedAcknowledgementLabel)
+                    .flatMap(Optional::stream);
+            return Stream.concat(sourceDeclaredAcks, targetIssuedAcks).collect(Collectors.toSet());
+        }
+    }
+
+    private void declareAcknowledgementLabels(final Control trigger) {
+        final Set<AcknowledgementLabel> acknowledgementLabels = getAckLabelsToDeclare();
+        if (acknowledgementLabels.isEmpty()) {
+            log.warning("Got <{}> while there is no acknowledgement label to declare", trigger);
+            acknowledgementLabelsAreConsideredDeclared(null);
+        } else {
+            final CompletionStage<Object> replyFuture =
+                    dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf())
+                            .<Object>thenApply(_void -> Control.ACKNOWLEDGEMENT_LABELS_DECLARED)
+                            .exceptionally(e -> toDittoRuntimeException(e, entityId, DittoHeaders.empty()));
+            Patterns.pipe(replyFuture, getContext().dispatcher()).to(getSelf());
+        }
+    }
+
     private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
         return uniqueTopics.stream()
                 .map(topic -> {
@@ -1018,10 +1116,24 @@ public final class ConnectionPersistenceActor
     }
 
     /**
-     * Message that will be sent by scheduler and indicates a check if logging is still enabled for this connection.
+     * Message that will be sent by scheduler.
      */
-    enum CheckLoggingActive {
-        INSTANCE
+    enum Control {
+
+        /**
+         * Indicates a check if logging is still enabled for this connection.
+         */
+        CHECK_LOGGING_ACTIVE,
+
+        /**
+         * Trigger to re-attempt ack label declaration.
+         */
+        DECLARE_ACKNOWLEDGEMENT_LABELS,
+
+        /**
+         * Event that an acknowledgement declaration succeeded.
+         */
+        ACKNOWLEDGEMENT_LABELS_DECLARED
     }
 
 }

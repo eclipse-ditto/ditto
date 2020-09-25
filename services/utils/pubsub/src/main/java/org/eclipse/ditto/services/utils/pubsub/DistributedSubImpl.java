@@ -103,6 +103,14 @@ final class DistributedSubImpl implements DistributedSub {
                 .thenCompose(DistributedSubImpl::processAskResponse);
     }
 
+    @Override
+    public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+        final AbstractUpdater.RemoveSubscriber request =
+                AbstractUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false)
+                        .forAcknowledgementLabelDeclaration();
+        subSupervisor.tell(request, ActorRef.noSender());
+    }
+
     private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {
         if (askResponse instanceof AbstractUpdater.SubAck) {
             return CompletableFuture.completedStage((AbstractUpdater.SubAck) askResponse);

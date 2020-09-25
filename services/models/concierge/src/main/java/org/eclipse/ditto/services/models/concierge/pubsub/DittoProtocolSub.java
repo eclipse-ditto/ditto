@@ -81,6 +81,13 @@ public interface DittoProtocolSub {
             ActorRef subscriber);
 
     /**
+     * Relinquish any acknowledgement labels declared by a subscriber.
+     *
+     * @param subscriber the subscriber.
+     */
+    void removeAcknowledgementLabelDeclaration(final ActorRef subscriber);
+
+    /**
      * Create {@code DittoProtocolSub} for an actor system.
      *
      * @param context context of the actor under which the subscriber actors are started.

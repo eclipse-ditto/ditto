@@ -99,6 +99,12 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         // no need to declare the labels for liveSignalSub because acks distributed data does not start there
     }
 
+    @Override
+    public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+        twinEventSub.removeAcknowledgementLabelDeclaration(subscriber);
+        // no need to remove the subscriber for liveSignalSub because acks distributed data does not start there
+    }
+
     private CompletionStage<Void> partitionByStreamingTypes(final Collection<StreamingType> types,
             final Function<Set<StreamingType>, CompletionStage<?>> onLiveSignals,
             final Function<Boolean, CompletionStage<?>> onTwinEvents) {

@@ -272,6 +272,23 @@ public final class PubSubFactoryTest {
     }
 
     @Test
+    public void removeAcknowledgementLabelDeclaration() {
+        new TestKit(system1) {{
+            // GIVEN: 2 subscribers exist in the same actor system
+            final DistributedSub sub = factory1.startDistributedSub();
+            final TestProbe subscriber1 = TestProbe.apply(system1);
+            final TestProbe subscriber2 = TestProbe.apply(system1);
+
+            // WHEN: the first subscriber declares ack labels then relinquishes them
+            await(sub.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+            sub.removeAcknowledgementLabelDeclaration(subscriber1.ref());
+
+            // THEN: another subscriber should be able to claim the ack labels right away
+            await(sub.declareAcknowledgementLabels(acks("ipsum", "lorem"), subscriber2.ref()));
+        }};
+    }
+
+    @Test
     public void failAckDeclarationDueToRemoteConflict() throws Exception {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system
