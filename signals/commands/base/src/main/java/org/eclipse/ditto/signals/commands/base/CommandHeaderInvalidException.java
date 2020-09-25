@@ -70,10 +70,7 @@ public final class CommandHeaderInvalidException extends DittoRuntimeException {
      */
     public static CommandHeaderInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -86,14 +83,11 @@ public final class CommandHeaderInvalidException extends DittoRuntimeException {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static CommandHeaderInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(null))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**

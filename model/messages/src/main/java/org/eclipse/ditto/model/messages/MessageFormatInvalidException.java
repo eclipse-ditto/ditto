@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.messages;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.net.URI;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -117,15 +119,18 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
      * @param dittoHeaders the headers.
      * @return an instance of this class.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static MessageFormatInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .loadJson(jsonObject)
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        checkNotNull(jsonObject, "jsonObject");
+        final Builder builder = new Builder();
+        jsonObject.getValue(VALIDATION_ERRORS)
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .ifPresent(builder::validationErrors);
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, builder);
     }
 
     /**
@@ -152,6 +157,7 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
         }
 
         @Override
+        @Deprecated
         public Builder loadJson(final JsonObject jsonObject) {
             super.loadJson(jsonObject);
             jsonObject.getValue(VALIDATION_ERRORS)

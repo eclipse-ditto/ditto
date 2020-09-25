@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;

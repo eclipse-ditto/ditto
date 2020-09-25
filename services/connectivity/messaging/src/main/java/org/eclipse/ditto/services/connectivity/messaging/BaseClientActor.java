@@ -14,13 +14,13 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTED;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTING;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.INITIALIZED;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.TESTING;
-import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.UNKNOWN;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.CONNECTED;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.CONNECTING;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.DISCONNECTED;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.DISCONNECTING;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.INITIALIZED;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.TESTING;
+import static org.eclipse.ditto.services.models.connectivity.BaseClientState.UNKNOWN;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -67,6 +67,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;

@@ -31,7 +31,7 @@ import akka.actor.ActorRef;
 import akka.japi.Pair;
 
 /**
- * The data the {@link BaseClientActor} has in its different {@link BaseClientState States}.
+ * The data the {@link BaseClientActor} has in its different {@link org.eclipse.ditto.services.models.connectivity.BaseClientState States}.
  */
 @Immutable
 public final class BaseClientData {

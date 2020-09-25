@@ -68,12 +68,11 @@ public class PoliciesConflictingException extends DittoRuntimeException implemen
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyNotAllowedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PoliciesConflictingException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static PoliciesConflictingException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -83,12 +82,14 @@ public class PoliciesConflictingException extends DittoRuntimeException implemen
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyNotAllowedException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static PoliciesConflictingException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**

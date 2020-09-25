@@ -19,6 +19,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.Json
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -204,7 +205,9 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
      * @param jsonObject The JSON object to read from.
      * @return this jsonObject
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @deprecated since 1.3.0; will be removed in future versions. Use {@link DittoRuntimeException#fromJson(JsonObject, DittoHeaders, DittoRuntimeExceptionBuilder)} instead
      */
+    @Deprecated
     public DittoRuntimeExceptionBuilder<T> loadJson(final JsonObject jsonObject) {
         jsonObject.getValue(MESSAGE).ifPresent(this::message);
         jsonObject.getValue(DESCRIPTION).ifPresent(this::description);

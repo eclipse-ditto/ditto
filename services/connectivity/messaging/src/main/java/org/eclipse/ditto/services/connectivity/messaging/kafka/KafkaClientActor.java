@@ -23,13 +23,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
-import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

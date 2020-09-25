@@ -41,7 +41,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
-import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionFailureStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionRestoredStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
@@ -58,6 +57,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.internal.RecoverSession;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.Done;

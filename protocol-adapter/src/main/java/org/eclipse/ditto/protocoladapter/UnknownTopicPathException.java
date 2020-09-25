@@ -39,7 +39,8 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
 
     private static final String MESSAGE_TEMPLATE = "The topic path ''{0}'' is not supported.";
 
-    private static final String MESSAGE_TEMPLATE_WITH_PATH = "The topic ''{0}'' is not supported in combination with the path ''{1}''";
+    private static final String MESSAGE_TEMPLATE_WITH_PATH =
+            "The topic ''{0}'' is not supported in combination with the path ''{1}''";
 
     private static final String DEFAULT_DESCRIPTION = "Check if the topic path is correct.";
 
@@ -79,12 +80,11 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new UnknownTopicPathException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static UnknownTopicPathException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static UnknownTopicPathException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -94,16 +94,13 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new UnknownTopicPathException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static UnknownTopicPathException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
