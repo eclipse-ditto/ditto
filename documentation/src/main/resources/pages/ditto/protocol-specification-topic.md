@@ -21,9 +21,9 @@ Examples for valid topic paths are:
 
 The entity's namespace in which the entity is located.
 
-## Entity ID
+## Entity Name
 
-The entity's identifier (e.g. a `Thing ID`) to address.
+The entity's name (e.g. a `Thing Name`) to address.
 
 ## Group
 
