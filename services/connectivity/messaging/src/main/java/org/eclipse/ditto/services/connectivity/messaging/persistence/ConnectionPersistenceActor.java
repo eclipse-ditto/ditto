@@ -383,7 +383,7 @@ public final class ConnectionPersistenceActor
      *
      * @param command the staged command.
      */
-    private void interpretStagedCommand(final StagedCommand command) {
+   private void interpretStagedCommand(final StagedCommand command) {
         if (!command.hasNext()) {
             // execution complete
             return;

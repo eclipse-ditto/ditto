@@ -16,11 +16,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -29,6 +34,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Credentials;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
@@ -98,6 +105,7 @@ public final class ConnectionValidator {
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
+        validateDeclaredAndIssuedAcknowledgements(connection);
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
         validateFormatOfCertificates(connection, dittoHeaders);
         hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
@@ -155,6 +163,29 @@ public final class ConnectionValidator {
                 // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                 queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
             }));
+        });
+    }
+
+    private void validateDeclaredAndIssuedAcknowledgements(final Connection connection) {
+        final String expectedPrefix = connection.getId() + ":";
+        final Stream<AcknowledgementLabel> sourceDeclaredAcks =
+                connection.getSources().stream().map(Source::getDeclaredAcknowledgementLabels).flatMap(Set::stream);
+        final Stream<AcknowledgementLabel> targetIssuedAcks =
+                connection.getTargets().stream()
+                        .map(Target::getIssuedAcknowledgementLabel)
+                        .flatMap(Optional::stream)
+                        // live-response is permitted as issued acknowledgement without prefix
+                        .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
+        Stream.concat(sourceDeclaredAcks, targetIssuedAcks).forEach(label -> {
+            if (!label.toString().startsWith(expectedPrefix)) {
+                throw AcknowledgementLabelInvalidException.of(
+                        label,
+                        "Declared acknowledgement labels of a connection must have the form " +
+                                "<connection-id>:<alphanumeric-suffix>",
+                        null,
+                        DittoHeaders.empty()
+                );
+            }
         });
     }
 
