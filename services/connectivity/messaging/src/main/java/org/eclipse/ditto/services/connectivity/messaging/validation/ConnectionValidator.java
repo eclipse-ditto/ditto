@@ -94,6 +94,25 @@ public final class ConnectionValidator {
     }
 
     /**
+     * Read the declared acknowledgement labels of sources and the issued acknowledgement labels of targets
+     * and compute the set of acknowledgement labels the connection needs to declare.
+     *
+     * @param connection the connection.
+     * @return the set of acknowledgement labels to declare.
+     */
+    public static Set<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
+        final Stream<AcknowledgementLabel> sourceDeclaredAcks =
+                connection.getSources().stream().map(Source::getDeclaredAcknowledgementLabels).flatMap(Set::stream);
+        final Stream<AcknowledgementLabel> targetIssuedAcks =
+                connection.getTargets().stream()
+                        .map(Target::getIssuedAcknowledgementLabel)
+                        .flatMap(Optional::stream)
+                        // live-response is permitted as issued acknowledgement without declaration
+                        .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
+        return Stream.concat(sourceDeclaredAcks, targetIssuedAcks).collect(Collectors.toSet());
+    }
+
+    /**
      * Check a connection for errors and throw them.
      *
      * @param connection the connection to validate.
@@ -168,15 +187,7 @@ public final class ConnectionValidator {
 
     private void validateDeclaredAndIssuedAcknowledgements(final Connection connection) {
         final String expectedPrefix = connection.getId() + ":";
-        final Stream<AcknowledgementLabel> sourceDeclaredAcks =
-                connection.getSources().stream().map(Source::getDeclaredAcknowledgementLabels).flatMap(Set::stream);
-        final Stream<AcknowledgementLabel> targetIssuedAcks =
-                connection.getTargets().stream()
-                        .map(Target::getIssuedAcknowledgementLabel)
-                        .flatMap(Optional::stream)
-                        // live-response is permitted as issued acknowledgement without prefix
-                        .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
-        Stream.concat(sourceDeclaredAcks, targetIssuedAcks).forEach(label -> {
+        getAcknowledgementLabelsToDeclare(connection).forEach(label -> {
             if (!label.toString().startsWith(expectedPrefix)) {
                 throw AcknowledgementLabelInvalidException.of(
                         label,

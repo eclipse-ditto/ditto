@@ -166,6 +166,11 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                     final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
                 return CompletableFuture.completedFuture(null);
             }
+
+            @Override
+            public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+                // do nothing
+            }
         };
     }
 

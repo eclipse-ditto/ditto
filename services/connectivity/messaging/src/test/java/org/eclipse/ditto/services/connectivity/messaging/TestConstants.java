@@ -256,12 +256,16 @@ public final class TestConstants {
             @Override
             public CompletionStage<Void> declareAcknowledgementLabels(
                     final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
-                return CompletableFuture.completedFuture(null);
+                if (delegate != null) {
+                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber);
+                } else {
+                    return CompletableFuture.completedStage(null);
+                }
             }
 
             @Override
             public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-                // do nothing
+                doDelegate(d -> d.removeAcknowledgementLabelDeclaration(subscriber));
             }
 
             private void doDelegate(final Consumer<DittoProtocolSub> c) {
