@@ -27,12 +27,13 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -90,7 +91,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -482,6 +483,7 @@ public final class ConnectionPersistenceActor
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
                 // command response and search commands: can only be incoming
+                .match(Acknowledgement.class, this::isNotSourceDeclaredAck, this::denyNonSourceDeclaredAck)
                 .match(CommandResponse.class, this::handleResponseOrAcknowledgement)
                 .match(ThingSearchCommand.class, this::forwardThingSearchCommandToClientActors)
                 // other signals: can only be outgoing; the incoming path does not go through here
@@ -498,12 +500,19 @@ public final class ConnectionPersistenceActor
                 .build();
     }
 
+    private boolean isNotSourceDeclaredAck(final Acknowledgement ack) {
+        return streamSourceDeclaredAcks().noneMatch(ack.getLabel()::equals);
+    }
+
+    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
+        getSender().tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+                ActorRef.noSender());
+    }
+
     private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
         final ActorContext context = getContext();
         final Consumer<ActorRef> action = forwarder -> forwarder.forward(responseOrAck, context);
         final Runnable emptyAction = () -> {
-            // TODO: also reply with "acknowledgement forbidden because ack label declaration failed"
-            // with consideration for global live response dispatching use case
             final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
             if (log.isDebugEnabled()) {
                 log.withCorrelationId(responseOrAck).debug(template, responseOrAck);
@@ -539,16 +548,17 @@ public final class ConnectionPersistenceActor
         }
 
         final Signal<?> signalToForward;
-        if (hasSource() && signal instanceof WithThingId && ackLabelsDeclared) {
-            // no point starting the acknowledgement forwarder if there is no source.
+        if (signal instanceof WithThingId) {
+            // Only start ack forwarder for when there are source-declared acks;
             // issued acknowledgements from targets go to the sender directly with internal headers intact.
+            final Set<AcknowledgementLabel> sourceDeclaredAcks = streamSourceDeclaredAcks().collect(Collectors.toSet());
             final WithThingId thingEvent = (WithThingId) signal;
-            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
+            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     thingEvent.getThingEntityId(),
                     signal,
-                    config.getAcknowledgementConfig());
-        } else if (!ackLabelsDeclared) {
-            signalToForward = setRequestedAcksWhenLabelsAreNotDeclared(signal);
+                    config.getAcknowledgementConfig(),
+                    sourceDeclaredAcks::contains
+            );
         } else {
             signalToForward = signal;
         }
@@ -560,6 +570,21 @@ public final class ConnectionPersistenceActor
                 OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
         final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
+    }
+
+    /**
+     * Stream source-declared acks if declaration was successful; return an empty stream otherwise.
+     *
+     * @return successfully declared acknowledgement labels of the sources.
+     */
+    private Stream<AcknowledgementLabel> streamSourceDeclaredAcks() {
+        if (entity != null && ackLabelsDeclared) {
+            return entity.getSources()
+                    .stream()
+                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream());
+        } else {
+            return Stream.empty();
+        }
     }
 
     /**
@@ -1101,29 +1126,6 @@ public final class ConnectionPersistenceActor
                 return CompletableFuture.completedFuture(response);
             }
         });
-    }
-
-    private static Signal<?> setRequestedAcksWhenLabelsAreNotDeclared(final Signal<?> signal) {
-        // TODO: this should be handled as another case of "subscriber not present".
-        // the only permitted ack label is live-response if the labels are not declared.
-        final Set<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (!ackRequests.isEmpty()) {
-            final boolean liveResponseRequested = ackRequests.stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .anyMatch(DittoAcknowledgementLabel.LIVE_RESPONSE::equals);
-            final Set<AcknowledgementRequest> newAckRequests;
-            if (liveResponseRequested) {
-                newAckRequests = Set.of(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE));
-            } else {
-                newAckRequests = Set.of();
-            }
-            return signal.setDittoHeaders(signal.getDittoHeaders()
-                    .toBuilder()
-                    .acknowledgementRequests(newAckRequests)
-                    .build());
-        } else {
-            return signal;
-        }
     }
 
     /**

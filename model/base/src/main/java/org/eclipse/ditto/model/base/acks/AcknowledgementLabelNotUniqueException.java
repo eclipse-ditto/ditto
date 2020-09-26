@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.acks.base;
+package org.eclipse.ditto.model.base.acks;
 
 import java.net.URI;
 
@@ -32,12 +32,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementLabelNotUniqueException.ERROR_CODE)
-public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeException {
+public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeException
+        implements AcknowledgementException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "subscriber:acknowledgement-label-not-unique";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.not.unique";
 
     private static final String DEFAULT_MESSAGE =
             "One or more declared acknowledgement labels are taken by other subscribers";

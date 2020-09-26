@@ -25,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -63,7 +65,7 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -107,6 +109,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final JwtValidator jwtValidator;
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
+    private final Set<AcknowledgementLabel> declaredAcks;
     private final DittoDiagnosticLoggingAdapter logger; // TODO: make this thread-safe
 
     @Nullable private Cancellable sessionTerminationCancellable;
@@ -151,7 +154,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         eventAndResponsePublisher.watchCompletion()
                 .whenComplete((done, error) -> getSelf().tell(Control.TERMINATED, getSelf()));
 
-        declareAcknowledgementLabels(connect.getDeclaredAcknowledgementLabels());
+        declaredAcks = connect.getDeclaredAcknowledgementLabels();
+        declareAcknowledgementLabels(declaredAcks);
     }
 
     /**
@@ -207,6 +211,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .build();
 
         final Receive signalBehavior = ReceiveBuilder.create()
+                .match(Acknowledgement.class, this::hasUndeclaredAckLabel, this::ackLabelNotDeclared)
                 .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(Signal.class, signal ->
@@ -351,6 +356,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .orElse(receive);
     }
 
+    private boolean hasUndeclaredAckLabel(final Acknowledgement acknowledgement) {
+        return !declaredAcks.contains(acknowledgement.getLabel());
+    }
+
+    private void ackLabelNotDeclared(final Acknowledgement ack) {
+        publishResponseOrError(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()));
+    }
+
     private ActorRef getReturnAddress(final Signal<?> signal) {
         final boolean publishResponse = signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired();
         return publishResponse ? getSelf() : ActorRef.noSender();
@@ -386,14 +399,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     if (shouldStart) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
-                        return headerInvalid.map(this::publishResponseWithoutSender)
-                                .orElseGet(() -> ackregatorStarter.doStart(s, this::publishResponseWithoutSender,
+                        return headerInvalid.map(this::publishResponseOrError)
+                                .orElseGet(() -> ackregatorStarter.doStart(s, this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {
                         return doNothing(s);
                     }
                 },
-                this::publishResponseWithoutSender
+                this::publishResponseOrError
         );
     }
 
@@ -410,24 +423,15 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private Signal<?> startAckForwarder(final Signal<?> signal) {
         if (signal instanceof WithThingId) {
             final EntityIdWithType entityIdWithType = ((WithThingId) signal).getThingEntityId();
-            return AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
-                    entityIdWithType, signal, acknowledgementConfig);
+            return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
+                    entityIdWithType, signal, acknowledgementConfig, declaredAcks::contains);
         } else {
             return signal;
         }
     }
 
-    // NOT thread-safe
-    private void publishResponseOrError(final Object responseOrError) {
-        publishResponseThreadSafely(responseOrError, getSender());
-    }
-
-    private Object publishResponseWithoutSender(final Object responseOrError) {
-        publishResponseThreadSafely(responseOrError, ActorRef.noSender());
-        return Done.getInstance();
-    }
-
-    private void publishResponseThreadSafely(final Object responseOrError, @Nullable final ActorRef sender) {
+    // NOT thread-safe unless eventAndResponsePublisher is made thread-safe by bounding concurrent offers from above
+    private Object publishResponseOrError(final Object responseOrError) {
         if (responseOrError instanceof CommandResponse<?>) {
             final CommandResponse<?> response = (CommandResponse<?>) responseOrError;
             logger.withCorrelationId(response)
@@ -443,13 +447,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         } else {
             logger.error("Unexpected result from AcknowledgementAggregatorActor: <{}>", responseOrError);
         }
+        return Done.getInstance();
     }
 
     private void forwardAcknowledgementOrLiveCommandResponse(final CommandResponse<?> response) {
-        final ActorContext context = getContext();
-        context.findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
+        final ActorRef sender = getSender();
+        getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                 .ifPresentOrElse(
-                        forwarder -> forwarder.forward(response, context),
+                        forwarder -> forwarder.tell(response, sender),
                         () -> {
                             // the Acknowledgement / live CommandResponse is meant for someone else:
                             final String template =
