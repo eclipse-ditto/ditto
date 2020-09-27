@@ -98,6 +98,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
@@ -291,7 +292,7 @@ public final class MessageMappingProcessorActor
     }
 
     private void handleErrorDuringStartingOfAckregator(final DittoRuntimeException e,
-            final DittoHeaders dittoHeaders, final ActorRef sender) {
+            final DittoHeaders dittoHeaders, @Nullable final ActorRef sender) {
         logger.withCorrelationId(dittoHeaders.getCorrelationId().orElse("?"))
                 .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
                         " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
@@ -300,12 +301,14 @@ public final class MessageMappingProcessorActor
                         e.getErrorCode(), e.getMessage());
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
         // tell sender the error response for consumer settlement
-        sender.tell(errorResponse, getSelf());
+        if (sender != null) {
+            sender.tell(errorResponse, getSelf());
+        }
         // publish error response
         handleErrorResponse(e, errorResponse.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
 
-    private void startAckregatorAndForwardSignal(final Signal<?> signal, final ActorRef sender) {
+    private void startAckregatorAndForwardSignal(final Signal<?> signal, @Nullable final ActorRef sender) {
         ackregatorStarter.doStart(signal,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
@@ -314,7 +317,9 @@ public final class MessageMappingProcessorActor
                     }
 
                     // forward acks to the original sender for consumer settlement
-                    sender.tell(responseSignal, ActorRef.noSender());
+                    if (sender != null) {
+                        sender.tell(responseSignal, ActorRef.noSender());
+                    }
                 },
                 ackregator -> {
                     proxyActor.tell(signal, ackregator);
@@ -355,7 +360,7 @@ public final class MessageMappingProcessorActor
                         .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
                                 (signal, isAckRequesting) -> Source.single(new IncomingSignal(signal,
-                                        getReturnAddress(sender, isAckRequesting),
+                                        getReturnAddress(sender, isAckRequesting, signal),
                                         isAckRequesting)),
                                 headerInvalidException -> {
                                     // tell the response collector to settle negatively without redelivery
@@ -413,10 +418,17 @@ public final class MessageMappingProcessorActor
                 .orElseGet(() -> forwardToConnectionActor(acks, getSelf()));
     }
 
-    private ActorRef getReturnAddress(final ActorRef sender, final boolean isAcksRequesting) {
+    @Nullable
+    private ActorRef getReturnAddress(final ActorRef sender, final boolean isAcksRequesting, final Signal<?> signal) {
         // acks-requesting signals: all replies should be directed to the sender address (ack. aggregator actor)
         // other commands: set this actor as return address to receive any errors to publish.
-        return isAcksRequesting ? sender : getSelf();
+        if (isAcksRequesting) {
+            return sender;
+        } else if (signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired()) {
+            return getSelf();
+        } else {
+            return ActorRef.noSender();
+        }
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {
@@ -1113,10 +1125,10 @@ public final class MessageMappingProcessorActor
     private static final class IncomingSignal {
 
         private final Signal<?> signal;
-        private final ActorRef sender;
+        @Nullable private final ActorRef sender;
         private final boolean isAckRequesting;
 
-        private IncomingSignal(final Signal<?> signal, final ActorRef sender, final boolean isAckRequesting) {
+        private IncomingSignal(final Signal<?> signal, @Nullable final ActorRef sender, final boolean isAckRequesting) {
             this.signal = signal;
             this.sender = sender;
             this.isAckRequesting = isAckRequesting;

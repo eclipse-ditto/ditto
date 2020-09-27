@@ -386,8 +386,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private void terminateWebsocketStream() {
         dittoProtocolSub.removeSubscriber(getSelf());
         eventAndResponsePublisher.complete();
-
-        // TODO: check if the 1s delay was necessary.
         getContext().stop(getSelf());
     }
 
@@ -452,21 +450,26 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private void forwardAcknowledgementOrLiveCommandResponse(final CommandResponse<?> response) {
         final ActorRef sender = getSender();
-        getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
-                .ifPresentOrElse(
-                        forwarder -> forwarder.tell(response, sender),
-                        () -> {
-                            // the Acknowledgement / live CommandResponse is meant for someone else:
-                            final String template =
-                                    "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
-                            if (logger.isDebugEnabled()) {
-                                logger.withCorrelationId(response).debug(template, response);
-                            } else {
-                                logger.withCorrelationId(response).info(template, response.getType());
+        try {
+            getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
+                    .ifPresentOrElse(
+                            forwarder -> forwarder.tell(response, sender),
+                            () -> {
+                                // the Acknowledgement / live CommandResponse is meant for someone else:
+                                final String template =
+                                        "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
+                                if (logger.isDebugEnabled()) {
+                                    logger.withCorrelationId(response).debug(template, response);
+                                } else {
+                                    logger.withCorrelationId(response).info(template, response.getType());
+                                }
+                                commandRouter.tell(response, ActorRef.noSender());
                             }
-                            commandRouter.tell(response, ActorRef.noSender());
-                        }
-                );
+                    );
+        } catch (final DittoRuntimeException e) {
+            // error encountered; publish it
+            eventAndResponsePublisher.offer(SessionedJsonifiable.error(e));
+        }
     }
 
     private void forwardSearchCommand(final ThingSearchCommand<?> searchCommand) {
