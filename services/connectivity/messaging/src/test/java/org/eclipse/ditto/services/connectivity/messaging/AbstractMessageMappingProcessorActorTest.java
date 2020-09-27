@@ -22,9 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -47,6 +49,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.things.ThingId;
@@ -60,6 +63,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -328,19 +333,37 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .join();
     }
 
-    ExternalMessage toExternalMessage(final Signal<?> signal) {
+    ExternalMessage toExternalMessage(final Signal<?> signal, Consumer<SourceBuilder<?>> sourceModifier) {
         final AuthorizationContext context =
                 AuthorizationModelFactory.newAuthContext(
                         DittoAuthorizationContextType.UNSPECIFIED,
                         AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
         final JsonifiableAdaptable adaptable = ProtocolFactory
                 .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(signal));
+        final SourceBuilder<?> sourceBuilder = ConnectivityModelFactory.newSourceBuilder()
+                .address("address")
+                .authorizationContext(AUTHORIZATION_CONTEXT);
+        sourceModifier.accept(sourceBuilder);
         return ExternalMessageFactory.newExternalMessageBuilder(Map.of())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .withAuthorizationContext(context)
                 .withInternalHeaders(signal.getDittoHeaders())
+                .withSource(sourceBuilder.build())
                 .build();
+    }
+
+    ExternalMessage toExternalMessage(final Signal<?> signal) {
+        return toExternalMessage(signal, sourceBuilder -> {
+            if (signal instanceof Acknowledgement) {
+                sourceBuilder.declaredAcknowledgementLabels(Set.of(((Acknowledgement) signal).getLabel()));
+            } else if (signal instanceof Acknowledgements) {
+                sourceBuilder.declaredAcknowledgementLabels(((Acknowledgements) signal).stream()
+                        .map(Acknowledgement::getLabel)
+                        .collect(Collectors.toSet())
+                );
+            }
+        });
     }
 
     static ModifyAttribute createModifyAttributeCommand() {

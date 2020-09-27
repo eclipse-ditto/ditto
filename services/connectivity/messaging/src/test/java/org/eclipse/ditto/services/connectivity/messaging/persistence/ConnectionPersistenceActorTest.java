@@ -50,6 +50,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -1273,6 +1274,58 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                             .build()
             );
             assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModifiedWithoutRequestedAcks);
+        }};
+    }
+
+    @Test
+    public void sendAckWithNotDeclaredLabel() {
+        new TestKit(actorSystem) {{
+            // GIVEN: ack label declaration succeeds
+            doAnswer(invocation -> CompletableFuture.completedStage(null))
+                    .when(dittoProtocolSubMock)
+                    .declareAcknowledgementLabels(any(), any());
+
+            final TestKit probe = new TestKit(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
+                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnectionWithTestAck(), getRef());
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // Wait until connection is established
+            expectAnySubscribe();
+            expectDeclareAcknowledgementLabels();
+
+            // WHEN: signal is received with not-declared acknowledgement request
+            final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of(connectionId + ":not-declared");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .timeout("2s")
+                    .randomCorrelationId()
+                    .build();
+
+            final AttributeModified attributeModified = AttributeModified.of(
+                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, dittoHeaders);
+            underTest.tell(attributeModified, getRef());
+
+            // THEN: the acknowledgement request is removed from the signal
+            final OutboundSignal eventOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
+            final AttributeModified expectedEvent = attributeModified.setDittoHeaders(dittoHeaders.toBuilder()
+                    .acknowledgementRequests(Set.of())
+                    .build());
+            assertThat(eventOutboundSignal.getSource()).isEqualTo(expectedEvent);
+
+            // THEN: acknowledgements of non-declared labels are answered by AcknowledgementLabelNotDeclaredException
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                            dittoHeaders);
+            underTest.tell(acknowledgement, getRef());
+            expectMsg(AcknowledgementLabelNotDeclaredException.of(acknowledgementLabel, dittoHeaders));
         }};
     }
 

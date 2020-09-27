@@ -39,6 +39,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -96,7 +98,6 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
@@ -242,8 +243,8 @@ public final class MessageMappingProcessorActor
         receiveBuilder
                 // Incoming messages are handled in a separate stream parallelized by this actor's own dispatcher
                 .match(ExternalMessage.class, this::handleInboundMessage)
-                .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
                 // Outgoing responses and signals go through the signal enrichment stream
+                .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
                 .match(IncomingSignal.class, this::dispatchIncomingSignal)
@@ -252,7 +253,7 @@ public final class MessageMappingProcessorActor
     }
 
     private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
-        // this Acknowledgement seems to have been mis-routed:
+        // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
         logger.warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
     }
 
@@ -321,13 +322,13 @@ public final class MessageMappingProcessorActor
                 });
     }
 
-    private Source<IncomingSignal, ?> handleIncomingMappedSignal(
-            final Pair<Source<Signal<?>, ?>, ActorRef> mappedSignalsWithSender) {
-        final Source<Signal<?>, ?> mappedSignals = mappedSignalsWithSender.first();
-        final ActorRef sender = mappedSignalsWithSender.second();
+    private Source<IncomingSignal, ?> handleIncomingMappedSignal(final MappedExternalMessage mappedExternalMessage) {
+        final Source<Signal<?>, ?> mappedSignals = mappedExternalMessage.mappedSignals;
+        final ActorRef sender = mappedExternalMessage.sender;
+        final Set<AcknowledgementLabel> declaredAckLabels = mappedExternalMessage.getDeclaredAckLabels();
         final Sink<IncomingSignal, CompletionStage<Integer>> wireTapSink =
                 Sink.fold(0, (i, s) -> i + (s.isAckRequesting ? 1 : 0));
-        return mappedSignals.flatMapConcat(onIncomingMappedSignal(sender)::apply)
+        return mappedSignals.flatMapConcat(onIncomingMappedSignal(sender, declaredAckLabels)::apply)
                 .wireTapMat(wireTapSink, (otherMat, ackRequestingSignalCountFuture) -> {
                     ackRequestingSignalCountFuture.thenAccept(ackRequestingSignalCount ->
                             sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf())
@@ -336,7 +337,8 @@ public final class MessageMappingProcessorActor
                 });
     }
 
-    private PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> onIncomingMappedSignal(final ActorRef sender) {
+    private PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> onIncomingMappedSignal(final ActorRef sender,
+            final Set<AcknowledgementLabel> declaredAckLabels) {
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
                 .match(CommandResponse.class, ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
@@ -345,15 +347,15 @@ public final class MessageMappingProcessorActor
 
         final PartialFunction<Signal<?>, Source<IncomingSignal, NotUsed>> dispatchSignal =
                 new PFBuilder<Signal<?>, Source<IncomingSignal, NotUsed>>()
-                        .match(Acknowledgement.class, ack -> forwardToConnectionActor(ack, sender))
-                        .match(Acknowledgements.class, acks -> forwardToConnectionActor(acks, sender))
+                        .match(Acknowledgement.class, ack -> forwardAcknowledgement(ack, declaredAckLabels))
+                        .match(Acknowledgements.class, acks -> forwardAcknowledgements(acks, declaredAckLabels))
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
-                                forwardToConnectionActor(liveResponse, sender)
+                                forwardToConnectionActor(liveResponse, ActorRef.noSender())
                         )
                         .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
                                 (signal, isAckRequesting) -> Source.single(new IncomingSignal(signal,
-                                        isAckRequesting ? sender : getReturnAddress(signal),
+                                        getReturnAddress(sender, isAckRequesting),
                                         isAckRequesting)),
                                 headerInvalidException -> {
                                     // tell the response collector to settle negatively without redelivery
@@ -380,14 +382,41 @@ public final class MessageMappingProcessorActor
      * @param <T> type of elements for the next step..
      * @return an empty source of Signals
      */
-    private <T> Source<T, NotUsed> forwardToConnectionActor(final Signal<?> signal, final ActorRef sender) {
+    private <T> Source<T, NotUsed> forwardToConnectionActor(final Signal<?> signal, @Nullable final ActorRef sender) {
         connectionActor.tell(signal, sender);
         return Source.empty();
     }
 
-    private ActorRef getReturnAddress(final Signal<?> signal) {
-        final boolean publishResponse = signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired();
-        return publishResponse ? getSelf() : ActorRef.noSender();
+    private <T> Source<T, NotUsed> forwardAcknowledgement(final Acknowledgement ack,
+            final Set<AcknowledgementLabel> declaredAckLabels) {
+        if (declaredAckLabels.contains(ack.getLabel())) {
+            return forwardToConnectionActor(ack, getSelf());
+        } else {
+            getSelf().tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+                    ActorRef.noSender());
+            return Source.empty();
+        }
+    }
+
+    private <T> Source<T, NotUsed> forwardAcknowledgements(final Acknowledgements acks,
+            final Set<AcknowledgementLabel> declaredAckLabels) {
+        final Optional<AcknowledgementLabelNotDeclaredException> ackLabelNotDeclaredException = acks.stream()
+                .map(Acknowledgement::getLabel)
+                .filter(label -> !declaredAckLabels.contains(label))
+                .map(label -> AcknowledgementLabelNotDeclaredException.of(label, acks.getDittoHeaders()))
+                .findAny();
+        return ackLabelNotDeclaredException.map(
+                exception -> {
+                    getSelf().tell(exception, ActorRef.noSender());
+                    return Source.<T>empty();
+                })
+                .orElseGet(() -> forwardToConnectionActor(acks, getSelf()));
+    }
+
+    private ActorRef getReturnAddress(final ActorRef sender, final boolean isAcksRequesting) {
+        // acks-requesting signals: all replies should be directed to the sender address (ack. aggregator actor)
+        // other commands: set this actor as return address to receive any errors to publish.
+        return isAcksRequesting ? sender : getSelf();
     }
 
     private Signal<?> appendConnectionAcknowledgementsToSignal(final ExternalMessage message, final Signal<?> signal) {
@@ -585,16 +614,17 @@ public final class MessageMappingProcessorActor
                         result, error));
     }
 
-    private Pair<Source<Signal<?>, ?>, ActorRef> mapInboundMessage(final ExternalMessageWithSender withSender) {
+    private MappedExternalMessage mapInboundMessage(final ExternalMessageWithSender withSender) {
         final ExternalMessage externalMessage = withSender.externalMessage;
         final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, correlationId, connectionId);
         logger.debug("Handling ExternalMessage: {}", externalMessage);
+        final org.eclipse.ditto.model.connectivity.Source source = externalMessage.getSource().orElse(null);
         try {
-            return Pair.create(mapExternalMessageToSignal(withSender), withSender.sender);
+            return new MappedExternalMessage(mapExternalMessageToSignal(withSender), withSender.sender, source);
         } catch (final Exception e) {
             handleInboundException(e, withSender, null, getAuthorizationContext(externalMessage).orElse(null));
-            return Pair.create(Source.empty(), withSender.sender);
+            return new MappedExternalMessage(Source.empty(), withSender.sender, source);
         }
     }
 
@@ -1102,6 +1132,28 @@ public final class MessageMappingProcessorActor
                 final ExternalMessage externalMessage, final ActorRef sender) {
             this.externalMessage = externalMessage;
             this.sender = sender;
+        }
+    }
+
+    private static final class MappedExternalMessage {
+
+        private final Source<Signal<?>, ?> mappedSignals;
+        private final ActorRef sender;
+        @Nullable private final org.eclipse.ditto.model.connectivity.Source source;
+
+        private MappedExternalMessage(
+                final Source<Signal<?>, ?> mappedSignals,
+                final ActorRef sender,
+                @Nullable final org.eclipse.ditto.model.connectivity.Source source) {
+            this.mappedSignals = mappedSignals;
+            this.sender = sender;
+            this.source = source;
+        }
+
+        private Set<AcknowledgementLabel> getDeclaredAckLabels() {
+            return source != null
+                    ? source.getDeclaredAcknowledgementLabels()
+                    : Set.of();
         }
     }
 

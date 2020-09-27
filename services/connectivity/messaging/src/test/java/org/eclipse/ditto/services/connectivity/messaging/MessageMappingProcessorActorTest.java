@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor.filterAcknowledgements;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
@@ -42,12 +44,12 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
@@ -61,6 +63,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -68,6 +71,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
@@ -677,6 +681,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final Acknowledgement receivedAck = connectionActorProbe.expectMsgClass(Acknowledgement.class);
             assertThat(receivedAck.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
+            assertThat(connectionActorProbe.sender()).isEqualTo(messageMappingProcessorActor);
 
             // Acknowledgements
             final Signal<?> acknowledgements = Acknowledgements.of(List.of(acknowledgement), DittoHeaders.empty());
@@ -687,6 +692,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .getDittoHeaders()
                     .get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
+            assertThat(connectionActorProbe.sender()).isEqualTo(messageMappingProcessorActor);
 
             // Live response
             final Signal<?> liveResponse = DeleteThingResponse.of(KNOWN_THING_ID, DittoHeaders.newBuilder()
@@ -697,6 +703,35 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
             assertThat(receivedResponse.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
+            assertThat(connectionActorProbe.sender()).isEqualTo(actorSystem.deadLetters());
+        }};
+    }
+
+    @Test
+    public void sendAckWithoutDeclaration() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+
+            // WHEN: message mapping processor actor receives an incoming acknowledgement
+            // from a source with reply-target and without declared-acks
+            final AcknowledgementLabel label = AcknowledgementLabel.of("label");
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
+                            DittoHeaders.newBuilder()
+                                    .replyTarget(0)
+                                    .expectedResponseTypes(ResponseType.ERROR)
+                                    .build(),
+                            JsonValue.of("payload"));
+            messageMappingProcessorActor.tell(toExternalMessage(acknowledgement, builder -> {}), getRef());
+
+            // THEN: ann AcknowledgementLabelNotDeclaredException is published to the reply-target
+            final PublishMappedMessage errorResponse =
+                    (PublishMappedMessage) fishForMessage(Duration.ofSeconds(3L), "PublishMappedMessage",
+                            PublishMappedMessage.class::isInstance);
+            final Signal<?> source = errorResponse.getOutboundSignal().getSource();
+            assertThat(source).isInstanceOf(ErrorResponse.class);
+            assertThat(((ErrorResponse<?>) source).getDittoRuntimeException())
+                    .isEqualTo(AcknowledgementLabelNotDeclaredException.of(label, acknowledgement.getDittoHeaders()));
         }};
     }
 
