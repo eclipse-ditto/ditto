@@ -187,8 +187,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     @Override
     public void postStop() {
-        cancelSessionTimeout();
         logger.info("Closing <{}> streaming session.", type);
+        cancelSessionTimeout();
+        eventAndResponsePublisher.complete();
     }
 
     @Override
@@ -385,7 +386,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private void terminateWebsocketStream() {
         dittoProtocolSub.removeSubscriber(getSelf());
-        eventAndResponsePublisher.complete();
         getContext().stop(getSelf());
     }
 

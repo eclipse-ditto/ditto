@@ -61,6 +61,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.japi.Pair;
 import akka.stream.KillSwitch;
@@ -123,9 +124,20 @@ public final class StreamingSessionActorTest {
     }
 
     @Test
-    public void terminateOnAckLabelDeclarationFailure() {
+    public void completeStreamWhenStopped() {
         new TestKit(actorSystem) {{
-            onDeclareAckLabels(CompletableFuture.failedStage(AcknowledgementLabelNotUniqueException.getInstance()));
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+            underTest.tell(PoisonPill.getInstance(), getRef());
+            expectTerminated(underTest);
+            sinkProbe.ensureSubscription();
+            sinkProbe.expectComplete();
+        }};
+    }
+
+    @Test
+    public void terminateOnAckLabelDeclarationFailure() {
+        onDeclareAckLabels(CompletableFuture.failedStage(AcknowledgementLabelNotUniqueException.getInstance()));
+        new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             expectTerminated(underTest);
         }};
@@ -133,8 +145,8 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void sendDeclaredAckForGlobalDispatching() {
+        onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            onDeclareAckLabels(CompletableFuture.completedStage(null));
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             final Acknowledgement ack =
                     Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatusCode.OK,
@@ -146,8 +158,8 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void sendMalformedAck() {
+        onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            onDeclareAckLabels(CompletableFuture.completedStage(null));
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             final Acknowledgement ack =
                     Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatusCode.OK,
@@ -161,8 +173,8 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void sendNonDeclaredAck() {
+        onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            onDeclareAckLabels(CompletableFuture.completedStage(null));
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             final Acknowledgement ack =
                     Acknowledgement.of(AcknowledgementLabel.of("ack2"), ThingId.of("thing:id"), HttpStatusCode.OK,
@@ -176,8 +188,8 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void acknowledgementRequestsAreRestrictedToDeclaredAcks() {
+        onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            onDeclareAckLabels(CompletableFuture.completedStage(null));
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             subscribeForTwinEvents(underTest);
             final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 2L, DittoHeaders.newBuilder()
