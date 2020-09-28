@@ -329,6 +329,20 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
+    public void ensureAllowPolicyLockoutIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .allowPolicyLockout(true)
+                .build();
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(true);
+    }
+
+    @Test
+    public void ensureAllowPolicyLockoutIsFalseWhenNotSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(false);
+    }
+
+    @Test
     public void ensureResponseRequiredStaysFalseEvenWhenAcksAreRequested() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .responseRequired(false)
