@@ -87,7 +87,8 @@ public final class AcknowledgementLabelsTest {
                     RegexValidationParameter.valid("---"),
                     RegexValidationParameter.valid("___"),
                     RegexValidationParameter.valid("FOO-BAR"),
-                    RegexValidationParameter.valid("0123456789")
+                    RegexValidationParameter.valid("0123456789"),
+                    RegexValidationParameter.valid("{{connection:id}}:foo")
             );
         }
 

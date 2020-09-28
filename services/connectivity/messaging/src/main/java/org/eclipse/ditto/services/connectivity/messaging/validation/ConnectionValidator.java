@@ -100,7 +100,7 @@ public final class ConnectionValidator {
      * @param connection the connection.
      * @return the set of acknowledgement labels to declare.
      */
-    public static Set<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
+    public static Stream<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
         final Stream<AcknowledgementLabel> sourceDeclaredAcks =
                 connection.getSources().stream().map(Source::getDeclaredAcknowledgementLabels).flatMap(Set::stream);
         final Stream<AcknowledgementLabel> targetIssuedAcks =
@@ -109,7 +109,7 @@ public final class ConnectionValidator {
                         .flatMap(Optional::stream)
                         // live-response is permitted as issued acknowledgement without declaration
                         .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
-        return Stream.concat(sourceDeclaredAcks, targetIssuedAcks).collect(Collectors.toSet());
+        return Stream.concat(sourceDeclaredAcks, targetIssuedAcks);
     }
 
     /**
@@ -186,18 +186,21 @@ public final class ConnectionValidator {
     }
 
     private void validateDeclaredAndIssuedAcknowledgements(final Connection connection) {
-        final String expectedPrefix = connection.getId() + ":";
-        getAcknowledgementLabelsToDeclare(connection).forEach(label -> {
-            if (!label.toString().startsWith(expectedPrefix)) {
-                throw AcknowledgementLabelInvalidException.of(
-                        label,
-                        "Declared acknowledgement labels of a connection must have the form " +
-                                "<connection-id>:<alphanumeric-suffix>",
-                        null,
-                        DittoHeaders.empty()
-                );
-            }
-        });
+        final String idPrefix = connection.getId() + ":";
+        final String placeHolderPrefix = "{{connection:id}}:";
+        getAcknowledgementLabelsToDeclare(connection)
+                .map(Object::toString)
+                .forEach(label -> {
+                    if (!(label.startsWith(idPrefix) || label.startsWith(placeHolderPrefix))) {
+                        throw AcknowledgementLabelInvalidException.of(
+                                label,
+                                "Declared acknowledgement labels of a connection must have the form " +
+                                        "<connection-id>:<alphanumeric-suffix>",
+                                null,
+                                DittoHeaders.empty()
+                        );
+                    }
+                });
     }
 
     private static void validateFormatOfCertificates(final Connection connection, final DittoHeaders dittoHeaders) {

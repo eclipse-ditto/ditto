@@ -1232,6 +1232,53 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
+    public void testHandleSignalWithPlaceholderDeclaredAcknowledgement() {
+        new TestKit(actorSystem) {{
+            // GIVEN: ack label declaration succeeds
+            doAnswer(invocation -> CompletableFuture.completedStage(null))
+                    .when(dittoProtocolSubMock)
+                    .declareAcknowledgementLabels(any(), any());
+
+            final TestKit probe = new TestKit(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
+                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnectionWithPlaceholderAck(), getRef());
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // Wait until connection is established
+            expectAnySubscribe();
+            expectDeclareAcknowledgementLabels();
+
+            final AcknowledgementLabel acknowledgementLabel = getTestAck();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .timeout("2s")
+                    .randomCorrelationId()
+                    .build();
+
+            final AttributeModified attributeModified = AttributeModified.of(
+                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, dittoHeaders);
+            underTest.tell(attributeModified, getRef());
+
+            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
+            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
+
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                            dittoHeaders);
+            underTest.tell(acknowledgement, getRef());
+
+            expectMsg(acknowledgement);
+        }};
+    }
+
+    @Test
     public void failToDeclareAckLabels() {
         new TestKit(actorSystem) {{
             // GIVEN: ack declaration always fails
@@ -1459,6 +1506,24 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         return AcknowledgementLabel.of(connectionId + ":test-ack");
     }
 
+    private CreateConnection createConnectionWithPlaceholderAck() {
+        return CreateConnection.of(
+                createConnection.getConnection()
+                        .toBuilder()
+                        .sources(createConnection.getConnection().getSources().stream()
+                                .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                        .declaredAcknowledgementLabels(Set.of(getPlaceholderAck()))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build(),
+                createConnection.getDittoHeaders()
+        );
+    }
+
+    private AcknowledgementLabel getPlaceholderAck() {
+        return AcknowledgementLabel.of("{{connection:id}}:test-ack");
+    }
+
     static final class TestActor extends AbstractActor {
 
         private final TestKit probe;
@@ -1503,7 +1568,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     private void expectDeclareAcknowledgementLabels() {
-        verify(dittoProtocolSubMock, timeout(500)).declareAcknowledgementLabels(any(), any());
+        verify(dittoProtocolSubMock, timeout(500)).declareAcknowledgementLabels(eq(Set.of(getTestAck())), any());
     }
 
     private static void shutdown(@Nullable final ActorSystem system) {

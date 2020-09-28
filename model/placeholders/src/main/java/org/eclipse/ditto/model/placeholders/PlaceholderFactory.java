@@ -101,8 +101,7 @@ public final class PlaceholderFactory {
      * @param placeholderResolvers the PlaceholderResolvers to use in order to lookup placeholders in expressions.
      * @return the created ExpressionResolver instance
      */
-    public static ExpressionResolver newExpressionResolver(
-            final PlaceholderResolver<?>... placeholderResolvers) {
+    public static ExpressionResolver newExpressionResolver(final PlaceholderResolver<?>... placeholderResolvers) {
         return newExpressionResolver(Arrays.asList(placeholderResolvers));
     }
 

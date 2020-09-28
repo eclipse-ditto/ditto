@@ -30,7 +30,7 @@ final class AcknowledgementLabels {
     /**
      * Regular expression which determines the value of a valid AcknowledgementLabel.
      */
-    public static final String ACK_LABEL_REGEX = "[a-zA-Z0-9-_:]{3,100}";
+    public static final String ACK_LABEL_REGEX = "[a-zA-Z0-9-_:{}]{3,100}";
 
     private static final Pattern ACK_LABEL_PATTERN = Pattern.compile(ACK_LABEL_REGEX);
 
