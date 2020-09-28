@@ -7,7 +7,7 @@ permalink: protocol-specification-topic.html
 
 The Ditto Protocol defines a **Topic** for each Protocol message having following structure:
 
-_[{namespace}](#namespace)/[{entityId}](#entity-id)/[{group}](#group)/[{channel}](#channel)/[{criterion}](#criterion)/[{action}](#action-optional)_
+_[{namespace}](#namespace)/[{entity-name}](#entity-name)/[{group}](#group)/[{channel}](#channel)/[{criterion}](#criterion)/[{action}](#action-optional)_
 
 Examples for valid topic paths are:
 * `org.eclipse.ditto/fancy-car-1/things/twin/commands/create`

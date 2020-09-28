@@ -36,7 +36,7 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ request:subjectId }}{%endraw%}` | primary authorization subject of a command, or primary authorization subject that caused an event |
 | `{%raw%}{{ topic:full }}{%endraw%}` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}` |
 | `{%raw%}{{ topic:namespace }}{%endraw%}` | Ditto Protocol [Namespace](protocol-specification-topic.html#namespace) |
-| `{%raw%}{{ topic:entityId }}{%endraw%}` | Ditto Protocol [Entity ID](protocol-specification-topic.html#entity-id) |
+| `{%raw%}{{ topic:entityId }}{%endraw%}` | Ditto Protocol [Entity ID](protocol-specification-topic.html#entity-name) |
 | `{%raw%}{{ topic:group }}{%endraw%}` | Ditto Protocol [Group](protocol-specification-topic.html#group) |
 | `{%raw%}{{ topic:channel }}{%endraw%}` | Ditto Protocol [Channel](protocol-specification-topic.html#channel) |
 | `{%raw%}{{ topic:criterion }}{%endraw%}` | Ditto Protocol [Criterion](protocol-specification-topic.html#criterion) |
