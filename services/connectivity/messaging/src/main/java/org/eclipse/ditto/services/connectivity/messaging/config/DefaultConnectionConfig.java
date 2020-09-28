@@ -177,21 +177,23 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(amqp091Config, that.amqp091Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
-                Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(kafkaConfig, that.kafkaConfig) &&
-                Objects.equals(httpPushConfig, that.httpPushConfig);
+                Objects.equals(httpPushConfig, that.httpPushConfig) &&
+                Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
+                Objects.equals(maxNumberOfTargets, that.maxNumberOfTargets) &&
+                Objects.equals(maxNumberOfSources, that.maxNumberOfSources);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
-                activityCheckConfig, acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
-                httpPushConfig);
+                acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig,
+                activityCheckConfig, maxNumberOfTargets, maxNumberOfSources);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" +
+        return "DefaultConnectionConfig{" +
                 "clientActorAskTimeout=" + clientActorAskTimeout +
                 ", allowedHostnames=" + allowedHostnames +
                 ", blockedHostnames=" + blockedHostnames +
@@ -204,7 +206,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", kafkaConfig=" + kafkaConfig +
                 ", httpPushConfig=" + httpPushConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
-                "]";
+                ", maxNumberOfTargets=" + maxNumberOfTargets +
+                ", maxNumberOfSources=" + maxNumberOfSources +
+                '}';
     }
-
 }

@@ -128,6 +128,18 @@ public final class DefaultConnectionConfigTest {
                 .satisfies(amqp091Config -> softly.assertThat(amqp091Config.getPublisherPendingAckTTL())
                         .as(Amqp091Config.ConfigValue.PUBLISHER_PENDING_ACK_TTL.getConfigPath())
                         .isEqualTo(Duration.ofSeconds(31556736L)));
+
+        softly.assertThat(underTest.getMaxNumberOfSources())
+                .as("maxNumberOfSources")
+                .satisfies(maxNumberOfSources -> softly.assertThat(maxNumberOfSources)
+                        .as(ConnectionConfig.ConnectionConfigValue.MAX_SOURCE_NUMBER.getConfigPath())
+                        .isEqualTo(3));
+
+        softly.assertThat(underTest.getMaxNumberOfTargets())
+                .as("maxNumberOfTargets")
+                .satisfies(maxNumberOfTargets -> softly.assertThat(maxNumberOfTargets)
+                        .as(ConnectionConfig.ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath())
+                        .isEqualTo(3));
     }
 
 }
