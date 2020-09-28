@@ -97,6 +97,50 @@ public class JsonObjectMergerTest {
         Assertions.assertThat(merge(object1, object2)).isEqualTo(mergedObject);
     }
 
+    @Test
+    public void mergeFieldsFromBothObjectsFilterNullValues() {
+        final JsonObject object1 = JsonFactory.newObjectBuilder()
+                .set("x", 5)
+                .set("test", JsonValue.nullLiteral())
+                .set("foo", JsonFactory.newObjectBuilder()
+                        .set("bar", JsonValue.nullLiteral())
+                        .set("this", "notNull")
+                        .set("nestedObject", JsonFactory.newObjectBuilder()
+                                .set("notNullValue", "notNullValue")
+                                .set("nullValue", JsonValue.nullLiteral())
+                                .set("nestedNestedObject", JsonFactory.newObjectBuilder()
+//                                        .set("notNullValue", "notNullValue")
+                                        .set("nullValue", JsonValue.nullLiteral())
+                                        .build())
+                                .build()
+                        )
+                        .build())
+                .build();
+        final JsonObject object2 = JsonFactory.newObjectBuilder()
+                .set("y", 6)
+                .set("test", "test")
+                .set("nullValue", JsonValue.nullLiteral())
+                .build();
+        final JsonObject expectedObject = JsonFactory.newObjectBuilder()
+                .set("x", 5)
+                .set("foo", JsonFactory.newObjectBuilder()
+                        .set("this", "notNull")
+                        .set("nestedObject", JsonFactory.newObjectBuilder()
+                                .set("notNullValue", "notNullValue")
+//                                .set("nestedNestedObject", JsonFactory.newObjectBuilder()
+//                                        .set("notNullValue", "notNullValue")
+//                                        .build())
+                                .build()
+                        )
+                        .build())
+                .set("y", 6)
+                .build();
+
+        final JsonObject mergedObject = JsonObjectMerger.mergeJsonObjectsAndFilterNullValuesAndEmptyObjects(object1, object2);
+
+        Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
+    }
+
     private static JsonObject merge(final JsonObject object1, final JsonObject object2) {
         return JsonObjectMerger.mergeJsonObjects(object1, object2);
     }
