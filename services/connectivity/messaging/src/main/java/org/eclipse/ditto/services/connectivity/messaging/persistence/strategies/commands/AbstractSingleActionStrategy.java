@@ -19,6 +19,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
@@ -46,7 +47,11 @@ abstract class AbstractSingleActionStrategy<C extends ConnectivityCommand>
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection connection, final long nextRevision, final C command) {
+            @Nullable final Connection connection,
+            final long nextRevision,
+            final C command,
+            @Nullable final Metadata metadata) {
+
         final ConnectivityEvent event = StagedCommand.dummyEvent();
         final List<ConnectionAction> actions = Collections.singletonList(getAction());
         return newMutationResult(StagedCommand.of(command, event, command, actions), event, command);

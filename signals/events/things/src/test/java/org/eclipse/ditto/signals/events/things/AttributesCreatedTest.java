@@ -82,7 +82,8 @@ public final class AttributesCreatedTest {
         final AttributesCreated underTest =
                 AttributesCreated.of(TestConstants.Thing.THING_ID, TestConstants.Thing.ATTRIBUTES,
                         TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

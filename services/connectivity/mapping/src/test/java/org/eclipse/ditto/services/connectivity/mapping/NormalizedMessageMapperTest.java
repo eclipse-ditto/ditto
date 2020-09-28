@@ -118,7 +118,8 @@ public final class NormalizedMessageMapperTest {
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),
-                DittoHeaders.empty());
+                DittoHeaders.empty(),
+                null);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
@@ -151,7 +152,8 @@ public final class NormalizedMessageMapperTest {
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),
-                DittoHeaders.newBuilder().putHeader("random", "header").build());
+                DittoHeaders.newBuilder().putHeader("random", "header").build(),
+                null);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
         Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders()).isEmpty();
@@ -166,7 +168,8 @@ public final class NormalizedMessageMapperTest {
                 JsonValue.of(9),
                 2L,
                 Instant.ofEpochSecond(2L),
-                DittoHeaders.empty());
+                DittoHeaders.empty(),
+                null);
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer"));
@@ -226,7 +229,7 @@ public final class NormalizedMessageMapperTest {
         final ThingId thingId = ThingId.of("thing:feature-modified");
         final ThingEvent<?> event =
                 FeaturePropertyModified.of(thingId, "my-feature", JsonPointer.of("abc"), JsonValue.of(false), 2L,
-                        Instant.ofEpochSecond(1L), DittoHeaders.empty());
+                        Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "thingId,policyId,attributes/foo,features,_modified,_revision"));
@@ -265,9 +268,9 @@ public final class NormalizedMessageMapperTest {
     @Test
     public void deletedEventsAreNotMapped() {
         assertNotMapped(AttributeDeleted.of(ThingId.of("thing:id"), JsonPointer.of("/the/quick/brown/fox/"), 3L,
-                Instant.ofEpochSecond(3L), DittoHeaders.empty()));
+                Instant.ofEpochSecond(3L), DittoHeaders.empty(), null));
         assertNotMapped(FeaturePropertyDeleted.of(ThingId.of("thing:id"), "featureId",
-                JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty()));
+                JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty(), null));
         assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, DittoHeaders.empty()));
         assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, DittoHeaders.empty()));
     }

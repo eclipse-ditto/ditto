@@ -189,7 +189,7 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectDeleted' format.
      */
     public static SubjectDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+        return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize((revision, timestamp, metadata) -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));

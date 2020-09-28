@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -41,7 +42,6 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  *
  * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
-
 @Deprecated
 @Immutable
 @JsonParsableEvent(name = AclEntryCreated.NAME, typePrefix = AclEntryCreated.TYPE_PREFIX)
@@ -67,9 +67,10 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
             final AclEntry aclEntry,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.aclEntry = Objects.requireNonNull(aclEntry, "The created ACL Entry must not be null!");
     }
 
@@ -92,7 +93,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), aclEntry, revision, dittoHeaders);
+        return of(ThingId.of(thingId), aclEntry, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -110,7 +111,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, aclEntry, revision, null, dittoHeaders);
+        return of(thingId, aclEntry, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -124,7 +125,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      * @return the created AclEntryCreated.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -134,7 +135,7 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), aclEntry, revision, timestamp, dittoHeaders);
+        return of(ThingId.of(thingId), aclEntry, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -147,14 +148,40 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created AclEntryCreated.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static AclEntryCreated of(final ThingId thingId,
             final AclEntry aclEntry,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new AclEntryCreated(thingId, aclEntry, revision, timestamp, dittoHeaders);
+        return of(thingId, aclEntry, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code AclEntryCreated} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param aclEntry the created ACL Entry.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the created AclEntryCreated.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static AclEntryCreated of(final ThingId thingId,
+            final AclEntry aclEntry,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new AclEntryCreated(thingId, aclEntry, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -182,14 +209,15 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
      * 'AclEntryCreated' format.
      */
     public static AclEntryCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AclEntryCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
-            final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
+        return new EventJsonDeserializer<AclEntryCreated>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
+                    final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
+                    final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
 
-            return of(thingId, extractedAclEntry, revision, timestamp, dittoHeaders);
-        });
+                    return of(thingId, extractedAclEntry, revision, timestamp, dittoHeaders, metadata);
+                });
     }
 
     /**
@@ -203,7 +231,8 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
 
     @Override
     public AclEntryCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), aclEntry, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), aclEntry, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
@@ -219,7 +248,8 @@ public final class AclEntryCreated extends AbstractThingEvent<AclEntryCreated>
 
     @Override
     public AclEntryCreated setRevision(final long revision) {
-        return of(getThingEntityId(), aclEntry, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), aclEntry, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override

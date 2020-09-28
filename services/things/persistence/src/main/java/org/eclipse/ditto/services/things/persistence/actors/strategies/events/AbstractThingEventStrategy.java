@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.events.MetadataFromEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -48,18 +47,12 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         if (null != thing) {
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
-                    .setModified(event.getTimestamp().orElse(null));
-            thingBuilder = setMetadata(event, thing, thingBuilder);
+                    .setModified(event.getTimestamp().orElse(null))
+                    .setMetadata(event.getMetadata().orElse(null));
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }
         return null;
-    }
-
-    private ThingBuilder.FromCopy setMetadata(final T event, @Nullable final Thing thing,
-            final ThingBuilder.FromCopy builder) {
-        final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
-        return builder.setMetadata(metadataFromEvent.get());
     }
 
     /**

@@ -109,7 +109,11 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
             thing.getCreated().ifPresent(thingBuilder::setCreated);
             thing.getModified().ifPresent(thingBuilder::setModified);
             thing.getRevision().ifPresent(thingBuilder::setRevision);
-            return ThingCreated.of(thingBuilder.build(), thing.getRevision().get().toLong(), thing.getModified().orElse(null), DittoHeaders.empty());
+            return ThingCreated.of(thingBuilder.build(),
+                    thing.getRevision().get().toLong(),
+                    thing.getModified().orElse(null),
+                    DittoHeaders.empty(),
+                    thing.getMetadata().orElse(null));
         });
         commandToEventMapperRegistry.put(ModifyThing.class, (command, thing) -> {
             final ModifyThing modifyCommand = (ModifyThing) command;
@@ -117,11 +121,19 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
             thing.getCreated().ifPresent(thingBuilder::setCreated);
             thing.getModified().ifPresent(thingBuilder::setModified);
             thing.getRevision().ifPresent(thingBuilder::setRevision);
-            return ThingModified.of(thingBuilder.build(), thing.getRevision().get().toLong(), thing.getModified().orElse(null), DittoHeaders.empty());
+            return ThingModified.of(thingBuilder.build(),
+                    thing.getRevision().get().toLong(),
+                    thing.getModified().orElse(null),
+                    DittoHeaders.empty(),
+                    thing.getMetadata().orElse(null));
         });
         commandToEventMapperRegistry.put(DeleteThing.class, (command, thing) -> {
             final DeleteThing deleteCommand = (DeleteThing) command;
-            return ThingDeleted.of(deleteCommand.getThingEntityId(), thing.getRevision().get().toLong(), thing.getModified().orElse(null), DittoHeaders.empty());
+            return ThingDeleted.of(deleteCommand.getThingEntityId(),
+                    thing.getRevision().get().toLong(),
+                    thing.getModified().orElse(null),
+                    DittoHeaders.empty(),
+                    thing.getMetadata().orElse(null));
         });
     }
 

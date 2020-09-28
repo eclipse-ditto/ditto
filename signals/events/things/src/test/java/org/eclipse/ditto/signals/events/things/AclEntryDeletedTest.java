@@ -86,7 +86,7 @@ public final class AclEntryDeletedTest {
     public void toJsonReturnsExpected() {
         final AclEntryDeleted underTest =
                 AclEntryDeleted.of(TestConstants.Thing.THING_ID, TestConstants.Authorization.AUTH_SUBJECT_GRIMES,
-                        2, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        2, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON

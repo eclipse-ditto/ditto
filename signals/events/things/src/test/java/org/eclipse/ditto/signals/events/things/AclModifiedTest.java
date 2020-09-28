@@ -89,7 +89,7 @@ public final class AclModifiedTest {
     public void toJsonReturnsExpected() {
         final AclModified underTest =
                 AclModified.of(TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, 2, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON

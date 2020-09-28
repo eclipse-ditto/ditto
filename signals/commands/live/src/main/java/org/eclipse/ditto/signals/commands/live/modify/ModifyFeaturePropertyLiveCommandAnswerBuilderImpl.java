@@ -116,7 +116,7 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         public FeaturePropertyCreated created() {
             return FeaturePropertyCreated.of(command.getThingEntityId(), command.getFeatureId(),
                     command.getPropertyPointer(),
-                    command.getPropertyValue(), -1, Instant.now(), command.getDittoHeaders());
+                    command.getPropertyValue(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
 
         @Nonnull
@@ -124,7 +124,7 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         public FeaturePropertyModified modified() {
             return FeaturePropertyModified.of(command.getThingEntityId(), command.getFeatureId(),
                     command.getPropertyPointer(), command.getPropertyValue(), -1, Instant.now(),
-                    command.getDittoHeaders());
+                    command.getDittoHeaders(), null);
         }
     }
 

@@ -81,7 +81,7 @@ public final class FeaturesModifiedTest {
         final FeaturesModified underTest =
                 FeaturesModified.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FEATURES,
                         TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

@@ -85,7 +85,7 @@ public final class AclEntryCreatedTest {
     public void toJsonReturnsExpected() {
         final AclEntryCreated underTest =
                 AclEntryCreated.of(TestConstants.Thing.THING_ID, TestConstants.Authorization.ACL_ENTRY_OLDMAN,
-                        1, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        1, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON

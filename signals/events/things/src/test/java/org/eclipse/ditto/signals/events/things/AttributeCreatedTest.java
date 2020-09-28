@@ -90,7 +90,7 @@ public final class AttributeCreatedTest {
     public void toJsonReturnsExpected() {
         final AttributeCreated underTest = AttributeCreated.of(TestConstants.Thing.THING_ID, KNOWN_ATTRIBUTE_POINTER,
                 NEW_ATTRIBUTE_VALUE, TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

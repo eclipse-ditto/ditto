@@ -81,7 +81,8 @@ public final class FeatureCreatedTest {
         final FeatureCreated underTest =
                 FeatureCreated.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR,
                         TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -114,7 +115,9 @@ public final class FeatureCreatedTest {
         final FeatureCreated underTest =
                 FeatureCreated.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR,
                         TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP,
+                        TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
 
         assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

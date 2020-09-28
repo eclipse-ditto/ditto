@@ -70,7 +70,7 @@ public final class ThingDefinitionCreatedTest {
         final ThingDefinitionCreated underTest =
                 ThingDefinitionCreated.of(TestConstants.Thing.THING_ID, TestConstants.Thing.DEFINITION,
                         TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

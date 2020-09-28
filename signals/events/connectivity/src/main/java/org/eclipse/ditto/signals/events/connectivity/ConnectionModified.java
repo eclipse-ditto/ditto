@@ -114,7 +114,7 @@ public final class ConnectionModified extends AbstractConnectivityEvent<Connecti
      */
     public static ConnectionModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ConnectionModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(JsonFields.CONNECTION);
                     final Connection readConnection = ConnectivityModelFactory.connectionFromJson(connectionJsonObject);
 

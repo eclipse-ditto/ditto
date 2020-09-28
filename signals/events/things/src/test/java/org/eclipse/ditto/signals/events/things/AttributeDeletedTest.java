@@ -80,7 +80,8 @@ public final class AttributeDeletedTest {
     @Test
     public void toJsonReturnsExpected() {
         final AttributeDeleted underTest = AttributeDeleted.of(TestConstants.Thing.THING_ID, KNOWN_ATTRIBUTE_POINTER,
-                TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

@@ -107,7 +107,8 @@ public final class FeatureDefinitionModifiedTest {
         final FeatureDefinitionModified underTest =
                 FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON);
@@ -144,7 +145,8 @@ public final class FeatureDefinitionModifiedTest {
                 FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION,
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
 
         assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

@@ -109,14 +109,14 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Override
         public AttributesCreated created() {
             return AttributesCreated.of(command.getThingEntityId(), command.getAttributes(), -1, Instant.now(),
-                    command.getDittoHeaders());
+                    command.getDittoHeaders(), null);
         }
 
         @Nonnull
         @Override
         public AttributesModified modified() {
             return AttributesModified.of(command.getThingEntityId(), command.getAttributes(), -1, Instant.now(),
-                    command.getDittoHeaders());
+                    command.getDittoHeaders(), null);
         }
     }
 

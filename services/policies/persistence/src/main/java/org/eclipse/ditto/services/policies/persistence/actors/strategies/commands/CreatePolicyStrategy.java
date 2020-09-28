@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -44,8 +45,11 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final CreatePolicy command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final CreatePolicy command,
+            @Nullable final Metadata metadata) {
 
         // Policy not yet created - do so ..
         final Policy newPolicy = command.getPolicy();

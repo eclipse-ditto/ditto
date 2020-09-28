@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -46,11 +47,14 @@ final class DeleteThingDefinitionStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteThingDefinition command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteThingDefinition command,
+            @Nullable final Metadata metadata) {
 
         return extractDefinition(thing)
-                .map(definition -> getDeleteDefinitionResult(context, nextRevision, command, thing))
+                .map(definition -> getDeleteDefinitionResult(context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ThingDefinitionNotAccessibleException.newBuilder(context.getState())
                                 .dittoHeaders(command.getDittoHeaders())
@@ -62,15 +66,16 @@ final class DeleteThingDefinitionStrategy
     }
 
     private Result<ThingEvent> getDeleteDefinitionResult(final Context<ThingId> context, final long nextRevision,
-            final DeleteThingDefinition command, @Nullable Thing thing) {
+            final DeleteThingDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 DeleteThingDefinitionResponse.of(thingId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,
-                ThingDefinitionDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders), response);
+                ThingDefinitionDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata), response);
     }
 
     @Override

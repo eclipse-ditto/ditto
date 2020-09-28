@@ -69,7 +69,8 @@ public final class FeaturesDeletedTest {
         final FeaturesDeleted underTest =
                 FeaturesDeleted.of(TestConstants.Thing.THING_ID, TestConstants.Thing.REVISION_NUMBER,
                         TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

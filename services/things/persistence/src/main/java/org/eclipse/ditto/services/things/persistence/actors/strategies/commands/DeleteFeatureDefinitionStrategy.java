@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -34,8 +35,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
  */
 @Immutable
-final class DeleteFeatureDefinitionStrategy extends
-        AbstractThingCommandStrategy<DeleteFeatureDefinition> {
+final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy<DeleteFeatureDefinition> {
 
     /**
      * Constructs a new {@code DeleteFeatureDefinitionStrategy} object.
@@ -45,19 +45,24 @@ final class DeleteFeatureDefinitionStrategy extends
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteFeatureDefinition command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteFeatureDefinition command,
+            @Nullable final Metadata metadata) {
 
         return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision, command, thing))
+                .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision, command, thing,
+                        metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders()), command));
     }
 
     private Result<ThingEvent> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final DeleteFeatureDefinition command, @Nullable Thing thing) {
+            final long nextRevision, final DeleteFeatureDefinition command, @Nullable final Thing thing,
+            @Nullable final Metadata metadata) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final ThingId thingId = context.getState();
@@ -67,7 +72,7 @@ final class DeleteFeatureDefinitionStrategy extends
                 .map(featureDefinition -> {
                     final ThingEvent event =
                             FeatureDefinitionDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
-                                    dittoHeaders);
+                                    dittoHeaders, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDefinitionResponse.of(thingId, featureId, dittoHeaders), thing);
                     return ResultFactory.newMutationResult(command, event, response);

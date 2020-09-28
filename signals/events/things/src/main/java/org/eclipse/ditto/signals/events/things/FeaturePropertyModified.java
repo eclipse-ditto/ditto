@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -42,7 +43,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * modified.
  */
 @Immutable
-@JsonParsableEvent(name = FeaturePropertyModified.NAME, typePrefix= FeaturePropertyModified.TYPE_PREFIX)
+@JsonParsableEvent(name = FeaturePropertyModified.NAME, typePrefix = FeaturePropertyModified.TYPE_PREFIX)
 public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePropertyModified> implements
         ThingModifiedEvent<FeaturePropertyModified>, WithFeatureId {
 
@@ -74,9 +75,10 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
             final JsonValue propertyValue,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
         this.propertyPointer = Objects.requireNonNull(propertyPointer, "The Property JSON Pointer must not be null!");
         this.propertyValue = Objects.requireNonNull(propertyValue, "The Property Value must not be null!");
@@ -94,7 +96,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      * @return the FeaturePropertyModified created.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -105,7 +107,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, dittoHeaders);
+        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -119,7 +121,10 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeaturePropertyModified created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static FeaturePropertyModified of(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyJsonPointer,
@@ -127,7 +132,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders);
+        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -143,7 +148,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      * @return the FeaturePropertyModified created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -156,7 +161,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
             final DittoHeaders dittoHeaders) {
 
         return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, timestamp,
-                dittoHeaders);
+                dittoHeaders, null);
     }
 
     /**
@@ -171,7 +176,10 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeaturePropertyModified created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static FeaturePropertyModified of(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyJsonPointer,
@@ -180,8 +188,35 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
+        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code FeaturePropertyModified} object.
+     *
+     * @param thingId the ID of the Thing whose Feature's Property was modified.
+     * @param featureId the ID of the Feature whose Property was modified.
+     * @param propertyJsonPointer the JSON pointer of the modified Property key.
+     * @param propertyValue the value of the modified Property.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the FeaturePropertyModified created.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static FeaturePropertyModified of(final ThingId thingId,
+            final String featureId,
+            final JsonPointer propertyJsonPointer,
+            final JsonValue propertyValue,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
         return new FeaturePropertyModified(thingId, featureId, propertyJsonPointer, propertyValue, revision, timestamp,
-                dittoHeaders);
+                dittoHeaders, metadata);
     }
 
     /**
@@ -211,7 +246,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
      */
     public static FeaturePropertyModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertyModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
@@ -220,7 +255,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
                     final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
 
                     return of(thingId, extractedFeatureId, extractedPointer, extractedValue, revision,
-                            timestamp, dittoHeaders);
+                            timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -261,13 +296,13 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
     @Override
     public FeaturePropertyModified setRevision(final long revision) {
         return of(getThingEntityId(), featureId, propertyPointer, propertyValue, revision, getTimestamp().orElse(null),
-                getDittoHeaders());
+                getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public FeaturePropertyModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, propertyPointer, propertyValue, getRevision(), getTimestamp().orElse(null),
-                dittoHeaders);
+        return of(getThingEntityId(), featureId, propertyPointer, propertyValue, getRevision(),
+                getTimestamp().orElse(null), dittoHeaders, getMetadata().orElse(null));
     }
 
     @Override

@@ -183,7 +183,7 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      */
     public static PolicyEntriesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntriesModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);

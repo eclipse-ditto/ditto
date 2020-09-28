@@ -109,8 +109,7 @@ public final class FeaturePropertyCreatedTest {
         final FeaturePropertyCreated underTest =
                 FeaturePropertyCreated.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         PROPERTY_JSON_POINTER, NEW_PROPERTY_VALUE, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

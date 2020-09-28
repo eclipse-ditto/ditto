@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -155,7 +156,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync>, WithIdButA
     public String toString() {
         return getClass().getSimpleName() +
                 "[thingIds=" + thingIds +
-                ",dittoHeaders=" + dittoHeaders +
+                ", dittoHeaders=" + dittoHeaders +
                 "]";
     }
 
@@ -177,6 +178,11 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync>, WithIdButA
     @Override
     public Optional<Instant> getTimestamp() {
         return Optional.empty(); // this event has no timestamp
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.empty();
     }
 
     @Nonnull
