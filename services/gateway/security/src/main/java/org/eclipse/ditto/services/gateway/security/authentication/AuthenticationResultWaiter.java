@@ -23,10 +23,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 
-import scala.util.Either;
-import scala.util.Left;
-import scala.util.Right;
-
 /**
  * Waits for the future holding an {@link AuthenticationResult} and returns a failed authentication result with
  * {@link GatewayAuthenticationProviderUnavailableException} as reason if this takes longer than defined in
@@ -75,11 +71,11 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      */
     @Override
     public CompletableFuture<R> get() {
-        return authenticationResultFuture.<Either<Throwable, R>>thenApply(Right::new)
-                .completeOnTimeout(new Left<>(mapException(null)), awaitAuthTimeout.toMillis(), TimeUnit.MILLISECONDS)
-                .exceptionally(Left::new)
-                .thenCompose(either ->
-                        either.fold(CompletableFuture::failedFuture, CompletableFuture::completedFuture));
+        return authenticationResultFuture
+                .orTimeout(awaitAuthTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                .exceptionally(ex -> {
+                    throw mapException(ex);
+                });
     }
 
     private GatewayAuthenticationProviderUnavailableException mapException(@Nullable final Throwable cause) {

@@ -96,10 +96,7 @@ public final class AuthenticationChain {
                                 future1.thenComposeAsync(accumulator -> accumulator.andThen(future2),
                                         authenticationDispatcher)
                 )
-                .thenApplyAsync(accumulator -> Objects.requireNonNullElseGet(
-                        accumulator.successResult,
-                        () -> accumulator.asFailure(authenticationFailureAggregator)
-                ), authenticationDispatcher);
+                .thenApplyAsync(AuthResultAccumulator::getResult, authenticationDispatcher);
     }
 
     private CompletableFuture<AuthResultAccumulator> emptyAuthResultAccumulator(final Collection<?> authProviders,
@@ -129,7 +126,7 @@ public final class AuthenticationChain {
         }
 
         // precondition: successResult == null
-        private AuthResultAccumulator append(final AuthenticationProvider<?> authenticationProvider,
+        private AuthResultAccumulator appendResult(final AuthenticationProvider<?> authenticationProvider,
                 final AuthenticationResult nextResult) {
             if (nextResult.isSuccess()) {
                 logSuccess(authenticationProvider);
@@ -175,13 +172,13 @@ public final class AuthenticationChain {
                 final AuthenticationProvider<?> authenticationProvider) {
             if (successResult == null && authenticationProvider.isApplicable(requestContext)) {
                 return authenticationProvider.authenticate(requestContext, dittoHeaders)
-                        .thenApplyAsync(result -> append(authenticationProvider, result), authenticationDispatcher);
+                        .thenApplyAsync(result -> appendResult(authenticationProvider, result), authenticationDispatcher);
             } else {
                 return CompletableFuture.completedFuture(this);
             }
         }
 
-        private AuthenticationResult asFailure(final AuthenticationFailureAggregator authenticationFailureAggregator) {
+        private AuthenticationResult asFailure() {
             if (failureResults.isEmpty()) {
                 return DefaultAuthenticationResult.failed(dittoHeaders,
                         new IllegalStateException("No applicable authentication provider was found!"));
@@ -193,6 +190,13 @@ public final class AuthenticationChain {
 
             return DefaultAuthenticationResult.failed(dittoHeaders,
                     authenticationFailureAggregator.aggregateAuthenticationFailures(failureResults));
+        }
+
+        /**
+         * @return either the success result or the aggregated failure result.
+         */
+        private AuthenticationResult getResult() {
+            return Objects.requireNonNullElseGet(successResult, this::asFailure);
         }
     }
 
