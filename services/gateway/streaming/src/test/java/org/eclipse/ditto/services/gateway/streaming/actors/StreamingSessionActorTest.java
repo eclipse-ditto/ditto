@@ -100,7 +100,7 @@ public final class StreamingSessionActorTest {
         final Sink<SessionedJsonifiable, TestSubscriber.Probe<SessionedJsonifiable>> sink =
                 TestSink.probe(actorSystem);
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
-                Source.queue(10, OverflowStrategy.fail());
+                Source.queue(100, OverflowStrategy.fail());
         final Pair<Pair<SourceQueueWithComplete<SessionedJsonifiable>, UniqueKillSwitch>,
                 TestSubscriber.Probe<SessionedJsonifiable>> pair =
                 source.viaMat(KillSwitches.single(), Keep.both()).toMat(sink, Keep.both()).run(actorSystem);
@@ -189,6 +189,7 @@ public final class StreamingSessionActorTest {
     @Test
     public void acknowledgementRequestsAreRestrictedToDeclaredAcks() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
+        setUpMockForTwinEventsSubscription();
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             subscribeForTwinEvents(underTest);
@@ -222,10 +223,13 @@ public final class StreamingSessionActorTest {
         doAnswer(invocation -> answer).when(mockSub).declareAcknowledgementLabels(any(), any());
     }
 
-    private void subscribeForTwinEvents(final ActorRef underTest) {
+    private void setUpMockForTwinEventsSubscription() {
         doAnswer(invocation -> CompletableFuture.completedStage(null))
                 .when(mockSub)
                 .subscribe(any(), any(), any());
+    }
+
+    private void subscribeForTwinEvents(final ActorRef underTest) {
         final AuthorizationContext authorizationContext =
                 AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         AuthorizationSubject.newInstance("ditto:ditto"));

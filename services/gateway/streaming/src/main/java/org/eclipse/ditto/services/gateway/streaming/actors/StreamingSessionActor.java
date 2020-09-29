@@ -148,14 +148,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
-        this.subscriptionManager =
-                getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
-
-        eventAndResponsePublisher.watchCompletion()
-                .whenComplete((done, error) -> getSelf().tell(Control.TERMINATED, getSelf()));
-
+        this.subscriptionManager = getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
         declaredAcks = connect.getDeclaredAcknowledgementLabels();
-        declareAcknowledgementLabels(declaredAcks);
     }
 
     /**
@@ -183,6 +177,13 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub,
                 commandRouter, acknowledgementConfig, headerTranslator, subscriptionManagerProps, jwtValidator,
                 jwtAuthenticationResultProvider);
+    }
+
+    @Override
+    public void preStart() {
+        eventAndResponsePublisher.watchCompletion()
+                .whenComplete((done, error) -> getSelf().tell(Control.TERMINATED, getSelf()));
+        declareAcknowledgementLabels(declaredAcks);
     }
 
     @Override
@@ -567,14 +568,15 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
         final ActorRef self = getSelf();
         if (!acknowledgementLabels.isEmpty()) {
-            logger.debug("Declaring acknowledgement labels <{}>", acknowledgementLabels);
+            logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
             dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
-                    .thenAccept(_void -> logger.debug("Acknowledgement label declaration successful."))
+                    .thenAccept(_void -> logger.info("Acknowledgement label declaration successful."))
                     .exceptionally(error -> {
                         final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(error,
                                         cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
+                        logger.info("Acknowledgement label declaration failed: <{}>", dittoRuntimeException);
                         self.tell(dittoRuntimeException, ActorRef.noSender());
                         return null;
                     });
