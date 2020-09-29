@@ -323,6 +323,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B putMetadata(MetadataHeaderKey key, JsonValue value);
 
     /**
+     * Sets the allowPolicyLockout value.
+     *
+     * @param allowPolicyLockout the allowPolicyLockout value to be set.
+     * @return this builder for method chaining.
+     * @since 1.3.0
+     */
+    B allowPolicyLockout(boolean allowPolicyLockout);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.
