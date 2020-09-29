@@ -12,9 +12,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
@@ -48,11 +53,32 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null))
-                    .setMetadata(event.getMetadata().orElse(null));
+                    .setMetadata(mergeMetadata(thing, event));
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }
         return null;
+    }
+
+    @Nullable
+    private Metadata mergeMetadata(@Nullable final Thing thing, final T event) {
+
+        final JsonPointer eventMetadataResourcePath = event.getResourcePath();
+        final Optional<Metadata> eventMetadataOpt = event.getMetadata();
+        if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
+            return eventMetadataOpt.get();
+        } else if (eventMetadataOpt.isPresent()) {
+            final Metadata eventMetadata = eventMetadataOpt.get();
+
+            final MetadataBuilder metadataBuilder = Optional.ofNullable(thing)
+                    .flatMap(Thing::getMetadata)
+                    .map(Metadata::toBuilder)
+                    .orElseGet(Metadata::newBuilder);
+            metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson());
+            return metadataBuilder.build();
+        } else {
+            return event.getMetadata().orElse(null);
+        }
     }
 
     /**
