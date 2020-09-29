@@ -72,12 +72,13 @@ public abstract class GlobalCommandRegistryTestCases {
 
     /**
      * Override this method to exclude certain classes.
+     * By default, all classes starting with "Dummy" are excluded.
      *
      * @param clazz the class to check.
      * @return whether the class is excluded.
      */
     protected boolean isExcluded(final Class<?> clazz) {
-        return false;
+        return clazz.getSimpleName().startsWith("Dummy");
     }
 
     /**
@@ -113,8 +114,7 @@ public abstract class GlobalCommandRegistryTestCases {
         StreamSupport.stream(ClassIndex.getSubclasses(Command.class).spliterator(), true)
                 .filter(c -> {
                     final int m = c.getModifiers();
-                    return !(Modifier.isAbstract(m) || Modifier.isInterface(m) || Modifier.isPrivate(m) ||
-                            isExcluded(c));
+                    return !(Modifier.isAbstract(m) || Modifier.isInterface(m) || isExcluded(c));
                 })
                 .forEach(c -> assertThat(c.isAnnotationPresent(JsonParsableCommand.class))
                         .as("Check that '%s' is annotated with JsonParsableCommand.", c.getName())
