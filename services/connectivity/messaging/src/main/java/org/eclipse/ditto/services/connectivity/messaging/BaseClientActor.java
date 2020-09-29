@@ -383,7 +383,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the created ActorRef
      */
     private ActorRef startChildActor(final String name, final Props props) {
-        log.debug("Starting child actor <{}>.", name);
+        logger.debug("Starting child actor <{}>.", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
     }
