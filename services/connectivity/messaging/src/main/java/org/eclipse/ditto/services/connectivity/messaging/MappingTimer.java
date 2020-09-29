@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -41,18 +42,22 @@ final class MappingTimer {
 
     /**
      * @param connectionId ID of the connection
+     * @param connectionType the type of the connection.
      * @return a new {@link MappingTimer} instance ready to measure inbound mappings.
      */
-    static MappingTimer inbound(final ConnectionId connectionId) {
-        return new MappingTimer(startNewTimer(connectionId.toString()).tag(DIRECTION_TAG_NAME, INBOUND));
+    static MappingTimer inbound(final ConnectionId connectionId, final ConnectionType connectionType) {
+        return new MappingTimer(startNewTimer(connectionId.toString(), connectionType)
+                .tag(DIRECTION_TAG_NAME, INBOUND));
     }
 
     /**
-     * @param connectionId ID of the connection
+     * @param connectionId ID of the connection.
+     * @param connectionType the type of the connection.
      * @return a new {@link MappingTimer} instance ready to measure outbound mappings.
      */
-    static MappingTimer outbound(final ConnectionId connectionId) {
-        return new MappingTimer(startNewTimer(connectionId.toString()).tag(DIRECTION_TAG_NAME, OUTBOUND));
+    static MappingTimer outbound(final ConnectionId connectionId, final ConnectionType connectionType) {
+        return new MappingTimer(startNewTimer(connectionId.toString(), connectionType)
+                .tag(DIRECTION_TAG_NAME, OUTBOUND));
     }
 
     /**
@@ -112,10 +117,11 @@ final class MappingTimer {
         }
     }
 
-    private static StartedTimer startNewTimer(final String connectionId) {
+    private static StartedTimer startNewTimer(final String connectionId, final ConnectionType connectionType) {
         return DittoMetrics
                 .expiringTimer(TIMER_NAME)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
+                .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
                 .build();
     }

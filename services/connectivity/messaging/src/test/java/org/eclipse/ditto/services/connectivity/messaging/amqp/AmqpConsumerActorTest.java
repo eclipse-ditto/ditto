@@ -337,7 +337,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
-        return MessageMappingProcessor.of(CONNECTION_ID, ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
+        return MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(),
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
                 actorSystem, TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, logger);
     }

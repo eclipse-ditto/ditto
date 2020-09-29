@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
@@ -53,7 +54,7 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     @SuppressWarnings("unused")
     private HiveMqtt5ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery);
+        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT_5);
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         if (enforcement != null &&
                 enforcement.getInput().contains(ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)) {

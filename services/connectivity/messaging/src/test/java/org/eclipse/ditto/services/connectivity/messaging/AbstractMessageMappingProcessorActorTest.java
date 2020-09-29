@@ -315,7 +315,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
-        return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
+        return MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
+                actorSystem,
                 TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, logger);
     }

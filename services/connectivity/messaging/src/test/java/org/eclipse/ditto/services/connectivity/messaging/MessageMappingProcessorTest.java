@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
@@ -138,7 +139,8 @@ public final class MessageMappingProcessorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
         underTest =
-                MessageMappingProcessor.of(ConnectionId.of("theConnection"), payloadMappingDefinition, actorSystem,
+                MessageMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
+                        payloadMappingDefinition, actorSystem,
                         connectivityConfig, protocolAdapterProvider, logger);
     }
 

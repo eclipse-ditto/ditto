@@ -367,7 +367,8 @@ public abstract class AbstractConsumerActorTest<M> {
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
         final MessageMappingProcessor mappingProcessor =
-                MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
+                MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
+                        actorSystem,
                         connectivityConfig, protocolAdapterProvider, logger);
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(proxyActor, clientActor, mappingProcessor,
