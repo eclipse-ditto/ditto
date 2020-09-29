@@ -38,6 +38,7 @@ public final class AclEntryDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclEntryDeleted.NAME)
             .set(Event.JsonFields.REVISION, 2L)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AclEntryDeleted.JSON_AUTHORIZATION_SUBJECT, TestConstants.Authorization.AUTH_SUBJECT_GRIMES.getId())
             .build();

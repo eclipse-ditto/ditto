@@ -38,6 +38,7 @@ public class ThingDefinitionModifiedTest {
             .set(Event.JsonFields.TYPE, ThingDefinitionModified.TYPE)
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingDefinitionModified.JSON_DEFINITION, JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
             .build();

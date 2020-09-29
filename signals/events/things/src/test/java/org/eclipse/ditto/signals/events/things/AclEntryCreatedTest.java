@@ -40,6 +40,7 @@ public final class AclEntryCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclEntryCreated.NAME)
             .set(Event.JsonFields.REVISION, 1L)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AclEntryCreated.JSON_ACL_ENTRY,
                     TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(FieldType.regularOrSpecial()))

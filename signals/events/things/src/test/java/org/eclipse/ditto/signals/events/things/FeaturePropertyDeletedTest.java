@@ -41,6 +41,7 @@ public class FeaturePropertyDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertyDeleted.TYPE)
             .set(Event.JsonFields.REVISION, Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertyDeleted.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())

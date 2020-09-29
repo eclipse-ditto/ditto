@@ -42,6 +42,7 @@ public final class AttributeModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, AttributeModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AttributeModified.JSON_ATTRIBUTE, KNOWN_ATTRIBUTE_POINTER.toString())
             .set(AttributeModified.JSON_VALUE, NEW_ATTRIBUTE_VALUE)

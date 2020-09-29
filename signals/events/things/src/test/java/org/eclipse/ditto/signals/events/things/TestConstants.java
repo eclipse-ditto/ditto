@@ -73,9 +73,11 @@ final class TestConstants {
     public static final Instant TIMESTAMP = Instant.EPOCH;
 
     /**
-     * A known timestamp.
+     * A known metadata.
      */
-    public static final Metadata METADATA = Metadata.newBuilder().set("meta", "data").build();
+    public static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     /**
      * Known JSON parse options.
