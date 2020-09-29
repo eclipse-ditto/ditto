@@ -69,8 +69,6 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!-- internal use only: -->
-                            <exclude>org.eclipse.ditto.signals.events.base.EventJsonDeserializer$FactoryMethodFunction</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
