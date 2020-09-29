@@ -562,7 +562,6 @@ public final class ConnectionPersistenceActor
 
         final Signal<?> signalToForward;
         if (signal instanceof WithThingId) {
-            // Only start ack forwarder for when there are source-declared acks;
             // issued acknowledgements from targets go to the sender directly with internal headers intact.
             final Set<AcknowledgementLabel> sourceDeclaredAcks = streamSourceDeclaredAcks().collect(Collectors.toSet());
             final WithThingId thingEvent = (WithThingId) signal;
@@ -595,20 +594,11 @@ public final class ConnectionPersistenceActor
         if (entity != null && ackLabelsDeclared) {
             return entity.getSources()
                     .stream()
-                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
-                    .map(this::resolveConnectionIdPlaceholder)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get);
+                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream());
 
         } else {
             return Stream.empty();
         }
-    }
-
-    private Optional<AcknowledgementLabel> resolveConnectionIdPlaceholder(final AcknowledgementLabel ackLabel) {
-        return connectionIdResolver.resolve(ackLabel.toString())
-                .toOptional()
-                .map(AcknowledgementLabel::of);
     }
 
     /**
@@ -1093,11 +1083,7 @@ public final class ConnectionPersistenceActor
         if (entity == null || entity.getConnectionStatus() != ConnectivityStatus.OPEN) {
             return Set.of();
         } else {
-            return ConnectionValidator.getAcknowledgementLabelsToDeclare(entity)
-                    .map(this::resolveConnectionIdPlaceholder)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .collect(Collectors.toSet());
+            return ConnectionValidator.getAcknowledgementLabelsToDeclare(entity).collect(Collectors.toSet());
         }
     }
 

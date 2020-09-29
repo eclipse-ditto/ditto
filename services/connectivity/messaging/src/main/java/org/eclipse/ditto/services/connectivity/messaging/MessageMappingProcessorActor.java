@@ -410,12 +410,11 @@ public final class MessageMappingProcessorActor
                 .filter(label -> !declaredAckLabels.contains(label))
                 .map(label -> AcknowledgementLabelNotDeclaredException.of(label, acks.getDittoHeaders()))
                 .findAny();
-        return ackLabelNotDeclaredException.map(
-                exception -> {
-                    getSelf().tell(exception, ActorRef.noSender());
-                    return Source.<T>empty();
-                })
-                .orElseGet(() -> forwardToConnectionActor(acks, getSelf()));
+        if(ackLabelNotDeclaredException.isPresent()) {
+            getSelf().tell(ackLabelNotDeclaredException.get(), ActorRef.noSender());
+            return Source.empty();
+        }
+        return forwardToConnectionActor(acks, getSelf());
     }
 
     @Nullable

@@ -187,11 +187,10 @@ public final class ConnectionValidator {
 
     private void validateDeclaredAndIssuedAcknowledgements(final Connection connection) {
         final String idPrefix = connection.getId() + ":";
-        final String placeHolderPrefix = "{{connection:id}}:";
         getAcknowledgementLabelsToDeclare(connection)
                 .map(Object::toString)
                 .forEach(label -> {
-                    if (!(label.startsWith(idPrefix) || label.startsWith(placeHolderPrefix))) {
+                    if (!label.startsWith(idPrefix)) {
                         throw AcknowledgementLabelInvalidException.of(
                                 label,
                                 "Declared acknowledgement labels of a connection must have the form " +
