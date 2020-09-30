@@ -64,10 +64,10 @@ public final class ImmutableDittoLoggingAdapterTest {
     }
 
     @Test
-    public void getInstanceWithNullLogger() {
+    public void getInstanceWithNullDiagnosticLoggingAdapterFactory() {
         assertThatNullPointerException()
-                .isThrownBy(() -> DefaultDittoDiagnosticLoggingAdapter.of(null))
-                .withMessage("The loggingAdapter must not be null!")
+                .isThrownBy(() -> ImmutableDittoLoggingAdapter.of(null))
+                .withMessage("The diagnosticLoggingAdapterFactory must not be null!")
                 .withNoCause();
     }
 

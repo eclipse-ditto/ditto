@@ -144,4 +144,9 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         return this;
     }
 
+    @Override
+    public String getName() {
+        return loggingAdapter.getName();
+    }
+
 }

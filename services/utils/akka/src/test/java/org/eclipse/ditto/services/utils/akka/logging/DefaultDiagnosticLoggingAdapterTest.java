@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.logging;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.Map;
@@ -36,6 +38,7 @@ public final class DefaultDiagnosticLoggingAdapterTest {
     private static final String CORRELATION_ID_KEY = CommonMdcEntryKey.CORRELATION_ID.toString();
     private static final String CONNECTION_ID_KEY = "connection-id";
     private static final String CONNECTION_ID_VALUE = "my-connection";
+    private static final String LOGGER_NAME = DefaultDiagnosticLoggingAdapterTest.class.getName();
 
     @Rule
     public final TestName testName = new TestName();
@@ -49,9 +52,33 @@ public final class DefaultDiagnosticLoggingAdapterTest {
     @Test
     public void getInstanceWithNullLogger() {
         assertThatNullPointerException()
-                .isThrownBy(() -> DefaultDiagnosticLoggingAdapter.of(null))
+                .isThrownBy(() -> DefaultDiagnosticLoggingAdapter.of(null, LOGGER_NAME))
                 .withMessage("The loggingAdapter must not be null!")
                 .withNoCause();
+    }
+
+    @Test
+    public void getInstanceWithNullLoggerName() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, null))
+                .withMessage("The loggerName must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getInstanceWithBlankLoggerName() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, ""))
+                .withMessage("The argument 'loggerName' must not be empty!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getNameReturnsExpected() {
+        final DefaultDiagnosticLoggingAdapter underTest =
+                DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
+
+        assertThat(underTest.getName()).isEqualTo(LOGGER_NAME);
     }
 
     @Test
@@ -62,7 +89,8 @@ public final class DefaultDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
         Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
 
-        final DefaultDiagnosticLoggingAdapter underTest = DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDiagnosticLoggingAdapter underTest =
+                DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, CONNECTION_ID_VALUE);
         underTest.debug(debugMsg);
@@ -81,7 +109,8 @@ public final class DefaultDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
         final String correlationId = getCorrelationId();
 
-        final DefaultDiagnosticLoggingAdapter underTest = DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDiagnosticLoggingAdapter underTest =
+                DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, CONNECTION_ID_VALUE);
         underTest.debug("Foo");
@@ -98,7 +127,8 @@ public final class DefaultDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
         final String correlationId = getCorrelationId();
 
-        final DefaultDiagnosticLoggingAdapter underTest = DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+        final DefaultDiagnosticLoggingAdapter underTest =
+                DefaultDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, CONNECTION_ID_VALUE);
         underTest.debug("Foo");

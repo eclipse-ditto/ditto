@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -543,8 +544,19 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     @Override
     public void close() {
-        removeLocalMdcFromActualMdc();
+        tryToRemoveLocalMdcFromActualMdc();
         localMdc.clear();
+    }
+
+    private void tryToRemoveLocalMdcFromActualMdc() {
+        try {
+            removeLocalMdcFromActualMdc();
+        } catch (final ConcurrentModificationException e) {
+
+            // Logging should not interfere with application's actual work.
+            actualSlf4jLogger.warn("This logger <{}> is used by multiple threads!" +
+                    " Please consider to use a thread-safe logger instead.", getName());
+        }
     }
 
     private void removeLocalMdcFromActualMdc() {

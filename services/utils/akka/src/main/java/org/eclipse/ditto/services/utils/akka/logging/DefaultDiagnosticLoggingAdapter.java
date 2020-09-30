@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,10 +32,14 @@ import akka.event.DiagnosticLoggingAdapter;
 final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAdapter {
 
     private final DiagnosticLoggingAdapter loggingAdapter;
+    private final String loggerName;
     private final Map<String, Object> localMdc;
 
-    private DefaultDiagnosticLoggingAdapter(final DiagnosticLoggingAdapter loggingAdapter) {
+    private DefaultDiagnosticLoggingAdapter(final DiagnosticLoggingAdapter loggingAdapter,
+            final CharSequence loggerName) {
+
         this.loggingAdapter = checkNotNull(loggingAdapter, "loggingAdapter");
+        this.loggerName = argumentNotEmpty(loggerName, "loggerName").toString();
         localMdc = new HashMap<>(5);
     }
 
@@ -42,11 +47,15 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
      * Returns an instance of this class.
      *
      * @param loggingAdapter the actual DiagnosticLoggingAdapter to delegate to.
+     * @param loggerName the name of the returned logger.
      * @return the instance.
-     * @throws NullPointerException if {@code loggingAdapter} is {@code null}.
+     * @throws NullPointerException if any argument is @code null}.
+     * @throws IllegalArgumentException if {@code loggerName} is empty.
      */
-    public static DefaultDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter loggingAdapter) {
-        return new DefaultDiagnosticLoggingAdapter(loggingAdapter);
+    public static DefaultDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter loggingAdapter,
+            final CharSequence loggerName) {
+
+        return new DefaultDiagnosticLoggingAdapter(loggingAdapter, loggerName);
     }
 
     @Override
@@ -163,9 +172,20 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     @Override
     public DefaultDiagnosticLoggingAdapter discardMdcEntries() {
-        removeLocalMdcFromActualMdc();
+        tryToRemoveLocalMdcFromActualMdc();
         localMdc.clear();
         return this;
+    }
+
+    private void tryToRemoveLocalMdcFromActualMdc() {
+        try {
+            removeLocalMdcFromActualMdc();
+        } catch (final ConcurrentModificationException e) {
+
+            // Logging should not interfere with application's actual work.
+            loggingAdapter.warning("This logger <{}> is used by multiple threads!" +
+                    " Please consider to use a thread-safe logger instead.", getName());
+        }
     }
 
     private void removeLocalMdcFromActualMdc() {
@@ -176,6 +196,11 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
             localMdc.forEach(actualMdc::remove);
             setMDC(actualMdc);
         }
+    }
+
+    @Override
+    public String getName() {
+        return loggerName;
     }
 
 }

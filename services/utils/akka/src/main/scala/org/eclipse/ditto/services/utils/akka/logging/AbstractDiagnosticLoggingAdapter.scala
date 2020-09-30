@@ -58,4 +58,11 @@ abstract class AbstractDiagnosticLoggingAdapter extends DiagnosticLoggingAdapter
    */
   def discardMdcEntries(): AbstractDiagnosticLoggingAdapter
 
+  /** Returns the name of this logger.
+   *
+   * @return the logger's name.
+   * @since 1.3.0
+   */
+  def getName: String
+
 }

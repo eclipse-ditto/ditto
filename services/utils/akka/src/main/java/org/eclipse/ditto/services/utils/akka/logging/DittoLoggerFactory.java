@@ -21,7 +21,9 @@ import javax.annotation.concurrent.Immutable;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.Actor;
+import akka.actor.ActorContext;
 import akka.actor.ExtendedActorSystem;
+import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.EventStream;
 import akka.event.LogSource;
@@ -114,7 +116,15 @@ public final class DittoLoggerFactory {
      * @throws NullPointerException if {@code logSource} is {@code null}.
      */
     public static DittoDiagnosticLoggingAdapter getDiagnosticLoggingAdapter(final Actor logSource) {
-        return DefaultDittoDiagnosticLoggingAdapter.of(Logging.apply(checkNotNull(logSource, "logSource")));
+        checkNotNull(logSource, "logSource");
+        return DefaultDittoDiagnosticLoggingAdapter.of(Logging.apply(logSource), getActorClassName(logSource));
+    }
+
+    private static String getActorClassName(final Actor logSource) {
+        final ActorContext actorContext = logSource.context();
+        final Props props = actorContext.props();
+        final Class<? extends Actor> actorClass = props.actorClass();
+        return actorClass.getName();
     }
 
     /**

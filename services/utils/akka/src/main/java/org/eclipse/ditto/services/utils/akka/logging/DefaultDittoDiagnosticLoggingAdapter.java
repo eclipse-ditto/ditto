@@ -50,12 +50,16 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
      * Returns an instance of the default Ditto DiagnosticLoggingAdapter.
      *
      * @param diagnosticLoggingAdapter the Akka DiagnosticLoggingAdapter which performs the actual logging.
+     * @param loggerName the name of the returned logger.
      * @return the instance.
-     * @throws NullPointerException if {@code diagnosticLoggingAdapter} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code loggerName} is empty.
      */
-    public static DefaultDittoDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter diagnosticLoggingAdapter) {
+    public static DefaultDittoDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter diagnosticLoggingAdapter,
+            final CharSequence loggerName) {
+
         final DefaultDiagnosticLoggingAdapter loggingAdapter =
-                DefaultDiagnosticLoggingAdapter.of(diagnosticLoggingAdapter);
+                DefaultDiagnosticLoggingAdapter.of(diagnosticLoggingAdapter, loggerName);
 
         return new DefaultDittoDiagnosticLoggingAdapter(loggingAdapter,
                 AutoDiscardingDiagnosticLoggingAdapter.of(loggingAdapter));
@@ -247,6 +251,11 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
         currentLogger.discardMdcEntries();
         currentLogger = autoDiscardingLoggingAdapter;
         return this;
+    }
+
+    @Override
+    public String getName() {
+        return currentLogger.getName();
     }
 
     @Override

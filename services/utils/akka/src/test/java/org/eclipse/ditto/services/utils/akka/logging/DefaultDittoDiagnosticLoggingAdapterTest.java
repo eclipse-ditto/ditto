@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.logging;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.time.Duration;
@@ -37,6 +39,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
     private static final String CORRELATION_ID_KEY = CommonMdcEntryKey.CORRELATION_ID.toString();
     private static final String CONNECTION_ID_KEY = "connection-id";
     private static final String CONNECTION_ID_VALUE = "my-connection";
+    private static final String LOGGER_NAME = DefaultDittoDiagnosticLoggingAdapterTest.class.getName();
 
     @Rule
     public final TestName testName = new TestName();
@@ -50,9 +53,33 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
     @Test
     public void getInstanceWithNullLogger() {
         assertThatNullPointerException()
-                .isThrownBy(() -> DefaultDittoDiagnosticLoggingAdapter.of(null))
+                .isThrownBy(() -> DefaultDittoDiagnosticLoggingAdapter.of(null, LOGGER_NAME))
                 .withMessage("The loggingAdapter must not be null!")
                 .withNoCause();
+    }
+
+    @Test
+    public void getInstanceWithNullLoggerName() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, null))
+                .withMessage("The loggerName must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getInstanceWithBlankLoggerName() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, ""))
+                .withMessage("The argument 'loggerName' must not be empty!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getNameReturnsExpected() {
+        final DefaultDittoDiagnosticLoggingAdapter underTest =
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
+
+        assertThat(underTest.getName()).isEqualTo(LOGGER_NAME);
     }
 
     @Test
@@ -63,7 +90,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.withCorrelationId(correlationId);
         underTest.info(msg1);
         underTest.info(msg2);
@@ -80,7 +107,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.withMdcEntry(CONNECTION_ID_KEY, CONNECTION_ID_VALUE);
         underTest.debug(msg);
 
@@ -96,7 +123,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE);
         underTest.debug(msg);
 
@@ -115,7 +142,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isDebugEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.withMdcEntries(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE, k3, v3);
         underTest.debug(msg);
 
@@ -132,7 +159,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.withMdcEntry(MdcEntry.of(CORRELATION_ID_KEY, correlationId),
                 MdcEntry.of(CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
         underTest.warning(msg);
@@ -149,7 +176,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(false);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.setCorrelationId(getCorrelationId());
         underTest.info(msg);
 
@@ -167,7 +194,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, connectionId);
         underTest.debug(debugMsg);
@@ -188,7 +215,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String connectionId = "my-connection";
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, connectionId);
         underTest.debug("Foo");
@@ -207,7 +234,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String connectionId = "my-connection";
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.putMdcEntry(CORRELATION_ID_KEY, correlationId);
         underTest.putMdcEntry(CONNECTION_ID_KEY, connectionId);
         underTest.debug("Foo");
@@ -226,7 +253,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.setCorrelationId(correlationId);
         underTest.error(msg);
 
@@ -244,7 +271,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.setCorrelationId(correlationId);
         underTest.error(msg);
 
@@ -263,7 +290,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.setCorrelationId(correlationId);
         underTest.info(msg1);
         underTest.discardCorrelationId();
@@ -281,7 +308,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.error(template,
                 "one",
                 "two",
@@ -314,7 +341,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isWarningEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.warning(template,
                 oneSecond,
                 twoSeconds,
@@ -342,7 +369,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(true);
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.info(template,
                 1,
                 2,
@@ -366,7 +393,7 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         final String template = "one: {}, two: {}, three: {}, four: {}, five: {}";
 
         final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter);
+                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
         underTest.debug(template,
                 1,
                 2,
