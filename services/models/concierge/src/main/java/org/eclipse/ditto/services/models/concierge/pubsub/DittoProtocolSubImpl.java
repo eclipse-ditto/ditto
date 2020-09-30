@@ -95,6 +95,9 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     public CompletionStage<Void> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber) {
+        if (acknowledgementLabels.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
         return twinEventSub.declareAcknowledgementLabels(acknowledgementLabels, subscriber).thenApply(ack -> null);
         // no need to declare the labels for liveSignalSub because acks distributed data does not start there
     }

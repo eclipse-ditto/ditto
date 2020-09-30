@@ -567,20 +567,18 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      */
     private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
         final ActorRef self = getSelf();
-        if (!acknowledgementLabels.isEmpty()) {
-            logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
-            dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
-                    .thenAccept(_void -> logger.info("Acknowledgement label declaration successful."))
-                    .exceptionally(error -> {
-                        final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
-                        final DittoRuntimeException dittoRuntimeException =
-                                DittoRuntimeException.asDittoRuntimeException(error,
-                                        cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
+        logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
+        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
+                .thenAccept(_void -> logger.info("Acknowledgement label declaration successful."))
+                .exceptionally(error -> {
+                    final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
+                    final DittoRuntimeException dittoRuntimeException =
+                            DittoRuntimeException.asDittoRuntimeException(error,
+                                    cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
                         logger.info("Acknowledgement label declaration failed: <{}>", dittoRuntimeException);
-                        self.tell(dittoRuntimeException, ActorRef.noSender());
-                        return null;
-                    });
-        }
+                    self.tell(dittoRuntimeException, ActorRef.noSender());
+                    return null;
+                });
     }
 
     private static StreamingType determineStreamingType(final Signal<?> signal) {
