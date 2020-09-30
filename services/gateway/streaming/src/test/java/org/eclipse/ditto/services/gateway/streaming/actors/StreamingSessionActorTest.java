@@ -16,6 +16,7 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
@@ -52,6 +53,7 @@ import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingEx
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -96,6 +98,8 @@ public final class StreamingSessionActorTest {
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
         mockSub = mock(DittoProtocolSub.class);
+        when(mockSub.declareAcknowledgementLabels(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
         commandRouterProbe = TestProbe.apply("commandRouter", actorSystem);
         final Sink<SessionedJsonifiable, TestSubscriber.Probe<SessionedJsonifiable>> sink =
                 TestSink.probe(actorSystem);
