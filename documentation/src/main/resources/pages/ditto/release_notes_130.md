@@ -29,6 +29,23 @@ Setting the [OWASP recommended secure HTTP headers](https://owasp.org/www-projec
 (e.g. `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`) was removed from the Ditto codebase as such 
 headers are typically set in a reverse proxy (e.g. nginx) or in a cloud loadbalancer in front of Ditto. 
 
+#### [Ditto Java Client: Changed default initial reconnect behavior](https://github.com/eclipse/ditto-clients/pull/86)
+
+A newly created configuration was added whether a Ditto Java Client should retry connecting to a Ditto backend
+even when the initial connection attempt failed 
+(see the `initialConnectRetryEnabled(boolean)` option on the `WebSocketMessagingConfiguration` builder).
+ 
+
+{% include warning.html content="The default behavior was changed so that a Ditto Java Client **does not reconnect** 
+    when the initial connection to a Ditto WebSocket failed! **Have a look at [the migration notes](#migration-notes) 
+    in order to restore the old behavior when updating to Ditto Java Client 1.3.0**." %}
+
+
+Previously, up to Ditto Java Client 1.2.x, the client always retried connecting, even when the initial connection 
+attempt failed.<br/>
+We got feedback that this is not always desirable, e.g. when the credentials are wrong during development, the initial
+connection should fail with an exception instead, so this is the new default behavior.
+
 
 ### New features
 
@@ -68,7 +85,8 @@ WebSocket.
 
 Several bugs in Ditto 1.2.x were fixed for 1.3.0.<br/>
 This is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A1.3.0), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A1.3.0), including the fixed bugs.<br/>
+Here as well for the Ditto Java Client: [merged pull requests](https://github.com/eclipse/ditto-clients/pulls?q=is%3Apr+milestone%3A1.3.0)
 
 #### [Responses from HTTP /messages API were JSON escaped](https://github.com/eclipse/ditto/issues/805)
 
@@ -88,4 +106,22 @@ The Ditto Java client did not close/cleanup its threadpools when closing the cli
 
 ## Migration notes
 
-None.
+### Check `initialConnectRetryEnabled` option when upgrading to Ditto Java Client 1.3.0
+
+If you require that you Ditto Java Client reconnects even when the first connection attempt failed (this might e.g.
+be useful when you use the client in a backend application which might be restarted or scaled up/down at any given time),
+please configure the `initialConnectRetryEnabled(boolean)` to `true`:
+
+```java
+AuthenticationProvider authenticationProvider = ...;
+
+MessagingProvider messagingProvider =
+    MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
+        .endpoint("wss://ditto.eclipse.org")
+        .initialConnectRetryEnabled(true) // set this to true in order to enable retry on initial connection errors
+        .build(), authenticationProvider);
+
+DittoClient client = DittoClients.newInstance(messagingProvider);
+
+// ...
+```
