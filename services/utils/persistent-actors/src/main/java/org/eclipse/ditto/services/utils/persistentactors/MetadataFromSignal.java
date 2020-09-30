@@ -118,12 +118,16 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
 
         final Consumer<MetadataHeader> addMetadataToBuilder = metadataHeader -> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
-            final JsonPointer metadataJsonLeaf = metadataHeaderKey.getPath().cutLeaf();
+            if (entity.isObject() && entity.asObject().getField(metadataHeaderKey.getPath()).isPresent()) {
+                // ignore metadata that has the same path as a property.
+                return;
+            }
+            final JsonPointer attachedPropertyPath = metadataHeaderKey.getPath().cutLeaf();
             if (metadataHeaderKey.appliesToAllLeaves()) {
                 addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
-            } else if (entity.isObject() && entity.asObject().getField(metadataJsonLeaf).isPresent()) {
+            } else if (entity.isObject() && entity.asObject().getField(attachedPropertyPath).isPresent()) {
                 metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeader.getValue());
-            } else if (metadataJsonLeaf.isEmpty()) {
+            } else if (attachedPropertyPath.isEmpty()) {
                 metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeader.getValue());
             }
         };

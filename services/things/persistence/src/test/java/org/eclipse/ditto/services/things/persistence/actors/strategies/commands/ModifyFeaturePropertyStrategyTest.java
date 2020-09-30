@@ -12,16 +12,20 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyFeaturePropertyResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
@@ -110,6 +114,60 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
                 FeaturePropertyModified.class,
                 modifyFeaturePropertyResponse(context.getState(), command.getFeatureId(),
                         command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(), false));
+    }
+
+    @Test
+    public void setMetadata() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyFeatureProperty command =
+                ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
+                        DittoHeaders.newBuilder()
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("additive")), JsonValue.of("E129"))
+                                .build());
+
+        final FeaturePropertyModified event =
+                assertModificationResult(underTest, THING_V2, command,
+                        FeaturePropertyModified.class,
+                        modifyFeaturePropertyResponse(context.getState(), command.getFeatureId(),
+                                command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(),
+                                false));
+
+        assertThat((CharSequence) event.getResourcePath()).isEqualTo(command.getResourcePath());
+        assertThat(event.getMetadata()).contains(Metadata.newMetadata(JsonObject.of("{\"additive\":\"E129\"}")));
+    }
+
+    @Test
+    public void restrictMetadataUnderExistingFields() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final JsonObject propertyObject = JsonObject.newBuilder()
+                .set("a", 1)
+                .set(JsonPointer.of("b/c"), 3)
+                .build();
+        final ModifyFeatureProperty command =
+                ModifyFeatureProperty.of(context.getState(), featureId, propertyPointer, propertyObject,
+                        DittoHeaders.newBuilder()
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("m0")), JsonValue.of(0))
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("a/m1")), JsonValue.of(1))
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("b/m2")), JsonValue.of(2))
+                                // metadata b/c is ignored because it exists as value
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("b/c")), JsonValue.of(3))
+                                // metadata e/f is ignored because e does not exist as value
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("e/f")), JsonValue.of(4))
+                                .build());
+
+        final FeaturePropertyModified event =
+                assertModificationResult(underTest, THING_V2, command,
+                        FeaturePropertyModified.class,
+                        modifyFeaturePropertyResponse(context.getState(), command.getFeatureId(),
+                                command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(),
+                                false));
+
+        assertThat((CharSequence) event.getResourcePath()).isEqualTo(command.getResourcePath());
+        assertThat(event.getMetadata()).contains(Metadata.newMetadata(JsonObject.of("{" +
+                "  \"m0\":0," +
+                "  \"a\":{\"m1\":1}," +
+                "  \"b\":{\"m2\":2}" +
+                "}")));
     }
 
 }

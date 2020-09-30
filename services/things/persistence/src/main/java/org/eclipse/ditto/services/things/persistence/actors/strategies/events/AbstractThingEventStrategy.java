@@ -65,19 +65,17 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
 
         final JsonPointer eventMetadataResourcePath = event.getResourcePath();
         final Optional<Metadata> eventMetadataOpt = event.getMetadata();
+        final Optional<Metadata> thingMetadata = Optional.ofNullable(thing).flatMap(Thing::getMetadata);
         if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
             return eventMetadataOpt.get();
         } else if (eventMetadataOpt.isPresent()) {
             final Metadata eventMetadata = eventMetadataOpt.get();
-
-            final MetadataBuilder metadataBuilder = Optional.ofNullable(thing)
-                    .flatMap(Thing::getMetadata)
-                    .map(Metadata::toBuilder)
-                    .orElseGet(Metadata::newBuilder);
+            final MetadataBuilder metadataBuilder =
+                    thingMetadata.map(Metadata::toBuilder).orElseGet(Metadata::newBuilder);
             metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson());
             return metadataBuilder.build();
         } else {
-            return event.getMetadata().orElse(null);
+            return thingMetadata.orElse(null);
         }
     }
 
