@@ -20,9 +20,8 @@ import static akka.http.javadsl.server.Directives.mapRouteResult;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils;
-import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
 import akka.http.javadsl.server.Complete;
 import akka.http.javadsl.server.Route;
@@ -33,9 +32,10 @@ import akka.http.javadsl.server.Route;
 public final class RequestResultLoggingDirective {
 
     private static final String DITTO_TRACE_HEADERS = "ditto-trace-headers";
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestResultLoggingDirective.class);
-    private static final DittoLogger TRACE_LOGGER =
-            DittoLoggerFactory.getLogger(RequestResultLoggingDirective.class.getName() + "." + DITTO_TRACE_HEADERS);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(RequestResultLoggingDirective.class);
+    private static final ThreadSafeDittoLogger TRACE_LOGGER = DittoLoggerFactory.getThreadSafeLogger(
+            RequestResultLoggingDirective.class.getName() + "." + DITTO_TRACE_HEADERS);
 
     private RequestResultLoggingDirective() {
         throw new AssertionError();
@@ -59,28 +59,28 @@ public final class RequestResultLoggingDirective {
             final String requestMethod = request.method().name();
             final String requestUri = request.getUri().toRelative().toString();
             return mapRouteResult(routeResult -> {
-                try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(correlationId)) {
-                    if (routeResult instanceof Complete) {
-                        final Complete complete = (Complete) routeResult;
-                        final int statusCode = complete.getResponse().status().intValue();
-                        logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
-                        final String rawRequestUri = HttpUtils.getRawRequestUri(request);
-                        logger.debug("Raw request URI was: {}", rawRequestUri);
-                        request.getHeader(DITTO_TRACE_HEADERS)
-                                .filter(unused -> TRACE_LOGGER.isDebugEnabled())
-                                .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
-                                        .debug("Request headers: {}", request.getHeaders()));
-                    } else {
+                final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
+                if (routeResult instanceof Complete) {
+                    final Complete complete = (Complete) routeResult;
+                    final int statusCode = complete.getResponse().status().intValue();
+                    logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
+                    final String rawRequestUri = HttpUtils.getRawRequestUri(request);
+                    logger.debug("Raw request URI was: {}", rawRequestUri);
+                    request.getHeader(DITTO_TRACE_HEADERS)
+                            .filter(unused -> TRACE_LOGGER.isDebugEnabled())
+                            .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
+                                    .debug("Request headers: {}", request.getHeaders()));
+                } else {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
-                        logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
-                                        "akka default RejectionHandler.", requestMethod, requestUri,
-                                routeResult);
-                    }
-
-                    return routeResult;
+                    logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
+                                    "akka default RejectionHandler.", requestMethod, requestUri,
+                            routeResult);
                 }
+
+                return routeResult;
             }, innerWithAkkaLoggingRoute);
         });
     }
+
 }
