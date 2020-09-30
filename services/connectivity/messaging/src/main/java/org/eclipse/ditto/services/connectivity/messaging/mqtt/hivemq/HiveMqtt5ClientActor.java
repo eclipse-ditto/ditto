@@ -102,9 +102,9 @@ public final class HiveMqtt5ClientActor
     }
 
     @Override
-    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef mappingActor,
+    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef inboundMessageProcessor,
             final MqttSpecificConfig specificConfig) {
         return startChildActorConflictFree(HiveMqtt5ConsumerActor.NAME,
-                HiveMqtt5ConsumerActor.props(connectionId(), mappingActor, source, dryRun, specificConfig));
+                HiveMqtt5ConsumerActor.props(connectionId(), inboundMessageProcessor, source, dryRun, specificConfig));
     }
 }

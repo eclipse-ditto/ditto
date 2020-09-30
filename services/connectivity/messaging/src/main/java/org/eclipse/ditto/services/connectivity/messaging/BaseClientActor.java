@@ -139,7 +139,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
-    private final ActorRef messageMappingProcessorActor;
+    private final ActorRef inboundMappingProcessorActor;
+    private final ActorRef outboundMappingProcessorActor;
     private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
@@ -184,7 +185,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
 
-        messageMappingProcessorActor = startMessageMappingProcessorActor(connection);
+        outboundMappingProcessorActor = startOutboundMessageMappingProcessorActor(connection);
+        inboundMappingProcessorActor =
+                startInboundMessageMappingProcessorActor(connection, outboundMappingProcessorActor);
         subscriptionManager = startSubscriptionManager(this.proxyActor);
         supervisorStrategy = createSupervisorStrategy(getSelf());
 
@@ -350,10 +353,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * @return the MessageMappingProcessorActor.
+     * @return the {@link InboundMappingProcessorActor}.
      */
-    protected final ActorRef getMessageMappingProcessorActor() {
-        return messageMappingProcessorActor;
+    protected final ActorRef getInboundMappingProcessorActor() {
+        return inboundMappingProcessorActor;
     }
 
     /**
@@ -953,7 +956,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
-            if (!messageMappingProcessorActor.equals(child)) {
+            final String childName = child.path().name();
+            if (!(InboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
+                    OutboundMappingProcessorActor.ACTOR_NAME.equals(childName))) {
+
                 log.debug("Forwarding RetrieveAddressStatus to child: {}", child.path());
                 child.tell(RetrieveAddressStatus.getInstance(), getSender());
             }
@@ -1120,7 +1126,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (stateName() == CONNECTED) {
             enhanceLogUtil(signal.getSource());
-            messageMappingProcessorActor.tell(signal, getSender());
+            outboundMappingProcessorActor.tell(signal, getSender());
         } else {
             log.debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), signal);
         }
@@ -1159,23 +1165,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
+     * Starts the {@link OutboundMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
      *
-     * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
+     * @return {@link OutboundMappingProcessorActor} or exception,
      * which will also cause a side-effect that stores the mapping actor in the local variable {@code
      * messageMappingProcessorActor}.
      */
-    private ActorRef startMessageMappingProcessorActor(final Connection connection) {
+    private ActorRef startOutboundMessageMappingProcessorActor(final Connection connection) {
 
-        final InboundMappingProcessor inboundMappingProcessor;
         final OutboundMappingProcessor outboundMappingProcessor;
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
-                            getContext().getSystem(), connectivityConfig, protocolAdapter, log);
             outboundMappingProcessor =
                     OutboundMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
                             getContext().getSystem(), connectivityConfig, protocolAdapter, log);
@@ -1188,13 +1190,50 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.", connection.getProcessorPoolSize());
+        log.debug("Starting mapping processor actors with pool size of <{}>.", connection.getProcessorPoolSize());
 
-        final Props props = MessageMappingProcessorActor.props(proxyActor, getSelf(), inboundMappingProcessor,
-                outboundMappingProcessor, protocolAdapter.headerTranslator(),
-                connection, connectionActor, connection.getProcessorPoolSize());
+        final Props outboundMappingProcessorActorProps =
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection,
+                        connection.getProcessorPoolSize());
+        return getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
+    }
 
-        return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
+    /**
+     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor
+     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     *
+     * @return {@link InboundMappingProcessorActor} or exception,
+     * which will also cause a side-effect that stores the mapping actor in the local variable {@code
+     * messageMappingProcessorActor}.
+     */
+    private ActorRef startInboundMessageMappingProcessorActor(final Connection connection,
+            final ActorRef outboundMappingProcessorActor) {
+
+        final InboundMappingProcessor inboundMappingProcessor;
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        try {
+            // this one throws DittoRuntimeExceptions when the mapper could not be configured
+            inboundMappingProcessor =
+                    InboundMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
+                            getContext().getSystem(), connectivityConfig, protocolAdapter, log);
+        } catch (final DittoRuntimeException dre) {
+            connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
+            log.info(
+                    "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+                    dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
+            getSender().tell(dre, getSelf());
+            throw dre;
+        }
+
+        log.debug("Starting inbound mapping processor actors with pool size of <{}>.",
+                connection.getProcessorPoolSize());
+
+        final Props inboundMappingProcessorActorProps =
+                InboundMappingProcessorActor.props(proxyActor, inboundMappingProcessor,
+                        protocolAdapter.headerTranslator(),
+                        connection, connectionActor, connection.getProcessorPoolSize(), outboundMappingProcessorActor);
+
+        return getContext().actorOf(inboundMappingProcessorActorProps, InboundMappingProcessorActor.ACTOR_NAME);
     }
 
     /**
@@ -1218,7 +1257,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
         // for the message path of the search protocol.
         if (stateName() == CONNECTED) {
-            subscriptionManager.tell(command, messageMappingProcessorActor);
+            subscriptionManager.tell(command, outboundMappingProcessorActor);
         } else {
             log.debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);
         }

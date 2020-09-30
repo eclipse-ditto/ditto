@@ -58,7 +58,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.InboundMappingProcessor;
-import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
+import org.eclipse.ditto.services.connectivity.messaging.InboundMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -291,11 +291,11 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                 protocolAdapter, logger);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, inboundMappingProcessor, outboundMappingProcessor,
-                        protocolAdapter.headerTranslator(), CONNECTION, connectionActorProbe.ref(), 17);
+                InboundMappingProcessorActor.props(testRef, inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, connectionActorProbe.ref(), 17, testRef);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
-                MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+                InboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 
     @Test

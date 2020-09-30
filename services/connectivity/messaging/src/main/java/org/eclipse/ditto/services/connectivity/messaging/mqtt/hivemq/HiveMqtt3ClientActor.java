@@ -100,9 +100,9 @@ public final class HiveMqtt3ClientActor
     }
 
     @Override
-    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef mappingActor,
+    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef inboundMessageProcessor,
             final MqttSpecificConfig specificConfig) {
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
-                HiveMqtt3ConsumerActor.props(connectionId(), mappingActor, source, dryRun, specificConfig));
+                HiveMqtt3ConsumerActor.props(connectionId(), inboundMessageProcessor, source, dryRun, specificConfig));
     }
 }

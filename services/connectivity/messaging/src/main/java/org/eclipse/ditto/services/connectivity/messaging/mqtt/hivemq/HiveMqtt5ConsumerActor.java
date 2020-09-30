@@ -51,9 +51,9 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     @Nullable private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
-    private HiveMqtt5ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
+    private HiveMqtt5ConsumerActor(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery);
+        super(connectionId, inboundMessageProcessor, source, dryRun, reconnectForRedelivery);
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         if (enforcement != null &&
                 enforcement.getInput().contains(ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)) {
@@ -69,16 +69,16 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId ID of the connection this consumer is belongs to
-     * @param messageMappingProcessor the ActorRef to the {@code MessageMappingProcessor}
+     * @param inboundMessageProcessor the ActorRef to the {@code MessageMappingProcessor}
      * @param source the source from which this consumer is built
      * @param dryRun whether this is a dry-run/connection test or not
      * @param specificConfig the MQTT specific config.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
+    static Props props(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun,
             final MqttSpecificConfig specificConfig) {
-        return Props.create(HiveMqtt5ConsumerActor.class, connectionId, messageMappingProcessor, source, dryRun,
+        return Props.create(HiveMqtt5ConsumerActor.class, connectionId, inboundMessageProcessor, source, dryRun,
                 specificConfig.reconnectForRedelivery());
     }
 

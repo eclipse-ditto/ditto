@@ -62,16 +62,16 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
 
-    private final ActorRef messageMappingProcessor;
+    private final ActorRef inboundMappingProcessor;
     private final AcknowledgementConfig acknowledgementConfig;
 
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final Source source) {
+            final ActorRef inboundMappingProcessor, final Source source) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
-        this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
+        this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "messageMappingProcessor");
         this.source = checkNotNull(source, "source");
         resetResourceStatus();
 
@@ -150,7 +150,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final void forwardToMappingActor(final DittoRuntimeException message) {
         final DittoRuntimeException messageWithReplyInformation =
                 message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders()));
-        messageMappingProcessor.tell(messageWithReplyInformation, ActorRef.noSender());
+        inboundMappingProcessor.tell(messageWithReplyInformation, ActorRef.noSender());
     }
 
     protected void resetResourceStatus() {
@@ -194,7 +194,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         // 2. forward message to mapping processor actor with response collector actor as sender
         // message mapping processor actor will set the number of expected acks (can be 0)
         // and start the same amount of ack aggregator actors
-        messageMappingProcessor.tell(message, responseCollector);
+        inboundMappingProcessor.tell(message, responseCollector);
         // 3. ask response collector actor to get the collected responses in a future
 
         return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {

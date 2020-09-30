@@ -252,7 +252,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
-        return MessageMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connectionId);
+        return InboundMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connectionId);
     }
 
     private void logIfDebug(final OutboundSignal.MultiMapped multiMapped, final Consumer<LoggingAdapter> whatToLog) {

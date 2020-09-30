@@ -95,10 +95,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
-            final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
+            final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
         super(connectionId,
                 checkNotNull(consumerData, "consumerData").getAddress(),
-                messageMappingProcessor,
+                inboundMappingProcessor,
                 consumerData.getSource());
         final ConnectionConfig connectionConfig =
                 DittoConnectivityConfig.of(
@@ -123,14 +123,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      *
      * @param connectionId the connection id
      * @param consumerData the consumer data.
-     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param inboundMappingProcessor the message mapping processor where received messages are forwarded to
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
      * @return the Akka configuration Props object.
      */
     static Props props(final ConnectionId connectionId, final ConsumerData consumerData,
-            final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
+            final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
 
-        return Props.create(AmqpConsumerActor.class, connectionId, consumerData, messageMappingProcessor, jmsActor);
+        return Props.create(AmqpConsumerActor.class, connectionId, consumerData, inboundMappingProcessor, jmsActor);
     }
 
     @Override

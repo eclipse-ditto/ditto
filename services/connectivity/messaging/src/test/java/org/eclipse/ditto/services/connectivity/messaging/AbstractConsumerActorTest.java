@@ -374,11 +374,14 @@ public abstract class AbstractConsumerActorTest<M> {
         final OutboundMappingProcessor outboundMappingProcessor =
                 OutboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                         connectivityConfig, protocolAdapter, logger);
-        final Props messageMappingProcessorProps = MessageMappingProcessorActor.props(proxyActor, clientActor,
-                inboundMappingProcessor, outboundMappingProcessor, protocolAdapter.headerTranslator(), CONNECTION,
-                connectionActorProbe.ref(), 43);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
+        final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
+                OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+        final Props messageMappingProcessorProps = InboundMappingProcessorActor.props(proxyActor,
+                inboundMappingProcessor, protocolAdapter.headerTranslator(), CONNECTION,
+                connectionActorProbe.ref(), 43, outboundProcessorActor);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
-                MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+                InboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 }

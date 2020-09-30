@@ -343,7 +343,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private void startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
-            consumers.forEach(consumer -> startCommandConsumer(consumer, getMessageMappingProcessorActor(), jmsActor));
+            consumers.forEach(consumer -> startCommandConsumer(consumer, getInboundMappingProcessorActor(), jmsActor));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             log.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
         } else {
@@ -351,10 +351,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor,
+    private void startCommandConsumer(final ConsumerData consumer, final ActorRef inboundMappingProcessor,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final Props props = AmqpConsumerActor.props(connectionId(), consumer, messageMappingProcessor, jmsActor);
+        final Props props = AmqpConsumerActor.props(connectionId(), consumer, inboundMappingProcessor, jmsActor);
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);

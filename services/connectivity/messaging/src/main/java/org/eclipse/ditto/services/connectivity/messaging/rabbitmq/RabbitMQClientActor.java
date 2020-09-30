@@ -343,7 +343,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final String addressWithIndex = sourceAddress + "-" + i;
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source,
+                                RabbitMQConsumerActor.props(sourceAddress, getInboundMappingProcessorActor(), source,
                                         channel, connectionId()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {

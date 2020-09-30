@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.in;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
 import java.time.Duration;
@@ -184,7 +183,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
             @Nullable final String mapping, final Consumer<ThingErrorResponse> verifyErrorResponse) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
             final PayloadMapping mappings = ConnectivityModelFactory.newPayloadMapping(mapping);
             final ExternalMessage externalMessage =
@@ -199,7 +200,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                             .build();
 
             TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             if (expectSuccess) {
                 final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
@@ -226,7 +227,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         ModifyAttributeResponse.modified(KNOWN_THING_ID, modifyAttribute.getAttributePointer(),
                                 modifyAttribute.getDittoHeaders());
 
-                messageMappingProcessorActor.tell(commandResponse, getRef());
+                outboundMappingProcessorActor.tell(commandResponse, getRef());
                 final OutboundSignal.Mapped responseMessage =
                         expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
 
@@ -249,7 +250,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
             final Consumer<T> verifyReceivedMessage) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
             final ModifyAttribute modifyCommand = ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"),
@@ -264,7 +267,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -277,7 +280,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
             final Consumer<T> verifyReceivedMessage) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final Map<String, String> headers = new HashMap<>();
             headers.put("correlation-id", correlationId);
             headers.put("content-type", "application/json");
@@ -294,14 +299,14 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
         }};
     }
 
-    ActorRef createMessageMappingProcessorActor(final TestKit kit) {
+    ActorRef createInboundMappingProcessorActor(final TestKit kit, final ActorRef outboundMappingProcessorActor) {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -319,14 +324,33 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final InboundMappingProcessor inboundMappingProcessor =
                 InboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                         TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
+
+        final Props inboundMappingProcessorProps = InboundMappingProcessorActor.props(kit.getRef(),
+                inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                CONNECTION, connectionActorProbe.ref(), 99, outboundMappingProcessorActor);
+        return actorSystem.actorOf(inboundMappingProcessorProps);
+    }
+
+    ActorRef createOutboundMappingProcessorActor(final TestKit kit) {
+        final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
+        mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
+        mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
+        mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
+        final PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final OutboundMappingProcessor outboundMappingProcessor =
                 OutboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
                         TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
 
-        final Props props =
-                MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), inboundMappingProcessor,
-                        outboundMappingProcessor, protocolAdapter.headerTranslator(),
-                        CONNECTION, connectionActorProbe.ref(), 99);
+        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);
         return actorSystem.actorOf(props);
     }
 

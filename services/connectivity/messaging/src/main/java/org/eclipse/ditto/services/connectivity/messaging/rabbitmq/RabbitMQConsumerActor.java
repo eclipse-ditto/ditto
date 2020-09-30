@@ -68,8 +68,8 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final Source source, final Channel channel) {
-        super(connectionId, sourceAddress, messageMappingProcessor, source);
+            final ActorRef inboundMessageProcessor, final Source source, final Channel channel) {
+        super(connectionId, sourceAddress, inboundMessageProcessor, source);
         headerEnforcementFilterFactory =
                 source.getEnforcement()
                         .map(value ->
@@ -89,16 +89,16 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
      * @param sourceAddress the source address.
-     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param inboundMessageProcessor the message mapping processor where received messages are forwarded to
      * @param source the configured connection source for the consumer actor.
      * @param connectionId ID of the connection
      * @return the Akka configuration Props object.
      */
-    static Props props(final String sourceAddress, final ActorRef messageMappingProcessor, final Source source,
+    static Props props(final String sourceAddress, final ActorRef inboundMessageProcessor, final Source source,
             Channel channel,
             final ConnectionId connectionId) {
 
-        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, messageMappingProcessor, source,
+        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, inboundMessageProcessor, source,
                 channel);
     }
 

@@ -12,12 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor.OutboundSignalWithId;
-
 import java.util.Collection;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcessorActor.OutboundSignalWithId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 
