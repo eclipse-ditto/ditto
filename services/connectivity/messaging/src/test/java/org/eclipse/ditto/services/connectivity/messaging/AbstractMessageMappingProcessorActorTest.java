@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.in;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
 import java.time.Duration;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
@@ -300,13 +302,6 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     ActorRef createMessageMappingProcessorActor(final TestKit kit) {
-        final Props props =
-                MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION, connectionActorProbe.ref(), 99);
-        return actorSystem.actorOf(props);
-    }
-
-    MessageMappingProcessor getMessageMappingProcessor() {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -320,9 +315,19 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
-        return MessageMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
-                TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, logger);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final InboundMappingProcessor inboundMappingProcessor =
+                InboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
+                        TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
+        final OutboundMappingProcessor outboundMappingProcessor =
+                OutboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
+                        TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
+
+        final Props props =
+                MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), inboundMappingProcessor,
+                        outboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, connectionActorProbe.ref(), 99);
+        return actorSystem.actorOf(props);
     }
 
     void setUpProxyActor(final ActorRef recipient) {

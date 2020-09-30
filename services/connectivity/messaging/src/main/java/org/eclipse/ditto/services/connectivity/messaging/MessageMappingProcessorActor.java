@@ -70,6 +70,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
@@ -144,7 +145,9 @@ public final class MessageMappingProcessorActor
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
     private final ActorRef clientActor;
-    private final MessageMappingProcessor messageMappingProcessor;
+    private final InboundMappingProcessor inboundMappingProcessor;
+    private final OutboundMappingProcessor outboundMappingProcessor;
+    private final HeaderTranslator headerTranslator;
     private final ConnectionId connectionId;
     private final ActorRef proxyActor;
     private final ActorRef connectionActor;
@@ -162,7 +165,9 @@ public final class MessageMappingProcessorActor
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef proxyActor,
             final ActorRef clientActor,
-            final MessageMappingProcessor messageMappingProcessor,
+            final InboundMappingProcessor inboundMappingProcessor,
+            final OutboundMappingProcessor outboundMappingProcessor,
+            final HeaderTranslator headerTranslator,
             final Connection connection,
             final ActorRef connectionActor,
             final int processorPoolSize) {
@@ -171,7 +176,9 @@ public final class MessageMappingProcessorActor
 
         this.proxyActor = proxyActor;
         this.clientActor = clientActor;
-        this.messageMappingProcessor = messageMappingProcessor;
+        this.inboundMappingProcessor = inboundMappingProcessor;
+        this.outboundMappingProcessor = outboundMappingProcessor;
+        this.headerTranslator = headerTranslator;
         this.connectionId = connection.getId();
         this.connectionActor = connectionActor;
 
@@ -194,7 +201,7 @@ public final class MessageMappingProcessorActor
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 connectivityConfig.getConnectionConfig().getAcknowledgementConfig(),
-                messageMappingProcessor.getHeaderTranslator(),
+                headerTranslator,
                 ThingModifyCommandAckRequestSetter.getInstance(),
                 ThingLiveCommandAckRequestSetter.getInstance(),
                 MessageCommandAckRequestSetter.getInstance());
@@ -216,7 +223,9 @@ public final class MessageMappingProcessorActor
      *
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param clientActor the client actor that created this mapping actor
-     * @param processor the MessageMappingProcessor to use.
+     * @param inboundMappingProcessor the MessageMappingProcessor to use for inbound messages.
+     * @param outboundMappingProcessor the MessageMappingProcessor to use for outbound messages.
+     * @param headerTranslator the headerTranslator to use.
      * @param connection the connection
      * @param connectionActor the connection actor acting as the grandparent of this actor.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
@@ -224,12 +233,15 @@ public final class MessageMappingProcessorActor
      */
     public static Props props(final ActorRef proxyActor,
             final ActorRef clientActor,
-            final MessageMappingProcessor processor,
+            final InboundMappingProcessor inboundMappingProcessor,
+            final OutboundMappingProcessor outboundMappingProcessor,
+            final HeaderTranslator headerTranslator,
             final Connection connection,
             final ActorRef connectionActor,
             final int processorPoolSize) {
 
-        return Props.create(MessageMappingProcessorActor.class, proxyActor, clientActor, processor,
+        return Props.create(MessageMappingProcessorActor.class, proxyActor, clientActor, inboundMappingProcessor,
+                outboundMappingProcessor, headerTranslator,
                 connection, connectionActor, processorPoolSize)
                 .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
@@ -410,7 +422,7 @@ public final class MessageMappingProcessorActor
                 .filter(label -> !declaredAckLabels.contains(label))
                 .map(label -> AcknowledgementLabelNotDeclaredException.of(label, acks.getDittoHeaders()))
                 .findAny();
-        if(ackLabelNotDeclaredException.isPresent()) {
+        if (ackLabelNotDeclaredException.isPresent()) {
             getSelf().tell(ackLabelNotDeclaredException.get(), ActorRef.noSender());
             return Source.empty();
         }
@@ -667,7 +679,7 @@ public final class MessageMappingProcessorActor
     }
 
     private Source<Signal<?>, ?> mapExternalMessageToSignal(final ExternalMessageWithSender withSender) {
-        return messageMappingProcessor.process(withSender.externalMessage,
+        return inboundMappingProcessor.process(withSender.externalMessage,
                 handleMappingResult(withSender, getAuthorizationContextOrThrow(withSender.externalMessage)));
     }
 
@@ -810,7 +822,7 @@ public final class MessageMappingProcessorActor
                 .infoProvider(InfoProviderFactory.forSignal(outbound.getSource()))
                 .build();
 
-        return messageMappingProcessor.process(outbound, outboundMappingResultHandler);
+        return outboundMappingProcessor.process(outbound, outboundMappingResultHandler);
     }
 
     private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound,
@@ -883,8 +895,7 @@ public final class MessageMappingProcessorActor
                                     .map(resolvedValue -> new AbstractMap.SimpleEntry<>(e.getKey(), resolvedValue))
                             )
                             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                    dittoHeadersBuilder.putHeaders(messageMappingProcessor.getHeaderTranslator()
-                            .fromExternalHeaders(mappedExternalHeaders));
+                    dittoHeadersBuilder.putHeaders(headerTranslator.fromExternalHeaders(mappedExternalHeaders));
 
                     final String correlationIdKey = DittoHeaderDefinition.CORRELATION_ID.getKey();
                     final boolean hasCorrelationId = mapping.getMapping().containsKey(correlationIdKey) ||

@@ -53,6 +53,7 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -1150,8 +1151,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor() {
         final ActorSystem actorSystem = getContext().getSystem();
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        MessageMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(), actorSystem,
-                connectivityConfig, protocolAdapterProvider, log);
+        InboundMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(), actorSystem,
+                connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), log);
+        OutboundMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(), actorSystem,
+                connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), log);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
@@ -1165,11 +1168,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     private ActorRef startMessageMappingProcessorActor(final Connection connection) {
 
-        final MessageMappingProcessor processor;
+        final InboundMappingProcessor inboundMappingProcessor;
+        final OutboundMappingProcessor outboundMappingProcessor;
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            processor = MessageMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
-                    getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
+            inboundMappingProcessor =
+                    InboundMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
+                            getContext().getSystem(), connectivityConfig, protocolAdapter, log);
+            outboundMappingProcessor =
+                    OutboundMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
+                            getContext().getSystem(), connectivityConfig, protocolAdapter, log);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
             log.info(
@@ -1179,13 +1188,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
-                processor.getRegistry());
+        log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.", connection.getProcessorPoolSize());
 
-        log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
-                connection.getProcessorPoolSize());
-
-        final Props props = MessageMappingProcessorActor.props(proxyActor, getSelf(), processor,
+        final Props props = MessageMappingProcessorActor.props(proxyActor, getSelf(), inboundMappingProcessor,
+                outboundMappingProcessor, protocolAdapter.headerTranslator(),
                 connection, connectionActor, connection.getProcessorPoolSize());
 
         return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
