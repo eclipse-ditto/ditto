@@ -17,10 +17,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -61,11 +63,21 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
             if (logger.isDebugEnabled()) {
                 logger.debug("Applying command <{}>", command);
             }
-            return doApply(context, entity, nextRevision, command);
+            @Nullable final Metadata metadata = calculateRelativeMetadata(entity, command).orElse(null);
+            return doApply(context, entity, nextRevision, command, metadata);
         } else {
             return unhandled(context, entity, nextRevision, command);
         }
     }
+
+    /**
+     * Calculates the metadata based on the passed {@code command}.
+     *
+     * @param entity entity of the persistent actor.
+     * @param command the incoming command.
+     * @return the optionally calculated metadata for the passed command.
+     */
+    protected abstract Optional<Metadata> calculateRelativeMetadata(@Nullable S entity, C command);
 
     /**
      * Execute a command strategy after it is determined applicable.
@@ -74,9 +86,11 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
      * @param entity entity of the persistent actor.
      * @param nextRevision the next revision to allocate to events.
      * @param command the incoming command.
+     * @param metadata the metadata extracted from the incoming command.
      * @return result of the command strategy.
      */
-    protected abstract R doApply(Context<K> context, @Nullable S entity, long nextRevision, C command);
+    protected abstract R doApply(Context<K> context, @Nullable S entity, long nextRevision, C command,
+            @Nullable Metadata metadata);
 
     /**
      * Throw an {@code IllegalArgumentException} for unhandled command.

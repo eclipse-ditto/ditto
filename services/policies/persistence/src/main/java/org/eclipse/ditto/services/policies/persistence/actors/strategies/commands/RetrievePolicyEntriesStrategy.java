@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
@@ -37,8 +38,12 @@ final class RetrievePolicyEntriesStrategy extends
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final RetrievePolicyEntries command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final RetrievePolicyEntries command,
+            @Nullable final Metadata metadata) {
+
         final PolicyId policyId = context.getState();
         if (policy != null) {
             final WithDittoHeaders response = appendETagHeaderIfProvided(command,

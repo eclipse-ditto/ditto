@@ -69,7 +69,6 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
                 </configuration>

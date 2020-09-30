@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
@@ -33,7 +34,11 @@ final class StagedCommandStrategy extends AbstractConnectivityCommandStrategy<St
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection entity, final long nextRevision, final StagedCommand command) {
+            @Nullable final Connection entity,
+            final long nextRevision,
+            final StagedCommand command,
+            @Nullable final Metadata metadata) {
+
         return ResultFactory.newMutationResult(command, command.getEvent(), command.getResponse());
     }
 }

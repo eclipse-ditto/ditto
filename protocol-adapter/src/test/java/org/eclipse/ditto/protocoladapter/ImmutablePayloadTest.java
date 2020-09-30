@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -92,7 +93,7 @@ public final class ImmutablePayloadTest {
         assertInstancesOf(ImmutablePayload.class,
                 areImmutable(),
                 provided(MessagePath.class, JsonObject.class, JsonValue.class,
-                        JsonFieldSelector.class).areAlsoImmutable());
+                        JsonFieldSelector.class, Metadata.class).areAlsoImmutable());
     }
 
     @Test

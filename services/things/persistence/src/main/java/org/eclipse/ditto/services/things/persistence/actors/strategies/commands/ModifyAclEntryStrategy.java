@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -49,8 +50,11 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyAclEntry command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyAclEntry command,
+            @Nullable final Metadata metadata) {
 
         final AccessControlList acl =
                 getEntityOrThrow(thing).getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
@@ -63,7 +67,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
                             command.getDittoHeaders()), command);
         }
 
-        return getModifyOrCreateResult(acl, context, nextRevision, command, thing);
+        return getModifyOrCreateResult(acl, context, nextRevision, command, thing, metadata);
     }
 
     private static Validator getAclValidator(final AccessControlList acl) {
@@ -71,38 +75,39 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
     }
 
     private Result<ThingEvent> getModifyOrCreateResult(final AccessControlList acl, final Context<ThingId> context,
-            final long nextRevision, final ModifyAclEntry command, @Nullable Thing thing) {
+            final long nextRevision, final ModifyAclEntry command, @Nullable final Thing thing,
+            @Nullable final Metadata metadata) {
 
         final AclEntry aclEntry = command.getAclEntry();
         if (acl.contains(aclEntry.getAuthorizationSubject())) {
-            return getModifyResult(context, nextRevision, command, thing);
+            return getModifyResult(context, nextRevision, command, thing, metadata);
         }
-        return getCreateResult(context, nextRevision, command, thing);
+        return getCreateResult(context, nextRevision, command, thing, metadata);
     }
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyAclEntry command, @Nullable Thing thing) {
+            final ModifyAclEntry command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event =
-                AclEntryModified.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event =
+                AclEntryModified.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyAclEntryResponse.modified(thingId, aclEntry, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyAclEntry command, @Nullable Thing thing) {
+            final ModifyAclEntry command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event =
-                AclEntryCreated.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event =
+                AclEntryCreated.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyAclEntryResponse.created(thingId, aclEntry, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

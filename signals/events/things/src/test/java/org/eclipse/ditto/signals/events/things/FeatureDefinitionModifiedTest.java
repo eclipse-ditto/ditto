@@ -42,6 +42,7 @@ public final class FeatureDefinitionModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDefinitionModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDefinitionModified.JSON_DEFINITION,
@@ -107,7 +108,8 @@ public final class FeatureDefinitionModifiedTest {
         final FeatureDefinitionModified underTest =
                 FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON);
@@ -144,7 +146,8 @@ public final class FeatureDefinitionModifiedTest {
                 FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION,
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
 
         assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

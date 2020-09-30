@@ -19,6 +19,7 @@ import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.Signal;
@@ -78,6 +79,14 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
     Optional<Instant> getTimestamp();
 
     /**
+     * Returns the event's metadata.
+     *
+     * @return the metadata.
+     * @since 1.3.0
+     */
+    Optional<Metadata> getMetadata();
+
+    /**
      * Returns all non hidden marked fields of this event.
      *
      * @return a JSON object representation of this event including only non hidden marked fields.
@@ -117,6 +126,15 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
          */
         public static final JsonFieldDefinition<String> TIMESTAMP =
                 JsonFactory.newStringFieldDefinition("_timestamp", FieldType.SPECIAL, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the event's metadata.
+         *
+         * @since 1.3.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+                JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {
