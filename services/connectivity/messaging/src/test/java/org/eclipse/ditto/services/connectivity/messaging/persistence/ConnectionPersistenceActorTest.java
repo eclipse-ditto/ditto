@@ -1232,6 +1232,58 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
+    public void testTargetIssuedAcknowledgement() {
+        new TestKit(actorSystem) {{
+            // GIVEN: declaration of target-issued ack label succeeds
+            doAnswer(invocation -> CompletableFuture.completedStage(null))
+                    .when(dittoProtocolSubMock)
+                    .declareAcknowledgementLabels(any(), any());
+
+            final TestKit probe = new TestKit(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
+                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
+                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnectionWithTargetIssuedAck(), getRef());
+            expectMsgClass(CreateConnectionResponse.class);
+
+            // Wait until connection is established
+            expectAnySubscribe();
+            expectDeclareAcknowledgementLabels();
+
+            final AcknowledgementLabel acknowledgementLabel = getTestAck();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .timeout("2s")
+                    .randomCorrelationId()
+                    .build();
+
+            // WHEN: connection persistence actor receives event with matching acknowledgement request
+            final AttributeModified attributeModified = AttributeModified.of(
+                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, dittoHeaders);
+            underTest.tell(attributeModified, getRef());
+
+            // THEN: then event is forwarded
+            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
+            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
+
+            // WHEN: an acknowledgement of matching correlation ID is sent to the connection actor, which should not
+            // happen as target-issued acks bypass the connection persistence actor
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                            dittoHeaders);
+            underTest.tell(acknowledgement, getRef());
+
+            // THEN: an error is received
+            expectMsgClass(AcknowledgementLabelNotDeclaredException.class);
+        }};
+    }
+
+    @Test
     public void failToDeclareAckLabels() {
         new TestKit(actorSystem) {{
             // GIVEN: ack declaration always fails
@@ -1448,6 +1500,20 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .sources(createConnection.getConnection().getSources().stream()
                                 .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                         .declaredAcknowledgementLabels(Set.of(getTestAck()))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build(),
+                createConnection.getDittoHeaders()
+        );
+    }
+
+    private CreateConnection createConnectionWithTargetIssuedAck() {
+        return CreateConnection.of(
+                createConnection.getConnection()
+                        .toBuilder()
+                        .targets(createConnection.getConnection().getTargets().stream()
+                                .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
+                                        .issuedAcknowledgementLabel(getTestAck())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build(),

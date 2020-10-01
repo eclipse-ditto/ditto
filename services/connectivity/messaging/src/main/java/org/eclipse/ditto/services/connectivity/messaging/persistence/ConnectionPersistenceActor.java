@@ -28,14 +28,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -49,11 +50,13 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.placeholders.ConnectionIdPlaceholder;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -514,7 +517,7 @@ public final class ConnectionPersistenceActor
     }
 
     private boolean isNotSourceDeclaredAck(final Acknowledgement ack) {
-        return streamSourceDeclaredAcks().noneMatch(ack.getLabel()::equals);
+        return !getSourceDeclaredAcks().contains(ack.getLabel());
     }
 
     private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
@@ -562,15 +565,8 @@ public final class ConnectionPersistenceActor
 
         final Signal<?> signalToForward;
         if (signal instanceof WithThingId) {
-            // issued acknowledgements from targets go to the sender directly with internal headers intact.
-            final Set<AcknowledgementLabel> sourceDeclaredAcks = streamSourceDeclaredAcks().collect(Collectors.toSet());
             final WithThingId thingEvent = (WithThingId) signal;
-            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
-                    thingEvent.getThingEntityId(),
-                    signal,
-                    config.getAcknowledgementConfig(),
-                    sourceDeclaredAcks::contains
-            );
+            signalToForward = adjustSignalAndStartAckForwarder(signal, thingEvent.getThingEntityId());
         } else {
             signalToForward = signal;
         }
@@ -584,20 +580,62 @@ public final class ConnectionPersistenceActor
         clientActorRouter.tell(msg, getSender());
     }
 
+    private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final ThingId thingId) {
+        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
+        if (ackRequests.isEmpty()) {
+            return signal;
+        }
+        final Predicate<AcknowledgementLabel> isSourceDeclaredAck = getSourceDeclaredAcks()::contains;
+        final Set<AcknowledgementLabel> targetIssuedAcks = getTargetIssuedAcks();
+        final boolean hasSourceDeclaredAcks = ackRequests.stream()
+                .map(AcknowledgementRequest::getLabel)
+                .anyMatch(isSourceDeclaredAck);
+        if (hasSourceDeclaredAcks) {
+            // start ackregator for source declared acks
+            return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
+                    thingId,
+                    signal,
+                    config.getAcknowledgementConfig(),
+                    isSourceDeclaredAck.or(targetIssuedAcks::contains)
+            );
+        } else {
+            // no need to start ackregator for target-issued acks; they go to the sender directly
+            return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
+                    .acknowledgementRequests(ackRequests.stream()
+                            .filter(request -> targetIssuedAcks.contains(request.getLabel()))
+                            .collect(Collectors.toList()))
+                    .build());
+        }
+    }
+
     /**
-     * Stream source-declared acks if declaration was successful; return an empty stream otherwise.
+     * Return the set of source-declared acks if declaration was successful; return an empty set otherwise.
      *
      * @return successfully declared acknowledgement labels of the sources.
      */
-    private Stream<AcknowledgementLabel> streamSourceDeclaredAcks() {
+    private Set<AcknowledgementLabel> getSourceDeclaredAcks() {
 
         if (entity != null && ackLabelsDeclared) {
             return entity.getSources()
                     .stream()
-                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream());
-
+                    .map(Source::getDeclaredAcknowledgementLabels)
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
         } else {
-            return Stream.empty();
+            return Set.of();
+        }
+    }
+
+    private Set<AcknowledgementLabel> getTargetIssuedAcks() {
+
+        if (entity != null && ackLabelsDeclared) {
+            return entity.getTargets()
+                    .stream()
+                    .map(Target::getIssuedAcknowledgementLabel)
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toSet());
+        } else {
+            return Set.of();
         }
     }
 
