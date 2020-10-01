@@ -308,6 +308,19 @@ Three headers control how Ditto responds to a command: `response-required`, `req
 It is considered a client error if `timeout` is set to `0s` while `response-required` is `true` or `requested-acks` is
 nonempty.
 
+### Default header values
+Ditto set each of the three headers `response-required`, `requested-acks`, `timeout` to a default value according to any
+values of the other two headers set by the user.
+The default values depend only on headers set by the user; they do not depend on each other.
+Setting the default header values this way never produces any combination considered a client error unless the headers
+set by the user already cause a client error.
+
+| Header            | Default value | Default value if all three headers are not set |
+| ---               | ---           | ---                                              |
+| response-required | `false` if `timeout` is zero or `requested-acks` is empty, `true` otherwise | `true` |
+| requested-acks    | `empty` if `timeout` is zero or `response-required` is `false`, the channel's default acknowledgement request otherwise |`["twin-persisted"]` for TWIN channel,<br/>`["live-response"]` for LIVE channel |
+| timeout           | `60s` | `60s` |
+
 The following sections show how each Ditto API interprets the three headers.
 
 ### HTTP
@@ -367,16 +380,3 @@ disposition frames, and MQTT PUBACK/PUBREC/PUBREL messages for incoming PUBLISH 
 | Connectivity | true              | empty          | non-zero | Response published at reply-target;<br/>message settled immediately |
 | Connectivity | true              | non-empty      | zero     | Error published at reply-target: timeout may not be zero if response is required;<br/>message settled negatively |
 | Connectivity | true              | non-empty      | non-zero | Aggregated response and acknowledgements published at reply-target;<br/>message settled after receiving the requested acknowledgements |
-
-### Default header values
-Ditto set each of the three headers `response-required`, `requested-acks`, `timeout` to a default value according to any
-values of the other two headers set by the user.
-The default values depend only on headers set by the user; they do not depend on each other.
-Setting the default header values this way never produces any combination considered a client error unless the headers
-set by the user already cause a client error.
-
-| Header            | Default value | Default value if all three headers are not set |
-| ---               | ---           | ---                                              |
-| response-required | `false` if `timeout` is zero or `requested-acks` is empty, `true` otherwise | `true` |
-| requested-acks    | `empty` if `timeout` is zero or `response-required` is `false`, the channel's default acknowledgement request otherwise |`["twin-persisted"]` for TWIN channel,<br/>`["live-response"]` for LIVE channel |
-| timeout           | `60s` | `60s` |
