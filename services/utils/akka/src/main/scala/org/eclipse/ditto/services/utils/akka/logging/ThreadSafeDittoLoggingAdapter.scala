@@ -61,7 +61,7 @@ import org.eclipse.ditto.model.base.headers.{DittoHeaders, WithDittoHeaders}
  *  Objects of this class are safe to be shared between different threads.
  *  </p>
  *
- *  @since 1.3.0
+ *  @since 1.4.0
  */
 @ThreadSafe
 abstract class ThreadSafeDittoLoggingAdapter extends LoggingAdapter

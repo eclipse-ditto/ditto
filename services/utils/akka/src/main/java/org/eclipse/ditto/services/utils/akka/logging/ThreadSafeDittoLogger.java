@@ -62,7 +62,7 @@ import org.slf4j.Logger;
  * Objects of this class are safe to be shared between different threads.
  * </p>
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @ThreadSafe
 public interface ThreadSafeDittoLogger extends Logger, WithMdcEntry<ThreadSafeDittoLogger> {

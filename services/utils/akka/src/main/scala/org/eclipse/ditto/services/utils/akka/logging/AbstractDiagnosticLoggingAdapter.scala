@@ -37,7 +37,7 @@ abstract class AbstractDiagnosticLoggingAdapter extends DiagnosticLoggingAdapter
    * @throws NullPointerException     if `key` is `null`.
    * @throws IllegalArgumentException if `key` is empty.
    * @see #removeMdcEntry(CharSequence)
-   * @since 1.3.0
+   * @since 1.4.0
    */
   def putMdcEntry(key: CharSequence, @Nullable value: CharSequence): AbstractDiagnosticLoggingAdapter
 
@@ -48,7 +48,7 @@ abstract class AbstractDiagnosticLoggingAdapter extends DiagnosticLoggingAdapter
    *  @return this or a new logger instance for method chaining.
    *  @throws NullPointerException     if `key` is `null`.
    *  @throws IllegalArgumentException if `key` is empty.
-   *  @since 1.3.0
+   *  @since 1.4.0
    */
   def removeMdcEntry(key: CharSequence): AbstractDiagnosticLoggingAdapter
 
@@ -61,7 +61,7 @@ abstract class AbstractDiagnosticLoggingAdapter extends DiagnosticLoggingAdapter
   /** Returns the name of this logger.
    *
    * @return the logger's name.
-   * @since 1.3.0
+   * @since 1.4.0
    */
   def getName: String
 

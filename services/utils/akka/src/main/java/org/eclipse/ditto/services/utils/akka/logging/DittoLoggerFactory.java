@@ -89,7 +89,7 @@ public final class DittoLoggerFactory {
      * @param clazz provides the name of the returned logger.
      * @return the thread-safe logger.
      * @throws NullPointerException if {@code clazz} is {@code null}.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     public static ThreadSafeDittoLogger getThreadSafeLogger(final Class<?> clazz) {
         return ImmutableDittoLogger.of(LoggerFactory.getLogger(checkNotNull(clazz, "clazz")));
@@ -102,7 +102,7 @@ public final class DittoLoggerFactory {
      * @param name the name of the logger.
      * @return the thread-safe logger.
      * @throws NullPointerException if {@code clazz} is {@code null}.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     public static ThreadSafeDittoLogger getThreadSafeLogger(final CharSequence name) {
         return ImmutableDittoLogger.of(LoggerFactory.getLogger(checkNotNull(name, "name").toString()));
@@ -133,7 +133,7 @@ public final class DittoLoggerFactory {
      * @param actor the Actor used as logSource
      * @return the thread-safe logging adapter.
      * @throws NullPointerException if {@code logSource} is {@code null}.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     public static ThreadSafeDittoLoggingAdapter getThreadSafeDittoLoggingAdapter(final Actor actor) {
         return ImmutableDittoLoggingAdapter.of(getDiagnosticLoggingAdapterFactory(checkNotNull(actor, "actor")));

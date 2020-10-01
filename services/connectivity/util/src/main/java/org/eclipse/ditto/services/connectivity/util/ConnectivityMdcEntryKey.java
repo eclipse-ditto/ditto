@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.util;
 /**
  * An enumeration of well-known MDC value keys related to the connectivity functionality.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 public enum ConnectivityMdcEntryKey implements CharSequence {
 

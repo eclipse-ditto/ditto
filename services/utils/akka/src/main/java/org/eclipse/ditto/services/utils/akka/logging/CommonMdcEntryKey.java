@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 /**
  * An enumeration of commonly known MDC entry keys.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 public enum CommonMdcEntryKey implements CharSequence {
 

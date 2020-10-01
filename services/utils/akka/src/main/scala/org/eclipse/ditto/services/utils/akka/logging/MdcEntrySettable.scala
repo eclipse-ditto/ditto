@@ -17,7 +17,7 @@ import javax.annotation.Nullable
 /** This trait defines the means to put and remove entries to or from the MDC of a logger.
  *
  *  @tparam L the type of the logger that implements this interface.
- *  @since 1.3.0
+ *  @since 1.4.0
  */
 trait MdcEntrySettable[L] {
 

@@ -31,7 +31,7 @@ import scala.collection.immutable.Seq;
 /**
  * An immutable implementation of {@link ThreadSafeDittoLoggingAdapter}.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 final class ImmutableDittoLoggingAdapter extends ThreadSafeDittoLoggingAdapter {

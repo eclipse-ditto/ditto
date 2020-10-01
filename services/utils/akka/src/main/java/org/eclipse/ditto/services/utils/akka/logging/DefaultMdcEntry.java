@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Default implementation of {@link MdcEntry}.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 final class DefaultMdcEntry implements MdcEntry {

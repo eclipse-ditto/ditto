@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
  * It is intended to be put to a logger's
  * <a href="http://logback.qos.ch/manual/mdc.html">Mapped Diagnostic Context (MDC)</a>.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 public interface MdcEntry {

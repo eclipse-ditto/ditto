@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
  * A factory for creating objects related to logging.
  * The main purpose of this class is to hide concrete implementations.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 final class LoggingFactory {

@@ -30,7 +30,7 @@ import org.slf4j.Marker;
 /**
  * An immutable implementation of {@link ThreadSafeDittoLogger}.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 final class ImmutableDittoLogger implements ThreadSafeDittoLogger {

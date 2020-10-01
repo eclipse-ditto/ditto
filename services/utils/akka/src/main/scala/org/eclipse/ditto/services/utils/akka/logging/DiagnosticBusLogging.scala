@@ -16,7 +16,7 @@ import akka.event.{BusLogging, DiagnosticLoggingAdapter, LoggingBus, LoggingFilt
 
 /** This class combines [[BusLogging]] with [[DiagnosticLoggingAdapter]] for usage in Java.
  *
- *  @since 1.3.0
+ *  @since 1.4.0
  */
 final class DiagnosticBusLogging(bus: LoggingBus, logSource: String, logClass: Class[_], loggingFilter: LoggingFilter)
   extends BusLogging(bus, logSource, logClass, loggingFilter) with DiagnosticLoggingAdapter

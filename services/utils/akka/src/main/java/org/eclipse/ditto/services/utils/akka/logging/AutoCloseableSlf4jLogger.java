@@ -53,7 +53,7 @@ public interface AutoCloseableSlf4jLogger extends Logger, AutoCloseable {
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty.
      * @see #removeMdcEntry(CharSequence) 
-     * @since 1.3.0
+     * @since 1.4.0
      */
     AutoCloseableSlf4jLogger putMdcEntry(CharSequence key, @Nullable CharSequence value);
 
@@ -65,7 +65,7 @@ public interface AutoCloseableSlf4jLogger extends Logger, AutoCloseable {
      * @return this or a new logger instance for method chaining.
      * @throws NullPointerException if {@code key} is {@code null}.
      * @throws IllegalArgumentException if {@code key} is empty.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     AutoCloseableSlf4jLogger removeMdcEntry(CharSequence key);
 

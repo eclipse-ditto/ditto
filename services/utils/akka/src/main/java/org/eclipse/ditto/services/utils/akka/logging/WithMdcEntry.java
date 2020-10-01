@@ -21,7 +21,7 @@ import org.slf4j.Logger;
  *
  * @param <L> the type of the logger that implements this interface.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 public interface WithMdcEntry<L extends Logger> {
 
