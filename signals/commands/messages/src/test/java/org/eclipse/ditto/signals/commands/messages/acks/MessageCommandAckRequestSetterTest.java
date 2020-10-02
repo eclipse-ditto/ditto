@@ -150,7 +150,7 @@ public final class MessageCommandAckRequestSetterTest {
     }
 
     @Test
-    public void addLiveResponseAckLabelToAlreadyRequiredAckLabels() {
+    public void notAddingLiveResponseAckLabelToAlreadyRequiredAckLabels() {
         final AcknowledgementRequest ackRequest1 = AcknowledgementRequest.of(AcknowledgementLabel.of("FOO"));
         final AcknowledgementRequest ackRequest2 = AcknowledgementRequest.of(AcknowledgementLabel.of("BAR"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -163,8 +163,7 @@ public final class MessageCommandAckRequestSetterTest {
         final MessageCommandAckRequestSetter underTest = MessageCommandAckRequestSetter.getInstance();
 
         final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
-                .acknowledgementRequest(ackRequest1, ackRequest2,
-                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .acknowledgementRequest(ackRequest1, ackRequest2)
                 .build();
         final MessageCommand<?, ?> expectedCommand = command.setDittoHeaders(expectedHeaders);
 

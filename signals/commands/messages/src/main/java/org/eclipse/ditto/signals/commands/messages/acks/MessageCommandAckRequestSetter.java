@@ -61,7 +61,7 @@ public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequ
     }
 
     @Override
-    protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
+    protected boolean isBindResponseRequiredToRemovingImplicitLabel() {
         return true;
     }
 }

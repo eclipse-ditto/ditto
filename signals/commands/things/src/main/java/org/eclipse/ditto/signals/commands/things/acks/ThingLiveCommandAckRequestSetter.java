@@ -61,7 +61,7 @@ public final class ThingLiveCommandAckRequestSetter extends AbstractCommandAckRe
     }
 
     @Override
-    protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
+    protected boolean isBindResponseRequiredToRemovingImplicitLabel() {
         return true;
     }
 }

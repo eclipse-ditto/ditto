@@ -111,10 +111,9 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
      * <li>removed from an already explicitly defined "requested-acks" header when {@code "response-required"} is
      * {@code false}</li>
      * </ul>
-     *
      * @since 1.3.0
      */
-    protected abstract boolean isBindResponseRequiredToAddingRemovingImplicitLabel();
+    protected abstract boolean isBindResponseRequiredToRemovingImplicitLabel();
 
     private Optional<DittoHeaders> setDefaultDittoHeaders(final DittoHeaders headers) {
         final DittoHeadersBuilder<?, ?> builder = headers.toBuilder();
@@ -136,14 +135,14 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
             final DittoHeaders headers,
             final boolean hasTimeoutZero) {
         if (headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
-            if (isBindResponseRequiredToAddingRemovingImplicitLabel()) {
-                final Set<AcknowledgementRequest> newRequests = new LinkedHashSet<>(headers.getAcknowledgementRequests());
-                if (headers.isResponseRequired()) {
-                    newRequests.add(AcknowledgementRequest.of(implicitAcknowledgementLabel));
-                } else {
+            if (isBindResponseRequiredToRemovingImplicitLabel()) {
+                if (!headers.isResponseRequired()) {
+                    final Set<AcknowledgementRequest> newRequests =
+                            new LinkedHashSet<>(headers.getAcknowledgementRequests());
                     newRequests.remove(AcknowledgementRequest.of(implicitAcknowledgementLabel));
+                    builder.acknowledgementRequests(newRequests);
                 }
-                builder.acknowledgementRequests(newRequests);
+
                 return true;
             }
             return false;
