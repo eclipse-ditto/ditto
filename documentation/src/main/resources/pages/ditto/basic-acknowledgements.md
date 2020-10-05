@@ -377,6 +377,6 @@ set by the user already cause a client error.
 
 | Header            | Default value | Default value if all three headers are not set |
 | ---               | ---           | ---                                              |
-| response-required | `false` if `timeout` is zero or `requested-acks` is empty, `true` otherwise | `true` |
+| response-required | `false` if `timeout` is zero, `true` otherwise | `true` |
 | requested-acks    | `empty` if `timeout` is zero or `response-required` is `false`, the channel's default acknowledgement request otherwise |`["twin-persisted"]` for TWIN channel,<br/>`["live-response"]` for LIVE channel |
 | timeout           | `60s` | `60s` |
