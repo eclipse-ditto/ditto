@@ -333,6 +333,7 @@ public class DittoRuntimeException extends RuntimeException
      * @param jsonObject the JSON object of which the exception is to be created.
      * @param dittoHeaders the headers of the exception.
      * @param builder the builder for the exception.
+     * @param <T> the type of the DittoRuntimeException.
      * @return the exception.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
@@ -341,7 +342,7 @@ public class DittoRuntimeException extends RuntimeException
      * @since 1.3.0
      */
     public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
+            final DittoHeaders dittoHeaders, final DittoRuntimeExceptionBuilder<T> builder) {
         checkNotNull(builder, "builder");
         readDescription(jsonObject).ifPresent(builder::description);
         readHRef(jsonObject).ifPresent(builder::href);
@@ -357,12 +358,13 @@ public class DittoRuntimeException extends RuntimeException
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders dittoHeaders the headers of the command which resulted in this exception.
      * @param builder the builder for the exception.
+     * @param <T> the type of the DittoRuntimeException.
      * @return the exception.
      * @throws NullPointerException if {@code dittoHeaders} or {@code builder} argument is {@code null}.
      * @since 1.3.0
      */
     public static <T extends DittoRuntimeException> T fromMessage(@Nullable final String message,
-            final DittoHeaders dittoHeaders, DittoRuntimeExceptionBuilder<T> builder) {
+            final DittoHeaders dittoHeaders, final DittoRuntimeExceptionBuilder<T> builder) {
         checkNotNull(builder, "builder");
 
         return builder

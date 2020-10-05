@@ -26,7 +26,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * This exception indicates that an unexpected internal error occurred in the API Gateway.
+ * This exception indicates that an unexpected internal error occurred in the connectivity service.
+ *
+ * @since 1.4.0
  */
 @Immutable
 @JsonParsableException(errorCode = ConnectivityInternalErrorException.ERROR_CODE)

@@ -96,7 +96,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
     public boolean isSuccess() {
         if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
             /*
-             *Consider live responses only as failed acknowledgement when the response timed out.
+             * Consider live responses only as failed acknowledgement when the response timed out.
              * Otherwise it would not be possible to respond with an error status code to live messages.
              */
             return !isTimeout();

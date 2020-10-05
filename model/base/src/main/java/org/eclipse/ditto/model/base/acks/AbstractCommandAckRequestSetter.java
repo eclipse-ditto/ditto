@@ -107,7 +107,7 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
      * @return {@code true} when the configured {@code implicitAcknowledgementLabel} should be also
      * <ul>
      * <li>added to an already explicitly defined "requested-acks" header when {@code "response-required"} is
-     * {@code true}</li> and requested-acks is non-empty.
+     * {@code true} and requested-acks is non-empty</li>
      * <li>removed from an already explicitly defined "requested-acks" header when {@code "response-required"} is
      * {@code false}</li>
      * </ul>
@@ -134,15 +134,17 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     private boolean implicitAcksRequested(final DittoHeadersBuilder<?, ?> builder,
             final DittoHeaders headers,
             final boolean hasTimeoutZero) {
+
+        final boolean isResponseRequired = headers.isResponseRequired();
+
         if (headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
             if (isBindResponseRequiredToAddingRemovingImplicitLabel()) {
-                final boolean isResponseRequired = headers.isResponseRequired();
                 final Set<AcknowledgementRequest> acknowledgementRequests = headers.getAcknowledgementRequests();
                 final Set<AcknowledgementRequest> newRequests = new LinkedHashSet<>(acknowledgementRequests);
 
                 if (isResponseRequired && !acknowledgementRequests.isEmpty()) {
                     newRequests.add(AcknowledgementRequest.of(implicitAcknowledgementLabel));
-                } else if (!headers.isResponseRequired()) {
+                } else if (!isResponseRequired) {
                     newRequests.remove(AcknowledgementRequest.of(implicitAcknowledgementLabel));
                 }
 
@@ -152,7 +154,7 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
             }
             return false;
         } else {
-            if (!hasTimeoutZero && headers.isResponseRequired()) {
+            if (!hasTimeoutZero && isResponseRequired) {
                 builder.acknowledgementRequest(AcknowledgementRequest.of(implicitAcknowledgementLabel));
             } else {
                 builder.acknowledgementRequests(Collections.emptySet());
