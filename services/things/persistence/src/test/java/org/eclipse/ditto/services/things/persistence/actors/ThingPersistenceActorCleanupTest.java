@@ -78,7 +78,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
                 // ...and verify journal and snapshot state
-                expectedEvents.add(toEvent(createThing, 1));
+                expectedEvents.add(toEvent(createThing, thingCreated));
                 assertJournal(thingId, expectedEvents);
                 assertSnapshotsEmpty(thingId);
 
@@ -133,7 +133,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2));
 
-                return toEvent(modifyThingCommand, revisionNumber);
+                return toEvent(modifyThingCommand, modifiedThing);
             }
         };
     }
@@ -159,7 +159,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
                 // ...and verify journal and snapshot state
-                expectedEvents.add(toEvent(createThing, 1));
+                expectedEvents.add(toEvent(createThing, thingCreated));
                 assertJournal(thingId, expectedEvents);
                 assertSnapshotsEmpty(thingId);
 
@@ -170,7 +170,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                final Event deletedEvent = toEvent(deleteThing, 2);
+                final Event deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 expectedEvents.add(deletedEvent);
                 assertJournal(thingId, expectedEvents);
 

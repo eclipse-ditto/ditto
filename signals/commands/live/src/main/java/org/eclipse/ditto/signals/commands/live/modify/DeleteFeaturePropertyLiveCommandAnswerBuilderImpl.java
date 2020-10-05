@@ -108,7 +108,7 @@ final class DeleteFeaturePropertyLiveCommandAnswerBuilderImpl
         @Override
         public FeaturePropertyDeleted deleted() {
             return FeaturePropertyDeleted.of(command.getThingEntityId(), command.getFeatureId(),
-                    command.getPropertyPointer(), -1, Instant.now(), command.getDittoHeaders());
+                    command.getPropertyPointer(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
     }
 

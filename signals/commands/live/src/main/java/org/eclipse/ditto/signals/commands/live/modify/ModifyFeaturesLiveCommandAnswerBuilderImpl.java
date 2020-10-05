@@ -108,14 +108,14 @@ final class ModifyFeaturesLiveCommandAnswerBuilderImpl
         @Override
         public FeaturesCreated created() {
             return FeaturesCreated.of(command.getThingEntityId(), command.getFeatures(), -1, Instant.now(),
-                    command.getDittoHeaders());
+                    command.getDittoHeaders(), null);
         }
 
         @Nonnull
         @Override
         public FeaturesModified modified() {
             return FeaturesModified.of(command.getThingEntityId(), command.getFeatures(), -1, Instant.now(),
-                    command.getDittoHeaders());
+                    command.getDittoHeaders(), null);
         }
     }
 

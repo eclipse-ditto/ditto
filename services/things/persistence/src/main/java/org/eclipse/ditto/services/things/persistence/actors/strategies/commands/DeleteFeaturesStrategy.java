@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -44,13 +45,18 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteFeatures command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteFeatures command,
+            @Nullable final Metadata metadata) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractFeatures(thing)
                 .map(features ->
-                        ResultFactory.newMutationResult(command, getEventToPersist(context, nextRevision, dittoHeaders),
+                        ResultFactory.newMutationResult(command,
+                                getEventToPersist(context, nextRevision, dittoHeaders, metadata),
                                 getResponse(context, command, thing))
                 )
                 .orElseGet(() ->
@@ -63,8 +69,9 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
     }
 
     private static ThingEvent getEventToPersist(final Context<ThingId> context, final long nextRevision,
-            final DittoHeaders dittoHeaders) {
-        return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders);
+            final DittoHeaders dittoHeaders, @Nullable final Metadata metadata) {
+
+        return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
     }
 
     private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,

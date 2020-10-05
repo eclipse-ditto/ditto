@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -44,8 +45,11 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final CreatePolicy command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final CreatePolicy command,
+            @Nullable final Metadata metadata) {
 
         // Policy not yet created - do so ..
         final Policy newPolicy = command.getPolicy();
@@ -60,16 +64,16 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
         if (validator.isValid()) {
             final Instant timestamp = getEventTimestamp();
-            final Policy newPolicyWithTimestampAndRevision = newPolicyWithLifecycle.toBuilder()
+            final Policy newPolicyWithImplicits = newPolicyWithLifecycle.toBuilder()
                     .setModified(timestamp)
                     .setCreated(timestamp)
                     .setRevision(nextRevision)
                     .build();
             final PolicyCreated policyCreated =
-                    PolicyCreated.of(newPolicyWithLifecycle, nextRevision, timestamp, dittoHeaders);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                    CreatePolicyResponse.of(context.getState(), newPolicyWithTimestampAndRevision, dittoHeaders),
-                    newPolicyWithTimestampAndRevision);
+                    PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, dittoHeaders);
+            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                    CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, dittoHeaders),
+                    newPolicyWithImplicits);
             context.getLog().debug("Created new Policy with ID <{}>.", context.getState());
             return ResultFactory.newMutationResult(command, policyCreated, response, true, false);
         } else {

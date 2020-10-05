@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.models.signalenrichment;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -23,6 +25,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -71,7 +74,15 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
         }
 
         // remove channel header to prevent looping on live messages
-        final DittoHeaders headersWithoutChannel = dittoHeaders.toBuilder().channel(null).build();
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = dittoHeaders.toBuilder()
+                .channel(null);
+        if (dittoHeaders.getCorrelationId().isEmpty()) {
+            dittoHeadersBuilder.correlationId(Optional.ofNullable(concernedSignal)
+                    .map(Signal::getDittoHeaders)
+                    .flatMap(DittoHeaders::getCorrelationId)
+                    .orElseGet(() -> UUID.randomUUID().toString()) + "-enrichment");
+        }
+        final DittoHeaders headersWithoutChannel = dittoHeadersBuilder.build();
 
         final RetrieveThing command =
                 RetrieveThing.getBuilder(thingId, headersWithoutChannel)

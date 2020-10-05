@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -91,6 +92,11 @@ public final class TestEvent implements Event<TestEvent> {
 
     @Override
     public Optional<Instant> getTimestamp() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
         return Optional.empty();
     }
 

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -38,7 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after an {@code Attribute} was created.
  */
 @Immutable
-@JsonParsableEvent(name = AttributeCreated.NAME, typePrefix= AttributeCreated.TYPE_PREFIX)
+@JsonParsableEvent(name = AttributeCreated.NAME, typePrefix = AttributeCreated.TYPE_PREFIX)
 public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
         implements ThingModifiedEvent<AttributeCreated> {
 
@@ -68,9 +69,10 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
             final JsonValue attributeValue,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
 
         this.attributePointer = Objects.requireNonNull(attributePointer, "The attribute key must not be null!");
         this.attributeValue = Objects.requireNonNull(attributeValue, "The attribute value must not be null!");
@@ -87,7 +89,7 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
      * @return the AttributeCreated created.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -97,7 +99,7 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), attributePointer, attributeValue, revision, dittoHeaders);
+        return of(ThingId.of(thingId), attributePointer, attributeValue, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -110,14 +112,17 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributeCreated created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static AttributeCreated of(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, attributePointer, attributeValue, revision, null, dittoHeaders);
+        return of(thingId, attributePointer, attributeValue, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -132,7 +137,7 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
      * @return the AttributeCreated created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -143,7 +148,7 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), attributePointer, attributeValue, revision, timestamp, dittoHeaders);
+        return of(ThingId.of(thingId), attributePointer, attributeValue, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -157,7 +162,10 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributeCreated created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static AttributeCreated of(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
@@ -165,7 +173,33 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new AttributeCreated(thingId, attributePointer, attributeValue, revision, timestamp, dittoHeaders);
+        return of(thingId, attributePointer, attributeValue, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code AttributeCreated} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributePointer the pointer of the attribute with which this event is associated.
+     * @param attributeValue the value of the attribute with which this event is associated.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the AttributeCreated created.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static AttributeCreated of(final ThingId thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new AttributeCreated(thingId, attributePointer, attributeValue, revision, timestamp, dittoHeaders,
+                metadata);
     }
 
     /**
@@ -193,15 +227,17 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
      * 'AttributeCreated' format.
      */
     public static AttributeCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AttributeCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
-            final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
-            final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
+        return new EventJsonDeserializer<AttributeCreated>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
+                    final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
+                    final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
+                    final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
 
-            return of(thingId, extractedAttributePointer, extractedValue, revision, timestamp, dittoHeaders);
-        });
+                    return of(thingId, extractedAttributePointer, extractedValue, revision, timestamp, dittoHeaders,
+                            metadata);
+                });
     }
 
     /**
@@ -236,13 +272,13 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
     @Override
     public AttributeCreated setRevision(final long revision) {
         return of(getThingEntityId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
-                getDittoHeaders());
+                getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public AttributeCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getThingEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
-                dittoHeaders);
+                dittoHeaders, getMetadata().orElse(null));
     }
 
     @Override

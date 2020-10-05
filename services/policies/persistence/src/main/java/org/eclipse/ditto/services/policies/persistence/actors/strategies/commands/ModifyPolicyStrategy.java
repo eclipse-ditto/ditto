@@ -12,11 +12,13 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -43,10 +45,17 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final ModifyPolicy command) {
-        final Policy modifiedPolicy =
-                command.getPolicy().toBuilder().setRevision(nextRevision).build();
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final ModifyPolicy command,
+            @Nullable final Metadata metadata) {
+
+        final Instant eventTs = getEventTimestamp();
+        final Policy modifiedPolicy = command.getPolicy().toBuilder()
+                .setModified(eventTs)
+                .setRevision(nextRevision)
+                .build();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final JsonObject modifiedPolicyJsonObject = modifiedPolicy.toJson();
@@ -64,7 +73,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
 
         if (validator.isValid()) {
             final PolicyModified policyModified =
-                    PolicyModified.of(modifiedPolicy, nextRevision, getEventTimestamp(), dittoHeaders);
+                    PolicyModified.of(modifiedPolicy, nextRevision, eventTs, dittoHeaders);
             final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                     ModifyPolicyResponse.modified(context.getState(), dittoHeaders),
                     modifiedPolicy);

@@ -402,7 +402,6 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private static void assertPolicyInJournal(final Policy actualPolicy, final Policy expectedPolicy) {
         assertEqualJson(actualPolicy, expectedPolicy);
-        assertThat(actualPolicy.getModified()).isEmpty(); // is not required in journal entry
     }
 
     private ActorRef createPersistenceActorFor(final PolicyId policyId) {

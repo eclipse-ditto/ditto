@@ -20,7 +20,9 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -29,7 +31,9 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -71,11 +75,13 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param factory factory for creating a kafka publisher actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final KafkaPublisherActorFactory factory) {
+    public static Props props(final Connection connection,
+            @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor,
+            final KafkaPublisherActorFactory factory) {
 
-        return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor,
-                connectionActor, factory);
+        return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
+                factory);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -107,20 +113,22 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
+    protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         if (testConnectionFuture != null) {
             final Exception error =
                     new IllegalStateException("Can't test new connection since a test is already running.");
             return CompletableFuture.completedFuture(new Status.Failure(error));
         }
         testConnectionFuture = new CompletableFuture<>();
-        connectClient(true);
+        final DittoHeaders dittoHeaders = testConnectionCommand.getDittoHeaders();
+        final String correlationId = dittoHeaders.getCorrelationId().orElse(null);
+        connectClient(true, testConnectionCommand.getConnectionEntityId(), correlationId);
         return testConnectionFuture;
     }
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        connectClient(false);
+        connectClient(false, connection.getId(), null);
     }
 
     @Override
@@ -137,15 +145,22 @@ public final class KafkaClientActor extends BaseClientActor {
      * Start Kafka publishers, expect "Status.Success" from each of them, then send "ClientConnected" to self.
      *
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
+     * @param connectionId the ID of the connection to connect the client for.
+     * @param correlationId the correlation ID for logging or {@code null} if no correlation ID is known.
      */
-    private void connectClient(final boolean dryRun) {
+    private void connectClient(final boolean dryRun, final ConnectionId connectionId,
+            @Nullable final CharSequence correlationId) {
+
         // start publisher
-        startKafkaPublisher(dryRun);
+        startKafkaPublisher(dryRun, connectionId, correlationId);
         // no command consumers as we don't support consuming from sources yet
     }
 
-    private void startKafkaPublisher(final boolean dryRun) {
-        log.info("Starting Kafka publisher actor.");
+    private void startKafkaPublisher(final boolean dryRun, final ConnectionId connectionId,
+            @Nullable final CharSequence correlationid) {
+
+        logger.withCorrelationId(correlationid).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
+                .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
         final Props publisherActorProps = publisherActorFactory.props(connection(), connectionFactory, dryRun);
@@ -166,7 +181,7 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private void stopPublisherActor() {
         if (kafkaPublisherActor != null) {
-            log.debug("Stopping child actor <{}>.", kafkaPublisherActor.path());
+            logger.debug("Stopping child actor <{}>.", kafkaPublisherActor.path());
             // shutdown using a message, so the actor can clean up first
             kafkaPublisherActor.tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
         }
@@ -198,4 +213,5 @@ public final class KafkaClientActor extends BaseClientActor {
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }
+
 }

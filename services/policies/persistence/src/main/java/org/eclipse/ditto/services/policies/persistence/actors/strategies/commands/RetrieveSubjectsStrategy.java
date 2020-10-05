@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
@@ -39,8 +40,12 @@ final class RetrieveSubjectsStrategy extends AbstractPolicyQueryCommandStrategy<
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final RetrieveSubjects command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final RetrieveSubjects command,
+            @Nullable final Metadata metadata) {
+
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(command.getLabel());

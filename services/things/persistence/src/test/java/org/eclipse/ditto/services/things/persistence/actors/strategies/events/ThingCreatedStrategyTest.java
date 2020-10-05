@@ -35,6 +35,7 @@ import org.junit.Test;
 public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
 
     private static final Instant TIMESTAMP = Instant.now();
+    private static final Metadata METADATA = Metadata.newBuilder().set("foo", "bar").build();
 
     @Test
     public void assertImmutability() {
@@ -44,7 +45,7 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final ThingCreatedStrategy strategy = new ThingCreatedStrategy();
-        final ThingCreated event = ThingCreated.of(THING, REVISION, TIMESTAMP, DittoHeaders.empty());
+        final ThingCreated event = ThingCreated.of(THING, REVISION, TIMESTAMP, DittoHeaders.empty(), METADATA);
 
         final Thing thingWithEventApplied = strategy.handle(event, null, NEXT_REVISION);
 
@@ -53,6 +54,7 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
                 .setCreated(TIMESTAMP)
+                .setMetadata(METADATA)
                 .build();
 
         assertThat(thingWithEventApplied).isEqualTo(expected);
@@ -64,13 +66,17 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .putMetadata(MetadataHeaderKey.of(JsonPointer.of("*/answer")), JsonValue.of(42))
                 .build();
-        final ThingCreated event = ThingCreated.of(THING, REVISION, TIMESTAMP, dittoHeaders);
-
-        final Thing thingWithEventApplied = strategy.handle(event, null, NEXT_REVISION);
 
         final JsonObject metadataJson = JsonObject.newBuilder()
                 .set("answer", 42)
                 .build();
+
+        final ThingCreated event = ThingCreated.of(THING, REVISION, TIMESTAMP, dittoHeaders, Metadata.newBuilder()
+                .set(Thing.JsonFields.ID.getPointer(), metadataJson)
+                .build());
+
+        final Thing thingWithEventApplied = strategy.handle(event, null, NEXT_REVISION);
+
 
         final Thing expected = THING.toBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)

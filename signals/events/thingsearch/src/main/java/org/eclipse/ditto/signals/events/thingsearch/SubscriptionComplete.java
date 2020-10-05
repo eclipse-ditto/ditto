@@ -68,10 +68,11 @@ public final class SubscriptionComplete extends AbstractSubscriptionEvent<Subscr
      * format.
      */
     public static SubscriptionComplete fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubscriptionComplete>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String subscriptionId = jsonObject.getValueOrThrow(JsonFields.SUBSCRIPTION_ID);
-            return new SubscriptionComplete(subscriptionId, dittoHeaders);
-        });
+        return new EventJsonDeserializer<SubscriptionComplete>(TYPE, jsonObject)
+                .deserialize((revision, timestamp, metadata) -> {
+                    final String subscriptionId = jsonObject.getValueOrThrow(JsonFields.SUBSCRIPTION_ID);
+                    return new SubscriptionComplete(subscriptionId, dittoHeaders);
+                });
     }
 
     @Override

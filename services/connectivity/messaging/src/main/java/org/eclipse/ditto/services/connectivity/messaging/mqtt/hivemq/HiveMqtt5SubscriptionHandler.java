@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -23,8 +24,6 @@ import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5SubscribeBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscription;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Handles subscriptions of MQTT 5 connections.
@@ -35,9 +34,9 @@ final class HiveMqtt5SubscriptionHandler
         extends AbstractMqttSubscriptionHandler<Mqtt5Subscribe, Mqtt5Publish, Mqtt5SubAck> {
 
     HiveMqtt5SubscriptionHandler(final Connection connection, final Mqtt5AsyncClient client,
-            final DiagnosticLoggingAdapter log) {
+            final ThreadSafeDittoLoggingAdapter logger) {
 
-        super(connection, client::subscribe, log);
+        super(connection, client::subscribe, logger);
     }
 
     @Override
@@ -52,4 +51,5 @@ final class HiveMqtt5SubscriptionHandler
                 .reduce((b1, b2) -> b2)
                 .map(Mqtt5SubscribeBuilder.Complete::build);
     }
+
 }

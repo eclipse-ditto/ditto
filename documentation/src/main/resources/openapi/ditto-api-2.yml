@@ -4389,8 +4389,8 @@ paths:
           result contains all things which the logged in user is allowed to read.
 
         * The search is case sensitive. In case you don't know how exactly the
-          spelling of the namespace, name, attribute, feature etc. is, use the *like*
-          notation for filtering
+          spelling of value of the namespace, name, attribute, feature etc. is, use the *like*
+          notation instead of *eq* for filtering.
 
         * The resource supports sorting and paging. If paging is not explicitly
           specified by means of the `size` option, a default count of `25`

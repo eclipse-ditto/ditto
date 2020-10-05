@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
@@ -46,7 +47,11 @@ final class CloseConnectionStrategy extends AbstractConnectivityCommandStrategy<
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection connection, final long nextRevision, final CloseConnection command) {
+            @Nullable final Connection connection,
+            final long nextRevision,
+            final CloseConnection command,
+            @Nullable final Metadata metadata) {
+
         final ConnectivityEvent event = ConnectionClosed.of(context.getState().id(), command.getDittoHeaders());
         final WithDittoHeaders response =
                 CloseConnectionResponse.of(context.getState().id(), command.getDittoHeaders());

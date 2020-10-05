@@ -20,17 +20,22 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.slf4j.Logger;
 
 /**
+ * <p>
  * A SLF4J {@link Logger} with additional functionality.
  * The main purpose of DittoLogger is to provide an API for easily setting a correlation ID to the logging
  * <a href="http://logback.qos.ch/manual/mdc.html">Mapped Diagnostic Context (MDC)</a>.
+ * </p>
  *
+ * <p>
  * DittoLogger can be used in two ways:
  * <ol>
  *     <li>set the correlation ID per log operation, i. e. it gets automatically discarded immediately after having
  *     performed the log operation.</li>
  *     <li>Or set the correlation ID globally until it gets manually discarded.</li>
  * </ol>
+ * </p>
  *
+ * <p>
  * The following example shows usage for case 1.
  * The correlation ID is only logged for the info message and gets discarded automatically afterwards.
  * <pre>
@@ -38,7 +43,9 @@ import org.slf4j.Logger;
  * dittoLogger.withCorrelationId("my-correlation-id").info("This is a normal SLF4J log operation.");
  * dittoLogger.warn("The correlation ID is logged no more.");
  * </pre>
+ * </p>
  *
+ * <p>
  * For case 2 the correlation ID is set globally and will be logged until it gets discarded manually.
  * The preferred way to do this is to utilize Javas <em>try-with-resources:</em>
  * <pre>
@@ -51,7 +58,9 @@ import org.slf4j.Logger;
  * }
  * dittoLogger.warn("The correlation ID is logged no more.");
  * </pre>
+ * </p>
  *
+ * <p>
  * The second example for case 2 requires you to call {@link #discardCorrelationId()} explicitly.
  * This approach is more flexible as it allows to set the correlation ID for a broader scope than the
  * try-with-resources way.
@@ -66,9 +75,16 @@ import org.slf4j.Logger;
  *
  * dittoLogger.warn("The correlation ID is logged no more.");
  * </pre>
+ * </p>
+ *
+ * <p>
+ * TLDR; the context values which are set via methods whose name starts with {@code with}, are automatically
+ * discarded after the subsequent log operation.
+ * Context values which are set via {@code set} or {@code put} methods have to be discarded or removed manually.
+ * </p>
  */
 @NotThreadSafe
-public interface DittoLogger extends Logger {
+public interface DittoLogger extends Logger, WithMdcEntry<DittoLogger> {
 
     /**
      * Sets the given correlation ID for the subsequent log operation.

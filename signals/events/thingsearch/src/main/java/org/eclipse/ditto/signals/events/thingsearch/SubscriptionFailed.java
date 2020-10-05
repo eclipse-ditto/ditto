@@ -81,14 +81,16 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
      * format.
      */
     public static SubscriptionFailed fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubscriptionFailed>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String subscriptionId =
-                    jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
-            final JsonObject errorJson = jsonObject.getValueOrThrow(JsonFields.ERROR);
-            final DittoRuntimeException error = DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
-                    .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ERROR));
-            return new SubscriptionFailed(subscriptionId, error, dittoHeaders);
-        });
+        return new EventJsonDeserializer<SubscriptionFailed>(TYPE, jsonObject)
+                .deserialize((revision, timestamp, metadata) -> {
+                    final String subscriptionId =
+                            jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
+                    final JsonObject errorJson = jsonObject.getValueOrThrow(JsonFields.ERROR);
+                    final DittoRuntimeException error =
+                            DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
+                                    .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ERROR));
+                    return new SubscriptionFailed(subscriptionId, error, dittoHeaders);
+                });
     }
 
     /**
