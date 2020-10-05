@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.akka.logging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -23,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.event.DiagnosticLoggingAdapter;
+import scala.collection.JavaConverters;
 import scala.collection.immutable.Seq;
 
 /**
@@ -41,19 +43,23 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
         this.loggingAdapter = loggingAdapter;
         this.autoDiscardingLoggingAdapter = autoDiscardingLoggingAdapter;
-        currentLogger = loggingAdapter;
+        currentLogger = autoDiscardingLoggingAdapter;
     }
 
     /**
      * Returns an instance of the default Ditto DiagnosticLoggingAdapter.
      *
      * @param diagnosticLoggingAdapter the Akka DiagnosticLoggingAdapter which performs the actual logging.
+     * @param loggerName the name of the returned logger.
      * @return the instance.
-     * @throws NullPointerException if {@code diagnosticLoggingAdapter} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code loggerName} is empty.
      */
-    public static DefaultDittoDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter diagnosticLoggingAdapter) {
+    public static DefaultDittoDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter diagnosticLoggingAdapter,
+            final CharSequence loggerName) {
+
         final DefaultDiagnosticLoggingAdapter loggingAdapter =
-                DefaultDiagnosticLoggingAdapter.of(diagnosticLoggingAdapter);
+                DefaultDiagnosticLoggingAdapter.of(diagnosticLoggingAdapter, loggerName);
 
         return new DefaultDittoDiagnosticLoggingAdapter(loggingAdapter,
                 AutoDiscardingDiagnosticLoggingAdapter.of(loggingAdapter));
@@ -62,7 +68,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     @Override
     public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final CharSequence correlationId) {
         currentLogger = autoDiscardingLoggingAdapter;
-        currentLogger.setCorrelationId(correlationId);
+        currentLogger.putMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
         return this;
     }
 
@@ -79,9 +85,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        currentLogger = loggingAdapter;
-        currentLogger.setCorrelationId(correlationId);
-        return this;
+        return setMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
     }
 
     @Override
@@ -97,7 +101,161 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
     @Override
     public void discardCorrelationId() {
-        currentLogger.discardCorrelationId();
+        discardMdcEntry(CommonMdcEntryKey.CORRELATION_ID);
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+
+        putToMdcOfAllLoggerStates(key, value);
+        currentLogger = loggingAdapter;
+        return this;
+    }
+
+    private void putToMdcOfAllLoggerStates(final CharSequence key, @Nullable final CharSequence value) {
+        loggingAdapter.putMdcEntry(key, value);
+        autoDiscardingLoggingAdapter.putMdcEntry(key, value);
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2) {
+
+        putToMdcOfAllLoggerStates(k1, v1);
+        putToMdcOfAllLoggerStates(k2, v2);
+        currentLogger = loggingAdapter;
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2,
+            final CharSequence k3, @Nullable final CharSequence v3) {
+
+        putToMdcOfAllLoggerStates(k1, v1);
+        putToMdcOfAllLoggerStates(k2, v2);
+        putToMdcOfAllLoggerStates(k3, v3);
+        currentLogger = loggingAdapter;
+        return this;
+    }
+
+    @Override
+    public void discardMdcEntry(final CharSequence key) {
+        removeFromMdcOfAllLoggerStates(key);
+        currentLogger = loggingAdapter;
+    }
+
+    private void removeFromMdcOfAllLoggerStates(final CharSequence key) {
+        loggingAdapter.removeMdcEntry(key);
+        autoDiscardingLoggingAdapter.removeMdcEntry(key);
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final MdcEntry mdcEntry,
+            final Seq<MdcEntry> furtherMdcEntries) {
+
+        currentLogger = loggingAdapter;
+        putToMdcOfAllLoggerStates(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        final Collection<MdcEntry> furtherMdcEntriesCollection = JavaConverters.asJavaCollection(furtherMdcEntries);
+        furtherMdcEntriesCollection.forEach(furtherMdcEntry -> putToMdcOfAllLoggerStates(furtherMdcEntry.getKey(),
+                furtherMdcEntry.getValueOrNull()));
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final MdcEntry mdcEntry,
+            final MdcEntry... furtherMdcEntries) {
+
+        currentLogger = loggingAdapter;
+        putToMdcOfAllLoggerStates(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
+            putToMdcOfAllLoggerStates(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
+        }
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter putMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+
+        currentLogger = loggingAdapter;
+        currentLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2) {
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2,
+            final CharSequence k3, @Nullable final CharSequence v3) {
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        currentLogger.putMdcEntry(k3, v3);
+        return this;
+    }
+
+    @Override
+    public DittoDiagnosticLoggingAdapter withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
+        checkNotNull(furtherMdcEntries, "furtherMdcEntries");
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        for(final MdcEntry furtherMdcEntry : furtherMdcEntries) {
+            currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
+        }
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntry(final MdcEntry mdcEntry,
+            final Seq<MdcEntry> furtherMdcEntries) {
+
+        checkNotNull(furtherMdcEntries, "furtherMdcEntries");
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        furtherMdcEntries.foreach(furtherMdcEntry -> currentLogger.putMdcEntry(furtherMdcEntry.getKey(),
+                furtherMdcEntry.getValueOrNull()));
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
+        currentLogger.removeMdcEntry(key);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter discardMdcEntries() {
+        currentLogger.discardMdcEntries();
+        currentLogger = autoDiscardingLoggingAdapter;
+        return this;
+    }
+
+    @Override
+    public String getName() {
+        return currentLogger.getName();
     }
 
     @Override
@@ -143,187 +301,6 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     @Override
     public void notifyDebug(final String message) {
         currentLogger.notifyDebug(message);
-    }
-
-    @Override
-    public void error(final Throwable cause, final String message) {
-        currentLogger.error(cause, message);
-    }
-
-    @Override
-    public void error(final Throwable cause, final String template, final Object arg1) {
-        currentLogger.error(cause, template, arg1);
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2) {
-
-        currentLogger.error(cause, template, arg1, arg2);
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        currentLogger.error(cause, template, arg1, arg2, arg3);
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        currentLogger.error(cause, template, arg1, arg2, arg3, arg4);
-    }
-
-    @Override
-    public void error(final String message) {
-        currentLogger.error(message);
-    }
-
-    @Override
-    public void error(final String template, final Object arg1) {
-        currentLogger.error(template, arg1);
-    }
-
-    @Override
-    public void error(final String template, final Object arg1, final Object arg2) {
-        currentLogger.error(template, arg1, arg2);
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        currentLogger.error(template, arg1, arg2, arg3);
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        currentLogger.error(template, arg1, arg2, arg3, arg4);
-    }
-
-    @Override
-    public void warning(final String message) {
-        currentLogger.warning(message);
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1) {
-        currentLogger.warning(template, arg1);
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1, final Object arg2) {
-        currentLogger.warning(template, arg1, arg2);
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        currentLogger.warning(template, arg1, arg2, arg3);
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        currentLogger.warning(template, arg1, arg2, arg3, arg4);
-    }
-
-    @Override
-    public void info(final String message) {
-        currentLogger.info(message);
-    }
-
-    @Override
-    public void info(final String template, final Object arg1) {
-        currentLogger.info(template, arg1);
-    }
-
-    @Override
-    public void info(final String template, final Object arg1, final Object arg2) {
-        currentLogger.info(template, arg1, arg2);
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        currentLogger.info(template, arg1, arg2, arg3);
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        currentLogger.info(template, arg1, arg2, arg3, arg4);
-    }
-
-    @Override
-    public void debug(final String message) {
-        currentLogger.debug(message);
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1) {
-        currentLogger.debug(template, arg1);
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1, final Object arg2) {
-        currentLogger.debug(template, arg1, arg2);
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        currentLogger.debug(template, arg1, arg2, arg3);
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        currentLogger.debug(template, arg1, arg2, arg3, arg4);
-    }
-
-    @Override
-    public String format(final String t, final Seq<Object> arg) {
-        return currentLogger.format(t, arg);
     }
 
     @Override

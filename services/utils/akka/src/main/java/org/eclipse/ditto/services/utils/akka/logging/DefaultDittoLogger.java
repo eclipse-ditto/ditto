@@ -38,7 +38,7 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
 
         this.autoCloseableSlf4jLogger = autoCloseableSlf4jLogger;
         this.autoClosingSlf4jLogger = autoClosingSlf4jLogger;
-        currentLogger = this.autoCloseableSlf4jLogger;
+        currentLogger = this.autoClosingSlf4jLogger;
     }
 
     /**
@@ -92,6 +92,60 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     @Override
     public void discardCorrelationId() {
         currentLogger.discardCorrelationId();
+    }
+
+    @Override
+    public AutoCloseableSlf4jLogger putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+        currentLogger = autoCloseableSlf4jLogger;
+        currentLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoLogger withMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+        currentLogger = autoClosingSlf4jLogger;
+        currentLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2) {
+
+        currentLogger = autoClosingSlf4jLogger;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoLogger withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
+            final CharSequence k2, @Nullable final CharSequence v2,
+            final CharSequence k3, @Nullable final CharSequence v3) {
+
+        currentLogger = autoClosingSlf4jLogger;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        currentLogger.putMdcEntry(k3, v3);
+        return this;
+    }
+
+    @Override
+    public DefaultDittoLogger withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
+        checkNotNull(furtherMdcEntries, "furtherMdcEntries");
+
+        currentLogger = autoClosingSlf4jLogger;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
+            currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
+        }
+        return this;
+    }
+
+    @Override
+    public DefaultDittoLogger removeMdcEntry(final CharSequence key) {
+        currentLogger.removeMdcEntry(key);
+        return this;
     }
 
     @Override
@@ -402,6 +456,7 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     @Override
     public void close() {
         currentLogger.close();
+        currentLogger = autoClosingSlf4jLogger;
     }
 
 }

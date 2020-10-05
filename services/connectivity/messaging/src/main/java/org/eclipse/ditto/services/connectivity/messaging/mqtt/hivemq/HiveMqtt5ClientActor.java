@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -27,7 +28,6 @@ import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Actor which handles connection to MQTT 5 server.
@@ -81,8 +81,9 @@ public final class HiveMqtt5ClientActor
 
     @Override
     AbstractMqttSubscriptionHandler<Mqtt5Subscribe, Mqtt5Publish, Mqtt5SubAck> createSubscriptionHandler(
-            final Connection connection, final Mqtt5AsyncClient client, final DiagnosticLoggingAdapter log) {
-        return new HiveMqtt5SubscriptionHandler(connection, client, log);
+            final Connection connection, final Mqtt5AsyncClient client, final ThreadSafeDittoLoggingAdapter logger) {
+
+        return new HiveMqtt5SubscriptionHandler(connection, client, logger);
     }
 
     @Override
@@ -102,9 +103,13 @@ public final class HiveMqtt5ClientActor
     }
 
     @Override
-    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef mappingActor,
+    ActorRef startConsumerActor(final boolean dryRun,
+            final Source source,
+            final ActorRef mappingActor,
             final MqttSpecificConfig specificConfig) {
+
         return startChildActorConflictFree(HiveMqtt5ConsumerActor.NAME,
                 HiveMqtt5ConsumerActor.props(connectionId(), mappingActor, source, dryRun, specificConfig));
     }
+
 }

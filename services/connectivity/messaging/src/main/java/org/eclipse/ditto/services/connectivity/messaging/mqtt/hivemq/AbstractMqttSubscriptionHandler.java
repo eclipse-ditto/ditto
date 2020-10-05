@@ -27,11 +27,11 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Handles subscriptions of MQTT connections.
@@ -45,16 +45,17 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
     private static final MqttQos DEFAULT_SOURCE_QOS = MqttQos.EXACTLY_ONCE;
     private final Connection connection;
     private final SubscribeAction<S, P, R> client;
-    private final DiagnosticLoggingAdapter log;
+    private final ThreadSafeDittoLoggingAdapter logger;
 
     private final Map<Source, ActorRef> consumerActors = new HashMap<>();
     private final Map<Source, S> mqtt3Subscribe;
 
     AbstractMqttSubscriptionHandler(final Connection connection, final SubscribeAction<S, P, R> client,
-            final DiagnosticLoggingAdapter log) {
+            final ThreadSafeDittoLoggingAdapter logger) {
+
         this.connection = connection;
         this.client = client;
-        this.log = log;
+        this.logger = logger;
         mqtt3Subscribe = prepareSubscriptions();
     }
 
@@ -107,7 +108,7 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
     CompletionStage<List<R>> subscribe() {
         final boolean allConsumersReady = allConsumersReady();
         if (allConsumersReady) {
-            log.info("Client connected and all consumers ready, subscribing now.");
+            logger.info("Client connected and all consumers ready, subscribing now.");
             final List<CompletableFuture<R>> subAckFutures = mqtt3Subscribe.entrySet()
                     .stream()
                     .map(e -> {
@@ -126,7 +127,7 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
                     );
         } else {
             final String message = "Consumers are not initialized, not subscribing.";
-            log.error(message);
+            logger.error(message);
             return CompletableFuture.failedFuture(new IllegalStateException(message));
         }
     }
@@ -151,11 +152,11 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
                 .whenComplete((mqtt3SubAck, throwable) -> {
                     if (throwable != null) {
                         // Handle failure to subscribe
-                        log.warning("Error subscribing to topics: <{}>: {}", source.getAddresses(),
+                        logger.warning("Error subscribing to topics: <{}>: {}", source.getAddresses(),
                                 throwable.getMessage());
                     } else {
                         // Handle successful subscription, e.g. logging or incrementing a metric
-                        log.info("Successfully subscribed to <{}>", source.getAddresses());
+                        logger.info("Successfully subscribed to <{}>", source.getAddresses());
                     }
                 });
     }
