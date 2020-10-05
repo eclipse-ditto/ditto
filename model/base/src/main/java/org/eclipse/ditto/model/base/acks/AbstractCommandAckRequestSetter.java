@@ -182,13 +182,7 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
             final DittoHeadersBuilder<?, ?> builder,
             final boolean hasTimeoutZero) {
         if (!dittoHeaders.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
-            final boolean areAcksExplicit = dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
-            final boolean areAcksEffective = dittoHeaders.getAcknowledgementRequests()
-                    .stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .anyMatch(label -> !negatedDittoAcknowledgementLabels.contains(label));
-            final boolean hasEmptyRequestedAcks = areAcksExplicit && !areAcksEffective;
-            final boolean isResponseRequired = !(hasEmptyRequestedAcks || hasTimeoutZero);
+            final boolean isResponseRequired = !hasTimeoutZero;
             builder.responseRequired(isResponseRequired);
             return true;
         } else {
