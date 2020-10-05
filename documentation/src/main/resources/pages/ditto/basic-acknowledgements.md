@@ -299,7 +299,7 @@ without any live or message response, [request the acknowledgement](#requesting-
 ## Interaction between headers
 Three headers control how Ditto responds to a command: `response-required`, `requested-acks`, `timeout`.
 * `response-required`: `true` or `false`.
-   It governs whether the user gets a (detailed) reply. In case of a live message or a live command it also has impact on the `requested-acks`. If `response-required` is `true`, the acknowledgement label `live-response` will be added to `requested-acks` if not present. If it is `false`, the acknowledgement label `live-response` will be removed from `requested-acks` if present.
+   It governs whether the user gets a (detailed) reply. In case of a live message or a live command it also has impact on the `requested-acks`. If `response-required` is `true`, the acknowledgement label `live-response` will be added to `requested-acks` if not present and `requested-acks` was not explicitly set to an empty JSON array. If it is `false`, the acknowledgement label `live-response` will be removed from `requested-acks` if present.
 * `requested-acks`: JSON array of acknowledgement requests.
    It determines the content of the response and transport-layer message settlement.
 * `timeout`: Duration.
