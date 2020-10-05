@@ -49,14 +49,17 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -76,28 +79,53 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-amqp-diagnostic");
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-
     private final Session session;
     private final LinkedHashMap<Destination, MessageProducer> dynamicTargets;
     private final Map<Destination, MessageProducer> staticTargets;
     private final int producerCacheSize;
     private final ActorRef backOffActor;
+    private final ConnectionLogger connectionLogger;
 
-    private boolean isInBackOffMode = false;
+    private boolean isInBackOffMode;
 
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final Connection connection, final Session session,
             final ConnectionConfig connectionConfig) {
+
         super(connection);
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         this.session = checkNotNull(session, "session");
         staticTargets = new HashMap<>();
         dynamicTargets = new LinkedHashMap<>(); // insertion order important for maintenance of producer cache
         producerCacheSize = checkArgument(connectionConfig.getAmqp10Config().getProducerCacheSize(), i -> i > 0,
                 () -> "producer-cache-size must be 1 or more");
 
+        connectionLogger = getConnectionLogger(connection);
         backOffActor = getContext().actorOf(BackOffActor.props(connectionConfig.getAmqp10Config().getBackOffConfig()));
+        isInBackOffMode = false;
+    }
+
+    private ConnectionLogger getConnectionLogger(final Connection connection) {
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
+        final ConnectionLoggerRegistry connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(loggerConfig);
+        return connectionLoggerRegistry.forConnection(connection.getId());
+    }
+
+    /**
+     * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
+     *
+     * @param connection the connection this publisher belongs to
+     * @param session the jms session
+     * @param connectionConfig configuration for all connections.
+     * @return the Akka configuration Props object.
+     */
+    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig) {
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig);
+    }
+
+    @Override
+    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
+        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
     }
 
     @Override
@@ -110,57 +138,77 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         handleStartProducer(START_PRODUCER);
     }
 
-    /**
-     * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
-     *
-     * @param connection the connection this publisher belongs to
-     * @param session the jms session
-     * @param connectionConfig configuration for all connections.
-     * @return the Akka configuration Props object.
-     */
-    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig) {
-
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig);
-    }
-
-    @Override
-    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
-        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
-    }
-
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport)
                 .matchEquals(START_PRODUCER, this::handleStartProducer);
     }
 
-    private void handleStartProducer(final Object startProducer) {
-        try {
-            isInBackOffMode = false;
-            createStaticTargetProducers(targets);
-        } catch (final Exception e) {
-            log.warning("Failed to create static target producers: {}", e.getMessage());
-            getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
-                    "failed to initialize static producers"), getSelf());
-            throw e;
-        }
-    }
-
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
         if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
             final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
-            log.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
+            logger.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
 
             findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
 
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
             backOff();
         } else {
-            log.info("Got closed JMS producer while already in backOff mode '{}'." +
-                    " Will ignore the closed info as this should never happen " +
-                    "(and also the backOff mechanism will create a producer soon)");
+            logger.info("Got closed JMS producer while already in backOff mode." +
+                    " Will ignore the closed info as this should never happen" +
+                    " (and also the backOff mechanism will create a producer soon)");
         }
+    }
+
+    private void handleStartProducer(final Object startProducer) {
+        try {
+            isInBackOffMode = false;
+            createStaticTargetProducers();
+        } catch (final Exception e) {
+            logger.warning("Failed to create static target producers: {}", e.getMessage());
+            getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
+                    "failed to initialize static producers"), getSelf());
+            throw e;
+        }
+    }
+    private void createStaticTargetProducers() {
+        final List<Target> targets = connection.getTargets();
+
+        // using loop so that already created targets are closed on exception
+        for (final Target target : targets) {
+            // only targets with static addresses should stay open
+            if (!Placeholders.containsAnyPlaceholder(target.getAddress())) {
+                createTargetProducer(toPublishTarget(target.getAddress()).getJmsDestination());
+            }
+        }
+    }
+
+    @Override
+    protected AmqpTarget toPublishTarget(final String address) {
+        return AmqpTarget.fromTargetAddress(address);
+    }
+
+    // create a target producer. the previous incarnation, if any, must be closed.
+    private void createTargetProducer(final Destination destination) {
+        try {
+            staticTargets.put(destination, session.createProducer(destination));
+            logger.info("Target producer <{}> created", destination);
+        } catch (final JMSException jmsException) {
+            // target producer not creatable; stop self and request restart by parent
+            final String errorMessage = String.format("Failed to create target '%s'", destination);
+            logger.error(errorMessage, jmsException);
+            final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
+            final ActorContext context = getContext();
+            context.getParent().tell(failure, getSelf());
+            context.stop(getSelf());
+        }
+    }
+
+    private static Stream<Map.Entry<Destination, MessageProducer>> findByValue(
+            final Map<Destination, MessageProducer> producerMap, final MessageProducer value) {
+
+        return producerMap.entrySet().stream().filter(entry -> Objects.equals(entry.getValue(), value));
     }
 
     private void backOff() {
@@ -174,12 +222,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    protected AmqpTarget toPublishTarget(final String address) {
-        return AmqpTarget.fromTargetAddress(address);
-    }
-
-    @Override
-    protected CompletionStage<CommandResponseOrAcknowledgement> publishMessage(final Signal<?> signal,
+    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message,
@@ -189,35 +232,40 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         if (!isInBackOffMode) {
             return doPublishMessage(signal, autoAckTarget, publishTarget, message);
         } else {
-            final CompletableFuture<CommandResponseOrAcknowledgement> backOffModeFuture = new CompletableFuture<>();
+            final CompletableFuture<CommandResponse<?>> backOffModeFuture = new CompletableFuture<>();
             backOffModeFuture.completeExceptionally(getBackOffModeError(message, publishTarget.getJmsDestination()));
             return backOffModeFuture;
         }
     }
 
-    private CompletionStage<CommandResponseOrAcknowledgement> doPublishMessage(@Nullable final Signal<?> signal,
+    private CompletionStage<CommandResponse<?>> doPublishMessage(@Nullable final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message) {
 
-        final CompletableFuture<CommandResponseOrAcknowledgement> sendResult = new CompletableFuture<>();
+        final CompletableFuture<CommandResponse<?>> sendResult = new CompletableFuture<>();
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
 
+                final ThreadSafeDittoLoggingAdapter l;
+                if (logger.isDebugEnabled()) {
+                    l = logger.withCorrelationId(message.getInternalHeaders());
+                } else {
+                    l = logger;
+                }
 
-                log.debug("Attempt to send message {} with producer {}.", message, producer);
+                l.debug("Attempt to send message <{}> with producer <{}>.", message, producer);
                 producer.send(jmsMessage, new CompletionListener() {
                     @Override
                     public void onCompletion(final Message jmsMessage) {
                         if (signal == null) {
                             sendResult.complete(null);
                         } else {
-                            final Acknowledgement ack = toAcknowledgement(signal, autoAckTarget);
-                            sendResult.complete(new CommandResponseOrAcknowledgement(null, ack));
+                            sendResult.complete(toAcknowledgement(signal, autoAckTarget));
                         }
-                        log.withCorrelationId(message.getInternalHeaders()).debug("Sent: <{}>", jmsMessage);
+                        l.debug("Sent: <{}>", jmsMessage);
                     }
 
                     @Override
@@ -285,7 +333,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             message = session.createMessage();
         }
-        JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders(), log);
+        JMSPropertyMapper.setPropertiesAndApplicationProperties(message, externalMessage.getHeaders(), logger);
 
         // wrap the message to prevent Qpid client from setting properties willy-nilly.
         return JMSMessageWorkaround.wrap((JmsMessage) message);
@@ -297,10 +345,26 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         if (staticTargets.containsKey(destination)) {
             messageProducer = staticTargets.get(destination);
         } else {
-            messageProducer = dynamicTargets.computeIfAbsent(destination, this::createProducer);
+            messageProducer = dynamicTargets.computeIfAbsent(destination, this::tryToCreateProducer);
             maintainReplyToMap();
         }
         return messageProducer;
+    }
+
+    @Nullable
+    private MessageProducer tryToCreateProducer(final Destination destination) {
+        try {
+            return createProducer(destination);
+        } catch (final JMSException e) {
+            logger.warning("Failed to create producer for destination <{}>: {}.", destination, jmsExceptionToString(e));
+            return null;
+        }
+    }
+
+    @Nullable
+    private MessageProducer  createProducer(final Destination destination) throws JMSException {
+        logger.debug("Creating AMQP Producer for destination <{}>.", destination);
+        return session.createProducer(destination);
     }
 
     private void maintainReplyToMap() {
@@ -312,68 +376,19 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    @Nullable
-    private MessageProducer createProducer(final Destination destination) {
-        log.debug("Creating AMQP Producer for '{}'", destination);
-        try {
-            return session.createProducer(destination);
-        } catch (final JMSException e) {
-            log.warning("Could not create producer for destination '{}': {}.",
-                    destination, jmsExceptionToString(e));
-            return null;
-        }
-    }
-
     private void closeCachedProducer(final Map.Entry<Destination, MessageProducer> cachedProducer) {
+        final Destination destination = cachedProducer.getKey();
         try {
-            final Destination target = cachedProducer.getKey();
             final MessageProducer producer = cachedProducer.getValue();
-            log.debug("Closing AMQP Producer for '{}'", target);
-            if (producer != null) {
+            logger.debug("Closing AMQP Producer for destination <{}>.", destination);
+            if (null != producer) {
                 producer.close();
             } else {
-                log.warning("Null producer in cache: connection=<{}>, address=<{}>", connectionId, target);
+                logger.warning("Null producer in cache for destination <{}>!", destination);
             }
         } catch (final JMSException jmsException) {
-            log.debug("Closing producer failed (can be ignored if connection was closed already): {}",
-                    jmsExceptionToString(jmsException));
-        }
-    }
-
-    @Override
-    public void postStop() throws Exception {
-        super.postStop();
-        dynamicTargets.entrySet().forEach(this::closeCachedProducer);
-        staticTargets.entrySet().forEach(this::closeCachedProducer);
-    }
-
-    @Override
-    protected DittoDiagnosticLoggingAdapter log() {
-        return log;
-    }
-
-    // create a target producer. the previous incarnation, if any, must be closed.
-    private void createTargetProducer(final Destination destination) {
-        try {
-            staticTargets.put(destination, session.createProducer(destination));
-            log.info("Target producer <{}> created", destination);
-        } catch (final JMSException jmsException) {
-            // target producer not creatable; stop self and request restart by parent
-            final String errorMessage = String.format("Failed to create target '%s'", destination);
-            log.error(jmsException, errorMessage);
-            final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
-            getContext().getParent().tell(failure, getSelf());
-            getContext().stop(getSelf());
-        }
-    }
-
-    private void createStaticTargetProducers(final List<Target> targets) {
-        // using loop so that already created targets are closed on exception
-        for (final Target target : targets) {
-            // only targets with static addresses should stay open
-            if (!Placeholders.containsAnyPlaceholder(target.getAddress())) {
-                createTargetProducer(toPublishTarget(target.getAddress()).getJmsDestination());
-            }
+            logger.debug("Failed to close producer for destination <{}>! (Can be ignored if connection was already" +
+                    " closed.): {}", destination, jmsExceptionToString(jmsException));
         }
     }
 
@@ -386,9 +401,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return String.format("[%s] %s", jmsException.getErrorCode(), jmsException.getMessage());
     }
 
-    private static Stream<Map.Entry<Destination, MessageProducer>> findByValue(
-            final Map<Destination, MessageProducer> producerMap, final MessageProducer value) {
-        return producerMap.entrySet().stream().filter(entry -> Objects.equals(entry.getValue(), value));
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        dynamicTargets.entrySet().forEach(this::closeCachedProducer);
+        staticTargets.entrySet().forEach(this::closeCachedProducer);
     }
 
 }

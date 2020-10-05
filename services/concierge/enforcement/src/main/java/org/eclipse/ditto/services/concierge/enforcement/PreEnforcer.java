@@ -19,9 +19,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 
@@ -35,7 +35,7 @@ public interface PreEnforcer {
     /**
      * Logger of pre-enforcers.
      */
-    Logger LOGGER = LoggerFactory.getLogger(PreEnforcer.class);
+    DittoLogger LOGGER = DittoLoggerFactory.getLogger(PreEnforcer.class);
 
     /**
      * Apply pre-enforcement.
@@ -59,21 +59,21 @@ public interface PreEnforcer {
      */
     @SuppressWarnings("unchecked") // due to cast to (S)
     default <S extends WithSender<?>, T> CompletionStage<T> withErrorHandlingAsync(final S withSender,
-            final T onError,
-            final Function<S, CompletionStage<T>> andThen) {
-        return apply(withSender.getMessage())
+            final T onError, final Function<S, CompletionStage<T>> andThen) {
+
+        final WithDittoHeaders<?> message = withSender.getMessage();
+        return apply(message)
                 // the cast to (S) is safe if the post-condition of this.apply(WithDittoHeaders) holds.
-                .thenCompose(message -> andThen.apply((S) withSender.withMessage(message)))
+                .thenCompose(msg -> andThen.apply((S) withSender.withMessage(msg)))
                 .exceptionally(error -> {
                     final ActorRef sender = withSender.getSender();
-                    final DittoHeaders dittoHeaders = ((WithSender) withSender).getMessage().getDittoHeaders();
+                    final DittoHeaders dittoHeaders = message.getDittoHeaders();
                     final DittoRuntimeException dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(error, cause -> {
-                                LOGGER.error("Unexpected non-DittoRuntimeException error - responding with " +
-                                                "GatewayInternalErrorException: {} - {} - {}",
-                                        error.getClass().getSimpleName(),
-                                        error.getMessage(),
-                                        error);
+                                LOGGER.withCorrelationId(dittoHeaders)
+                                        .error("Unexpected non-DittoRuntimeException error - responding with" +
+                                                        " GatewayInternalErrorException: {} - {} - {}",
+                                                error.getClass().getSimpleName(), error.getMessage(), error);
 
                                 return GatewayInternalErrorException.newBuilder()
                                         .dittoHeaders(dittoHeaders)
@@ -84,4 +84,5 @@ public interface PreEnforcer {
                     return onError;
                 });
     }
+
 }

@@ -66,11 +66,11 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -97,9 +97,9 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.Done;
+import akka.actor.AbstractActor;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -126,10 +126,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
-    protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
+
+    /**
+     * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
+     */
+    protected final ThreadSafeDittoLoggingAdapter logger;
 
     private final Connection connection;
     private final ActorRef connectionActor;
@@ -149,17 +153,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     protected BaseClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
-        this.connection = connection;
+
+        this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
 
-        checkNotNull(connection, "connection");
-
         final ConnectionId connectionId = connection.getId();
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
         connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
         clientConfig = connectivityConfig.getClientConfig();
         this.proxyActor =
                 Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
@@ -234,7 +237,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         try {
             super.postStop();
         } catch (final Exception e) {
-            log.error(e, "An error occurred post stop.");
+            logger.error(e, "An error occurred post stop.");
         }
     }
 
@@ -265,10 +268,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Handles {@link TestConnection} commands by returning a CompletionState of {@link akka.actor.Status.Status Status}
      * which may be {@link akka.actor.Status.Success Success} or {@link akka.actor.Status.Failure Failure}.
      *
-     * @param connection the Connection to test
+     * @param testConnectionCommand the Connection to test
      * @return the CompletionStage with the test result
      */
-    protected abstract CompletionStage<Status.Status> doTestConnection(Connection connection);
+    protected abstract CompletionStage<Status.Status> doTestConnection(TestConnection testConnectionCommand);
 
     /**
      * Subclasses should allocate resources (publishers and consumers) in the implementation. This method is called once
@@ -380,7 +383,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the created ActorRef
      */
     private ActorRef startChildActor(final String name, final Props props) {
-        log.debug("Starting child actor <{}>.", name);
+        logger.debug("Starting child actor <{}>.", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
     }
@@ -403,7 +406,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected final void stopChildActor(@Nullable final ActorRef actor) {
         if (actor != null) {
-            log.debug("Stopping child actor <{}>.", actor.path());
+            logger.debug("Stopping child actor <{}>.", actor.path());
             getContext().stop(actor);
         }
     }
@@ -446,8 +449,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @param to the next State
      */
     private void onTransition(final BaseClientState from, final BaseClientState to) {
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-        log.debug("Transition: {} -> {}", from, to);
+        logger.debug("Transition: {} -> {}", from, to);
         if (to == CONNECTED) {
             clientGauge.set(1L);
         }
@@ -544,7 +546,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (getPublisherActor() != null) {
             getPublisherActor().forward(message.getOutboundSignal(), getContext());
         } else {
-            log.error("No publisher actor available, dropping message: {}", message);
+            logger.withCorrelationId(message.getOutboundSignal().getSource())
+                    .error("No publisher actor available, dropping message: {}", message);
         }
         return stay();
     }
@@ -568,13 +571,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
-                    log.info("{} status: <{}>", stateName(), status);
+                    logger.info("{} status: <{}>", stateName(), status);
                     data.getSessionSenders().forEach(sender ->
                             sender.first().tell(getStatusToReport(status, sender.second()), getSelf()));
                     return stop();
                 })
                 .eventEquals(StateTimeout(), BaseClientData.class, (stats, data) -> {
-                    log.info("test timed out.");
+                    logger.info("test timed out.");
                     data.getSessionSenders().forEach(sender -> {
                         final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                                 .description(String.format("Failed to open requested connection within <%d> seconds!",
@@ -596,13 +599,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         if (message instanceof Throwable) {
-            log.error((Throwable) message, "received Exception {} in state {} - status: {} - sender: {}",
+            logger.error((Throwable) message, "received Exception {} in state {} - status: {} - sender: {}",
                     message,
                     stateName(),
                     state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
                     getSender());
         } else {
-            log.warning("received unknown/unsupported message {} in state {} - status: {} - sender: {}",
+            logger.warning("received unknown/unsupported message {} in state {} - status: {} - sender: {}",
                     message,
                     stateName(),
                     state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
@@ -631,7 +634,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         final ActorRef sender = getSender();
-        final Connection connection = data.getConnection();
         final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
         reconnectTimeoutStrategy.reset();
         final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
@@ -640,7 +642,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders));
         } else {
             cleanupResourcesForConnection();
-            final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
+            final DittoRuntimeException error = newConnectionFailedException(dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
             return goToConnecting(connectingTimeout)
                     .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
@@ -664,13 +666,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void reconnect(final BaseClientData data) {
-        log.debug("Trying to reconnect.");
+        logger.debug("Trying to reconnect.");
         connectionLogger.success("Trying to reconnect.");
-        final Connection connection = data.getConnection();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, null);
         } else {
-            log.info("Socket is closed, scheduling a reconnect.");
+            logger.info("Socket is closed, scheduling a reconnect.");
             cleanupResourcesForConnection();
         }
     }
@@ -680,15 +681,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final ActorRef self = getSelf();
         final ActorRef sender = getSender();
-        final Connection connection = testConnection.getConnection();
+        final Connection connectionToBeTested = testConnection.getConnection();
 
-        if (!canConnectViaSocket(connection)) {
+        if (!canConnectViaSocket(connectionToBeTested)) {
             final ConnectionFailedException connectionFailedException =
-                    newConnectionFailedException(connection, testConnection.getDittoHeaders());
+                    newConnectionFailedException(testConnection.getDittoHeaders());
             final Status.Status failure = new Status.Failure(connectionFailedException);
             getSelf().tell(failure, self);
         } else {
-            final CompletionStage<Status.Status> connectionStatusStage = doTestConnection(connection);
+            final CompletionStage<Status.Status> connectionStatusStage = doTestConnection(testConnection);
             final CompletionStage<Status.Status> mappingStatusStage = testMessageMappingProcessor();
 
             connectionStatusStage.toCompletableFuture()
@@ -710,7 +711,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         return goToTesting().using(setSession(data, sender, testConnection.getDittoHeaders())
-                .setConnection(connection)
+                .setConnection(connectionToBeTested)
                 .setConnectionStatusDetails("Testing connection since " + Instant.now()));
     }
 
@@ -735,7 +736,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             } else {
                 connectionLogger.failure(
                         "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
-                log.info(
+                logger.info(
                         "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
@@ -773,8 +774,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         return ifEventUpToDate(clientConnected, () -> {
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-
             allocateResourcesOnConnection(clientConnected);
 
             Patterns.pipe(startPublisherAndConsumerActors(clientConnected), getContext().getDispatcher())
@@ -793,9 +792,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             @Nullable final ClientConnected clientConnected) {
 
         return startPublisherActor()
-                .thenRun(() -> log.info("Publisher started. Now starting consumers."))
+                .thenRun(() -> logger.info("Publisher started. Now starting consumers."))
                 .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
-                .thenRun(() -> log.info("Consumers started. Client actor is now ready to process messages."))
+                .thenRun(() -> logger.info("Consumers started. Client actor is now ready to process messages."))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -803,7 +802,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> handleInitializationResult(
             final InitializationResult initializationResult, final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
         if (initializationResult.isSuccess()) {
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
@@ -845,7 +843,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         return ifEventUpToDate(event, () -> {
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             connectionLogger.success("Disconnected successfully.");
 
             cleanupResourcesForConnection();
@@ -861,8 +858,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         return ifEventUpToDate(event, () -> {
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-            log.info("{} failed: <{}>", stateName(), event.getFailure());
+            logger.info("{} failed: <{}>", stateName(), event.getFailure());
 
             cleanupResourcesForConnection();
             data.getSessionSenders().forEach(sender ->
@@ -876,7 +872,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         return ifEventUpToDate(event, () -> {
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             // do not bother to disconnect gracefully - the other end of the connection is probably dead
             cleanupResourcesForConnection();
@@ -903,7 +898,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 final String errorMessage =
                         String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
                 connectionLogger.failure(errorMessage, event.getFailureDescription());
-                log.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
+                logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
                 return goToConnecting(nextBackoff).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(event.getFailureDescription()));
@@ -911,7 +906,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionLogger.failure(
                         "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
                         event.getFailureDescription());
-                log.info(
+                logger.info(
                         "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
@@ -939,7 +934,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (isEventUpToDate(event, state, sender)) {
             return thenExecute.get();
         } else {
-            log.warning("Received stale event <{}> at state <{}>", event, state);
+            logger.warning("Received stale event <{}> at state <{}>", event, state);
             return stay();
         }
     }
@@ -947,14 +942,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
-        log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
-                getSender());
+        logger.withCorrelationId(command)
+                .debug("Received RetrieveConnectionStatus for connection <{}> message from <{}>." +
+                                " Forwarding to consumers and publishers.", command.getConnectionEntityId(),
+                        getSender());
 
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
             if (!messageMappingProcessorActor.equals(child)) {
-                log.debug("Forwarding RetrieveAddressStatus to child: {}", child.path());
+                logger.withCorrelationId(command).debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
                 child.tell(RetrieveAddressStatus.getInstance(), getSender());
             }
         });
@@ -976,8 +972,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
             final RetrieveConnectionMetrics command) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
-        log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
+        logger.withCorrelationId(command)
+                .debug("Received RetrieveConnectionMetrics message for connection <{}>. Gathering metrics.",
+                        command.getConnectionEntityId());
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
@@ -1000,8 +997,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(final ResetConnectionMetrics command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
-        log.debug("Received ResetConnectionMetrics message, resetting metrics.");
+        logger.withCorrelationId(command)
+                .debug("Received ResetConnectionMetrics message for connection <{}>. Resetting metrics.",
+                        command.getConnectionEntityId());
         connectionCounterRegistry.resetForConnection(data.getConnection());
 
         return stay();
@@ -1009,8 +1007,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(final EnableConnectionLogs command) {
         final ConnectionId connectionId = command.getConnectionEntityId();
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
-        log.debug("Received EnableConnectionLogs message, enabling logs.");
+        logger.withCorrelationId(command)
+                .debug("Received EnableConnectionLogs message for connection <{}>. Enabling logs.", connectionId);
 
         connectionLoggerRegistry.unmuteForConnection(connectionId);
 
@@ -1019,12 +1017,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(final CheckConnectionLogsActive command) {
         final ConnectionId connectionId = command.getConnectionEntityId();
-        final Instant timestamp = command.getTimestamp();
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-        log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
-                connectionId);
+        logger.withCorrelationId(command)
+                .debug("Received checkLoggingActive message for connection <{}>." +
+                        " Checking if logging for connection is expired.", connectionId);
 
-        if (connectionLoggerRegistry.isLoggingExpired(connectionId, timestamp)) {
+        if (connectionLoggerRegistry.isLoggingExpired(connectionId, command.getTimestamp())) {
             connectionLoggerRegistry.muteForConnection(connectionId);
             getSender().tell(LoggingExpired.of(connectionId), ActorRef.noSender());
         }
@@ -1033,8 +1030,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
-        log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
+        logger.withCorrelationId(command)
+                .debug("Received RetrieveConnectionLogs message for connection <{}>. Gathering metrics.",
+                        command.getConnectionEntityId());
 
         final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =
                 connectionLoggerRegistry.aggregateLogs(connectionId());
@@ -1049,8 +1047,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> resetConnectionLogs(final ResetConnectionLogs command,
             final BaseClientData data) {
 
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionEntityId());
-        log.debug("Received ResetConnectionLogs message, resetting logs.");
+        logger.debug("Received ResetConnectionLogs message, resetting logs.");
 
         connectionLoggerRegistry.resetForConnection(data.getConnection());
 
@@ -1060,9 +1057,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private static ConnectionFailedException newConnectionFailedException(final Connection connection,
-            final DittoHeaders dittoHeaders) {
-
+    private ConnectionFailedException newConnectionFailedException(final DittoHeaders dittoHeaders) {
         return ConnectionFailedException
                 .newBuilder(connection.getId())
                 .dittoHeaders(dittoHeaders)
@@ -1105,11 +1100,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             socket.connect(new InetSocketAddress(host, port), SOCKET_CHECK_TIMEOUT_MS);
             return true;
         } catch (final IOException | IllegalArgumentException ex) {
-            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             connectionLogger.failure("Socket could not be opened for {0}:{1,number,#} due to {2}", host, port,
                     ex.getMessage());
 
-            log.warning("Socket could not be opened for <{}:{}> due to {}: {}", host, port,
+            logger.warning("Socket could not be opened for <{}:{}> due to {}: {}", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
         }
         return false;
@@ -1119,16 +1113,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         if (stateName() == CONNECTED) {
-            enhanceLogUtil(signal.getSource());
             messageMappingProcessorActor.tell(signal, getSender());
         } else {
-            log.debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), signal);
+            logger.withCorrelationId(signal.getSource())
+                    .debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), signal);
         }
         return stay();
-    }
-
-    private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, signal, connectionId());
     }
 
     private Instant getInConnectionStatusSince() {
@@ -1143,16 +1133,21 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     "Got DittoRuntimeException during initialization of MessageMappingProcessor: {0} {1} - desc: {2}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             connectionLogger.failure(logMessage);
-            log.info(logMessage);
+            logger.withCorrelationId(dre).info(logMessage);
             return CompletableFuture.completedFuture(new Status.Failure(dre));
         }
     }
 
     private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor() {
-        final ActorSystem actorSystem = getContext().getSystem();
+        final AbstractActor.ActorContext context = getContext();
+
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        MessageMappingProcessor.of(connectionId(), connection().getPayloadMappingDefinition(), actorSystem,
-                connectivityConfig, protocolAdapterProvider, log);
+        MessageMappingProcessor.of(connection.getId(),
+                connection.getPayloadMappingDefinition(),
+                context.getSystem(),
+                connectivityConfig,
+                protocolAdapterProvider,
+                logger);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
@@ -1170,20 +1165,20 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             processor = MessageMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
-                    getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
+                    getContext().getSystem(), connectivityConfig, protocolAdapterProvider, logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
-            log.info(
+            logger.info(
                     "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             getSender().tell(dre, getSelf());
             throw dre;
         }
 
-        log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
+        logger.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
                 processor.getRegistry());
 
-        log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
+        logger.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                 connection.getProcessorPoolSize());
 
         final Props props = MessageMappingProcessorActor.props(proxyActor, getSelf(), processor,
@@ -1215,7 +1210,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (stateName() == CONNECTED) {
             subscriptionManager.tell(command, messageMappingProcessorActor);
         } else {
-            log.debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);
+            logger.withCorrelationId(command)
+                    .debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);
         }
         return stay();
     }
@@ -1494,9 +1490,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         public String toString() {
             return isSuccess() ? "Success" : failure.toString();
         }
+
     }
 
     protected enum Init {
         INSTANCE
     }
+
 }

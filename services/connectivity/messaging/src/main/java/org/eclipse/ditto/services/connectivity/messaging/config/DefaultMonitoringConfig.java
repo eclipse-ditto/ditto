@@ -54,6 +54,7 @@ public final class DefaultMonitoringConfig implements MonitoringConfig {
      * Get the config reader for the logger.
      * @return the config reader for the logger.
      */
+    @Override
     public MonitoringLoggerConfig logger() {
         return loggerConfig;
     }
@@ -63,6 +64,7 @@ public final class DefaultMonitoringConfig implements MonitoringConfig {
      * Get the config reader for the counter.
      * @return the config reader for the counter.
      */
+    @Override
     public MonitoringCounterConfig counter() {
         return counterConfig;
     }

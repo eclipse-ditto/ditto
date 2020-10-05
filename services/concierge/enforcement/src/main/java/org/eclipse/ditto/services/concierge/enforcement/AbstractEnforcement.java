@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
@@ -129,7 +130,7 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
      *
      * @param hint hint about the nature of the error.
      * @param error the error.
-     * @return DittoRuntimerException suitable for transmission of the error.
+     * @return DittoRuntimeException suitable for transmission of the error.
      */
     protected DittoRuntimeException reportError(final String hint, final Throwable error) {
         if (error instanceof DittoRuntimeException) {
@@ -237,8 +238,9 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
      * @return the diagnostic logging adapter.
      */
     protected DiagnosticLoggingAdapter log() {
-        LogUtil.enhanceLogWithCorrelationId(context.getLog(), dittoHeaders());
-        return context.getLog();
+        final DittoDiagnosticLoggingAdapter logger = context.getLog();
+        LogUtil.enhanceLogWithCorrelationId(logger, dittoHeaders());
+        return logger;
     }
 
     /**
