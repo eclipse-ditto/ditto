@@ -102,7 +102,7 @@ public final class ThingLiveCommandAckRequestSetterTest {
     }
 
     @Test
-    public void notAddingLiveResponseAckLabelToAlreadyRequiredAckLabels() {
+    public void addsLiveResponseAckLabelToAlreadyRequiredAckLabels() {
         final AcknowledgementRequest ackRequest1 = AcknowledgementRequest.of(AcknowledgementLabel.of("FOO"));
         final AcknowledgementRequest ackRequest2 = AcknowledgementRequest.of(AcknowledgementLabel.of("BAR"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -115,7 +115,27 @@ public final class ThingLiveCommandAckRequestSetterTest {
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
 
         final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
-                .acknowledgementRequest(ackRequest1, ackRequest2)
+                .acknowledgementRequest(ackRequest1, ackRequest2,
+                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                .build();
+        final CreateThing expectedCommand = command.setDittoHeaders(expectedHeaders);
+
+        assertThat(underTest.apply(command)).isEqualTo(expectedCommand);
+    }
+
+    @Test
+    public void notAddingLiveResponseAckLabelToExplicitlyEmptyRequiredAckLabels() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .channel("live")
+                .acknowledgementRequests(Collections.emptyList())
+                .randomCorrelationId()
+                .responseRequired(true)
+                .build();
+        final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
+        final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
+
+        final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                .acknowledgementRequests(Collections.emptyList())
                 .build();
         final CreateThing expectedCommand = command.setDittoHeaders(expectedHeaders);
 

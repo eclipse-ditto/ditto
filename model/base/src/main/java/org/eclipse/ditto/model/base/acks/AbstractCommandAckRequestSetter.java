@@ -107,13 +107,13 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
      * @return {@code true} when the configured {@code implicitAcknowledgementLabel} should be also
      * <ul>
      * <li>added to an already explicitly defined "requested-acks" header when {@code "response-required"} is
-     * {@code true}</li>
+     * {@code true}</li> and requested-acks is non-empty.
      * <li>removed from an already explicitly defined "requested-acks" header when {@code "response-required"} is
      * {@code false}</li>
      * </ul>
      * @since 1.3.0
      */
-    protected abstract boolean isBindResponseRequiredToRemovingImplicitLabel();
+    protected abstract boolean isBindResponseRequiredToAddingRemovingImplicitLabel();
 
     private Optional<DittoHeaders> setDefaultDittoHeaders(final DittoHeaders headers) {
         final DittoHeadersBuilder<?, ?> builder = headers.toBuilder();
@@ -135,13 +135,18 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
             final DittoHeaders headers,
             final boolean hasTimeoutZero) {
         if (headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
-            if (isBindResponseRequiredToRemovingImplicitLabel()) {
-                if (!headers.isResponseRequired()) {
-                    final Set<AcknowledgementRequest> newRequests =
-                            new LinkedHashSet<>(headers.getAcknowledgementRequests());
+            if (isBindResponseRequiredToAddingRemovingImplicitLabel()) {
+                final boolean isResponseRequired = headers.isResponseRequired();
+                final Set<AcknowledgementRequest> acknowledgementRequests = headers.getAcknowledgementRequests();
+                final Set<AcknowledgementRequest> newRequests = new LinkedHashSet<>(acknowledgementRequests);
+
+                if (isResponseRequired && !acknowledgementRequests.isEmpty()) {
+                    newRequests.add(AcknowledgementRequest.of(implicitAcknowledgementLabel));
+                } else if (!headers.isResponseRequired()) {
                     newRequests.remove(AcknowledgementRequest.of(implicitAcknowledgementLabel));
-                    builder.acknowledgementRequests(newRequests);
                 }
+
+                builder.acknowledgementRequests(newRequests);
 
                 return true;
             }
