@@ -45,7 +45,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
@@ -516,7 +515,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static Set<AcknowledgementLabel> readDeclaredAcknowledgementLabels(final DittoHeaders dittoHeaders) {
-        return Optional.ofNullable(dittoHeaders.get(DittoConstants.WEBSOCKET_SESSION_HEADER_DECLARED_ACKS))
+        return Optional.ofNullable(dittoHeaders.get(DittoHeaderDefinition.DECLARED_ACKS.getKey()))
                 .map(JsonFactory::readFrom)
                 .filter(JsonValue::isArray)
                 .map(JsonValue::asArray)
