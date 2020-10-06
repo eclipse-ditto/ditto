@@ -89,8 +89,8 @@ public interface DistributedSub {
      * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
      */
     CompletionStage<AbstractUpdater.SubAck> declareAcknowledgementLabels(
-            final Collection<AcknowledgementLabel> acknowledgementLabels,
-            final ActorRef subscriber);
+            Collection<AcknowledgementLabel> acknowledgementLabels,
+            ActorRef subscriber);
 
     /**
      * Remove the acknowledgement label declaration of a subscriber.

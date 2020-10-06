@@ -75,21 +75,21 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
      * @param topic the topic.
      * @return the hash codes of the topic.
      */
-    protected abstract S hashTopic(final String topic);
+    protected abstract S hashTopic(String topic);
 
     /**
      * Callback on each new topic introduced into the subscriptions.
      *
      * @param newTopic the new topic.
      */
-    protected abstract void onNewTopic(final TopicData<S> newTopic);
+    protected abstract void onNewTopic(TopicData<S> newTopic);
 
     /**
      * Callback on each topic removed from the subscriptions as a whole.
      *
      * @param removedTopic the new topic.
      */
-    protected abstract void onRemovedTopic(final TopicData<S> removedTopic);
+    protected abstract void onRemovedTopic(TopicData<S> removedTopic);
 
     @Override
     public Stream<ActorRef> streamSubscribers(final String topic) {

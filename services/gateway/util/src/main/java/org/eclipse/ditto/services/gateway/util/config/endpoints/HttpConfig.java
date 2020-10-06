@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -156,6 +157,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
          */
         QUERY_PARAMS_AS_HEADERS("query-params-as-headers", Arrays.asList(DittoHeaderDefinition.CORRELATION_ID.getKey(),
                 DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                DittoConstants.WEBSOCKET_SESSION_HEADER_DECLARED_ACKS,
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
                 DittoHeaderDefinition.TIMEOUT.getKey())),
 

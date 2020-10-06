@@ -149,6 +149,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
      * @param signal the signal for which acknowledgements are expected.
      * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
+     * @param isAckLabelAllowed predicate for whether an ack label is allowed for publication at this channel.
      * @return the signal for which a suitable ack forwarder has started whenever required.
      * @throws NullPointerException if any argument is {@code null}.
      */

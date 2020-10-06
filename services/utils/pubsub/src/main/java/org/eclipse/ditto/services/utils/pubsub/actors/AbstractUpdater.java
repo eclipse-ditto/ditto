@@ -123,28 +123,28 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
      *
      * @param opSuccess success message of a distributed data op.
      */
-    protected abstract void ddataOpSuccess(final DDataOpSuccess<P> opSuccess);
+    protected abstract void ddataOpSuccess(DDataOpSuccess<P> opSuccess);
 
     /**
      * Handle a subscribe request.
      *
      * @param subscribe the subscribe request.
      */
-    protected abstract void subscribe(final Subscribe subscribe);
+    protected abstract void subscribe(Subscribe subscribe);
 
     /**
      * Handle an unsubscribe request.
      *
      * @param unsubscribe the unsubscribe request.
      */
-    protected abstract void unsubscribe(final Unsubscribe unsubscribe);
+    protected abstract void unsubscribe(Unsubscribe unsubscribe);
 
     /**
      * Handle a clock tick.
      *
      * @param tick the clock tick.
      */
-    protected abstract void tick(final Clock tick);
+    protected abstract void tick(Clock tick);
 
     /**
      * What to do when DData update failed.

@@ -21,7 +21,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -263,17 +262,6 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @since 1.1.0
      */
     B acknowledgementRequests(Collection<AcknowledgementRequest> acknowledgementRequests);
-
-    /**
-     * Sets the acknowledgement labels declared for a subscriber.
-     * The subscriber may not send any acknowledgement whose label is not among the declared labels.
-     *
-     * @param acknowledgementLabels the declared acknowledgement labels.
-     * @return this builder.
-     * @throws NullPointerException if {@code acknowledgementLabels} is {@code null}.
-     * @since 1.4.0
-     */
-    B declaredAcknowledgementLabels(Collection<AcknowledgementLabel> acknowledgementLabels);
 
     /**
      * Sets the acknowledgements ("ACK") which are requested together with an issued Ditto {@code Command}.

@@ -18,7 +18,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
-import akka.japi.Pair;
 
 /**
  * Write operations for a collection of local subscriptions.
@@ -48,7 +47,7 @@ public interface Subscriptions<T> {
      * @param topic the topic.
      * @return whether some actor subscribes for the topic.
      */
-    Stream<ActorRef> streamSubscribers(final String topic);
+    Stream<ActorRef> streamSubscribers(String topic);
 
     /**
      * Subscribe for filtered messages published at any of the given topics.

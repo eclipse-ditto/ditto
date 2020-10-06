@@ -69,12 +69,12 @@ public interface IndelUpdate<S, T extends IndelUpdate<S, T>> {
      *
      * @param newInsert element to insert.
      */
-    void insert(final S newInsert);
+    void insert(S newInsert);
 
     /**
      * Remove an element.
      *
      * @param newDelete element to delete.
      */
-    void delete(final S newDelete);
+    void delete(S newDelete);
 }

@@ -25,4 +25,13 @@ public final class DittoConstants {
      * Defines the Ditto Protocol Content-Type.
      */
     public static final String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
+
+    /**
+     * Header definition for defining the acknowledgement labels a subscriber may send.
+     * Not defined as DittoHeaderDefinition as this header is specific for WebSocket sessions only and has also not 
+     * a "Signal" scope which DittoHeaders have.
+     *
+     * @since 1.4.0
+     */
+    public static final String WEBSOCKET_SESSION_HEADER_DECLARED_ACKS = "declared-acks";
 }

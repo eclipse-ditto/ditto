@@ -39,7 +39,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -316,15 +315,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
                 .map(JsonValue::asString)
                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    @Override
-    public Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels() {
-        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.DECLARED_ACKS);
-        return jsonValueArray.stream()
-                .map(JsonValue::asString)
-                .map(AcknowledgementLabel::of)
-                .collect(Collectors.toSet());
     }
 
     @Override
