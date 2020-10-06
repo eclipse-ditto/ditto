@@ -1165,12 +1165,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link OutboundMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     * Starts the {@link OutboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
      *
-     * @return {@link OutboundMappingProcessorActor} or exception,
-     * which will also cause a side-effect that stores the mapping actor in the local variable {@code
-     * messageMappingProcessorActor}.
+     * @return the ref to the started {@link OutboundMappingProcessorActor}
+     * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private ActorRef startOutboundMessageMappingProcessorActor(final Connection connection) {
 
@@ -1183,10 +1181,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             getContext().getSystem(), connectivityConfig, protocolAdapter, log);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
-            log.info(
-                    "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+            log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-            getSender().tell(dre, getSelf());
             throw dre;
         }
 
@@ -1199,12 +1195,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
      *
-     * @return {@link InboundMappingProcessorActor} or exception,
-     * which will also cause a side-effect that stores the mapping actor in the local variable {@code
-     * messageMappingProcessorActor}.
+     * @return the ref to the started {@link InboundMappingProcessorActor}
+     * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private ActorRef startInboundMessageMappingProcessorActor(final Connection connection,
             final ActorRef outboundMappingProcessorActor) {
@@ -1218,10 +1212,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             getContext().getSystem(), connectivityConfig, protocolAdapter, log);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
-            log.info(
-                    "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+            log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-            getSender().tell(dre, getSelf());
             throw dre;
         }
 
