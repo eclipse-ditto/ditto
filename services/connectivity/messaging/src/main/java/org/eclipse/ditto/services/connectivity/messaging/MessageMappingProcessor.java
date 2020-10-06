@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
@@ -69,18 +69,21 @@ import akka.actor.ActorSystem;
 public final class MessageMappingProcessor {
 
     private final ConnectionId connectionId;
+    private final ConnectionType connectionType;
     private final MessageMapperRegistry registry;
     private final ThreadSafeDittoLoggingAdapter logger;
     private final ProtocolAdapter protocolAdapter;
     private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
     private MessageMappingProcessor(final ConnectionId connectionId,
+            final ConnectionType connectionType,
             final MessageMapperRegistry registry,
             final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter protocolAdapter,
             final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
 
         this.connectionId = connectionId;
+        this.connectionType = connectionType;
         this.registry = registry;
         this.logger = checkNotNull(logger, "logger");
         this.protocolAdapter = protocolAdapter;
@@ -91,7 +94,8 @@ public final class MessageMappingProcessor {
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connectionId the connection that the processor works for.
+     * @param connectionId the connection ID that the processor works for.
+     * @param connectionType the type of the connection that the processor works for.
      * @param mappingDefinition the configured mappings used by this processor
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param connectivityConfig the configuration settings of the Connectivity service.
@@ -104,6 +108,7 @@ public final class MessageMappingProcessor {
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
     public static MessageMappingProcessor of(final ConnectionId connectionId,
+            final ConnectionType connectionType,
             final PayloadMappingDefinition mappingDefinition,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
@@ -123,7 +128,7 @@ public final class MessageMappingProcessor {
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return new MessageMappingProcessor(connectionId, registry, loggerWithConnectionId,
+        return new MessageMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
                 protocolAdapterProvider.getProtocolAdapter(null), dittoHeadersSizeChecker);
     }
 
@@ -151,7 +156,7 @@ public final class MessageMappingProcessor {
                 .debug("Mappers resolved for message: {}", mappers);
         R result = resultHandler.emptyResult();
         for (final MessageMapper mapper : mappers) {
-            final MappingTimer mappingTimer = MappingTimer.inbound(connectionId);
+            final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType);
             final R mappingResult =
                     mappingTimer.overall(() -> convertInboundMessage(mapper, message, mappingTimer, resultHandler));
             result = resultHandler.combineResults(result, mappingResult);
@@ -200,7 +205,7 @@ public final class MessageMappingProcessor {
             final List<OutboundSignal.Mappable> mappableSignals,
             final MappingResultHandler<OutboundSignal.Mapped, R> resultHandler) {
 
-        final MappingTimer timer = MappingTimer.outbound(connectionId);
+        final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType);
         final Adaptable adaptableWithoutExtra =
                 timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
         final Adaptable adaptable = outboundSignal.getExtra()

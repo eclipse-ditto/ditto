@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
@@ -114,7 +115,7 @@ public final class MessageMappingProcessorTest {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
         mappings.put(DITTO_MAPPER_BY_ALIAS, ConnectivityModelFactory.newMappingContext("Ditto", JsonObject.empty(),
-                        DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
+                DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
 
         final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
         dittoCustomMapperHeaders.put(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST, "foo/bar");
@@ -136,8 +137,10 @@ public final class MessageMappingProcessorTest {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
-        underTest = MessageMappingProcessor.of(ConnectionId.of("theConnection"), payloadMappingDefinition, actorSystem,
-                connectivityConfig, protocolAdapterProvider, logger);
+        underTest =
+                MessageMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
+                        payloadMappingDefinition, actorSystem,
+                        connectivityConfig, protocolAdapterProvider, logger);
     }
 
     @Test

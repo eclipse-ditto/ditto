@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -61,8 +62,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -99,7 +98,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         super(connectionId,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 messageMappingProcessor,
-                consumerData.getSource());
+                consumerData.getSource(),
+                ConnectionType.AMQP_10);
         final ConnectionConfig connectionConfig =
                 DittoConnectivityConfig.of(
                         DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
@@ -275,8 +275,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     private void handleJmsMessage(final JmsMessage message) {
-        final StartedTimer timer =
-                DittoMetrics.expiringTimer("receive_to_ack").tag("connection_type", "amqp10").build();
         Map<String, String> headers = null;
         String correlationId = null;
         try {
@@ -306,8 +304,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                         externalMessage.getTextPayload().orElse("binary"));
             }
             forwardToMappingActor(externalMessage,
-                    () -> acknowledge(message, true, false, timer, externalMessageHeaders),
-                    redeliver -> acknowledge(message, false, redeliver, timer, externalMessageHeaders)
+                    () -> acknowledge(message, true, false, externalMessageHeaders),
+                    redeliver -> acknowledge(message, false, redeliver, externalMessageHeaders)
             );
         } catch (final DittoRuntimeException e) {
             log.withCorrelationId(e)
@@ -339,11 +337,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * @param message The incoming message.
      * @param isSuccess Whether this ackType is considered a success.
      * @param redeliver whether redelivery should be requested.
-     * @param timer timer to stop after acknowledging.
      * @param externalMessageHeaders used for logging to correlate ack with received log.
      */
     private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver,
-            final StartedTimer timer, final Map<String, String> externalMessageHeaders) {
+            final Map<String, String> externalMessageHeaders) {
 
         final String correlationId = externalMessageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         try {
@@ -367,7 +364,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                             ackType, ackTypeName);
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
-            timer.tag("success", isSuccess).stop();
             if (isSuccess) {
                 inboundAcknowledgedMonitor.getLogger().success("Sending acknowledgement {0}", ackTypeName);
             } else {

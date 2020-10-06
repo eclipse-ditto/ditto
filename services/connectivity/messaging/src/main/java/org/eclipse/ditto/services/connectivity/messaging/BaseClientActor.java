@@ -950,7 +950,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
             if (!messageMappingProcessorActor.equals(child)) {
-                logger.withCorrelationId(command).debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
+                logger.withCorrelationId(command)
+                        .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
                 child.tell(RetrieveAddressStatus.getInstance(), getSender());
             }
         });
@@ -1143,6 +1144,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
         MessageMappingProcessor.of(connection.getId(),
+                connection.getConnectionType(),
                 connection.getPayloadMappingDefinition(),
                 context.getSystem(),
                 connectivityConfig,
@@ -1164,7 +1166,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final MessageMappingProcessor processor;
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            processor = MessageMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
+            processor = MessageMappingProcessor.of(connection.getId(), connection.getConnectionType(),
+                    connection.getPayloadMappingDefinition(),
                     getContext().getSystem(), connectivityConfig, protocolAdapterProvider, logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());

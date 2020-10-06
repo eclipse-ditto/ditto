@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
@@ -39,7 +40,7 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     @SuppressWarnings("unused")
     private HiveMqtt3ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery);
+        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT);
     }
 
     /**
