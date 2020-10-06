@@ -77,7 +77,7 @@ public interface DistributedSub {
      *
      * @param subscriber who is being removed.
      */
-    void removeSubscriber(final ActorRef subscriber);
+    void removeSubscriber(ActorRef subscriber);
 
     /**
      * Declare labels of acknowledgements that a subscriber may send.
@@ -97,7 +97,7 @@ public interface DistributedSub {
      *
      * @param subscriber the subscriber.
      */
-    void removeAcknowledgementLabelDeclaration(final ActorRef subscriber);
+    void removeAcknowledgementLabelDeclaration(ActorRef subscriber);
 
     /**
      * Create subscription access from an already-started sub-supervisor and a distributed data config.

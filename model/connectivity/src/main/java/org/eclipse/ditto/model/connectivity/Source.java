@@ -115,7 +115,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * The declared acknowledgement labels are those of acknowledgements this source is allowed to send.
      *
      * @return the declared acknowledgement labels.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 
@@ -227,7 +227,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          * JSON field for declared acknowledgement labels, namely the labels of acknowledgements the connection
          * source is allowed to send.
          *
-         * @since 1.3.0
+         * @since 1.4.0
          */
         public static final JsonFieldDefinition<JsonArray> DECLARED_ACKS =
                 JsonFactory.newJsonArrayFieldDefinition("declaredAcks", FieldType.REGULAR,

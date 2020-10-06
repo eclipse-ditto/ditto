@@ -25,9 +25,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown if a WS/connectivity connection sends an acknowledgement not declared for the connection.
+ * Thrown if a WS/connectivity connection sends an acknowledgement not declared for the session/connection.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementLabelNotDeclaredException.ERROR_CODE)

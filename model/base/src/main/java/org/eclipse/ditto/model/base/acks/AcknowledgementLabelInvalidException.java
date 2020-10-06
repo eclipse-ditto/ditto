@@ -86,6 +86,7 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
      * @param href hyperlink in the exception.
      * @param dittoHeaders the headers of the exception.
      * @return the exception.
+     * @since 1.4.0
      */
     public static AcknowledgementLabelInvalidException of(final CharSequence label,
             @Nullable final String description,

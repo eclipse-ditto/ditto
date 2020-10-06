@@ -162,6 +162,7 @@ public final class PlaceholderFactory {
 
     /**
      * @return new instance of the {@link SourceAddressPlaceholder}
+     * @since 1.4.0
      */
     public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
         return ImmutableSourceAddressPlaceholder.INSTANCE;
@@ -169,7 +170,7 @@ public final class PlaceholderFactory {
 
     /**
      * @return the singleton instance of {@link ConnectionIdPlaceholder}.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     public static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
         return ImmutableConnectionIdPlaceholder.INSTANCE;

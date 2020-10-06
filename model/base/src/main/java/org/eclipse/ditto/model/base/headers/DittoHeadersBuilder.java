@@ -271,7 +271,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @param acknowledgementLabels the declared acknowledgement labels.
      * @return this builder.
      * @throws NullPointerException if {@code acknowledgementLabels} is {@code null}.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     B declaredAcknowledgementLabels(Collection<AcknowledgementLabel> acknowledgementLabels);
 

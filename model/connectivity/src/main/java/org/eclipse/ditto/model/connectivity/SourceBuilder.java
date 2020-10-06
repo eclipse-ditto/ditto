@@ -132,7 +132,7 @@ public interface SourceBuilder<T extends SourceBuilder<?>> {
      *
      * @param acknowledgementLabels acknowledgement labels to declare.
      * @return this builder.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     T declaredAcknowledgementLabels(Set<AcknowledgementLabel> acknowledgementLabels);
 

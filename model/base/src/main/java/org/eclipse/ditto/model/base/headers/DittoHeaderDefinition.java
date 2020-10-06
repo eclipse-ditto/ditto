@@ -205,7 +205,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "declared-acks"}, Java type: {@link JsonArray}.
      * </p>
      *
-     * @since 1.3.0
+     * @since 1.4.0
      */
     DECLARED_ACKS("declared-acks", JsonArray.class, true, false, HeaderValueValidators.getJsonArrayValidator()),
 

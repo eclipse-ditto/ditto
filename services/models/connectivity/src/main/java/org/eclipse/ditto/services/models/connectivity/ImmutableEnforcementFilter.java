@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 
 /**
- * Immutable implementation of an {@link org.eclipse.ditto.model.connectivity.EnforcementFilter}.
+ * Immutable implementation of an {@link EnforcementFilter}.
  *
  * @param <M> the type that is required to resolve the placeholders in the filters.
  */

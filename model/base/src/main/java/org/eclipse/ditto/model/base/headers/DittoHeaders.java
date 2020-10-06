@@ -319,7 +319,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Declared acknowledgement labels are unique between subscribers.
      *
      * @return the set of declared acknowledgement labels.
-     * @since 1.3.0
+     * @since 1.4.0
      */
     Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 

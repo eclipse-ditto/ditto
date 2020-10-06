@@ -85,7 +85,7 @@ public interface DittoProtocolSub {
      *
      * @param subscriber the subscriber.
      */
-    void removeAcknowledgementLabelDeclaration(final ActorRef subscriber);
+    void removeAcknowledgementLabelDeclaration(ActorRef subscriber);
 
     /**
      * Create {@code DittoProtocolSub} for an actor system.
