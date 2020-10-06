@@ -248,6 +248,10 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     protected abstract Optional<HeaderDefinition> getSpecificDefinitionByKey(CharSequence key);
 
     /**
+     * Resolves the passed in {@code definition} to a boolean.
+     *
+     * @param definition the definition to get boolean for.
+     * @return the optionally resolved boolean.
      * @deprecated as of 1.1.0 please use {@link #isExpectedBoolean(HeaderDefinition, Boolean)} instead.
      */
     @Deprecated

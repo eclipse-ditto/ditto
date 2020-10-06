@@ -17,10 +17,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -167,7 +171,19 @@ public final class ResponseCollectorActor extends AbstractActor {
         }
 
         private static boolean isFailedResponse(final CommandResponse<?> response) {
+            if (isLiveResponse(response)) {
+                /*
+                 *Consider live responses only as failed acknowledgement when the response timed out.
+                 * Otherwise it would not be possible to respond with an error status code to live messages.
+                 */
+                return HttpStatusCode.REQUEST_TIMEOUT == response.getStatusCode();
+            }
             return response.getStatusCode().isClientError() || response.getStatusCode().isInternalError();
+        }
+
+        private static boolean isLiveResponse(final CommandResponse<?> response) {
+            return response instanceof MessageCommandResponse ||
+                    (response instanceof ThingCommand && ProtocolAdapter.isLiveSignal(response));
         }
     }
 

@@ -107,11 +107,10 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
      * @return {@code true} when the configured {@code implicitAcknowledgementLabel} should be also
      * <ul>
      * <li>added to an already explicitly defined "requested-acks" header when {@code "response-required"} is
-     * {@code true}</li>
+     * {@code true} and requested-acks is non-empty</li>
      * <li>removed from an already explicitly defined "requested-acks" header when {@code "response-required"} is
      * {@code false}</li>
      * </ul>
-     *
      * @since 1.3.0
      */
     protected abstract boolean isBindResponseRequiredToAddingRemovingImplicitLabel();
@@ -135,20 +134,27 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     private boolean implicitAcksRequested(final DittoHeadersBuilder<?, ?> builder,
             final DittoHeaders headers,
             final boolean hasTimeoutZero) {
+
+        final boolean isResponseRequired = headers.isResponseRequired();
+
         if (headers.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
             if (isBindResponseRequiredToAddingRemovingImplicitLabel()) {
-                final Set<AcknowledgementRequest> newRequests = new LinkedHashSet<>(headers.getAcknowledgementRequests());
-                if (headers.isResponseRequired()) {
+                final Set<AcknowledgementRequest> acknowledgementRequests = headers.getAcknowledgementRequests();
+                final Set<AcknowledgementRequest> newRequests = new LinkedHashSet<>(acknowledgementRequests);
+
+                if (isResponseRequired && !acknowledgementRequests.isEmpty()) {
                     newRequests.add(AcknowledgementRequest.of(implicitAcknowledgementLabel));
-                } else {
+                } else if (!isResponseRequired) {
                     newRequests.remove(AcknowledgementRequest.of(implicitAcknowledgementLabel));
                 }
+
                 builder.acknowledgementRequests(newRequests);
+
                 return true;
             }
             return false;
         } else {
-            if (!hasTimeoutZero && headers.isResponseRequired()) {
+            if (!hasTimeoutZero && isResponseRequired) {
                 builder.acknowledgementRequest(AcknowledgementRequest.of(implicitAcknowledgementLabel));
             } else {
                 builder.acknowledgementRequests(Collections.emptySet());
@@ -178,13 +184,7 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
             final DittoHeadersBuilder<?, ?> builder,
             final boolean hasTimeoutZero) {
         if (!dittoHeaders.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
-            final boolean areAcksExplicit = dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
-            final boolean areAcksEffective = dittoHeaders.getAcknowledgementRequests()
-                    .stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .anyMatch(label -> !negatedDittoAcknowledgementLabels.contains(label));
-            final boolean hasEmptyRequestedAcks = areAcksExplicit && !areAcksEffective;
-            final boolean isResponseRequired = !(hasEmptyRequestedAcks || hasTimeoutZero);
+            final boolean isResponseRequired = !hasTimeoutZero;
             builder.responseRequired(isResponseRequired);
             return true;
         } else {

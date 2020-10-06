@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -69,6 +71,8 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -527,7 +531,19 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final Set<AcknowledgementLabel> requestedAcks = acknowledgementRequests.stream()
                 .map(AcknowledgementRequest::getLabel)
                 .collect(Collectors.toSet());
-        return target.getIssuedAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
+
+        if (target.getIssuedAcknowledgementLabel()
+                .filter(DittoAcknowledgementLabel.LIVE_RESPONSE::equals)
+                .isPresent()) {
+            return dittoHeaders.isResponseRequired() && isLiveSignal(source);
+        } else {
+            return target.getIssuedAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
+        }
+    }
+
+    private static boolean isLiveSignal(final Signal<?> signal) {
+        return signal instanceof MessageCommand ||
+                (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal));
     }
 
 }
