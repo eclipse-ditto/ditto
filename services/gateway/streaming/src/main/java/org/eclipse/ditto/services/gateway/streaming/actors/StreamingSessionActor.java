@@ -315,6 +315,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                                                     .build()
                                     );
                             eventAndResponsePublisher.offer(SessionedJsonifiable.error(dittoRuntimeException));
+                            terminateWebsocketStream();
                         }
                     });
                 })
