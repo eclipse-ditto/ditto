@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -27,7 +28,6 @@ import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Actor which handles connection to MQTT 3.1.1 server.
@@ -79,8 +79,9 @@ public final class HiveMqtt3ClientActor
 
     @Override
     AbstractMqttSubscriptionHandler<Mqtt3Subscribe, Mqtt3Publish, Mqtt3SubAck> createSubscriptionHandler(
-            final Connection connection, final Mqtt3AsyncClient client, final DiagnosticLoggingAdapter log) {
-        return new HiveMqtt3SubscriptionHandler(connection, client, log);
+            final Connection connection, final Mqtt3AsyncClient client, final ThreadSafeDittoLoggingAdapter logger) {
+
+        return new HiveMqtt3SubscriptionHandler(connection, client, logger);
     }
 
     @Override
@@ -100,9 +101,13 @@ public final class HiveMqtt3ClientActor
     }
 
     @Override
-    ActorRef startConsumerActor(final boolean dryRun, final Source source, final ActorRef inboundMessageProcessor,
+    ActorRef startConsumerActor(final boolean dryRun,
+            final Source source,
+            final ActorRef inboundMessageProcessor,
             final MqttSpecificConfig specificConfig) {
+
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
                 HiveMqtt3ConsumerActor.props(connectionId(), inboundMessageProcessor, source, dryRun, specificConfig));
     }
+
 }

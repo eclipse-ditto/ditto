@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -34,14 +36,11 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.Test;
-import org.mockito.Mockito;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * Unit tests for functionality in {@link BasePublisherActor}.
+ * Unit tests for functionality in {@link OutboundSignalToExternalMessage}.
  */
-public final class BasePublisherActorTest {
+public final class OutboundSignalToExternalMessageTest {
 
     private static final HeaderMapping HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
@@ -78,10 +77,9 @@ public final class BasePublisherActorTest {
                 .putHeader("reply-to", replyTo)
                 .build();
         final ConnectionId connectionId = ConnectionId.generateRandom();
-        final ExternalMessage externalMessage =
-                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
-                        .withText("payload")
-                        .build();
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
+                .withText("payload")
+                .build();
         final ThingModifiedEvent thingModifiedEvent =
                 TestConstants.thingModified(Collections.emptySet()).setDittoHeaders(dittoHeaders);
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
@@ -90,19 +88,20 @@ public final class BasePublisherActorTest {
                 DittoProtocolAdapter.newInstance().toAdaptable(thingModifiedEvent);
         final OutboundSignal.Mapped mappedOutboundSignal =
                 OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+        final OutboundSignalToExternalMessage underTest =
+                OutboundSignalToExternalMessage.newInstance(mappedOutboundSignal,
+                        Resolvers.forOutbound(mappedOutboundSignal), target.getHeaderMapping().orElse(null));
 
         // when
-        final ExternalMessage headerMappedExternalMessage = BasePublisherActor.applyHeaderMapping(mappedOutboundSignal,
-                target.getHeaderMapping().orElse(null),
-                Mockito.mock(DiagnosticLoggingAdapter.class),
-                connectionId
-        );
+        final ExternalMessage headerMappedExternalMessage = underTest.get();
 
         // then
         final Map<String, String> actualHeaders = headerMappedExternalMessage.getHeaders();
-        Assertions.assertThat(actualHeaders).containsEntry("correlation-id", correlationIdImportant);
-        Assertions.assertThat(actualHeaders).containsEntry("thing-id", deviceId);
-        Assertions.assertThat(actualHeaders).containsEntry("connection-id", connectionId.toString());
-        Assertions.assertThat(actualHeaders).containsEntry("eclipse", "ditto");
+
+        assertThat(actualHeaders).contains(entry("correlation-id", correlationIdImportant),
+                entry("thing-id", deviceId),
+                entry("connection-id", connectionId.toString()),
+                entry("eclipse", "ditto"));
     }
+
 }

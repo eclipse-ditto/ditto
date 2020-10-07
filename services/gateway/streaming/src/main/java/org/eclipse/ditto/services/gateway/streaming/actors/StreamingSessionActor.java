@@ -353,21 +353,24 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 })
                 .match(InvalidJwt.class, invalidJwtToken -> cancelSessionTimeout())
                 .match(DittoRuntimeException.class, this::isAckLabelNotUnique, this::ackLabelDeclarationFailed)
-                .matchEquals(Control.TERMINATED, terminated -> {
-                    logger.setCorrelationId(connectionCorrelationId);
-                    logger.debug("EventAndResponsePublisher was terminated.");
-                    // In Cluster: Unsubscribe from ThingEvents:
-                    logger.info("<{}> connection was closed, unsubscribing from Streams in Cluster ...", type);
-
-                    terminateWebsocketStream();
-                })
+                .match(Terminated.class, this::handleTerminated)
+                .matchEquals(Control.TERMINATED, this::handleTerminated)
                 .build();
+    }
+
+    private void handleTerminated(final Object terminated) {
+        logger.setCorrelationId(connectionCorrelationId);
+        logger.debug("EventAndResponsePublisher was terminated: {}", terminated);
+        // In Cluster: Unsubscribe from ThingEvents:
+        logger.info("<{}> connection was closed, unsubscribing from Streams in Cluster ...", type);
+
+        terminateWebsocketStream();
     }
 
     private Receive logUnknownMessage() {
         return ReceiveBuilder.create()
                 .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
-                        .warning("Got unknown message in '{}' session: '{}'", type, any))
+                        .warning("Got unknown message in '{}' session: {} '{}'", type, any.getClass().getName(), any))
                 .build();
     }
 

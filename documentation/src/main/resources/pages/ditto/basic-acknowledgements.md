@@ -298,11 +298,15 @@ without any live or message response, [request the acknowledgement](#requesting-
 
 ## Interaction between headers
 Three headers control how Ditto responds to a command: `response-required`, `requested-acks`, `timeout`.
-* `response-required`: `true` or `false`.
-   It governs whether the user gets a (detailed) reply. In case of a live message or a live command it also has impact on the `requested-acks`. If `response-required` is `true`, the acknowledgement label `live-response` will be added to `requested-acks` if not present. If it is `false`, the acknowledgement label `live-response` will be removed from `requested-acks` if present.
-* `requested-acks`: JSON array of acknowledgement requests.
+* `response-required`: `true` or `false`.<br/>
+   It governs whether the user gets a (detailed) reply.<br/>
+   In case of a live message or a live command it also has impact on the `requested-acks`:
+    * If `response-required` is `true`, the acknowledgement label `live-response` will be added to `requested-acks` if not 
+      present and `requested-acks` was not explicitly set to an empty JSON array.<br/> 
+    * If it is `false`, the acknowledgement label `live-response` will be removed from `requested-acks` if present.
+* `requested-acks`: JSON array of acknowledgement requests.<br/>
    It determines the content of the response and transport-layer message settlement.
-* `timeout`: Duration.
+* `timeout`: Duration.<br/>
    It governs how long Ditto waits for responses and acknowledgements.
 
 It is considered a client error if `timeout` is set to `0s` while `response-required` is `true` or `requested-acks` is
@@ -380,3 +384,16 @@ disposition frames, and MQTT PUBACK/PUBREC/PUBREL messages for incoming PUBLISH 
 | Connectivity | true              | empty          | non-zero | Response published at reply-target;<br/>message settled immediately |
 | Connectivity | true              | non-empty      | zero     | Error published at reply-target: timeout may not be zero if response is required;<br/>message settled negatively |
 | Connectivity | true              | non-empty      | non-zero | Aggregated response and acknowledgements published at reply-target;<br/>message settled after receiving the requested acknowledgements |
+
+### Default header values
+Ditto set each of the three headers `response-required`, `requested-acks`, `timeout` to a default value according to any
+values of the other two headers set by the user.
+The default values depend only on headers set by the user; they do not depend on each other.
+Setting the default header values this way never produces any combination considered a client error unless the headers
+set by the user already cause a client error.
+
+| Header            | Default value | Default value if all three headers are not set |
+| ---               | ---           | ---                                              |
+| response-required | `false` if `timeout` is zero, `true` otherwise | `true` |
+| requested-acks    | `empty` if `timeout` is zero or `response-required` is `false`, the channel's default acknowledgement request otherwise |`["twin-persisted"]` for TWIN channel,<br/>`["live-response"]` for LIVE channel |
+| timeout           | `60s` | `60s` |

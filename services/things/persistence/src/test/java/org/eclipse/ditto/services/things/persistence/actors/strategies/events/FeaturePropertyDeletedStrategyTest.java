@@ -16,6 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
+
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
@@ -34,9 +39,10 @@ public final class FeaturePropertyDeletedStrategyTest extends AbstractStrategyTe
 
     @Test
     public void appliesEventCorrectly() {
+        final Instant timestamp = Instant.now();
         final FeaturePropertyDeletedStrategy strategy = new FeaturePropertyDeletedStrategy();
         final FeaturePropertyDeleted event = FeaturePropertyDeleted.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
-                REVISION, DittoHeaders.empty());
+                REVISION, timestamp, DittoHeaders.empty(), null);
 
         final Thing thingWithFeatureWithProperty = THING.toBuilder()
                 .setFeature(FEATURE.toBuilder()
@@ -45,12 +51,46 @@ public final class FeaturePropertyDeletedStrategyTest extends AbstractStrategyTe
                                 .build())
                         .build())
                 .build();
-        final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatureWithProperty,
-                NEXT_REVISION);
+        final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatureWithProperty, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setFeatureProperties(FEATURE_ID, FeatureProperties.newBuilder().build())
                 .setRevision(NEXT_REVISION)
+                .setModified(timestamp)
+                .build();
+        assertThat(thingWithEventApplied).isEqualTo(expected);
+    }
+
+    @Test
+    public void replacesMetadataAtResourcePath() {
+        final Metadata eventMetadata = Metadata.newMetadata(JsonObject.of("{\"coloring\":[\"E104\",\"E129\"]}"));
+        final Instant timestamp = Instant.now();
+        final FeaturePropertyDeletedStrategy strategy = new FeaturePropertyDeletedStrategy();
+        final FeaturePropertyDeleted event = FeaturePropertyDeleted.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
+                REVISION, timestamp, DittoHeaders.empty(), eventMetadata);
+
+        final Metadata thingMetadata = Metadata.newBuilder()
+                .set("attributes/preservatives", JsonObject.of("{\"count\":53}"))
+                .build();
+        final Thing thingWithFeatureWithProperty = THING.toBuilder()
+                .setFeature(FEATURE.toBuilder()
+                        .properties(FeatureProperties.newBuilder()
+                                .set(FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
+                                .build())
+                        .build())
+                .setMetadata(thingMetadata)
+                .build();
+        final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatureWithProperty, NEXT_REVISION);
+
+        final Metadata expectedMetadata = thingMetadata.toBuilder()
+                .set(JsonPointer.of(String.format("features/%s/properties", FEATURE_ID))
+                        .append(FEATURE_PROPERTY_POINTER), eventMetadata)
+                .build();
+        final Thing expected = THING.toBuilder()
+                .setFeatureProperties(FEATURE_ID, FeatureProperties.newBuilder().build())
+                .setRevision(NEXT_REVISION)
+                .setModified(timestamp)
+                .setMetadata(expectedMetadata)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

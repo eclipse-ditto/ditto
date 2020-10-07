@@ -20,7 +20,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Marker;
 
 /**
- * This implementation of {@link AutoCloseableSlf4jLogger} discards the correlation ID automatically after each log
+ * This implementation of {@link AutoCloseableSlf4jLogger} discards all diagnostic values automatically after each log
  * operation.
  */
 @NotThreadSafe
@@ -34,6 +34,34 @@ final class AutoClosingSlf4jLogger implements AutoCloseableSlf4jLogger {
 
     public static AutoClosingSlf4jLogger of(final AutoCloseableSlf4jLogger autoCloseableSlf4jLogger) {
         return new AutoClosingSlf4jLogger(checkNotNull(autoCloseableSlf4jLogger, "autoCloseableSlf4jLogger"));
+    }
+
+    @Override
+    public AutoClosingSlf4jLogger setCorrelationId(@Nullable final CharSequence correlationId) {
+        autoCloseableSlf4jLogger.setCorrelationId(correlationId);
+        return this;
+    }
+
+    @Override
+    public void discardCorrelationId() {
+        autoCloseableSlf4jLogger.discardCorrelationId();
+    }
+
+    @Override
+    public AutoCloseableSlf4jLogger putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+        autoCloseableSlf4jLogger.putMdcEntry(key, value);
+        return this;
+    }
+
+    @Override
+    public AutoCloseableSlf4jLogger removeMdcEntry(final CharSequence key) {
+        autoCloseableSlf4jLogger.removeMdcEntry(key);
+        return this;
+    }
+
+    @Override
+    public void close() {
+        autoCloseableSlf4jLogger.close();
     }
 
     @Override
@@ -439,22 +467,6 @@ final class AutoClosingSlf4jLogger implements AutoCloseableSlf4jLogger {
         try (final AutoCloseableSlf4jLogger l = autoCloseableSlf4jLogger) {
             l.error(marker, msg, t);
         }
-    }
-
-    @Override
-    public AutoClosingSlf4jLogger setCorrelationId(@Nullable final CharSequence correlationId) {
-        autoCloseableSlf4jLogger.setCorrelationId(correlationId);
-        return this;
-    }
-
-    @Override
-    public void discardCorrelationId() {
-        autoCloseableSlf4jLogger.discardCorrelationId();
-    }
-
-    @Override
-    public void close() {
-        autoCloseableSlf4jLogger.close();
     }
 
 }

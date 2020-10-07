@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -69,9 +70,10 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
             final ThingDefinition definition,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.definition = definition;
     }
 
@@ -84,13 +86,16 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the ThingDefinitionModified created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.ThingDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static ThingDefinitionModified of(final ThingId thingId,
             final ThingDefinition definition,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, definition, revision, null, dittoHeaders);
+        return of(thingId, definition, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -103,14 +108,40 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the ThingDefinitionModified created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.ThingDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static ThingDefinitionModified of(final ThingId thingId,
             final ThingDefinition definition,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new ThingDefinitionModified(thingId, definition, revision, timestamp, dittoHeaders);
+        return of(thingId, definition, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code ThingDefinitionModified} object.
+     *
+     * @param thingId the ID of the Thing whose Definition was modified.
+     * @param definition the modified {@link ThingDefinition}.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the ThingDefinitionModified created.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static ThingDefinitionModified of(final ThingId thingId,
+            final ThingDefinition definition,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new ThingDefinitionModified(thingId, definition, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -140,7 +171,7 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
      */
     public static ThingDefinitionModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ThingDefinitionModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonValue extractedDefinition = jsonObject.getValueOrThrow(JSON_DEFINITION);
@@ -151,7 +182,7 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
                         definition = ThingsModelFactory.newDefinition(extractedDefinition.asString());
                     }
 
-                    return of(thingId, definition, revision, timestamp, dittoHeaders);
+                    return of(thingId, definition, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -181,12 +212,14 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
 
     @Override
     public ThingDefinitionModified setRevision(final long revision) {
-        return of(getThingEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public ThingDefinitionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

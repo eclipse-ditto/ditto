@@ -45,9 +45,24 @@ public final class MongoClientWrapperTest {
     private static final String KNOWN_HOST = "xy.example.org";
     private static final int KNOWN_PORT = 27777;
     private static final String KNOWN_SERVER_ADDRESS = KNOWN_HOST + ":" + KNOWN_PORT;
+    private static final Duration KNOWN_MAX_QUERY_TIME = Duration.ofSeconds(13);
     private static final Config CONFIG = ConfigFactory.load("test");
     private static final String MONGO_URI_CONFIG_KEY = "mongodb.uri";
     private static final String MONGO_SSL_CONFIG_KEY = "mongodb.options.ssl";
+    private static final String MONGO_MAX_QUERY_TIME_CONFIG_KEY = "mongodb.maxQueryTime";
+
+    @Test
+    public void createFromConfig() {
+        final boolean sslEnabled = false;
+        final String uri = createUri(sslEnabled);
+        final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri))
+                .withValue(MONGO_MAX_QUERY_TIME_CONFIG_KEY, ConfigValueFactory.fromAnyRef(KNOWN_MAX_QUERY_TIME));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
+
+        assertWithExpected(underTest, sslEnabled, true);
+        assertThat(underTest.getDittoSettings().getMaxQueryTime()).isEqualTo(KNOWN_MAX_QUERY_TIME);
+    }
 
     @Test
     public void createByUriWithExtraSettings() {

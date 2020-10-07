@@ -16,9 +16,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageBuilder;
+import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.junit.After;
 import org.junit.Before;
@@ -77,4 +82,47 @@ public final class ResponseCollectorActorTest {
             expectTerminated(underTest);
         }};
     }
+
+    @Test
+    public void considersLiveResponseWithNonTimeoutStatusCodeAsNotFailed() {
+        new TestKit(actorSystem) {{
+            final ThingId thingId = ThingId.generateRandom();
+            final SendThingMessageResponse<Object> badRequestLiveResponse =
+                    SendThingMessageResponse.of(thingId, Message.newBuilder(MessageBuilder.newHeadersBuilder(
+                            MessageDirection.TO, thingId, "test").build()).build(), HttpStatusCode.BAD_REQUEST,
+                            DittoHeaders.empty());
+            final ActorRef underTest = watch(actorSystem.actorOf(ResponseCollectorActor.props(Duration.ofMinutes(1L))));
+            underTest.tell(ResponseCollectorActor.query(), getRef());
+            underTest.tell(ResponseCollectorActor.setCount(2), getRef());
+            underTest.tell(RESPONSE, getRef());
+            underTest.tell(badRequestLiveResponse, getRef());
+            final ResponseCollectorActor.Output output = expectMsgClass(ResponseCollectorActor.Output.class);
+            assertThat(output.allExpectedResponsesArrived()).isTrue();
+            assertThat(output.getCommandResponses()).containsExactly(RESPONSE, badRequestLiveResponse);
+            assertThat(output.getFailedResponses()).isEmpty();
+            expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void considersLiveResponseWithTimeoutStatusCodeAsFailed() {
+        new TestKit(actorSystem) {{
+            final ThingId thingId = ThingId.generateRandom();
+            final SendThingMessageResponse<Object> timedOutLiveResponse =
+                    SendThingMessageResponse.of(thingId, Message.newBuilder(MessageBuilder.newHeadersBuilder(
+                            MessageDirection.TO, thingId, "test").build()).build(), HttpStatusCode.REQUEST_TIMEOUT,
+                            DittoHeaders.empty());
+            final ActorRef underTest = watch(actorSystem.actorOf(ResponseCollectorActor.props(Duration.ofMinutes(1L))));
+            underTest.tell(ResponseCollectorActor.query(), getRef());
+            underTest.tell(ResponseCollectorActor.setCount(2), getRef());
+            underTest.tell(RESPONSE, getRef());
+            underTest.tell(timedOutLiveResponse, getRef());
+            final ResponseCollectorActor.Output output = expectMsgClass(ResponseCollectorActor.Output.class);
+            assertThat(output.allExpectedResponsesArrived()).isTrue();
+            assertThat(output.getCommandResponses()).containsExactly(RESPONSE, timedOutLiveResponse);
+            assertThat(output.getFailedResponses()).containsExactly(timedOutLiveResponse);
+            expectTerminated(underTest);
+        }};
+    }
+
 }

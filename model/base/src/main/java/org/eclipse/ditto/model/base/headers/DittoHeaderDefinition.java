@@ -271,7 +271,21 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.2.0
      */
-    PUT_METADATA("put-metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataHeadersValidator());
+    PUT_METADATA("put-metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataHeadersValidator()),
+
+    /**
+     * Header definition for allowing the policy lockout (i.e. a subject can create a policy without having WRITE
+     * permission on the policy resource for itself, by default a subject making the request must have
+     * WRITE permission on policy resource).
+     *
+     * <p>
+     * Key {@code "allow-policy-lockout"}, Java type: {@link boolean}.
+     * </p>
+     *
+     * @since 1.3.0
+     */
+    ALLOW_POLICY_LOCKOUT("allow-policy-lockout", boolean.class, true, false,
+            HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

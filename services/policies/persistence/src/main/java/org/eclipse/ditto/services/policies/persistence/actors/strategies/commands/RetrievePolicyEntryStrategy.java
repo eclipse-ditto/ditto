@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
@@ -38,8 +39,12 @@ final class RetrievePolicyEntryStrategy extends
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final RetrievePolicyEntry command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final RetrievePolicyEntry command,
+            @Nullable final Metadata metadata) {
+
         final PolicyId policyId = context.getState();
         if (policy != null) {
             final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());

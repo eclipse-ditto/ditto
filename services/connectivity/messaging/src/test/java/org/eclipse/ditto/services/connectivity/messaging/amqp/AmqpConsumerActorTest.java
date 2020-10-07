@@ -63,7 +63,7 @@ import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcesso
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
@@ -72,7 +72,6 @@ import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.LoggingAdapter;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -248,9 +247,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
 
             final JmsMessage message = messageFacade.asJmsMessage();
             JMSPropertyMapper.setPropertiesAndApplicationProperties(messageFacade.asJmsMessage(),
-                    Arrays.stream(headers)
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())),
-                    Mockito.mock(LoggingAdapter.class));
+                    Arrays.stream(headers).collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())),
+                    Mockito.mock(ThreadSafeDittoLoggingAdapter.class));
             message.setAcknowledgeCallback(mockJmsAcknowledgeCallback());
             return message;
         } catch (final JMSException e) {
@@ -344,6 +342,26 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     private static ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
             final Source source) {
         return ConsumerData.of(source, address, address + "_with_index", messageConsumer);
+    }
+
+    private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+        final Map<String, MappingContext> mappings = new HashMap<>();
+        if (mappingContext != null) {
+            mappings.put("test", mappingContext);
+        }
+        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        return MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(),
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
+                actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapterProvider, logger);
     }
 
     // JMS acknowledgement methods are package-private and impossible to mock.

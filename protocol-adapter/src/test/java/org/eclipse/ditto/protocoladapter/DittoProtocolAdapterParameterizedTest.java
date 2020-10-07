@@ -55,6 +55,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -64,11 +65,10 @@ import org.slf4j.LoggerFactory;
 @RunWith(Parameterized.class)
 public final class DittoProtocolAdapterParameterizedTest {
 
-    private static final org.slf4j.Logger LOGGER =
-            LoggerFactory.getLogger(DittoProtocolAdapterParameterizedTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DittoProtocolAdapterParameterizedTest.class);
     private static final DittoHeaders LIVE_DITTO_HEADERS = DittoHeaders.newBuilder().channel(LIVE.getName()).build();
 
-    // mock all adapaters and give them a name
+    // mock all adapters and give them a name
     private static Adapter<ThingQueryCommand<?>> thingQueryCommandAdapter =
             mock(Adapter.class, "ThingQueryCommandAdapter");
     private static Adapter<ThingQueryCommandResponse<?>> thingQueryCommandResponseAdapter =

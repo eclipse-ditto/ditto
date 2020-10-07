@@ -12,13 +12,17 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.events.MetadataFromEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -48,18 +52,31 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         if (null != thing) {
             ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
-                    .setModified(event.getTimestamp().orElse(null));
-            thingBuilder = setMetadata(event, thing, thingBuilder);
+                    .setModified(event.getTimestamp().orElse(null))
+                    .setMetadata(mergeMetadata(thing, event));
             thingBuilder = applyEvent(event, thingBuilder);
             return thingBuilder.build();
         }
         return null;
     }
 
-    private ThingBuilder.FromCopy setMetadata(final T event, @Nullable final Thing thing,
-            final ThingBuilder.FromCopy builder) {
-        final MetadataFromEvent metadataFromEvent = MetadataFromEvent.of(event, thing);
-        return builder.setMetadata(metadataFromEvent.get());
+    @Nullable
+    private Metadata mergeMetadata(@Nullable final Thing thing, final T event) {
+
+        final JsonPointer eventMetadataResourcePath = event.getResourcePath();
+        final Optional<Metadata> eventMetadataOpt = event.getMetadata();
+        final Optional<Metadata> thingMetadata = Optional.ofNullable(thing).flatMap(Thing::getMetadata);
+        if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
+            return eventMetadataOpt.get();
+        } else if (eventMetadataOpt.isPresent()) {
+            final Metadata eventMetadata = eventMetadataOpt.get();
+            final MetadataBuilder metadataBuilder =
+                    thingMetadata.map(Metadata::toBuilder).orElseGet(Metadata::newBuilder);
+            metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson());
+            return metadataBuilder.build();
+        } else {
+            return thingMetadata.orElse(null);
+        }
     }
 
     /**

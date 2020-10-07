@@ -100,7 +100,8 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeaturesDeleted deleted() {
-            return FeaturesDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders());
+            return FeaturesDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders(),
+                    null);
         }
     }
 

@@ -38,6 +38,7 @@ public final class ThingCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ThingCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -72,7 +73,7 @@ public final class ThingCreatedTest {
     public void toJsonReturnsExpected() {
         final ThingCreated underTest =
                 ThingCreated.of(TestConstants.Thing.THING, TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -99,7 +100,7 @@ public final class ThingCreatedTest {
         final GlobalEventRegistry eventRegistry = GlobalEventRegistry.getInstance();
 
         final ThingCreated event = ThingCreated.of(TestConstants.Thing.THING, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
 
         final Event parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);

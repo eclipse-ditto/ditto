@@ -114,7 +114,7 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
                 ModifyFeatures.of(thingId, Features.newBuilder().set(feature).build(), DittoHeaders.empty());
 
         // but modifying the features which would cause the Thing to exceed the limit should not be allowed:
-        assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command))
+        assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command, null))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 

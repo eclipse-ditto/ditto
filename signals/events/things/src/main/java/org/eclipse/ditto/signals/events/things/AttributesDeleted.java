@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -33,7 +34,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Thing's {@link org.eclipse.ditto.model.things.Attributes} were deleted.
  */
 @Immutable
-@JsonParsableEvent(name = AttributesDeleted.NAME, typePrefix= AttributesDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = AttributesDeleted.NAME, typePrefix = AttributesDeleted.TYPE_PREFIX)
 public final class AttributesDeleted extends AbstractThingEvent<AttributesDeleted>
         implements ThingModifiedEvent<AttributesDeleted> {
 
@@ -47,9 +48,13 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private AttributesDeleted(final ThingId thingId, final long revision, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+    private AttributesDeleted(final ThingId thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -61,12 +66,15 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      * @return the AttributesDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
-    public static AttributesDeleted of(final String thingId, final long revision, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), revision, dittoHeaders);
+    public static AttributesDeleted of(final String thingId,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), revision, null, dittoHeaders, null);
     }
 
     /**
@@ -77,9 +85,15 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributesDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
-    public static AttributesDeleted of(final ThingId thingId, final long revision, final DittoHeaders dittoHeaders) {
-        return of(thingId, revision, null, dittoHeaders);
+    @Deprecated
+    public static AttributesDeleted of(final ThingId thingId,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(thingId, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -92,13 +106,16 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      * @return the AttributesDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
-    public static AttributesDeleted of(final String thingId, final long revision, @Nullable final Instant timestamp,
+    public static AttributesDeleted of(final String thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), revision, timestamp, dittoHeaders);
+
+        return of(ThingId.of(thingId), revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -110,10 +127,37 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributesDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
-    public static AttributesDeleted of(final ThingId thingId, final long revision, @Nullable final Instant timestamp,
+    @Deprecated
+    public static AttributesDeleted of(final ThingId thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        return new AttributesDeleted(thingId, revision, timestamp, dittoHeaders);
+
+        return of(thingId, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code AttributesDeleted} object.
+     *
+     * @param thingId the ID of the Thing whose Attributes were deleted.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the AttributesDeleted created.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static AttributesDeleted of(final ThingId thingId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new AttributesDeleted(thingId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -142,11 +186,12 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
      * 'AttributesDeleted' format.
      */
     public static AttributesDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AttributesDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            return of(thingId, revision, dittoHeaders);
-        });
+        return new EventJsonDeserializer<AttributesDeleted>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
+                    return of(thingId, revision, timestamp, dittoHeaders, metadata);
+                });
     }
 
     @Override
@@ -156,12 +201,14 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
 
     @Override
     public AttributesDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public AttributesDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

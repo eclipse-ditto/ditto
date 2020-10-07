@@ -117,6 +117,7 @@ paths:
         - $ref: '#/components/parameters/requestedAcksParam'
         - $ref: '#/components/parameters/timeoutParam'
         - $ref: '#/components/parameters/responseRequiredParam'
+        - $ref: '#/components/parameters/allowPolicyLockoutParam'
       responses:
         '201':
           description: The thing was successfully created.
@@ -403,6 +404,7 @@ paths:
         - $ref: '#/components/parameters/thingIdPathParam'
         - $ref: '#/components/parameters/ifMatchHeaderParam'
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/putMetadataParam'
         - $ref: '#/components/parameters/requestedAcksParam'
         - $ref: '#/components/parameters/timeoutParam'
         - $ref: '#/components/parameters/responseRequiredParam'
@@ -2934,6 +2936,9 @@ paths:
         ### Create a new policy
         At the initial creation of a policy, at least one valid entry is required. However, you can create a full-fledged policy all at once.
 
+        By default the authorized subject needs WRITE permission on the root resource of the created policy. You can
+        however omit this check by setting the parameter `allow-policy-lockout` to `true`.
+
         Example: To create a policy for multiple coffee maker things,
         which gives **yourself** all permissions on all resources, set the policyId in the path,
         e.g. to "com.acme.coffeemaker:policy-01" and the body part, like in the following snippet.
@@ -2992,6 +2997,7 @@ paths:
         - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
         - $ref: '#/components/parameters/timeoutParam'
         - $ref: '#/components/parameters/responseRequiredParam'
+        - $ref: '#/components/parameters/allowPolicyLockoutParam'
       responses:
         '201':
           description: The policy was successfully created.
@@ -3043,6 +3049,7 @@ paths:
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the root `policy:/` resource,
                 without any revoke in a deeper path of the policy resource.
+                (You can omit this check by setting the `allow-policy-lockout` parameter.)
           content:
             application/json:
               schema:
@@ -4382,8 +4389,8 @@ paths:
           result contains all things which the logged in user is allowed to read.
 
         * The search is case sensitive. In case you don't know how exactly the
-          spelling of the namespace, name, attribute, feature etc. is, use the *like*
-          notation for filtering
+          spelling of value of the namespace, name, attribute, feature etc. is, use the *like*
+          notation instead of *eq* for filtering.
 
         * The resource supports sorting and paging. If paging is not explicitly
           specified by means of the `size` option, a default count of `25`
@@ -4616,15 +4623,27 @@ components:
         _copyPolicyFrom:
           type: string
           description: |-
-            This field may contain the policy ID of an existing policy.
-            The policy is copied and used for this newly created thing. This field may also contain a placeholder
-            reference to a thing in the format `{{ ref:things/[thingId]/policyId }}` where you need to replace `[thingId]`
-            with a valid thing ID. The newly created thing will then obtain a copy of the policy of the referenced thing.
-            In the case of using a reference, the caller needs to have READ access to both the thing and the policy of the thing.
-            In the case of using an explicit policy id to copy from, the caller needs to have READ access to the policy.
+            This field may contain
+            * the policy ID of an existing policy.
+
+              The policy is copied and used for this newly created thing. The
+              caller needs to have READ and WRITE<sup>*</sup> access to the policy.
+            * a placeholder reference to a thing in the format {{ ref:things/[thingId]/policyId }} where you need to
+              replace [thingId] with a valid thing ID.
+
+              The newly created thing will then obtain a copy of the policy of
+              the referenced thing. The caller needs to have READ access to the thing and READ and WRITE<sup>*</sup>
+              access to the policy of the thing.
+
+
+            <sup>*</sup> The check for WRITE permission avoids locking yourself out of the newly created policy. You can
+            bypass this check by setting the header `allowPolicyLockout` to `true`. Be aware that the authorized
+            subject cannot modify the policy if you do not assign WRITE permission on the policy resource!
+
             If you want to specify a policy ID for the copied policy, use the policyId field.
-            This field must not be used together with the field `_policy`. If you specify both `_policy` and
-            `_copyPolicyFrom` this will lead to an error response.
+
+            This field must not be used together with the field _policy. If you specify both _policy and _copyPolicyFrom
+            this will lead to an error response.
         policyId:
           type: string
           description: |-
@@ -4672,6 +4691,10 @@ components:
           description: |-
             _(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each
             modification of a Thing. This field is not returned by default but must be selected explicitly.
+        _metadata:
+          type: object
+          description: |-
+            _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
     Policy:
       type: object
       description: policy consisting of policy entries
@@ -4866,6 +4889,25 @@ components:
       required: false
       schema:
         type: string
+    putMetadataParam:
+      name: put-metadata
+      in: header
+      description:  >-
+        The `put-metadata` header, which sets Metadata information in the Thing.
+      required: false
+      schema:
+        type: array
+        description: An array of objects containing metadata to apply.
+        items:
+          type: object
+          description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
+          additionalProperties:
+            properties:
+              key:
+                type: string
+                description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
+              value:
+                description: The arbitrary JSON value to set as metadata.
     featureIdPathPathParam:
       name: featureId
       in: path
@@ -4977,6 +5019,17 @@ components:
       required: false
       schema:
         type: boolean
+    allowPolicyLockoutParam:
+      name: allow-policy-lockout
+      in: query
+      description: |-
+        Defines whether a subject is allowed to create a policy without having WRITE permission on the policy
+        resource of the created policy.
+
+        The default (if ommited) is `false`.
+      required: false
+      schema:
+        type: boolean
 
 
     labelPathParam:
@@ -5063,6 +5116,10 @@ components:
         * `_modified`
 
           Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
+
+        * `_metadata`
+
+          Specifically selects the Metadata of the thing. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata.
 
         * `_policy`
 

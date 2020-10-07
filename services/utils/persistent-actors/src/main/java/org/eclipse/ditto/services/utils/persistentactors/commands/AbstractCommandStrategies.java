@@ -14,10 +14,12 @@ package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -83,7 +85,13 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
     }
 
     @Override
-    protected R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command) {
+    protected Optional<Metadata> calculateRelativeMetadata(@Nullable final S entity, final C command) {
+        return Optional.empty();
+    }
+
+    @Override
+    protected R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command,
+            @Nullable final Metadata metadata) {
 
         final CommandStrategy<C, S, K, R> commandStrategy = getAppropriateStrategy(command.getClass());
 

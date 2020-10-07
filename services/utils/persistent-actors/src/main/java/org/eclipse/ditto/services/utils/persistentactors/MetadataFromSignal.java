@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistentactors.events;
+package org.eclipse.ditto.services.utils.persistentactors;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -26,54 +26,58 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithOptionalEntity;
 
 /**
- * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of an Event's DittoHeaders.
+ * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of an Signal's DittoHeaders.
  *
- * @since 1.2.0
+ * @since 1.3.0
  */
 @Immutable
-public final class MetadataFromEvent implements Supplier<Metadata> {
+public final class MetadataFromSignal implements Supplier<Metadata> {
 
-    private final Event<?> event;
+    private final Signal<?> signal;
+    private final WithOptionalEntity withOptionalEntity;
     @Nullable private final Metadata existingMetadata;
 
-    private MetadataFromEvent(final Event<?> event, @Nullable final Metadata existingMetadata) {
-        this.event = event;
+    private MetadataFromSignal(final Signal<?> signal, final WithOptionalEntity withOptionalEntity,
+            @Nullable final Metadata existingMetadata) {
+        this.signal = signal;
+        this.withOptionalEntity = withOptionalEntity;
         this.existingMetadata = existingMetadata;
     }
 
     /**
-     * Returns an instance of {@code MetadataFromEvent}.
+     * Returns an instance of {@code MetadataFromSignal}.
      *
-     * @param event provides modified paths and headers.
-     * @param entity provides existing metadata to be extended.
+     * @param signal provides modified paths and headers.
+     * @param withOptionalEntity provides the optional entity used to check which paths/leaves were actually modified.
+     * @param existingMetadata provides existing metadata to be extended.
      * @return the instance.
-     * @throws NullPointerException if {@code event} is {@code null}.
+     * @throws NullPointerException if {@code signal} is {@code null}.
      */
-    public static MetadataFromEvent of(final Event<?> event, @Nullable final Entity<?> entity) {
-        return new MetadataFromEvent(checkNotNull(event, "event"), getMetadataOrNull(entity));
-    }
-
-    @Nullable
-    private static Metadata getMetadataOrNull(@Nullable final Entity<?> entity) {
-        return null == entity ? null : entity.getMetadata().orElse(null);
+    public static MetadataFromSignal of(final Signal<?> signal,
+            final WithOptionalEntity withOptionalEntity,
+            @Nullable final Metadata existingMetadata) {
+        return new MetadataFromSignal(checkNotNull(signal, "signal"),
+                checkNotNull(withOptionalEntity, "withOptionalEntity"),
+                existingMetadata);
     }
 
     /**
-     * Builds Metadata based on the Event and the existing metadata of this instance.
-     * If the existing metadata is {@code null} and the event does not contain an entity for its implemented schema
+     * Builds Metadata based on the Command and the existing metadata of this instance.
+     * If the existing metadata is {@code null} and the command does not contain an entity for its implemented schema
      * version, the result of this method is {@code null}.
      * Otherwise either a new Metadata is created or the existing metadata gets modified and/or extended.
      * The values of the returned metadata are obtained from the metadata headers within the DittoHeaders of this
-     * instance's event.
+     * instance's command.
      *
      * @return the created, modified or extended Metadata or {@code null}.
      * @throws IllegalArgumentException if the key of a metadata header
@@ -88,7 +92,9 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
     @Nullable
     public Metadata get() {
         final Metadata result;
-        final Optional<JsonValue> entityOptional = event.getEntity(event.getImplementedSchemaVersion());
+        final Optional<JsonValue> entityOptional = withOptionalEntity.getEntity(
+                signal.getDittoHeaders().getSchemaVersion().orElse(signal.getLatestSchemaVersion())
+        );
         if (entityOptional.isPresent()) {
             final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
             if (metadataHeaders.isEmpty()) {
@@ -103,7 +109,7 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
     }
 
     private SortedSet<MetadataHeader> getMetadataHeadersToPut() {
-        final DittoHeaders dittoHeaders = event.getDittoHeaders();
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         return dittoHeaders.getMetadataHeadersToPut();
     }
 
@@ -112,11 +118,17 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
 
         final Consumer<MetadataHeader> addMetadataToBuilder = metadataHeader -> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
-            final JsonPointer resourcePath = event.getResourcePath();
+            if (entity.isObject() && entity.asObject().getField(metadataHeaderKey.getPath()).isPresent()) {
+                // ignore metadata that has the same path as a property.
+                return;
+            }
+            final JsonPointer attachedPropertyPath = metadataHeaderKey.getPath().cutLeaf();
             if (metadataHeaderKey.appliesToAllLeaves()) {
-                addMetadataToLeaf(resourcePath, metadataHeader, metadataBuilder, entity);
-            } else {
-                metadataBuilder.set(resourcePath.append(metadataHeaderKey.getPath()), metadataHeader.getValue());
+                addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
+            } else if (entity.isObject() && entity.asObject().getField(attachedPropertyPath).isPresent()) {
+                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeader.getValue());
+            } else if (attachedPropertyPath.isEmpty()) {
+                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeader.getValue());
             }
         };
 
@@ -126,7 +138,7 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
     }
 
     private MetadataBuilder getMetadataBuilder() {
-        return null != existingMetadata ? existingMetadata.toBuilder() : Metadata.newBuilder();
+        return null != existingMetadata ? Metadata.newBuilder().setAll(existingMetadata) : Metadata.newBuilder();
     }
 
     private static void addMetadataToLeaf(final JsonPointer path,
@@ -136,10 +148,13 @@ public final class MetadataFromEvent implements Supplier<Metadata> {
 
         if (entity.isObject()) {
             final JsonObject entityObject = entity.asObject();
-            entityObject.forEach(jsonField -> {
-                final JsonKey key = jsonField.getKey();
-                addMetadataToLeaf(path.append(key.asPointer()), metadataHeader, metadataBuilder, jsonField.getValue());
-            });
+            entityObject.stream()
+                    .filter(field -> !(field.isMarkedAs(FieldType.SPECIAL) || field.isMarkedAs(FieldType.HIDDEN)))
+                    .forEach(jsonField -> {
+                        final JsonKey key = jsonField.getKey();
+                        addMetadataToLeaf(path.append(key.asPointer()), metadataHeader, metadataBuilder,
+                                jsonField.getValue());
+                    });
         } else {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
             metadataBuilder.set(path.append(metadataHeaderKey.getPath()), metadataHeader.getValue());

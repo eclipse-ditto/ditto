@@ -115,14 +115,14 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Override
         public FeatureDefinitionCreated created() {
             return FeatureDefinitionCreated.of(command.getThingEntityId(), command.getFeatureId(),
-                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders());
+                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
 
         @Nonnull
         @Override
         public FeatureDefinitionModified modified() {
             return FeatureDefinitionModified.of(command.getThingEntityId(), command.getFeatureId(),
-                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders());
+                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
 
     }

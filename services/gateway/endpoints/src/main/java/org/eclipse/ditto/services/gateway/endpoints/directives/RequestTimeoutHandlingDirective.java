@@ -22,14 +22,14 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.slf4j.Logger;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpRequest;
@@ -44,7 +44,8 @@ import akka.util.ByteString;
  */
 public final class RequestTimeoutHandlingDirective {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestTimeoutHandlingDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(RequestTimeoutHandlingDirective.class);
 
     private static final Duration SEARCH_WARN_TIMEOUT_MS = Duration.ofMillis(5_000);
     private static final Duration HTTP_WARN_TIMEOUT_MS = Duration.ofMillis(1_000);
@@ -76,42 +77,43 @@ public final class RequestTimeoutHandlingDirective {
     public Route handleRequestTimeout(final CharSequence correlationId, final Supplier<Route> inner) {
         return Directives.extractActorSystem(actorSystem -> extractRequestContext(requestContext -> {
                     final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
-                    LOGGER.withCorrelationId(correlationId).debug("Started mutable timer <{}>.", timer);
 
+                    final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
+                    logger.debug("Started mutable timer <{}>.", timer);
                     final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
                         final int statusCode = response.status().intValue();
                         if (timer.isRunning()) {
                             final StoppedTimer stoppedTimer = timer.tag(TracingTags.STATUS_CODE, statusCode).stop();
-                            LOGGER.withCorrelationId(correlationId)
-                                    .debug("Finished timer <{}> with status <{}>.", timer, statusCode);
-                            checkDurationWarning(stoppedTimer, correlationId);
+                            logger.debug("Finished timer <{}> with status <{}>.", timer, statusCode);
+                            checkDurationWarning(stoppedTimer, logger);
                         }
                         return response;
                     }, inner);
 
-                    return Directives.withRequestTimeoutResponse(request ->
-                            doHandleRequestTimeout(correlationId, requestContext, timer), innerWithTimer);
+            return Directives.withRequestTimeoutResponse(
+                    request -> doHandleRequestTimeout(correlationId, requestContext, timer, logger), innerWithTimer);
                 }
         ));
     }
 
-    private static void checkDurationWarning(final StoppedTimer mutableTimer, final CharSequence correlationId) {
+    private static void checkDurationWarning(final StoppedTimer mutableTimer, final Logger logger) {
         final Duration duration = mutableTimer.getDuration();
         final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
 
         if (requestPath != null && requestPath.contains("/search/things") &&
                 SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.withCorrelationId(correlationId).warn("Encountered slow search which took over <{}> ms: <{}> ms!",
-                    SEARCH_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
+            logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!", SEARCH_WARN_TIMEOUT_MS.toMillis(),
+                    duration.toMillis());
         } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.withCorrelationId(correlationId)
-                    .warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
-                            HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
+            logger.warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
+                    HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
         }
     }
 
-    private HttpResponse doHandleRequestTimeout(final CharSequence correlationId, final RequestContext requestContext,
-            final StartedTimer timer) {
+    private HttpResponse doHandleRequestTimeout(final CharSequence correlationId,
+            final RequestContext requestContext,
+            final StartedTimer timer,
+            final Logger logger) {
 
         final DittoRuntimeException cre = GatewayServiceUnavailableException.newBuilder()
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
@@ -125,21 +127,19 @@ public final class RequestTimeoutHandlingDirective {
 
         final String requestMethod = request.method().name();
         final String requestUri = request.getUri().toRelative().toString();
-        try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(correlationId)) {
-            logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
-                    httpConfig.getRequestTimeout());
-            logger.info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
-            final String rawRequestUri = getRawRequestUri(request);
-            logger.debug("Raw request URI was <{}>.", rawRequestUri);
+        logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
+                httpConfig.getRequestTimeout());
+        logger.info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
+        final String rawRequestUri = getRawRequestUri(request);
+        logger.debug("Raw request URI was <{}>.", rawRequestUri);
 
-            if (timer.isRunning()) {
-                timer.tag(TracingTags.STATUS_CODE, statusCode)
-                        .stop();
-                logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
-            } else {
-                logger.warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
-                        " was detected where it should not have been");
-            }
+        if (timer.isRunning()) {
+            timer.tag(TracingTags.STATUS_CODE, statusCode)
+                    .stop();
+            logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+        } else {
+            logger.warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
+                    " was detected where it should not have been");
         }
 
         /*
@@ -148,8 +148,7 @@ public final class RequestTimeoutHandlingDirective {
          */
         return HttpResponse.create()
                 .withStatus(statusCode)
-                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString()))
-                .addHeaders(SecurityResponseHeadersDirective.createSecurityResponseHeaders());
+                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString()));
     }
 
 }

@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -48,8 +49,12 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyFeatureProperties command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyFeatureProperties command,
+            @Nullable final Metadata metadata) {
+
         final String featureId = command.getFeatureId();
 
         final Thing nonNullThing = getEntityOrThrow(thing);
@@ -73,7 +78,7 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
                 command::getDittoHeaders);
 
         return extractFeature(command, nonNullThing)
-                .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing))
+                .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), featureId,
                                 command.getDittoHeaders()), command));
@@ -86,37 +91,40 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
     }
 
     private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final ModifyFeatureProperties command, @Nullable final Thing thing) {
+            final long nextRevision, final ModifyFeatureProperties command, @Nullable final Thing thing,
+            @Nullable final Metadata metadata) {
 
         return feature.getProperties()
-                .map(properties -> getModifyResult(context, nextRevision, command, thing))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
+                .map(properties -> getModifyResult(context, nextRevision, command, thing, metadata))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeatureProperties command, @Nullable final Thing thing) {
+            final ModifyFeatureProperties command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event = FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
-                getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event = FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
+                getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyFeaturePropertiesResponse.modified(context.getState(), featureId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeatureProperties command, @Nullable final Thing thing) {
+            final ModifyFeatureProperties command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final FeatureProperties featureProperties = command.getProperties();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event = FeaturePropertiesCreated.of(thingId, featureId, featureProperties, nextRevision,
-                getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event = FeaturePropertiesCreated.of(thingId, featureId, featureProperties, nextRevision,
+                getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyFeaturePropertiesResponse.created(thingId, featureId, featureProperties, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

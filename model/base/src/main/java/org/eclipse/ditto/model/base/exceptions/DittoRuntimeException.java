@@ -32,8 +32,10 @@ import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -160,7 +162,6 @@ public class DittoRuntimeException extends RuntimeException
     public static Builder newBuilder(final String errorCode, final HttpStatusCode statusCode) {
         return new Builder(errorCode, statusCode);
     }
-
     /**
      * Returns a new mutable builder with a fluent API for a {@code dittoRuntimeException}. The builder is already
      * initialized with the properties of the given exception.
@@ -182,18 +183,45 @@ public class DittoRuntimeException extends RuntimeException
                 .href(dittoRuntimeException.href);
     }
 
+    /**
+     * Read the href field from the json object.
+     * @param jsonObject the object.
+     * @return Optional containing the href if it was part of the json object.
+     * @throws NullPointerException if {@code jsonObject} was null.
+     * @deprecated since 1.3.0; might be removed from public API in future releases.
+     */
+    @Deprecated
     protected static Optional<URI> readHRef(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "jsonObject");
         return jsonObject.getValue(JsonFields.HREF).map(URI::create);
     }
 
+    /**
+     * Read the message field from the json object.
+     * @param jsonObject the object.
+     * @return the message.
+     * @throws NullPointerException if {@code jsonObject} was null.
+     * @throws JsonMissingFieldException if this JsonObject did not contain a value at all at the defined location.
+     * @throws JsonParseException if this JsonObject contained a value at the defined location with a type which is
+     * different from {@code T}.
+     * @deprecated since 1.3.0; might be removed from public API in future releases.
+     */
+    @Deprecated
     protected static String readMessage(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "jsonObject");
         return jsonObject.getValueOrThrow(JsonFields.MESSAGE);
     }
 
+    /**
+     * Read the description field from the json object.
+     * @param jsonObject the object.
+     * @return Optional containing the description if it was part of the json object.
+     * @throws NullPointerException if {@code jsonObject} was null.
+     * @deprecated since 1.3.0; might be removed from public API in future releases.
+     */
+    @Deprecated
     protected static Optional<String> readDescription(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "jsonObject");
         return jsonObject.getValue(JsonFields.DESCRIPTION);
     }
 
@@ -300,6 +328,52 @@ public class DittoRuntimeException extends RuntimeException
     }
 
     /**
+     * Creates a new {@code DittoRuntimeException} from a JSON object.
+     *
+     * @param jsonObject the JSON object of which the exception is to be created.
+     * @param dittoHeaders the headers of the exception.
+     * @param builder the builder for the exception.
+     * @param <T> the type of the DittoRuntimeException.
+     * @return the exception.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected.
+     * format.
+     * @since 1.3.0
+     */
+    public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders, final DittoRuntimeExceptionBuilder<T> builder) {
+        checkNotNull(builder, "builder");
+        readDescription(jsonObject).ifPresent(builder::description);
+        readHRef(jsonObject).ifPresent(builder::href);
+
+        return builder.dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .build();
+    }
+
+    /**
+     * Creates a new {@code DittoRuntimeException} from a message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders dittoHeaders the headers of the command which resulted in this exception.
+     * @param builder the builder for the exception.
+     * @param <T> the type of the DittoRuntimeException.
+     * @return the exception.
+     * @throws NullPointerException if {@code dittoHeaders} or {@code builder} argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static <T extends DittoRuntimeException> T fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders, final DittoRuntimeExceptionBuilder<T> builder) {
+        checkNotNull(builder, "builder");
+
+        return builder
+                .dittoHeaders(dittoHeaders)
+                .message(message)
+                .build();
+    }
+
+    /**
      * Allows to append exception-specific fields to the passed {@code jsonObjectBuilder}.
      *
      * @param jsonObjectBuilder the JsonObjectBuilder to add the fields to.
@@ -308,6 +382,15 @@ public class DittoRuntimeException extends RuntimeException
      */
     protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
         // empty per default
+    }
+
+    protected <T extends DittoRuntimeException> DittoRuntimeExceptionBuilder<T> toBuilder(final DittoRuntimeExceptionBuilder<T> builder) {
+        builder.message(getMessage());
+        builder.dittoHeaders(getDittoHeaders());
+        builder.cause(getCause());
+        getHref().ifPresent(builder::href);
+        getDescription().ifPresent(builder::description);
+        return builder;
     }
 
     /**

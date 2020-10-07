@@ -38,6 +38,7 @@ public class ThingDefinitionModifiedTest {
             .set(Event.JsonFields.TYPE, ThingDefinitionModified.TYPE)
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingDefinitionModified.JSON_DEFINITION, JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
             .build();
@@ -68,7 +69,7 @@ public class ThingDefinitionModifiedTest {
         final ThingDefinitionModified underTest =
                 ThingDefinitionModified.of(TestConstants.Thing.THING_ID, TestConstants.Thing.DEFINITION,
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -89,7 +90,7 @@ public class ThingDefinitionModifiedTest {
         final ThingDefinitionModified underTest =
                 ThingDefinitionModified.of(TestConstants.Thing.THING_ID, TestConstants.Thing.DEFINITION,
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
 
         assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

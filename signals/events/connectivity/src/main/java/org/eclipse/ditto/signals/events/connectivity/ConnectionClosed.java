@@ -142,7 +142,7 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      */
     public static ConnectionClosed fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ConnectionClosed>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final String readConnectionId = jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 

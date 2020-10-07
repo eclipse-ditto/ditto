@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
@@ -42,7 +43,8 @@ final class SudoRetrievePolicyRevisionStrategy extends AbstractPolicyQueryComman
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
-            final SudoRetrievePolicyRevision command) {
+            final SudoRetrievePolicyRevision command,
+            @Nullable final Metadata metadata) {
 
         final Optional<Long> revisionOptional = Optional.ofNullable(entity)
                 .flatMap(Policy::getRevision)

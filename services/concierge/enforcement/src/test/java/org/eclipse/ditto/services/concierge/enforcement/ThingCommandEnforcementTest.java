@@ -61,6 +61,8 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
@@ -80,7 +82,9 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -93,6 +97,9 @@ import scala.concurrent.duration.Duration;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
+
+    @Rule
+    public final TestName testName = new TestName();
 
     private ActorSystem system;
     private MockEntitiesActor mockEntitiesActorInstance;
@@ -601,6 +608,53 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
+    public void testCreateByCopyFromPolicyWithAllowPolicyLockout() {
+        testCreateByCopyFromPolicy(headers(V_2).toBuilder().allowPolicyLockout(true).build(),
+                CreateThingResponse.class);
+    }
+
+    @Test
+    public void testCreateByCopyFromPolicyWithPolicyLockout() {
+        testCreateByCopyFromPolicy(headers(V_2), ThingNotModifiableException.class);
+    }
+
+    private void testCreateByCopyFromPolicy(final DittoHeaders dittoHeaders, final Class<?> expectedResponseClass) {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT_ID)
+                // authorized subject has WRITE on thing:/ resource
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .forLabel("admin")
+                .setSubject(GOOGLE, "admin")
+                // some other subject has WRITE on policy:/ resource
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .build();
+        final Thing thing = newThing().build();
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance
+                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build())
+                    .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)));
+
+            final TestProbe conciergeProbe = new TestProbe(system, TestSetup.createUniqueName());
+
+            final ActorRef underTest = newEnforcerActor(getRef(), conciergeProbe.ref());
+            final CreateThing createThing = CreateThing.of(thing, null, policyId.toString(), dittoHeaders);
+
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)));
+
+            underTest.tell(createThing, getRef());
+
+            final RetrievePolicy retrievePolicy = conciergeProbe.expectMsgClass(RetrievePolicy.class);
+            conciergeProbe.lastSender().tell(RetrievePolicyResponse.of(policyId, policy,
+                    retrievePolicy.getDittoHeaders()), ActorRef.noSender());
+
+            fishForMsgClass(this, expectedResponseClass);
+        }};
+    }
+
+    @Test
     public void rejectCreateByInlinePolicyWithInvalidId() {
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
@@ -680,6 +734,11 @@ public final class ThingCommandEnforcementTest {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor);
     }
 
+    private ActorRef newEnforcerActor(final ActorRef testActorRef, final ActorRef conciergeForwarderRef) {
+        return new TestSetup.EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).setConciergeForwarder(
+                conciergeForwarderRef).build();
+    }
+
     private static JsonObject newThingWithPolicyId(final CharSequence policyId) {
         return newThing()
                 .setPolicyId(PolicyId.of(policyId))
@@ -687,11 +746,12 @@ public final class ThingCommandEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
+    private DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
                 .authorizationContext(
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
                                 AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
+                .correlationId(testName.getMethodName())
                 .schemaVersion(schemaVersion)
                 .build();
     }
@@ -712,11 +772,11 @@ public final class ThingCommandEnforcementTest {
                 .toJson(V_2, FieldType.all());
     }
 
-    private static ThingCommand getReadCommand() {
+    private ThingCommand getReadCommand() {
         return RetrieveThing.of(THING_ID, headers(V_2));
     }
 
-    private static ThingCommand getModifyCommand() {
+    private ThingCommand getModifyCommand() {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
     }
 

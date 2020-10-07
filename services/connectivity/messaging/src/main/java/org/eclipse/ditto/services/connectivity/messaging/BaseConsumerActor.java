@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -43,6 +44,9 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
@@ -56,8 +60,11 @@ import akka.pattern.Patterns;
  */
 public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
+    private static final String TIMER_ACK_HANDLING = "connectivity_ack_handling";
+
     protected final String sourceAddress;
     protected final Source source;
+    private final ConnectionType connectionType;
     protected final ConnectionMonitor inboundMonitor;
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
@@ -68,11 +75,12 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef inboundMappingProcessor, final Source source) {
+            final ActorRef inboundMappingProcessor, final Source source, final ConnectionType connectionType) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "messageMappingProcessor");
         this.source = checkNotNull(source, "source");
+        this.connectionType = checkNotNull(connectionType, "connectionType");
         resetResourceStatus();
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
@@ -103,11 +111,17 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
             final Reject reject) {
+
+        final StartedTimer timer = DittoMetrics.expiringTimer(TIMER_ACK_HANDLING)
+                .tag(TracingTags.CONNECTION_ID, connectionId.toString())
+                .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
+                .build();
         forwardAndAwaitAck(addSourceAndReplyTarget(message))
                 .handle((output, error) -> {
                     if (output != null) {
                         final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
+                            timer.tag(TracingTags.ACK_SUCCESS, true).stop();
                             settle.run();
                         } else {
                             // empty failed responses indicate that SetCount was missing
@@ -115,6 +129,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                     someFailedResponseRequiresRedelivery(failedResponses);
                             log().debug("Rejecting [redeliver={}] due to failed responses <{}>",
                                     shouldRedeliver, failedResponses);
+                            timer.tag(TracingTags.ACK_SUCCESS, false)
+                                    .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
+                                    .stop();
                             reject.reject(shouldRedeliver);
                         }
                     } else {
@@ -122,6 +139,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                 DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
                                     // Redeliver and pray this unexpected error goes away
                                     log().debug("Rejecting [redeliver=true] due to error <{}>", rootCause);
+                                    timer.tag(TracingTags.ACK_SUCCESS, false)
+                                            .tag(TracingTags.ACK_REDELIVER, true)
+                                            .stop();
                                     reject.reject(true);
                                     inboundFailure(rootCause);
                                     return null;
@@ -130,6 +150,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             final boolean shouldRedeliver = requiresRedelivery(dittoRuntimeException.getStatusCode());
                             log().debug("Rejecting [redeliver={}] due to error <{}>",
                                     shouldRedeliver, dittoRuntimeException);
+                            timer.tag(TracingTags.ACK_SUCCESS, false)
+                                    .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
+                                    .stop();
                             reject.reject(shouldRedeliver);
                             inboundFailure(dittoRuntimeException);
                         }

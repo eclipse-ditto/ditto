@@ -12,18 +12,25 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
@@ -38,11 +45,12 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -55,17 +63,21 @@ import akka.actor.ActorSystem;
 public final class OutboundMappingProcessor extends AbstractMappingProcessor<OutboundSignal, OutboundSignal.Mapped> {
 
     private final ConnectionId connectionId;
-    private final DittoDiagnosticLoggingAdapter logger;
+    private final ConnectionType connectionType;
+    private final ThreadSafeDittoLoggingAdapter logger;
     private final ProtocolAdapter protocolAdapter;
 
     private OutboundMappingProcessor(final ConnectionId connectionId,
+            final ConnectionType connectionType,
             final MessageMapperRegistry registry,
-            final DittoDiagnosticLoggingAdapter logger,
-            final ProtocolAdapter protocolAdapter) {
+            final ThreadSafeDittoLoggingAdapter logger,
+            final ProtocolAdapter protocolAdapter,
+            final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
 
         super(registry, logger, connectionId);
+        this.connectionType = connectionType;
         this.connectionId = connectionId;
-        this.logger = logger;
+        this.logger = checkNotNull(logger, "logger");
         this.protocolAdapter = protocolAdapter;
     }
 
@@ -73,12 +85,13 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connectionId the connection that the processor works for.
+     * @param connectionId the connection ID that the processor works for.
+     * @param connectionType the type of the connection that the processor works for.
      * @param mappingDefinition the configured mappings used by this processor
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param protocolAdapter the ProtocolAdapter to be used.
-     * @param log the log adapter.
+     * @param logger the logging adapter to be used for log statements.
      * @return the processor instance.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
      * one of the {@code mappingContext} is invalid.
@@ -86,18 +99,24 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
     public static OutboundMappingProcessor of(final ConnectionId connectionId,
+            final ConnectionType connectionType,
             final PayloadMappingDefinition mappingDefinition,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
             final ProtocolAdapter protocolAdapter,
-            final DittoDiagnosticLoggingAdapter log) {
+            final ThreadSafeDittoLoggingAdapter logger) {
+
+        final ThreadSafeDittoLoggingAdapter loggerWithConnectionId =
+                logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), log);
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(),
+                        loggerWithConnectionId);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
-        return new OutboundMappingProcessor(connectionId, registry, log, protocolAdapter);
+        return new OutboundMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
+                protocolAdapter);
     }
 
     /**
@@ -142,13 +161,12 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final List<OutboundSignal.Mappable> mappableSignals,
             final MappingResultHandler<OutboundSignal.Mapped, R> resultHandler) {
 
-        final MappingTimer timer = MappingTimer.outbound(connectionId);
+        final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType);
         final Adaptable adaptableWithoutExtra =
                 timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
         final Adaptable adaptable = outboundSignal.getExtra()
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
-        enhanceLogFromAdaptable(adaptable);
         resultHandler.onTopicPathResolved(adaptable.getTopicPath());
 
         R result = resultHandler.emptyResult();
@@ -156,7 +174,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final Signal<?> source = mappableSignal.getSource();
             final List<Target> targets = mappableSignal.getTargets();
             final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-            logger.withCorrelationId(source)
+            logger.withCorrelationId(adaptable)
                     .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
             // convert messages in the order of payload mapping and forward to result handler
             for (final MessageMapper mapper : mappers) {
@@ -175,7 +193,6 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
 
         R result = resultHandler.emptyResult();
         try {
-
             if (shouldMapMessageByConditions(outboundSignal, mapper)) {
                 logger.withCorrelationId(adaptable)
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
@@ -205,7 +222,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 }
             } else {
                 result = resultHandler.onMessageDropped();
-                logger.withCorrelationId(outboundSignal.getSource().getDittoHeaders())
+                logger.withCorrelationId(adaptable)
                         .debug("Not mapping message with mapper <{}> as MessageMapper conditions {} were not matched.",
                                 mapper.getId(), mapper.getIncomingConditions());
             }

@@ -34,10 +34,13 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,8 +48,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -366,42 +367,46 @@ public final class BaseClientActorTest {
         verify(delegate, timeout(connectingTimeout.toMillis() + 500).atLeastOnce()).cleanupResourcesForConnection();
     }
 
-    private void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection,
+    private static void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection,
             final ActorRef sender) {
+
         clientActor.tell(openConnection, sender);
     }
 
-    private void andClosingConnection(final ActorRef clientActor, final CloseConnection closeConnection,
+    private static void andClosingConnection(final ActorRef clientActor, final CloseConnection closeConnection,
             final ActorRef sender) {
+
         clientActor.tell(closeConnection, sender);
     }
 
-    private void andConnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
+    private static void andConnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
         clientActor.tell((ClientConnected) () -> Optional.of(origin), clientActor);
     }
 
-    private void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
+    private static void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
         clientActor.tell((ClientDisconnected) () -> Optional.of(origin), clientActor);
     }
 
-    private void andConnectionNotSuccessful(final ActorRef clientActor) {
+    private static void andConnectionNotSuccessful(final ActorRef clientActor) {
         clientActor.tell(new ImmutableConnectionFailure(null, null, "expected exception"),
                 clientActor);
     }
 
-    private void andStateTimeoutSent(final ActorRef clientActor) {
+    private static void andStateTimeoutSent(final ActorRef clientActor) {
         clientActor.tell(FSM.StateTimeout$.MODULE$, clientActor);
     }
 
     private static final class DummyClientActor extends BaseClientActor {
 
-        private static final Logger LOGGER = LoggerFactory.getLogger(DummyClientActor.class);
-
         private final ActorRef publisherActor;
         private final BaseClientActor delegate;
 
-        public DummyClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-                final ActorRef connectionActor, final ActorRef publisherActor, final BaseClientActor delegate) {
+        public DummyClientActor(final Connection connection,
+                @Nullable final ActorRef proxyActor,
+                final ActorRef connectionActor,
+                final ActorRef publisherActor,
+                final BaseClientActor delegate) {
+
             super(connection, proxyActor, connectionActor);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
@@ -424,32 +429,34 @@ public final class BaseClientActorTest {
         }
 
         @Override
-        protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-            LOGGER.info("doTestConnection");
-            return delegate.doTestConnection(connection);
+        protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
+            logger.withCorrelationId(testConnectionCommand)
+                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, testConnectionCommand.getConnectionEntityId())
+                    .info("doTestConnection");
+            return delegate.doTestConnection(testConnectionCommand);
         }
 
         @Override
         protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-            LOGGER.info("allocateResourcesOnConnection");
+            logger.info("allocateResourcesOnConnection");
             delegate.allocateResourcesOnConnection(clientConnected);
         }
 
         @Override
         protected void cleanupResourcesForConnection() {
-            LOGGER.info("cleanupResourcesForConnection");
+            logger.info("cleanupResourcesForConnection");
             delegate.cleanupResourcesForConnection();
         }
 
         @Override
         protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-            LOGGER.info("doConnectClient");
+            logger.info("doConnectClient");
             delegate.doConnectClient(connection, origin);
         }
 
         @Override
         protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-            LOGGER.info("doDisconnectClient");
+            logger.info("doDisconnectClient");
             delegate.doDisconnectClient(connection, origin);
         }
 
@@ -463,6 +470,7 @@ public final class BaseClientActorTest {
         protected ActorRef getPublisherActor() {
             return publisherActor;
         }
+
     }
 
 }

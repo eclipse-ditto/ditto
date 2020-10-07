@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
  * A builder to create {@link Payload} instances.
@@ -74,6 +75,15 @@ public interface PayloadBuilder {
      * @return this builder to allow method chaining.
      */
     PayloadBuilder withTimestamp(@Nullable Instant timestamp);
+
+    /**
+     * Sets the given {@code metadata} to this builder. A previously set metadata is replaced.
+     *
+     * @param metadata the metadata to set.
+     * @return this builder to allow method chaining.
+     * @since 1.3.0
+     */
+    PayloadBuilder withMetadata(@Nullable Metadata metadata);
 
     /**
      * Sets the given {@code fields} to this builder. Previously set fields are replaced.

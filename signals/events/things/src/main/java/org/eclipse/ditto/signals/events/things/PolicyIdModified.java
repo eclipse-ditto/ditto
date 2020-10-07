@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -63,9 +64,10 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             final PolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.policyId = policyId;
     }
 
@@ -106,7 +108,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, policyId, revision, null, dittoHeaders);
+        return of(thingId, policyId, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -120,7 +122,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, PolicyId, long, Instant, DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.policies.PolicyId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -130,7 +132,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), PolicyId.of(policyId), revision, timestamp, dittoHeaders);
+        return of(ThingId.of(thingId), PolicyId.of(policyId), revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -143,14 +145,40 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.policies.PolicyId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static PolicyIdModified of(final ThingId thingId,
             final PolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new PolicyIdModified(thingId, policyId, revision, timestamp, dittoHeaders);
+        return of(thingId, policyId, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Creates a new {@code PolicyIdModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param policyId the ID of the Policy.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the {@code PolicyIdModified}
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static PolicyIdModified of(final ThingId thingId,
+            final PolicyId policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new PolicyIdModified(thingId, policyId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -179,14 +207,15 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * 'PolicyIdModified' format.
      */
     public static PolicyIdModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyIdModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
-            final PolicyId thingPolicyId = PolicyId.of(extractedPolicyId);
+        return new EventJsonDeserializer<PolicyIdModified>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
+                    final PolicyId thingPolicyId = PolicyId.of(extractedPolicyId);
 
-            return of(thingId, thingPolicyId, revision, timestamp, dittoHeaders);
-        });
+                    return of(thingId, thingPolicyId, revision, timestamp, dittoHeaders, metadata);
+                });
     }
 
     /**
@@ -222,12 +251,14 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
 
     @Override
     public PolicyIdModified setRevision(final long revision) {
-        return of(getThingEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public PolicyIdModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

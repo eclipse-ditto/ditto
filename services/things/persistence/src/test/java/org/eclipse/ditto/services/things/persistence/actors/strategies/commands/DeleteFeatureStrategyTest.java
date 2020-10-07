@@ -12,12 +12,16 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
@@ -55,11 +59,15 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void successfullyDeleteFeatureFromThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, DittoHeaders.empty());
+        final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, DittoHeaders.newBuilder()
+                // metadata is ignored
+                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("sn")), JsonValue.of(2))
+                .build());
 
-        assertModificationResult(underTest, THING_V2, command,
-                FeatureDeleted.class,
+        final FeatureDeleted event = assertModificationResult(underTest, THING_V2, command, FeatureDeleted.class,
                 DeleteFeatureResponse.of(context.getState(), command.getFeatureId(), command.getDittoHeaders()));
+
+        assertThat(event.getMetadata()).isEmpty();
     }
 
     @Test
