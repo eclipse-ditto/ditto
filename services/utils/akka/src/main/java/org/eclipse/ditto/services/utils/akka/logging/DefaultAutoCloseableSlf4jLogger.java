@@ -552,7 +552,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public DefaultAutoCloseableSlf4jLogger removeMdcEntry(final CharSequence key) {
         final String keyAsString = validateMdcEntryKey(key).toString();
-        localMdc.remove(key);
+        localMdc.remove(keyAsString);
         MDC.remove(keyAsString);
         return this;
     }
