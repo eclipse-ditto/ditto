@@ -12,22 +12,16 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -51,33 +45,25 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorSystem;
 
 /**
- * Processes outgoing {@link org.eclipse.ditto.signals.base.Signal}s to {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage}s.
+ * Processes outgoing {@link Signal}s to {@link ExternalMessage}s.
  * Encapsulates the message processing logic from the message mapping processor actor.
  */
 public final class OutboundMappingProcessor extends AbstractMappingProcessor<OutboundSignal, OutboundSignal.Mapped> {
 
-    private final ConnectionId connectionId;
-    private final ConnectionType connectionType;
-    private final ThreadSafeDittoLoggingAdapter logger;
     private final ProtocolAdapter protocolAdapter;
 
     private OutboundMappingProcessor(final ConnectionId connectionId,
             final ConnectionType connectionType,
             final MessageMapperRegistry registry,
             final ThreadSafeDittoLoggingAdapter logger,
-            final ProtocolAdapter protocolAdapter,
-            final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
+            final ProtocolAdapter protocolAdapter) {
 
-        super(registry, logger, connectionId);
-        this.connectionType = connectionType;
-        this.connectionId = connectionId;
-        this.logger = checkNotNull(logger, "logger");
+        super(registry, logger, connectionId, connectionType);
         this.protocolAdapter = protocolAdapter;
     }
 
@@ -120,7 +106,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     }
 
     /**
-     * Processes an {@link org.eclipse.ditto.services.models.connectivity.OutboundSignal} to 0..n {@link org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped} signals and passes them to the given
+     * Processes an {@link OutboundSignal} to 0..n {@link OutboundSignal.Mapped} signals and passes them to the given
      * {@link MappingResultHandler}.
      *
      * @param outboundSignal the outboundSignal to be processed.

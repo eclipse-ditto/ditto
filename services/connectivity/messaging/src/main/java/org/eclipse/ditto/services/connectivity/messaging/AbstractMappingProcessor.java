@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -20,38 +23,54 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
+/**
+ * TODO javadoc
+ * @param <I>
+ * @param <O>
+ */
 abstract class AbstractMappingProcessor<I, O> {
 
+    protected final ThreadSafeDittoLoggingAdapter logger;
+    protected final ConnectionId connectionId;
+    protected final ConnectionType connectionType;
+
     private final MessageMapperRegistry registry;
-    private final DittoDiagnosticLoggingAdapter logger;
-    private final ConnectionId connectionId;
 
     protected AbstractMappingProcessor(final MessageMapperRegistry registry,
-            final DittoDiagnosticLoggingAdapter logger,
-            final ConnectionId connectionId) {
+            final ThreadSafeDittoLoggingAdapter logger,
+            final ConnectionId connectionId,
+            final ConnectionType connectionType) {
 
-        this.registry = registry;
-        this.logger = logger;
-        this.connectionId = connectionId;
+        this.logger = checkNotNull(logger, "logger");
+        this.connectionId = checkNotNull(connectionId, "connectionId");
+        this.connectionType = checkNotNull(connectionType, "connectionType");
+        this.registry = checkNotNull(registry, "registry");
         logger.info("Configured for processing messages with the following MessageMapperRegistry: <{}>", registry);
     }
 
-    abstract <R> R process(final I incoming, final MappingResultHandler<O, R> resultHandler);
+    /**
+     * TODO javadoc
+     * @param incoming
+     * @param resultHandler
+     * @param <R>
+     * @return
+     */
+    abstract <R> R process(I incoming, MappingResultHandler<O, R> resultHandler);
 
     boolean resolveConditions(final Collection<String> conditions, final ExpressionResolver resolver) {
         boolean conditionBool = true;
-        for (String condition : conditions) {
-            final String template = "{{ fn:default('true') | " + condition + " }}";
+        final String templatePattern = "'{{' fn:default(''true'') | {0} '}}'";
+        for (final String condition : conditions) {
+            final String template = MessageFormat.format(templatePattern, condition);
             final String resolvedCondition =
                     PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
             conditionBool &= Boolean.parseBoolean(resolvedCondition);
@@ -84,10 +103,6 @@ abstract class AbstractMappingProcessor<I, O> {
         } else {
             return mappers;
         }
-    }
-
-    void enhanceLogFromAdaptable(final Adaptable adaptable) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, adaptable, connectionId);
     }
 
 }

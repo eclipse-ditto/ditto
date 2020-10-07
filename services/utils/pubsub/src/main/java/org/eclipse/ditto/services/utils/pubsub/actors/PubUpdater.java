@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -31,8 +31,7 @@ public final class PubUpdater extends AbstractActorWithTimers implements Cluster
      */
     public static final String ACTOR_NAME_PREFIX = "pubUpdater";
 
-    // TODO: use thread-safe variant
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final DDataWriter<?> ddataWriter;
 

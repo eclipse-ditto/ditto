@@ -34,8 +34,8 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 
 import akka.http.javadsl.model.HttpRequest;
@@ -60,8 +60,8 @@ import akka.http.javadsl.server.RequestContext;
 public final class PreAuthenticatedAuthenticationProvider
         extends TimeMeasuringAuthenticationProvider<AuthenticationResult> {
 
-    private static final DittoLogger LOGGER =
-            DittoLoggerFactory.getLogger(PreAuthenticatedAuthenticationProvider.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(PreAuthenticatedAuthenticationProvider.class);
 
     private static final PreAuthenticatedAuthenticationProvider INSTANCE = new PreAuthenticatedAuthenticationProvider();
 

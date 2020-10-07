@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
@@ -42,7 +43,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConf
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -78,16 +79,19 @@ public final class OutboundMappingProcessorTest {
     private static ActorSystem actorSystem;
     private static ConnectivityConfig connectivityConfig;
     private static ProtocolAdapterProvider protocolAdapterProvider;
-    private static DittoDiagnosticLoggingAdapter logger;
+    private static ThreadSafeDittoLoggingAdapter logger;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
 
-        logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
-        when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
+        logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(String.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(WithDittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
 
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
@@ -132,7 +136,7 @@ public final class OutboundMappingProcessorTest {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
-        underTest = OutboundMappingProcessor.of(ConnectionId.of("theConnection"), payloadMappingDefinition, actorSystem,
+        underTest = OutboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10, payloadMappingDefinition, actorSystem,
                 connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 

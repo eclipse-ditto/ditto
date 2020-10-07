@@ -78,7 +78,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             final ActorRef inboundMappingProcessor, final Source source, final ConnectionType connectionType) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
-        this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "messageMappingProcessor");
+        this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "inboundMappingProcessor");
         this.source = checkNotNull(source, "source");
         this.connectionType = checkNotNull(connectionType, "connectionType");
         resetResourceStatus();

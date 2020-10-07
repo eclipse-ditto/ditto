@@ -26,8 +26,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -37,7 +37,9 @@ import akka.http.javadsl.server.RequestContext;
 @Immutable
 public final class AuthenticationChain {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationChain.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
+            .getThreadSafeLogger(AuthenticationChain.class);
+
     private final Collection<AuthenticationProvider<?>> authenticationProviderChain;
     private final Executor authenticationDispatcher;
     private final AuthenticationFailureAggregator authenticationFailureAggregator;
@@ -140,20 +142,20 @@ public final class AuthenticationChain {
 
         private void logSuccess(final AuthenticationProvider<?> provider) {
             if (LOGGER.isDebugEnabled()) {
-                // TODO: enhance with correlation ID thread-safely
-                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
-                        provider.getClass().getSimpleName(), requestContext.getRequest().getUri());
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
+                                provider.getClass().getSimpleName(), requestContext.getRequest().getUri());
             }
         }
 
         private void logFailure(final AuthenticationProvider<?> provider, final AuthenticationResult result) {
             if (LOGGER.isDebugEnabled()) {
-                // TODO: enhance with correlation ID thread-safely
-                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed due to {}: {}",
-                        provider.getClass().getSimpleName(),
-                        requestContext.getRequest().getUri(),
-                        result.getReasonOfFailure().getClass().getSimpleName(),
-                        result.getReasonOfFailure().getMessage());
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .debug("Authentication using authentication provider <{}> to URI <{}> failed due to {}: {}",
+                                provider.getClass().getSimpleName(),
+                                requestContext.getRequest().getUri(),
+                                result.getReasonOfFailure().getClass().getSimpleName(),
+                                result.getReasonOfFailure().getMessage());
             }
         }
 

@@ -370,13 +370,20 @@ public abstract class AbstractConsumerActorTest<M> {
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final InboundMappingProcessor inboundMappingProcessor =
-                InboundMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
-                        actorSystem,
-                        connectivityConfig, protocolAdapter, logger);
-        final OutboundMappingProcessor outboundMappingProcessor =
-                OutboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
-                        connectivityConfig, protocolAdapter, logger);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                payloadMappingDefinition,
+                actorSystem,
+                connectivityConfig,
+                protocolAdapter,
+                logger);
+        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                payloadMappingDefinition,
+                actorSystem,
+                connectivityConfig,
+                protocolAdapter,
+                logger);
         final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

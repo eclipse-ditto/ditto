@@ -17,8 +17,6 @@ import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Duration;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,13 +41,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
-import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
-import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
@@ -74,7 +68,6 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped;
@@ -82,20 +75,13 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -105,8 +91,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -127,7 +111,7 @@ public final class OutboundMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
-    private final ThreadSafeDittoLogger logger;
+    private final ThreadSafeDittoLoggingAdapter logger;
 
     private final ActorRef clientActor;
     private final OutboundMappingProcessor outboundMappingProcessor;
@@ -141,6 +125,7 @@ public final class OutboundMappingProcessorActor
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
 
+    @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
@@ -152,7 +137,7 @@ public final class OutboundMappingProcessorActor
         this.outboundMappingProcessor = outboundMappingProcessor;
         this.connectionId = connection.getId();
 
-        logger = DittoLoggerFactory.getThreadSafeLogger(MessageMappingProcessorActor.class)
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         final DefaultScopedConfig dittoScoped =
@@ -185,14 +170,13 @@ public final class OutboundMappingProcessorActor
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param clientActor the client actor that created this mapping actor
+     * @param clientActor the client actor that created this mapping actor.
      * @param outboundMappingProcessor the MessageMappingProcessor to use for outbound messages.
-     * @param connection the connection
+     * @param connection the connection.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
-    public static Props props(
-            final ActorRef clientActor,
+    public static Props props(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
             final int processorPoolSize) {
@@ -201,7 +185,8 @@ public final class OutboundMappingProcessorActor
                 clientActor,
                 outboundMappingProcessor,
                 connection,
-                processorPoolSize).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+                processorPoolSize
+        ).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
@@ -216,14 +201,14 @@ public final class OutboundMappingProcessorActor
                 .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
-                .match(Status.Failure.class, f -> logger.warn("Got failure with cause {}: {}",
+                .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
     }
 
     private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
         logger.withCorrelationId(acknowledgement)
-                .warn("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
+                .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
     }
 
     @Override
@@ -336,7 +321,7 @@ public final class OutboundMappingProcessorActor
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
                 .exceptionally(error -> {
                     logger.withCorrelationId(outboundSignal.getSource())
-                            .warn("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),
+                            .warning("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),
                                     error.getMessage());
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
                     return Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error));
@@ -385,7 +370,7 @@ public final class OutboundMappingProcessorActor
     private void handleErrorResponse(final DittoRuntimeException exception, final ErrorResponse<?> errorResponse,
             final ActorRef sender) {
 
-        final ThreadSafeDittoLogger l = logger.withCorrelationId(exception);
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(exception);
 
         if (l.isInfoEnabled()) {
             l.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
@@ -404,7 +389,7 @@ public final class OutboundMappingProcessorActor
     private void handleCommandResponse(final CommandResponse<?> response,
             @Nullable final DittoRuntimeException exception, final ActorRef sender) {
 
-        final ThreadSafeDittoLogger l = logger.isDebugEnabled() ? logger.withCorrelationId(response) : logger;
+        final ThreadSafeDittoLoggingAdapter l = logger.isDebugEnabled() ? logger.withCorrelationId(response) : logger;
         recordResponse(response, exception);
         if (!response.isOfExpectedResponseType()) {
             l.debug("Requester did not require response (via DittoHeader '{}') - not mapping back to ExternalMessage.",
@@ -469,7 +454,7 @@ public final class OutboundMappingProcessorActor
                                         e.getDescription().orElse(""));
                     } else {
                         logger.withCorrelationId(outbound.getSource())
-                                .warn("Got unexpected exception during processing Signal <{}>.",
+                                .warning("Got unexpected exception during processing Signal <{}>.",
                                         exception.getMessage());
                     }
                 })

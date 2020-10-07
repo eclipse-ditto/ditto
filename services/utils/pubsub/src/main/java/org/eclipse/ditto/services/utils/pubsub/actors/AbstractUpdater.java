@@ -23,7 +23,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
@@ -35,7 +36,6 @@ import akka.actor.ActorRef;
 import akka.actor.Status;
 import akka.actor.Terminated;
 import akka.cluster.ddata.Replicator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -50,8 +50,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     // pseudo-random number generator for force updates. quality matters little.
     private final Random random = new Random();
 
-    // TODO: check if this should be thread-safe.
-    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     protected final PubSubConfig config;
     protected final Subscriptions<T> subscriptions;

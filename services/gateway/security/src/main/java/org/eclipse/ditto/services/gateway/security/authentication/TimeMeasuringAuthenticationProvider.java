@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -43,7 +43,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     private static final String AUTH_ERROR_TAG = TracingTags.AUTH_ERROR;
     private static final String AUTH_SUCCESS_TAG = TracingTags.AUTH_SUCCESS;
 
-    private final DittoLogger logger;
+    private final ThreadSafeDittoLogger logger;
 
     /**
      * Constructs a new TimeMeasuringAuthenticationProvider object.
@@ -51,7 +51,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      * @param logger the logger to be used.
      * @throws NullPointerException if {@code logger} is {@code null}.
      */
-    protected TimeMeasuringAuthenticationProvider(final DittoLogger logger) {
+    protected TimeMeasuringAuthenticationProvider(final ThreadSafeDittoLogger logger) {
         this.logger = checkNotNull(logger, "logger");
     }
 

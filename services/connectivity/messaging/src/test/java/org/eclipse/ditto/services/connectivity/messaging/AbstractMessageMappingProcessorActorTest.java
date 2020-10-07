@@ -313,17 +313,23 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
-        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final InboundMappingProcessor inboundMappingProcessor =
-                InboundMappingProcessor.of(CONNECTION_ID, payloadMappingDefinition, actorSystem,
-                        TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                payloadMappingDefinition,
+                actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapter,
+                logger);
 
         final Props inboundMappingProcessorProps = InboundMappingProcessorActor.props(kit.getRef(),
                 inboundMappingProcessor, protocolAdapter.headerTranslator(),

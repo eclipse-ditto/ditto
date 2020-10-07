@@ -51,10 +51,12 @@ import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
@@ -99,6 +101,8 @@ public final class InboundMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
+    private final ThreadSafeDittoLoggingAdapter logger;
+
     private final InboundMappingProcessor inboundMappingProcessor;
     private final HeaderTranslator headerTranslator;
     private final ConnectionId connectionId;
@@ -112,6 +116,7 @@ public final class InboundMappingProcessorActor
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final ActorRef outboundMessageMappingProcessorActor;
 
+    @SuppressWarnings("unused")
     private InboundMappingProcessorActor(final ActorRef proxyActor,
             final InboundMappingProcessor inboundMappingProcessor,
             final HeaderTranslator headerTranslator,
@@ -128,6 +133,9 @@ public final class InboundMappingProcessorActor
         this.headerTranslator = headerTranslator;
         this.connectionId = connection.getId();
         this.connectionActor = connectionActor;
+
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         final DefaultScopedConfig dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
@@ -151,10 +159,8 @@ public final class InboundMappingProcessorActor
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
         if (connectionPoolSize > maxPoolSize) {
-            ConnectionLogUtil.enhanceLogWithConnectionId(logger, connectionId);
             logger.info("Configured pool size <{}> is greater than the configured max pool size <{}>." +
                     " Will use max pool size <{}>.", connectionPoolSize, maxPoolSize, maxPoolSize);
-            ConnectionLogUtil.removeConnectionId(logger);
             return maxPoolSize;
         }
         return connectionPoolSize;
@@ -180,9 +186,15 @@ public final class InboundMappingProcessorActor
             final int processorPoolSize,
             final ActorRef outboundMessageMappingProcessorActor) {
 
-        return Props.create(InboundMappingProcessorActor.class, proxyActor, inboundMappingProcessor, headerTranslator,
-                connection, connectionActor, processorPoolSize, outboundMessageMappingProcessorActor)
-                .withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+        return Props.create(InboundMappingProcessorActor.class,
+                proxyActor,
+                inboundMappingProcessor,
+                headerTranslator,
+                connection,
+                connectionActor,
+                processorPoolSize,
+                outboundMessageMappingProcessorActor
+        ).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
 
     @Override
@@ -285,7 +297,8 @@ public final class InboundMappingProcessorActor
 
     private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
-        logger.warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
+        logger.withCorrelationId(acknowledgement)
+                .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
     }
 
     /**
@@ -442,8 +455,8 @@ public final class InboundMappingProcessorActor
         final ExternalMessage externalMessage = withSender.externalMessage;
         final String correlationId =
                 externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, correlationId, connectionId);
-        logger.debug("Handling ExternalMessage: {}", externalMessage);
+        logger.withCorrelationId(correlationId)
+                .debug("Handling ExternalMessage: {}", externalMessage);
         final org.eclipse.ditto.model.connectivity.Source source = externalMessage.getSource().orElse(null);
         try {
             return new MappedExternalMessage(mapExternalMessageToSignal(withSender), withSender.sender, source);
@@ -494,7 +507,6 @@ public final class InboundMappingProcessorActor
         return InboundMappingResultHandler.newBuilder()
                 .onMessageMapped(mappedInboundMessage -> {
                     final Signal<?> signal = mappedInboundMessage.getSignal();
-                    enhanceLogUtil(signal);
 
                     final DittoHeaders mappedHeaders =
                             applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
@@ -503,13 +515,11 @@ public final class InboundMappingProcessorActor
                     final Signal<?> adjustedSignal = appendConnectionAcknowledgementsToSignal(incomingMessage,
                             signal.setDittoHeaders(mappedHeaders));
 
-                    enhanceLogUtil(adjustedSignal);
                     // enforce signal ID after header mapping was done
                     connectionMonitorRegistry.forInboundEnforced(connectionId, source)
                             .wrapExecution(adjustedSignal)
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
                     // the above throws an exception if signal id enforcement fails
-
 
                     return Source.single(adjustedSignal);
                 })
@@ -521,10 +531,6 @@ public final class InboundMappingProcessorActor
                 .inboundDropped(connectionMonitorRegistry.forInboundDropped(connectionId, source))
                 .infoProvider(InfoProviderFactory.forExternalMessage(incomingMessage))
                 .build();
-    }
-
-    private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(logger, signal, connectionId);
     }
 
     /**

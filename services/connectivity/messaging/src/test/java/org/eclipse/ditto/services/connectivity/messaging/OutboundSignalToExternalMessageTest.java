@@ -90,7 +90,8 @@ public final class OutboundSignalToExternalMessageTest {
                 OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
         final OutboundSignalToExternalMessage underTest =
                 OutboundSignalToExternalMessage.newInstance(mappedOutboundSignal,
-                        Resolvers.forOutbound(mappedOutboundSignal), target.getHeaderMapping().orElse(null));
+                        Resolvers.forOutbound(mappedOutboundSignal, connectionId),
+                        target.getHeaderMapping().orElse(null));
 
         // when
         final ExternalMessage headerMappedExternalMessage = underTest.get();

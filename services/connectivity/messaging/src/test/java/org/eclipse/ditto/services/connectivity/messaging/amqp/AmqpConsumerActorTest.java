@@ -271,22 +271,30 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         if (mappingContext != null) {
             mappings.put("test", mappingContext);
         }
-        final DittoDiagnosticLoggingAdapter logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class)))
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
-                actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapter, logger);
+                actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapter,
+                logger);
         final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
-                actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapter, logger);
+                actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapter,
+                logger);
 
         final Props messageMappingProcessorProps =
                 InboundMappingProcessorActor.props(testRef, inboundMappingProcessor, protocolAdapter.headerTranslator(),
@@ -342,26 +350,6 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     private static ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
             final Source source) {
         return ConsumerData.of(source, address, address + "_with_index", messageConsumer);
-    }
-
-    private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        final Map<String, MappingContext> mappings = new HashMap<>();
-        if (mappingContext != null) {
-            mappings.put("test", mappingContext);
-        }
-        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        return MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(),
-                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
-                actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, logger);
     }
 
     // JMS acknowledgement methods are package-private and impossible to mock.

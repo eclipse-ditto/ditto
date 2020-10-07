@@ -62,8 +62,8 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
@@ -86,6 +86,7 @@ import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.SourceQueueWithComplete;
@@ -111,7 +112,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final Set<AcknowledgementLabel> declaredAcks;
-    private final DittoDiagnosticLoggingAdapter logger; // TODO: make this thread-safe
+    private final ThreadSafeDittoLoggingAdapter logger;
 
     @Nullable private Cancellable sessionTerminationCancellable;
     private AuthorizationContext authorizationContext;
@@ -144,8 +145,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 ThingModifyCommandAckRequestSetter.getInstance(),
                 ThingLiveCommandAckRequestSetter.getInstance(),
                 MessageCommandAckRequestSetter.getInstance());
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        logger.setCorrelationId(connectionCorrelationId);
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withCorrelationId(connectionCorrelationId);
         connect.getSessionExpirationTime().ifPresent(expiration ->
                 sessionTerminationCancellable = startSessionTimeout(expiration)
         );
@@ -228,10 +229,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private Receive createOutgoingSignalBehavior() {
         final PartialFunction<Object, Object> setCorrelationIdAndStartAckForwarder = new PFBuilder<>()
-                .match(Signal.class, signal -> {
-                    logger.setCorrelationId(signal);
-                    return startAckForwarder(signal);
-                })
+                .match(Signal.class, this::startAckForwarder)
                 .match(DittoRuntimeException.class, x -> x)
                 .build();
 
@@ -243,14 +241,16 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(CommandResponse.class, this::publishResponseOrError)
                 .match(DittoRuntimeException.class, this::publishResponseOrError)
                 .match(Signal.class, this::isSameOrigin, signal ->
-                        logger.debug("Got Signal <{}> in <{}> session, but this was issued by " +
-                                " this connection itself, not publishing", signal.getType(), type)
+                        logger.withCorrelationId(signal)
+                                .debug("Got Signal <{}> in <{}> session, but this was issued by " +
+                                        " this connection itself, not publishing", signal.getType(), type)
                 )
                 .match(Signal.class, signal -> {
                     // check if this session is "allowed" to receive the Signal
                     @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
                     if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
-                        logger.debug("Got Signal in <{}> session, publishing: {}", type, signal);
+                        logger.withCorrelationId(signal)
+                                .debug("Got Signal in <{}> session, publishing: {}", type, signal);
 
                         final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
                                 .authorizationContext(authorizationContext)
@@ -271,7 +271,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return ReceiveBuilder.create()
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationContext = startStreaming.getAuthorizationContext();
-                    logger.setCorrelationId(connectionCorrelationId);
                     Criteria criteria;
                     try {
                         criteria = startStreaming.getFilter()
@@ -359,7 +358,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void handleTerminated(final Object terminated) {
-        logger.setCorrelationId(connectionCorrelationId);
         logger.debug("EventAndResponsePublisher was terminated: {}", terminated);
         // In Cluster: Unsubscribe from ThingEvents:
         logger.info("<{}> connection was closed, unsubscribing from Streams in Cluster ...", type);
@@ -369,7 +367,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private Receive logUnknownMessage() {
         return ReceiveBuilder.create()
-                .matchAny(any -> logger.withCorrelationId(connectionCorrelationId)
+                .matchAny(any -> logger
                         .warning("Got unknown message in '{}' session: {} '{}'", type, any.getClass().getName(), any))
                 .build();
     }
@@ -403,7 +401,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void ackLabelDeclarationFailed(final DittoRuntimeException exception) {
-        logger.info("ackLabelDeclarationFailed cause=<{}>", exception.getCause());
+        logger.withCorrelationId(exception).info("ackLabelDeclarationFailed cause=<{}>", exception.getCause());
         eventAndResponsePublisher.offer(SessionedJsonifiable.error(exception));
         terminateWebsocketStream();
     }
@@ -555,7 +553,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         final List<String> namespaces = session.getNamespaces();
         final boolean result = namespaces.isEmpty() || namespaces.contains(namespaceFromId(signal));
         if (!result) {
-            logger.debug("Signal does not match namespaces.");
+            logger.withCorrelationId(signal).debug("Signal does not match namespaces.");
         }
         return result;
     }

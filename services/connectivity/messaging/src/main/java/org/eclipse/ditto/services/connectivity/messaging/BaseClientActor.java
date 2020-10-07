@@ -98,9 +98,9 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -1159,7 +1159,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 logger);
         OutboundMappingProcessor.of(connectionId(),
                 connection.getConnectionType(),
-                connection().getPayloadMappingDefinition(),
+                connection.getPayloadMappingDefinition(),
                 actorSystem,
                 connectivityConfig,
                 protocolAdapterProvider.getProtocolAdapter(null),
@@ -1193,9 +1193,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        logger.info("Configured for processing messages with the following outbound MessageMapperRegistry: <{}>",
-                outboundMappingProcessor.getRegistry());
-
         logger.debug("Starting mapping processor actors with pool size of <{}>.", connection.getProcessorPoolSize());
 
         final Props outboundMappingProcessorActorProps =
@@ -1226,13 +1223,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
-            log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+            logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             throw dre;
         }
-
-        logger.info("Configured for processing messages with the following inbound MessageMapperRegistry: <{}>",
-                inboundMappingProcessor.getRegistry());
 
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.",
                 connection.getProcessorPoolSize());
