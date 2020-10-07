@@ -103,6 +103,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -735,10 +736,22 @@ public final class ConnectionPersistenceActor
             startEnabledLoggingChecker();
             updateLoggingIfEnabled();
             dittoProtocolSub.subscribe(toStreamingTypes(getUniqueTopics(entity)), getTargetAuthSubjects(), getSelf())
-                    .thenAccept(done -> {
-                        log.debug("subscription to ditto pubsub succeeded");
-                        pubSubStatus = ConnectivityStatus.OPEN;
-                        getSelf().tell(command, ActorRef.noSender());
+                    .whenComplete((done, throwable) -> {
+                        if (null == throwable) {
+                            log.debug("subscription to Ditto pubsub succeeded");
+                            pubSubStatus = ConnectivityStatus.OPEN;
+                            getSelf().tell(command, ActorRef.noSender());
+                        } else {
+                            log.error(throwable, "subscription to Ditto pubsub failed: {}", throwable.getMessage());
+                            final DittoRuntimeException dittoRuntimeException = DittoRuntimeException
+                                    .asDittoRuntimeException(throwable,
+                                            cause -> GatewayInternalErrorException.newBuilder() // TODO TJ replace with ConnectivityInternalErrorException after merge
+                                                    .dittoHeaders(command.getDittoHeaders())
+                                                    .cause(cause)
+                                                    .build()
+                                    );
+                            command.getSender().tell(dittoRuntimeException, getSelf());
+                        }
                     });
         } else {
             interpretStagedCommand(command);

@@ -70,6 +70,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -296,8 +297,27 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final ConfirmSubscription subscribeConfirmation =
                             new ConfirmSubscription(startStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
-                    dittoProtocolSub.subscribe(currentStreamingTypes, authorizationContext.getAuthorizationSubjectIds(),
-                            getSelf()).thenAccept(ack -> getSelf().tell(subscribeConfirmation, getSelf()));
+                    dittoProtocolSub.subscribe(currentStreamingTypes,
+                            authorizationContext.getAuthorizationSubjectIds(),
+                            getSelf()
+                    ).whenComplete((ack, throwable) -> {
+                        if (null == throwable) {
+                            logger.debug("subscription to Ditto pubsub succeeded");
+                            getSelf().tell(subscribeConfirmation, getSelf());
+                        } else {
+                            logger.error(throwable, "subscription to Ditto pubsub failed: {}", throwable.getMessage());
+                            final DittoRuntimeException dittoRuntimeException = DittoRuntimeException
+                                    .asDittoRuntimeException(throwable,
+                                            cause -> GatewayInternalErrorException.newBuilder()
+                                                    .dittoHeaders(DittoHeaders.newBuilder()
+                                                            .correlationId(startStreaming.getConnectionCorrelationId())
+                                                            .build())
+                                                    .cause(cause)
+                                                    .build()
+                                    );
+                            eventAndResponsePublisher.offer(SessionedJsonifiable.error(dittoRuntimeException));
+                        }
+                    });
                 })
                 .match(StopStreaming.class, stopStreaming -> {
                     logger.debug("Got 'StopStreaming' message in <{}> session, unsubscribing from <{}> in Cluster ...",

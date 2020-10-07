@@ -34,8 +34,7 @@ public interface DittoProtocolSub {
      * @param subscriber who is subscribing.
      * @return future that completes or fails according to the acknowledgement.
      */
-    CompletionStage<Void> subscribe(Collection<StreamingType> types,
-            Collection<String> topics, ActorRef subscriber);
+    CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber);
 
     /**
      * Remove a subscriber.
