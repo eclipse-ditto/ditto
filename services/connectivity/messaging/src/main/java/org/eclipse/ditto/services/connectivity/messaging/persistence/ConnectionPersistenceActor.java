@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
@@ -103,7 +104,6 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -745,7 +745,7 @@ public final class ConnectionPersistenceActor
                             log.error(throwable, "subscription to Ditto pubsub failed: {}", throwable.getMessage());
                             final DittoRuntimeException dittoRuntimeException = DittoRuntimeException
                                     .asDittoRuntimeException(throwable,
-                                            cause -> GatewayInternalErrorException.newBuilder() // TODO TJ replace with ConnectivityInternalErrorException after merge
+                                            cause -> ConnectivityInternalErrorException.newBuilder()
                                                     .dittoHeaders(command.getDittoHeaders())
                                                     .cause(cause)
                                                     .build()
