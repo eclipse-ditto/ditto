@@ -139,10 +139,10 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 
 | Change | Permission | Description |
 |--------|------------|-------------|
-| grant  | READ       | All subjects named in the section are granted _read_ permission on the resources specified in the path, and all subsequent paths, except they are revoked at a deeper level, or another policy entry (label). |
-| grant  | WRITE      | All subjects named in the section are granted _write_ permission on the resources specified in the path, and all subsequent paths, except they are revoked at a deeper level, or another policy entry (label). |
-| revoke | READ       | All subjects named in the section are _prohibited to read_ on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
-| revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
+| grant  | READ       | All subjects named in the section are granted _read_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| grant  | WRITE      | All subjects named in the section are granted _write_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| revoke | READ       | All subjects named in the section are _prohibited to read_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
+| revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 
 
 ## Tools for editing a Policy
