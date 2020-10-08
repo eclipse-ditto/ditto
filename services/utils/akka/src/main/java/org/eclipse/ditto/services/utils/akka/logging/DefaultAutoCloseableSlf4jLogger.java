@@ -538,7 +538,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public DefaultAutoCloseableSlf4jLogger putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         if (null != value) {
-            localMdc.put(validateMdcEntryKey(key).toString(), value.toString());
+            tryToPutToLocalMdc(validateMdcEntryKey(key).toString(), value.toString());
         } else {
             removeMdcEntry(key);
         }
@@ -549,18 +549,36 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
         return argumentNotEmpty(key, "key");
     }
 
+    private void tryToPutToLocalMdc(final String key, final String value) {
+        try {
+            localMdc.put(key, value);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
+    }
+
     @Override
     public DefaultAutoCloseableSlf4jLogger removeMdcEntry(final CharSequence key) {
         final String keyAsString = validateMdcEntryKey(key).toString();
-        localMdc.remove(keyAsString);
+        tryToRemoveFromLocalMdc(keyAsString);
         MDC.remove(keyAsString);
         return this;
+    }
+
+    @Nullable
+    private String tryToRemoveFromLocalMdc(final String key) {
+        try {
+            return localMdc.remove(key);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+            return null;
+        }
     }
 
     @Override
     public void close() {
         tryToRemoveLocalMdcFromActualMdc();
-        localMdc.clear();
+        tryToClearLocalMdc();
     }
 
     private void tryToRemoveLocalMdcFromActualMdc() {
@@ -573,6 +591,14 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
 
     private void removeLocalMdcFromActualMdc() {
         localMdc.forEach((key, value) -> MDC.remove(key));
+    }
+
+    private void tryToClearLocalMdc() {
+        try {
+            localMdc.clear();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
     }
 
 }

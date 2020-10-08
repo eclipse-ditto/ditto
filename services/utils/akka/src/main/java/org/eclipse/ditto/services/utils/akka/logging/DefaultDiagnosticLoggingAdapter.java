@@ -80,8 +80,16 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     @Override
     public void notifyError(final String message) {
-        putLocalMdcToActualMdc();
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyError(message);
+    }
+
+    private void tryToPutLocalMdcToActualMdc() {
+        try {
+            putLocalMdcToActualMdc();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
     }
 
     private void putLocalMdcToActualMdc() {
@@ -94,27 +102,34 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
         }
     }
 
+    private void handleConcurrentModificationException() {
+
+        // Logging should not interfere with application's actual work.
+        loggingAdapter.warning("This logger <{}> is used by multiple threads!" +
+                " Please consider to use a thread-safe logger instead.", getName());
+    }
+
     @Override
     public void notifyError(final Throwable cause, final String message) {
-        putLocalMdcToActualMdc();
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyError(cause, message);
     }
 
     @Override
     public void notifyWarning(final String message) {
-        putLocalMdcToActualMdc();
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyWarning(message);
     }
 
     @Override
     public void notifyInfo(final String message) {
-        putLocalMdcToActualMdc();
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyInfo(message);
     }
 
     @Override
     public void notifyDebug(final String message) {
-        putLocalMdcToActualMdc();
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyDebug(message);
     }
 
@@ -146,11 +161,19 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     @Override
     public DefaultDiagnosticLoggingAdapter putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         if (null != value) {
-            localMdc.put(validateMdcEntryKey(key).toString(), value);
+            tryToPutToLocalMdc(validateMdcEntryKey(key).toString(), value);
         } else {
             removeMdcEntry(key);
         }
         return this;
+    }
+
+    private void tryToPutToLocalMdc(final String key, final Object value) {
+        try {
+            localMdc.put(key, value);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
     }
 
     private static CharSequence validateMdcEntryKey(final CharSequence key) {
@@ -160,7 +183,7 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     @Override
     public DefaultDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
         final String keyAsString = validateMdcEntryKey(key).toString();
-        if (null != localMdc.remove(keyAsString)) {
+        if (null != tryToRemoveFromLocalMdc(keyAsString)) {
 
             // Optimization: only modify actual MDC if local MDC was altered at all.
             final Map<String, Object> actualMdc = getMDC();
@@ -170,21 +193,36 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
         return this;
     }
 
+    @Nullable
+    private Object tryToRemoveFromLocalMdc(final String key) {
+        try {
+            return localMdc.remove(key);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+            return null;
+        }
+    }
+
     @Override
     public DefaultDiagnosticLoggingAdapter discardMdcEntries() {
         tryToRemoveLocalMdcFromActualMdc();
-        localMdc.clear();
+        tryToClearLocalMdc();
         return this;
+    }
+
+    private void tryToClearLocalMdc() {
+        try {
+            localMdc.clear();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
     }
 
     private void tryToRemoveLocalMdcFromActualMdc() {
         try {
             removeLocalMdcFromActualMdc();
         } catch (final ConcurrentModificationException e) {
-
-            // Logging should not interfere with application's actual work.
-            loggingAdapter.warning("This logger <{}> is used by multiple threads!" +
-                    " Please consider to use a thread-safe logger instead.", getName());
+            handleConcurrentModificationException();
         }
     }
 
