@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 /**
  * Thrown if any declared acknowledgement label was taken by another subscriber.
  *
- * @since 1.3.0
+ * @since 1.4.0
  */
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementLabelNotUniqueException.ERROR_CODE)
