@@ -168,6 +168,6 @@ The action of a command or an event of the [search protocol](protocol-specificat
 ### Acknowledgement criterion actions
 
 For *acks* criterion, the *action* segment specifies the identifier, which is defined by the system which issued the ACK.
-The criterion has to match the regular expression `[a-zA-Z0-9-_]{3,64}`, i.e. letters of the Latin alphabet, numbers,
+The criterion has to match the regular expression `[a-zA-Z0-9-_:]{3,100}`, i.e. letters of the Latin alphabet, numbers,
 dashes, and underscores.
 
