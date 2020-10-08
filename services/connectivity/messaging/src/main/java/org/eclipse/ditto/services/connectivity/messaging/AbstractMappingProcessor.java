@@ -33,9 +33,10 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 /**
- * TODO javadoc
- * @param <I>
- * @param <O>
+ * Abstract implementation for mapping one type to another.
+ *
+ * @param <I> the incoming type.
+ * @param <O> the type of the processing result which is passed to the result handler.
  */
 abstract class AbstractMappingProcessor<I, O> {
 
@@ -58,11 +59,12 @@ abstract class AbstractMappingProcessor<I, O> {
     }
 
     /**
-     * TODO javadoc
-     * @param incoming
-     * @param resultHandler
-     * @param <R>
-     * @return
+     * processes an instance of the incoming type {@link I} which results in an instance of the result type {@link R}.
+     *
+     * @param incoming the incoming object.
+     * @param resultHandler handle for results.
+     * @param <R> the type of the result
+     * @return the processed result.
      */
     abstract <R> R process(I incoming, MappingResultHandler<O, R> resultHandler);
 
