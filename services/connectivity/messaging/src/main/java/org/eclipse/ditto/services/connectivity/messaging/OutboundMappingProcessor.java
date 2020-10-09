@@ -155,20 +155,22 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 .orElse(adaptableWithoutExtra);
         resultHandler.onTopicPathResolved(adaptable.getTopicPath());
 
-        R result = resultHandler.emptyResult();
-        for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
-            final Signal<?> source = mappableSignal.getSource();
-            final List<Target> targets = mappableSignal.getTargets();
-            final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-            logger.withCorrelationId(adaptable)
-                    .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
-            // convert messages in the order of payload mapping and forward to result handler
-            for (final MessageMapper mapper : mappers) {
-                final R nextResult = convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler);
-                result = resultHandler.combineResults(result, nextResult);
+        return timer.overall(() -> {
+            R result = resultHandler.emptyResult();
+            for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
+                final Signal<?> source = mappableSignal.getSource();
+                final List<Target> targets = mappableSignal.getTargets();
+                final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
+                logger.withCorrelationId(adaptable)
+                        .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
+                // convert messages in the order of payload mapping and forward to result handler
+                for (final MessageMapper mapper : mappers) {
+                    final R nextResult = convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler);
+                    result = resultHandler.combineResults(result, nextResult);
+                }
             }
-        }
-        return result;
+            return result;
+        });
     }
 
     private <R> R convertOutboundMessage(final OutboundSignal.Mappable outboundSignal,

@@ -124,14 +124,17 @@ public final class InboundMappingProcessor
         final List<MessageMapper> mappers = getMappers(message.getPayloadMapping().orElse(null));
         logger.withCorrelationId(message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
                 .debug("Mappers resolved for message: {}", mappers);
-        R result = resultHandler.emptyResult();
-        for (final MessageMapper mapper : mappers) {
-            final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType);
-            final R mappingResult =
-                    mappingTimer.overall(() -> convertInboundMessage(mapper, message, mappingTimer, resultHandler));
-            result = resultHandler.combineResults(result, mappingResult);
-        }
-        return result;
+        final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType);
+
+        return mappingTimer.overall(() -> {
+            R result = resultHandler.emptyResult();
+            for (final MessageMapper mapper : mappers) {
+
+                final R mappingResult = convertInboundMessage(mapper, message, mappingTimer, resultHandler);
+                result = resultHandler.combineResults(result, mappingResult);
+            }
+            return result;
+        });
     }
 
     private <R> R convertInboundMessage(final MessageMapper mapper,
