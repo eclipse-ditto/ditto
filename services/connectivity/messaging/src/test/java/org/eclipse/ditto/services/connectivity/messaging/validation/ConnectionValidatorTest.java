@@ -143,6 +143,22 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void acceptConnectionWithPlaceholderPrefixedSourceDeclaredAck() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                        .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
+                                .build())
+                        .collect(Collectors.toList())
+                )
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatCode(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     public void rejectConnectionWithEmptySourceAddress() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .sources(singletonList(
@@ -206,6 +222,30 @@ public class ConnectionValidatorTest {
                                 .build(),
                         ConnectivityModelFactory.newTargetBuilder(targetTemplate)
                                 .issuedAcknowledgementLabel(AcknowledgementLabel.of(CONNECTION_ID + ":ack"))
+                                .build()
+                ))
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptConnectionWithValidSourceDeclaredAcksAndTargetIssuedAcksUsingPlaceholder() {
+        final Target targetTemplate = TestConstants.Targets.TWIN_TARGET;
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                        .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
+                                .build())
+                        .collect(Collectors.toList())
+                )
+                .targets(List.of(
+                        ConnectivityModelFactory.newTargetBuilder(targetTemplate)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("live-response"))
+                                .build(),
+                        ConnectivityModelFactory.newTargetBuilder(targetTemplate)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("{{connection:id}}:ack"))
                                 .build()
                 ))
                 .build();

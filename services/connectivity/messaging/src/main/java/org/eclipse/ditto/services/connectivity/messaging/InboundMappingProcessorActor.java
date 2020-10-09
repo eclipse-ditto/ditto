@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -51,6 +52,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -115,6 +117,7 @@ public final class InboundMappingProcessorActor
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final ActorRef outboundMessageMappingProcessorActor;
+    private final ExpressionResolver connectionIdResolver;
 
     @SuppressWarnings("unused")
     private InboundMappingProcessorActor(final ActorRef proxyActor,
@@ -136,6 +139,9 @@ public final class InboundMappingProcessorActor
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+                connectionId);
 
         final DefaultScopedConfig dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
@@ -247,7 +253,11 @@ public final class InboundMappingProcessorActor
     private Source<IncomingSignal, ?> handleIncomingMappedSignal(final MappedExternalMessage mappedExternalMessage) {
         final Source<Signal<?>, ?> mappedSignals = mappedExternalMessage.mappedSignals;
         final ActorRef sender = mappedExternalMessage.sender;
-        final Set<AcknowledgementLabel> declaredAckLabels = mappedExternalMessage.getDeclaredAckLabels();
+        final Set<AcknowledgementLabel> declaredAckLabels = mappedExternalMessage.getDeclaredAckLabels().stream()
+                .map(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
         final Sink<IncomingSignal, CompletionStage<Integer>> wireTapSink =
                 Sink.fold(0, (i, s) -> i + (s.isAckRequesting ? 1 : 0));
         return mappedSignals.flatMapConcat(onIncomingMappedSignal(sender, declaredAckLabels)::apply)

@@ -98,8 +98,26 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         if (acknowledgementLabels.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
+
+        try {
+            ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
+        } catch (final IllegalArgumentException e) {
+            return CompletableFuture.failedStage(e);
+        }
+
         return twinEventSub.declareAcknowledgementLabels(acknowledgementLabels, subscriber).thenApply(ack -> null);
         // no need to declare the labels for liveSignalSub because acks distributed data does not start there
+    }
+
+    private static void ensureAcknowledgementLabelsAreFullyResolved(final Collection<AcknowledgementLabel> ackLabels) {
+        ackLabels.stream()
+                .filter(AcknowledgementLabel::isFullyResolved)
+                .findFirst()
+                .ifPresent(ackLabel -> {
+                    // if this happens, this is a bug in the Ditto codebase! at this point the AckLabel must be resolved
+                    throw new IllegalArgumentException("AcknowledgementLabel was not fully resolved while " +
+                            "trying to declare it: " + ackLabel);
+                });
     }
 
     @Override

@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,8 +33,9 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Credentials;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
-import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
@@ -65,9 +65,9 @@ public final class ConnectionValidator {
     private ConnectionValidator(
             final ConnectivityConfig connectivityConfig,
             LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
-        final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
+        final Map<ConnectionType, AbstractProtocolValidator> theSpecMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
-        this.specMap = Collections.unmodifiableMap(specMap);
+        this.specMap = Collections.unmodifiableMap(theSpecMap);
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ModelBasedThingsFieldExpressionFactory();
@@ -101,15 +101,44 @@ public final class ConnectionValidator {
      * @return the set of acknowledgement labels to declare.
      */
     public static Stream<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
-        final Stream<AcknowledgementLabel> sourceDeclaredAcks =
-                connection.getSources().stream().map(Source::getDeclaredAcknowledgementLabels).flatMap(Set::stream);
+        final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newConnectionIdPlaceholder(), connection.getId());
+
+        final Stream<AcknowledgementLabel> sourceDeclaredAcks = connection.getSources().stream()
+                .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
+                .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                .filter(Optional::isPresent)
+                .map(Optional::get);
         final Stream<AcknowledgementLabel> targetIssuedAcks =
                 connection.getTargets().stream()
                         .map(Target::getIssuedAcknowledgementLabel)
                         .flatMap(Optional::stream)
+                        .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                        .flatMap(Optional::stream)
                         // live-response is permitted as issued acknowledgement without declaration
                         .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
         return Stream.concat(sourceDeclaredAcks, targetIssuedAcks);
+    }
+
+    /**
+     * Resolves a potentially existing placeholder {@code {{connection:id}}} in the passed {@code ackLabel} with the
+     * one resolved by the passed in {@code connectionIdResolver}.
+     *
+     * @param connectionIdResolver the resolver to use in order to resolve the connection id.
+     * @param ackLabel the acknowledgement label to replace the placeholder in.
+     * @return the resolved acknowledgement label.
+     */
+    public static Optional<AcknowledgementLabel> resolveConnectionIdPlaceholder(
+            final ExpressionResolver connectionIdResolver,
+            final AcknowledgementLabel ackLabel) {
+
+        if (!ackLabel.isFullyResolved()) {
+            return connectionIdResolver.resolve(ackLabel.toString())
+                    .toOptional()
+                    .map(AcknowledgementLabel::of);
+        } else {
+            return Optional.of(ackLabel);
+        }
     }
 
     /**

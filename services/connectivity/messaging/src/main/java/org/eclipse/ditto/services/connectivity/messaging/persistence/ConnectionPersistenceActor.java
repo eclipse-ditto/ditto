@@ -51,10 +51,8 @@ import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
-import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.placeholders.ConnectionIdPlaceholder;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.things.ThingId;
@@ -167,11 +165,6 @@ public final class ConnectionPersistenceActor
     // number of client actors to start per node
     private static final int CLIENT_ACTORS_PER_NODE = 1;
 
-    private static final ConnectionIdPlaceholder CONNECTION_ID_PLACEHOLDER =
-            PlaceholderFactory.newConnectionIdPlaceholder();
-
-    private final ExpressionResolver connectionIdResolver;
-
     private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
@@ -192,6 +185,7 @@ public final class ConnectionPersistenceActor
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
+    private final ExpressionResolver connectionIdResolver;
 
     private int subscriptionCounter = 0;
     private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
@@ -261,7 +255,8 @@ public final class ConnectionPersistenceActor
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
         this.clientActorsPerNode = clientActorsPerNode;
 
-        connectionIdResolver = PlaceholderFactory.newExpressionResolver(CONNECTION_ID_PLACEHOLDER, entityId);
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+                connectionId);
     }
 
     /**
@@ -619,8 +614,10 @@ public final class ConnectionPersistenceActor
         if (entity != null && ackLabelsDeclared) {
             return entity.getSources()
                     .stream()
-                    .map(Source::getDeclaredAcknowledgementLabels)
-                    .flatMap(Set::stream)
+                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
+                    .map(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .collect(Collectors.toSet());
         } else {
             return Set.of();
@@ -633,6 +630,9 @@ public final class ConnectionPersistenceActor
             return entity.getTargets()
                     .stream()
                     .map(Target::getIssuedAcknowledgementLabel)
+                    .flatMap(Optional::stream)
+                    .map(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .filter(Optional::isPresent)
                     .flatMap(Optional::stream)
                     .collect(Collectors.toSet());
         } else {
@@ -1130,7 +1130,8 @@ public final class ConnectionPersistenceActor
         if (entity == null || entity.getConnectionStatus() != ConnectivityStatus.OPEN) {
             return Set.of();
         } else {
-            return ConnectionValidator.getAcknowledgementLabelsToDeclare(entity).collect(Collectors.toSet());
+            return ConnectionValidator.getAcknowledgementLabelsToDeclare(entity)
+                    .collect(Collectors.toSet());
         }
     }
 
@@ -1140,14 +1141,21 @@ public final class ConnectionPersistenceActor
             log.warning("Got <{}> while there is no acknowledgement label to declare", trigger);
             acknowledgementLabelsAreConsideredDeclared(null);
         } else {
+            log.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
             final CompletionStage<Object> replyFuture =
                     dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf())
                             .<Object>thenApply(_void -> {
                                 declaredAckLabels.clear();
                                 declaredAckLabels.addAll(acknowledgementLabels);
+                                log.info("Acknowledgement label declaration successful for labels: <{}>",
+                                        acknowledgementLabels);
                                 return Control.ACKNOWLEDGEMENT_LABELS_DECLARED;
                             })
-                            .exceptionally(e -> toDittoRuntimeException(e, entityId, DittoHeaders.empty()));
+                            .exceptionally(error -> {
+                                log.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
+                                        acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
+                                return toDittoRuntimeException(error, entityId, DittoHeaders.empty());
+                            });
             Patterns.pipe(replyFuture, getContext().dispatcher()).to(getSelf());
         }
     }
