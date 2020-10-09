@@ -1080,10 +1080,6 @@ public final class ConnectionPersistenceActor
         openConnection(stagedCommand, false);
     }
 
-    private boolean hasSource() {
-        return entity != null && !entity.getSources().isEmpty();
-    }
-
     /**
      * Initialize this.ackLabelsDeclared and start or cancel the associated timer on recovery
      * and on each connection modification.

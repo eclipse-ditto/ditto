@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Objects;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Objects;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
@@ -25,11 +29,15 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 @Immutable
 public final class ConnectionId implements EntityId {
 
-    private static final ConnectionId DUMMY_ID = new ConnectionId(DefaultEntityId.dummy());
-    private final EntityId entityId;
+    static final String ID_REGEX = "[a-zA-Z0-9-_]{1,60}";
+    static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    private ConnectionId(final EntityId entityId) {
-        this.entityId = entityId;
+    private static final ConnectionId DUMMY_ID = ConnectionId.of("_");
+
+    private final String stringRepresentation;
+
+    private ConnectionId(final String stringRepresentation, final boolean shouldValidate) {
+        this.stringRepresentation = shouldValidate ? validate(stringRepresentation) : stringRepresentation;
     }
 
     /**
@@ -38,7 +46,7 @@ public final class ConnectionId implements EntityId {
      * @return the generated connection ID.
      */
     public static ConnectionId generateRandom() {
-        return new ConnectionId(DefaultEntityId.generateRandom());
+        return new ConnectionId(UUID.randomUUID().toString(), false);
     }
 
     /**
@@ -52,8 +60,7 @@ public final class ConnectionId implements EntityId {
         if (connectionId instanceof ConnectionId) {
             return (ConnectionId) connectionId;
         }
-
-        return new ConnectionId(DefaultEntityId.of(connectionId));
+        return new ConnectionId(checkNotNull(connectionId, "connectionId").toString(), true);
     }
 
     /**
@@ -68,7 +75,7 @@ public final class ConnectionId implements EntityId {
 
     @Override
     public boolean isDummy() {
-        return entityId.isDummy();
+        return DUMMY_ID.equals(this);
     }
 
     @Override
@@ -76,17 +83,25 @@ public final class ConnectionId implements EntityId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final ConnectionId connectionId = (ConnectionId) o;
-        return Objects.equals(entityId, connectionId.entityId);
+        return Objects.equals(stringRepresentation, connectionId.stringRepresentation);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(entityId);
+        return Objects.hash(stringRepresentation);
     }
 
 
     @Override
     public String toString() {
-        return entityId.toString();
+        return stringRepresentation;
     }
+
+    private String validate(final @Nullable String entityId) {
+        if (entityId == null || !ConnectionIdPatternValidator.getInstance(entityId).isValid()) {
+            throw ConnectionIdInvalidException.newBuilder(entityId).build();
+        }
+        return entityId;
+    }
+
 }
