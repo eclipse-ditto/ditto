@@ -1,7 +1,7 @@
 ---
 title: "E2E acknowledgment"
 published: true
-permalink: 2020-10-31-end-2-end-acknowledgment.html
+permalink: 2020-10-06-end-2-end-acknowledgment.html
 layout: post
 author: yannic_klem
 tags: [blog]
@@ -234,15 +234,15 @@ The headers of the live message should have the following values:
 Example [Ditto Protocol](protocol-specification.html) message:
 ```json
 {
-    "topic": "org.eclipse.ditto/my-thing/things/live/messages/car-enter",
+    "topic": "org.eclipse.ditto/my-thing/things/live/messages/firmware",
     "headers": {
       "response-required": true,
       "requested-acks": ["live-response"],
       "content-type": "text/plain",
       "timeout": "5s"
     },
-    "path": "/outbox/messages/car-enter",
-    "value": "FN IB 1337"
+    "path": "/outbox/messages/firmware",
+    "value": "firmware.url.query"
 }
 ```
 
