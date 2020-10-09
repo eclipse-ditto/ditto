@@ -59,14 +59,13 @@ abstract class AbstractMappingProcessor<I, O> {
     }
 
     /**
-     * processes an instance of the incoming type {@link I} which results in an instance of the result type {@link R}.
+     * Processes an instance of the incoming type {@link I} which results in a list of mapping results of type
+     * {@link O}.
      *
      * @param incoming the incoming object.
-     * @param resultHandler handle for results.
-     * @param <R> the type of the result
      * @return the processed result.
      */
-    abstract <R> R process(I incoming, MappingResultHandler<O, R> resultHandler);
+    abstract List<MappingOutcome<O>> process(I incoming);
 
     boolean resolveConditions(final Collection<String> conditions, final ExpressionResolver resolver) {
         boolean conditionBool = true;
@@ -84,7 +83,7 @@ abstract class AbstractMappingProcessor<I, O> {
             final String contentType,
             final String mapperId,
             final DittoHeaders dittoHeaders,
-            final Exception e) {
+            final Throwable e) {
 
         final String description =
                 String.format("Could not map %s message with mapper '%s' due to unknown problem: %s %s",

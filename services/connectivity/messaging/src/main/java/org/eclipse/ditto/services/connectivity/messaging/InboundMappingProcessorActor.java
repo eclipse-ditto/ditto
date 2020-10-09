@@ -56,6 +56,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionVa
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -504,18 +505,26 @@ public final class InboundMappingProcessorActor
     }
 
     private Source<Signal<?>, ?> mapExternalMessageToSignal(final ExternalMessageWithSender withSender) {
-        return inboundMappingProcessor.process(withSender.externalMessage,
-                handleMappingResult(withSender, getAuthorizationContextOrThrow(withSender.externalMessage)));
+        final MappingOutcome.Visitor<MappedInboundExternalMessage, Source<Signal<?>, ?>> visitor =
+                handleMappingResult(withSender, getAuthorizationContextOrThrow(withSender.externalMessage));
+        return inboundMappingProcessor.process(withSender.externalMessage).stream()
+                .<Source<Signal<?>, ?>>map(outcome -> outcome.accept(visitor))
+                .reduce(Source::concat)
+                .orElse(Source.empty());
     }
 
-    private InboundMappingResultHandler handleMappingResult(final ExternalMessageWithSender withSender,
+    private MappingOutcome.Visitor<MappedInboundExternalMessage, Source<Signal<?>, ?>> handleMappingResult(
+            final ExternalMessageWithSender withSender,
             final AuthorizationContext authorizationContext) {
 
         final ExternalMessage incomingMessage = withSender.externalMessage;
         final String source = incomingMessage.getSourceAddress().orElse("unknown");
+        final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
+        final ConnectionMonitor mappedMonitor = connectionMonitorRegistry.forInboundMapped(connectionId, source);
+        final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connectionId, source);
 
-        return InboundMappingResultHandler.newBuilder()
-                .onMessageMapped(mappedInboundMessage -> {
+        return MappingOutcome.<MappedInboundExternalMessage, Source<Signal<?>, ?>>newVisitorBuilder()
+                .onMapped(mappedInboundMessage -> {
                     final Signal<?> signal = mappedInboundMessage.getSignal();
 
                     final DittoHeaders mappedHeaders =
@@ -531,15 +540,19 @@ public final class InboundMappingProcessorActor
                             .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
                     // the above throws an exception if signal id enforcement fails
 
+                    mappedMonitor.success(infoProvider);
                     return Source.single(adjustedSignal);
                 })
-                .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
+                .onDropped(() -> {
+                    logger.debug("Message mapping returned null, message is dropped.");
+                    droppedMonitor.success(infoProvider);
+                    return Source.empty();
+                })
                 // skip the inbound stream directly to outbound stream
-                .onException((exception, topicPath) -> handleInboundException(exception, withSender, topicPath,
-                        authorizationContext))
-                .inboundMapped(connectionMonitorRegistry.forInboundMapped(connectionId, source))
-                .inboundDropped(connectionMonitorRegistry.forInboundDropped(connectionId, source))
-                .infoProvider(InfoProviderFactory.forExternalMessage(incomingMessage))
+                .onError((exception, topicPath) -> {
+                    handleInboundException(exception, withSender, topicPath, authorizationContext);
+                    return Source.empty();
+                })
                 .build();
     }
 

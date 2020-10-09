@@ -440,30 +440,40 @@ public final class OutboundMappingProcessorActor
     }
 
     private Source<OutboundSignalWithId, ?> mapToExternalMessage(final OutboundSignalWithId outbound) {
+        final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forSignal(outbound.getSource());
         final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound, connectionId);
         final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound, connectionId);
 
-        final OutboundMappingResultHandler outboundMappingResultHandler = OutboundMappingResultHandler.newBuilder()
-                .onMessageMapped(mappedOutboundSignal -> Source.single(outbound.mapped(mappedOutboundSignal)))
-                .onMessageDropped(() -> logger.debug("Message mapping returned null, message is dropped."))
-                .onException((exception, topicPath) -> {
-                    if (exception instanceof DittoRuntimeException) {
-                        final DittoRuntimeException e = (DittoRuntimeException) exception;
-                        logger.withCorrelationId(e)
-                                .info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
-                                        e.getDescription().orElse(""));
-                    } else {
-                        logger.withCorrelationId(outbound.getSource())
-                                .warning("Got unexpected exception during processing Signal <{}>.",
-                                        exception.getMessage());
-                    }
-                })
-                .outboundMapped(outboundMapped)
-                .outboundDropped(outboundDropped)
-                .infoProvider(InfoProviderFactory.forSignal(outbound.getSource()))
-                .build();
+        final MappingOutcome.Visitor<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>> visitor =
+                MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>>newVisitorBuilder()
+                        .onMapped(mapped -> {
+                            outboundMapped.forEach(monitor -> monitor.success(infoProvider));
+                            return Source.single(outbound.mapped(mapped));
+                        })
+                        .onDropped(() -> {
+                            outboundDropped.forEach(monitor -> monitor.success(infoProvider));
+                            return Source.empty();
+                        })
+                        .onError((exception, topicPath) -> {
+                            if (exception instanceof DittoRuntimeException) {
+                                final DittoRuntimeException e = (DittoRuntimeException) exception;
+                                logger.withCorrelationId(e)
+                                        .info("Got DittoRuntimeException during processing Signal: {} - {}",
+                                                e.getMessage(),
+                                                e.getDescription().orElse(""));
+                            } else {
+                                logger.withCorrelationId(outbound.getSource())
+                                        .warning("Got unexpected exception during processing Signal <{}>.",
+                                                exception.getMessage());
+                            }
+                            return Source.empty();
+                        })
+                        .build();
 
-        return outboundMappingProcessor.process(outbound, outboundMappingResultHandler);
+        return outboundMappingProcessor.process(outbound).stream()
+                .<Source<OutboundSignalWithId, ?>>map(outcome -> outcome.accept(visitor))
+                .reduce(Source::concat)
+                .orElse(Source.empty());
     }
 
     private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound,

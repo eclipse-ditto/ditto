@@ -136,7 +136,8 @@ public final class OutboundMappingProcessorTest {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
-        underTest = OutboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10, payloadMappingDefinition, actorSystem,
+        underTest = OutboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
+                payloadMappingDefinition, actorSystem,
                 connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
@@ -169,19 +170,20 @@ public final class OutboundMappingProcessorTest {
     }
 
     @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void testOutboundMessageEnriched() {
         new TestKit(actorSystem) {{
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
-            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
             when(outboundSignal.getExtra()).thenReturn(Optional.of(extra));
             when(outboundSignal.getSource()).thenReturn(signal);
-            underTest.process(outboundSignal, mock);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(1)).onMessageMapped(captor.capture());
-            verify(mock, times(0)).onException(any(Exception.class));
-            verify(mock, times(0)).onMessageDropped();
+            verify(mock, times(1)).onMapped(captor.capture());
+            verify(mock, times(0)).onError(any(Exception.class), any());
+            verify(mock, times(0)).onDropped();
 
             assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
                     .contains(extra));
@@ -222,6 +224,7 @@ public final class OutboundMappingProcessorTest {
         testOutbound(TestConstants.thingModified(Collections.emptyList()), mapped, dropped, failed, true, targets);
     }
 
+    @SuppressWarnings("unchecked")
     private void testOutbound(final ThingModifiedEvent<?> signal, final int mapped, final int dropped, final int failed,
             final boolean assertTargets, final Target... targets) {
         new TestKit(actorSystem) {{
@@ -233,13 +236,13 @@ public final class OutboundMappingProcessorTest {
 
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
-            //noinspection unchecked
-            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
-            underTest.process(outboundSignal, mock);
+
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(mapped)).onMessageMapped(captor.capture());
-            verify(mock, times(failed)).onException(any(Exception.class));
-            verify(mock, times(dropped)).onMessageDropped();
+            verify(mock, times(mapped)).onMapped(captor.capture());
+            verify(mock, times(failed)).onError(any(Exception.class), any());
+            verify(mock, times(dropped)).onDropped();
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getExternalMessage().getTextPayload())

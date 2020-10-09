@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -32,7 +31,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -130,7 +128,7 @@ public final class InboundMappingProcessorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
         underTest = InboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
-                        payloadMappingDefinition, actorSystem,
+                payloadMappingDefinition, actorSystem,
                 connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
@@ -239,20 +237,21 @@ public final class InboundMappingProcessorTest {
         testInbound(externalMessage, mapped, dropped, failed);
     }
 
+    @SuppressWarnings("unchecked")
     private void testInbound(final ExternalMessage externalMessage,
             final int mapped,
             final int dropped,
             final int failed) {
 
         new TestKit(actorSystem) {{
-            final MappingResultHandler<MappedInboundExternalMessage, Void> mock =
-                    Mockito.mock(MappingResultHandler.class);
-            underTest.process(externalMessage, mock);
+            final MappingOutcome.Visitor<MappedInboundExternalMessage, Void> mock =
+                    Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(externalMessage).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<MappedInboundExternalMessage> captor =
                     ArgumentCaptor.forClass(MappedInboundExternalMessage.class);
-            verify(mock, times(mapped)).onMessageMapped(captor.capture());
-            verify(mock, times(failed)).onException(any(Exception.class));
-            verify(mock, times(dropped)).onMessageDropped();
+            verify(mock, times(mapped)).onMapped(captor.capture());
+            verify(mock, times(failed)).onError(any(Exception.class), any());
+            verify(mock, times(dropped)).onDropped();
 
             assertThat(captor.getAllValues()).allSatisfy(mapped -> {
                 assertThat(mapped.getSignal().getDittoHeaders()).containsEntry(

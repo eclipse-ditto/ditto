@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,7 +25,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -106,17 +104,13 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     }
 
     /**
-     * Processes an {@link OutboundSignal} to 0..n {@link OutboundSignal.Mapped} signals and passes them to the given
-     * {@link MappingResultHandler}.
+     * Processes an {@link OutboundSignal} to 0..n {@link OutboundSignal.Mapped} signals or errors.
      *
      * @param outboundSignal the outboundSignal to be processed.
-     * @param resultHandler handles the 0..n results of the mapping(s).
-     * @param <R> type of results.
+     * @return the list of mapping outcomes.
      */
     @Override
-    <R> R process(final OutboundSignal outboundSignal,
-            final MappingResultHandler<OutboundSignal.Mapped, R> resultHandler) {
-
+    List<MappingOutcome<OutboundSignal.Mapped>> process(final OutboundSignal outboundSignal) {
         final List<OutboundSignal.Mappable> mappableSignals;
         if (outboundSignal.getTargets().isEmpty()) {
             // responses/errors do not have a target assigned, read mapper used for inbound message from internal header
@@ -140,12 +134,11 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                             e.getKey()))
                     .collect(Collectors.toList());
         }
-        return processMappableSignals(outboundSignal, mappableSignals, resultHandler);
+        return processMappableSignals(outboundSignal, mappableSignals);
     }
 
-    private <R> R processMappableSignals(final OutboundSignal outboundSignal,
-            final List<OutboundSignal.Mappable> mappableSignals,
-            final MappingResultHandler<OutboundSignal.Mapped, R> resultHandler) {
+    private List<MappingOutcome<OutboundSignal.Mapped>> processMappableSignals(final OutboundSignal outboundSignal,
+            final List<OutboundSignal.Mappable> mappableSignals) {
 
         final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType);
         final Adaptable adaptableWithoutExtra =
@@ -153,77 +146,72 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         final Adaptable adaptable = outboundSignal.getExtra()
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
-        resultHandler.onTopicPathResolved(adaptable.getTopicPath());
 
-        return timer.overall(() -> {
-            R result = resultHandler.emptyResult();
-            for (final OutboundSignal.Mappable mappableSignal : mappableSignals) {
-                final Signal<?> source = mappableSignal.getSource();
-                final List<Target> targets = mappableSignal.getTargets();
-                final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-                logger.withCorrelationId(adaptable)
-                        .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
-                // convert messages in the order of payload mapping and forward to result handler
-                for (final MessageMapper mapper : mappers) {
-                    final R nextResult = convertOutboundMessage(mappableSignal, adaptable, mapper, timer, resultHandler);
-                    result = resultHandler.combineResults(result, nextResult);
-                }
-            }
-            return result;
-        });
+        return timer.overall(() -> mappableSignals.stream()
+                .flatMap(mappableSignal -> {
+                    final Signal<?> source = mappableSignal.getSource();
+                    final List<Target> targets = mappableSignal.getTargets();
+                    final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
+                    logger.withCorrelationId(adaptable)
+                            .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
+                    // convert messages in the order of payload mapping and forward to result handler
+                    return mappers.stream().flatMap(mapper -> runMapper(mappableSignal, adaptable, mapper, timer));
+                })
+                .collect(Collectors.toList()));
     }
 
-    private <R> R convertOutboundMessage(final OutboundSignal.Mappable outboundSignal,
+    private Stream<MappingOutcome<OutboundSignal.Mapped>> runMapper(final OutboundSignal.Mappable outboundSignal,
             final Adaptable adaptable,
             final MessageMapper mapper,
-            final MappingTimer timer,
-            final MappingResultHandler<OutboundSignal.Mapped, R> resultHandler) {
+            final MappingTimer timer) {
 
-        R result = resultHandler.emptyResult();
         try {
             if (shouldMapMessageByConditions(outboundSignal, mapper)) {
                 logger.withCorrelationId(adaptable)
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
 
-                final List<OutboundSignal.Mapped> messages = timer.payload(mapper.getId(),
-                        () -> toStream(mapper.map(adaptable))
-                                .map(em -> {
-                                    final ExternalMessage externalMessage =
-                                            ExternalMessageFactory.newExternalMessageBuilder(em)
-                                                    .withTopicPath(adaptable.getTopicPath())
-                                                    .withInternalHeaders(outboundSignal.getSource().getDittoHeaders())
-                                                    .build();
-                                    return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
-                                            externalMessage);
-                                })
-                                .collect(Collectors.toList()));
+                final List<ExternalMessage> messages =
+                        timer.payload(mapper.getId(), () -> checkForNull(mapper.map(adaptable)));
 
                 logger.withCorrelationId(adaptable)
                         .debug("Mapping <{}> produced <{}> messages.", mapper.getId(), messages.size());
 
                 if (messages.isEmpty()) {
-                    result = resultHandler.combineResults(result, resultHandler.onMessageDropped());
+                    return Stream.of(MappingOutcome.dropped());
                 } else {
-                    for (final OutboundSignal.Mapped message : messages) {
-                        result = resultHandler.combineResults(result, resultHandler.onMessageMapped(message));
-                    }
+                    return messages.stream()
+                            .map(em -> {
+                                final ExternalMessage externalMessage =
+                                        ExternalMessageFactory.newExternalMessageBuilder(em)
+                                                .withTopicPath(adaptable.getTopicPath())
+                                                .withInternalHeaders(outboundSignal.getSource().getDittoHeaders())
+                                                .build();
+                                final OutboundSignal.Mapped mapped =
+                                        OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
+                                                externalMessage);
+                                return MappingOutcome.mapped(mapped, adaptable.getTopicPath());
+                            });
                 }
             } else {
-                result = resultHandler.onMessageDropped();
                 logger.withCorrelationId(adaptable)
                         .debug("Not mapping message with mapper <{}> as MessageMapper conditions {} were not matched.",
                                 mapper.getId(), mapper.getIncomingConditions());
+                return Stream.of(MappingOutcome.dropped());
             }
-        } catch (final DittoRuntimeException e) {
-            result = resultHandler.combineResults(result, resultHandler.onException(e));
         } catch (final Exception e) {
+            return Stream.of(
+                    MappingOutcome.error(toDittoRuntimeException(e, mapper, adaptable), adaptable.getTopicPath())
+            );
+        }
+    }
+
+    private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final MessageMapper mapper,
+            final Adaptable adaptable) {
+        return DittoRuntimeException.asDittoRuntimeException(error, e -> {
             final DittoHeaders headers = adaptable.getDittoHeaders();
             final String contentType = headers.getOrDefault(ExternalMessage.CONTENT_TYPE_HEADER, "");
-            final MessageMappingFailedException mappingFailedException =
-                    buildMappingFailedException("outbound", contentType, mapper.getId(), headers, e);
-            result = resultHandler.combineResults(result, resultHandler.onException(mappingFailedException));
-        }
-        return result;
+            return buildMappingFailedException("outbound", contentType, mapper.getId(), headers, e);
+        });
     }
 
     private boolean shouldMapMessageByConditions(final OutboundSignal.Mappable mappable,
@@ -232,8 +220,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 Resolvers.forOutboundSignal(mappable, connectionId));
     }
 
-    private static <T> Stream<T> toStream(@Nullable final Collection<T> messages) {
-        return messages == null ? Stream.empty() : messages.stream();
+    private static <T> List<T> checkForNull(@Nullable final List<T> messages) {
+        return messages == null ? List.of() : messages;
     }
 
 }
