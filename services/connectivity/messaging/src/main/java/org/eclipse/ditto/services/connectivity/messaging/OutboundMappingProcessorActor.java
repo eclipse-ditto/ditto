@@ -85,15 +85,18 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
-import akka.japi.pf.ReceiveBuilder;
+import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import scala.PartialFunction;
+import scala.runtime.BoxedUnit;
 
 /**
  * This Actor processes {@link OutboundSignal outbound signals} and dispatches them.
@@ -190,31 +193,44 @@ public final class OutboundMappingProcessorActor
     }
 
     @Override
+    public Receive createReceive() {
+        final PartialFunction<Object, Object> wrapAsOutboundSignal = new PFBuilder<>()
+                .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
+                .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
+                .match(Signal.class, signal -> handleSignal(signal, getSender()))
+                .match(DittoRuntimeException.class, this::mapDittoRuntimeException)
+                .match(Status.Failure.class, f -> {
+                    logger.warning("Got failure with cause {}: {}",
+                            f.cause().getClass().getSimpleName(), f.cause().getMessage());
+                    return Done.getInstance();
+                })
+                .matchAny(x -> x)
+                .build();
+
+        final PartialFunction<Object, BoxedUnit> doNothingIfDone = new PFBuilder<Object, BoxedUnit>()
+                .matchEquals(Done.getInstance(), done -> BoxedUnit.UNIT)
+                .build();
+
+        final Receive addToSourceQueue = super.createReceive();
+
+        return new Receive(wrapAsOutboundSignal.andThen(doNothingIfDone.orElse(addToSourceQueue.onMessage())));
+    }
+
+    @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
     }
 
-    @Override
-    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                // Outgoing responses and signals go through the signal enrichment stream
-                .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
-                .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
-                .match(Signal.class, signal -> handleSignal(signal, getSender()))
-                .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
-                        f.cause().getClass().getSimpleName(), f.cause().getMessage()));
-    }
-
-    private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
+    private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
         logger.withCorrelationId(acknowledgement)
                 .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
+        return Done.getInstance();
     }
 
-    @Override
-    protected void handleDittoRuntimeException(final DittoRuntimeException exception) {
+    private Object mapDittoRuntimeException(final DittoRuntimeException exception) {
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(exception, null);
-        handleErrorResponse(exception, errorResponse, getSender());
+        return handleErrorResponse(exception, errorResponse, getSender());
     }
 
     @Override
@@ -228,12 +244,7 @@ public final class OutboundMappingProcessorActor
     }
 
     @Override
-    protected Flow<OutboundSignalWithId, OutboundSignalWithId, NotUsed> processMessageFlow() {
-        return Flow.create();
-    }
-
-    @Override
-    protected Sink<OutboundSignalWithId, ?> processedMessageSink() {
+    protected Sink<OutboundSignalWithId, ?> createSink() {
         // Enrich outbound signals by extra fields if necessary.
         final Flow<OutboundSignalWithId, OutboundSignal.MultiMapped, ?> flow = Flow.<OutboundSignalWithId>create()
                 .mapAsync(processorPoolSize, outbound -> toMultiMappedOutboundSignal(
@@ -367,7 +378,7 @@ public final class OutboundMappingProcessorActor
                 .forEach(monitor -> monitor.failure(outboundSignal.getSource(), errorToLog));
     }
 
-    private void handleErrorResponse(final DittoRuntimeException exception, final ErrorResponse<?> errorResponse,
+    private Object handleErrorResponse(final DittoRuntimeException exception, final ErrorResponse<?> errorResponse,
             final ActorRef sender) {
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(exception);
@@ -383,10 +394,10 @@ public final class OutboundMappingProcessorActor
                     stackTrace);
         }
 
-        handleCommandResponse(errorResponse, exception, sender);
+        return handleCommandResponse(errorResponse, exception, sender);
     }
 
-    private void handleCommandResponse(final CommandResponse<?> response,
+    private Object handleCommandResponse(final CommandResponse<?> response,
             @Nullable final DittoRuntimeException exception, final ActorRef sender) {
 
         final ThreadSafeDittoLoggingAdapter l = logger.isDebugEnabled() ? logger.withCorrelationId(response) : logger;
@@ -397,6 +408,7 @@ public final class OutboundMappingProcessorActor
             responseDroppedMonitor.success(response,
                     "Dropped response since requester did not require response via Header {0}.",
                     DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+            return Done.getInstance();
         } else {
             if (isSuccessResponse(response)) {
                 l.debug("Received response <{}>.", response);
@@ -404,7 +416,7 @@ public final class OutboundMappingProcessorActor
                 l.debug("Received error response <{}>.", response.toJsonString());
             }
 
-            handleSignal(response, sender);
+            return handleSignal(response, sender);
         }
     }
 
@@ -433,10 +445,10 @@ public final class OutboundMappingProcessorActor
      *
      * @param signal the response/error
      */
-    private void handleSignal(final Signal<?> signal, final ActorRef sender) {
+    private Object handleSignal(final Signal<?> signal, final ActorRef sender) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         logger.withCorrelationId(signal).debug("Handling raw signal <{}>.", signal);
-        getSelf().tell(OutboundSignalWithId.of(signal, sender), sender);
+        return OutboundSignalWithId.of(signal, sender);
     }
 
     private Source<OutboundSignalWithId, ?> mapToExternalMessage(final OutboundSignalWithId outbound) {

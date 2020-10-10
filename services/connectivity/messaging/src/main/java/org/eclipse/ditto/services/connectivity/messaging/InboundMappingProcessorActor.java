@@ -230,12 +230,7 @@ public final class InboundMappingProcessorActor
     }
 
     @Override
-    protected Flow<ExternalMessageWithSender, ExternalMessageWithSender, NotUsed> processMessageFlow() {
-        return Flow.create();
-    }
-
-    @Override
-    protected Sink<ExternalMessageWithSender, ?> processedMessageSink() {
+    protected Sink<ExternalMessageWithSender, ?> createSink() {
 
         return Flow.<ExternalMessageWithSender>create()
                 // parallelize potentially CPU-intensive payload mapping on this actor's dispatcher

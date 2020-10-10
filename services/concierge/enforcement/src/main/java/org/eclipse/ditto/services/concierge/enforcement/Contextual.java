@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -55,7 +56,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     private final Duration askTimeout;
 
-    private final DittoDiagnosticLoggingAdapter log;
+    private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable
     private final EntityIdWithResourceType entityId;
@@ -80,7 +81,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     private Contextual(@Nullable final T message, final ActorRef self, final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final Duration askTimeout, final DittoDiagnosticLoggingAdapter log,
+            final Duration askTimeout, final ThreadSafeDittoLoggingAdapter log,
             @Nullable final EntityIdWithResourceType entityId,
             @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
@@ -109,7 +110,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final Duration askTimeout,
-            final DittoDiagnosticLoggingAdapter log,
+            final ThreadSafeDittoLoggingAdapter log,
             @Nullable final Cache<String, ActorRef> responseReceivers) {
 
         return new Contextual<>(null, self, deadLetters, pubSubMediator, conciergeForwarder, askTimeout, log, null,
@@ -206,7 +207,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return askTimeout;
     }
 
-    DittoDiagnosticLoggingAdapter getLog() {
+    ThreadSafeDittoLoggingAdapter getLog() {
         return log;
     }
 

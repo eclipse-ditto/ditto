@@ -30,15 +30,13 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.AskTimeoutException;
 
 /**
@@ -224,12 +222,12 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
      * {@code correlation-id} can be extracted in order to enhance the returned DiagnosticLoggingAdapter
      * @return the diagnostic logging adapter.
      */
-    protected DiagnosticLoggingAdapter log(final Object withPotentialDittoHeaders) {
+    protected ThreadSafeDittoLoggingAdapter log(final Object withPotentialDittoHeaders) {
         if (withPotentialDittoHeaders instanceof WithDittoHeaders) {
-            return log(((WithDittoHeaders<?>) withPotentialDittoHeaders).getDittoHeaders());
+            return context.getLog().withCorrelationId((WithDittoHeaders<?>) withPotentialDittoHeaders);
         }
         if (withPotentialDittoHeaders instanceof DittoHeaders) {
-            LogUtil.enhanceLogWithCorrelationId(context.getLog(), (DittoHeaders) withPotentialDittoHeaders);
+            return context.getLog().withCorrelationId((DittoHeaders) withPotentialDittoHeaders);
         }
         return context.getLog();
     }
@@ -237,10 +235,8 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
     /**
      * @return the diagnostic logging adapter.
      */
-    protected DiagnosticLoggingAdapter log() {
-        final DittoDiagnosticLoggingAdapter logger = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(logger, dittoHeaders());
-        return logger;
+    protected ThreadSafeDittoLoggingAdapter log() {
+        return context.getLog().withCorrelationId(dittoHeaders());
     }
 
     /**
@@ -361,8 +357,8 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
         final DittoRuntimeException dittoRuntimeException =
                 DittoRuntimeException.asDittoRuntimeException(throwable,
                         cause -> {
-                            LogUtil.enhanceLogWithCorrelationId(log(), context.getDittoHeaders());
-                            log().error(cause, "Unexpected non-DittoRuntimeException");
+                            log().withCorrelationId(context.getDittoHeaders())
+                                    .error(cause, "Unexpected non-DittoRuntimeException");
                             return GatewayInternalErrorException.newBuilder()
                                     .cause(cause)
                                     .dittoHeaders(context.getDittoHeaders())
