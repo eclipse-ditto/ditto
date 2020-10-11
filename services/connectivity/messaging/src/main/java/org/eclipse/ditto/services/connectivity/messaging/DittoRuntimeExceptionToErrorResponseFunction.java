@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -46,7 +48,7 @@ final class DittoRuntimeExceptionToErrorResponseFunction
     }
 
     @Override
-    public ErrorResponse<?> apply(final DittoRuntimeException exception, final TopicPath topicPath) {
+    public ErrorResponse<?> apply(final DittoRuntimeException exception, @Nullable final TopicPath topicPath) {
         /*
          * Truncate headers to send in an error response.
          * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity

@@ -182,8 +182,8 @@ public final class OutboundMappingProcessorTest {
             underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
             verify(mock, times(1)).onMapped(captor.capture());
-            verify(mock, times(0)).onError(any(Exception.class), any());
-            verify(mock, times(0)).onDropped();
+            verify(mock, times(0)).onError(any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any());
 
             assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
                     .contains(extra));
@@ -241,8 +241,8 @@ public final class OutboundMappingProcessorTest {
             underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
             verify(mock, times(mapped)).onMapped(captor.capture());
-            verify(mock, times(failed)).onError(any(Exception.class), any());
-            verify(mock, times(dropped)).onDropped();
+            verify(mock, times(failed)).onError(any(Exception.class), any(), any());
+            verify(mock, times(dropped)).onDropped(any());
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getExternalMessage().getTextPayload())

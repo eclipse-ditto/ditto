@@ -57,9 +57,9 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.services.connectivity.messaging.InboundDispatchingActor;
 import org.eclipse.ditto.services.connectivity.messaging.InboundMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.InboundMappingProcessorActor;
-import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -288,17 +288,13 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                 TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapter,
                 logger);
-        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION_ID,
-                CONNECTION.getConnectionType(),
-                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
-                actorSystem,
-                TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapter,
-                logger);
+        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
+                protocolAdapter.headerTranslator(), testRef, connectionActorProbe.ref(), testRef);
+        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
 
         final Props messageMappingProcessorProps =
-                InboundMappingProcessorActor.props(testRef, inboundMappingProcessor, protocolAdapter.headerTranslator(),
-                        CONNECTION, connectionActorProbe.ref(), 17, testRef);
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, 99, inboundDispatchingActor);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 InboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

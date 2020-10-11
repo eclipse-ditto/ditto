@@ -246,12 +246,12 @@ public final class InboundMappingProcessorTest {
         new TestKit(actorSystem) {{
             final MappingOutcome.Visitor<MappedInboundExternalMessage, Void> mock =
                     Mockito.mock(MappingOutcome.Visitor.class);
-            underTest.process(externalMessage).forEach(outcome -> outcome.accept(mock));
+            underTest.process(externalMessage).forEach(x -> x.accept(mock));
             final ArgumentCaptor<MappedInboundExternalMessage> captor =
                     ArgumentCaptor.forClass(MappedInboundExternalMessage.class);
             verify(mock, times(mapped)).onMapped(captor.capture());
-            verify(mock, times(failed)).onError(any(Exception.class), any());
-            verify(mock, times(dropped)).onDropped();
+            verify(mock, times(failed)).onError(any(Exception.class), any(), any());
+            verify(mock, times(dropped)).onDropped(any());
 
             assertThat(captor.getAllValues()).allSatisfy(mapped -> {
                 assertThat(mapped.getSignal().getDittoHeaders()).containsEntry(

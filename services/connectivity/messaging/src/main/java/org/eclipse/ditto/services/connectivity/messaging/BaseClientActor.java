@@ -181,17 +181,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-
         connectionLoggerRegistry.initForConnection(connection);
         connectionCounterRegistry.initForConnection(connection);
 
         connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
-
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
+        outboundMappingProcessorActor = startOutboundMappingProcessorActor(connection);
 
-        outboundMappingProcessorActor = startOutboundMessageMappingProcessorActor(connection);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final ActorRef inboundDispatcher =
+                startInboundDispatchingActor(connection, protocolAdapter, outboundMappingProcessorActor);
         inboundMappingProcessorActor =
-                startInboundMessageMappingProcessorActor(connection, outboundMappingProcessorActor);
+                startInboundMappingProcessorActor(connection, protocolAdapter, inboundDispatcher);
         subscriptionManager = startSubscriptionManager(this.proxyActor);
         supervisorStrategy = createSupervisorStrategy(getSelf());
 
@@ -669,7 +670,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private void reconnect(final BaseClientData data) {
+    private void reconnect() {
         logger.debug("Trying to reconnect.");
         connectionLogger.success("Trying to reconnect.");
         if (canConnectViaSocket(connection)) {
@@ -733,7 +734,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                reconnect(data);
+                reconnect();
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
@@ -1173,7 +1174,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the ref to the started {@link OutboundMappingProcessorActor}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private ActorRef startOutboundMessageMappingProcessorActor(final Connection connection) {
+    private ActorRef startOutboundMappingProcessorActor(final Connection connection) {
 
         final OutboundMappingProcessor outboundMappingProcessor;
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
@@ -1202,16 +1203,37 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
+     * Starts the {@link org.eclipse.ditto.services.connectivity.messaging.InboundDispatchingActor}
+     * responsible for signal de-multiplexing and acknowledgement aggregation.
      *
      * @return the ref to the started {@link InboundMappingProcessorActor}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private ActorRef startInboundMessageMappingProcessorActor(final Connection connection,
+    private ActorRef startInboundDispatchingActor(final Connection connection,
+            final ProtocolAdapter protocolAdapter,
             final ActorRef outboundMappingProcessorActor) {
 
+        final Props inboundDispatchingActorProps =
+                InboundDispatchingActor.props(connection, protocolAdapter.headerTranslator(), proxyActor,
+                        connectionActor, outboundMappingProcessorActor);
+
+        return getContext().actorOf(inboundDispatchingActorProps, InboundDispatchingActor.ACTOR_NAME);
+    }
+
+    /**
+     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
+     *
+     * @param connection the connection.
+     * @param protocolAdapter the protocol adapter.
+     * @param inboundDispatchingActor the actor to hand mapping outcomes to.
+     * @return the ref to the started {@link InboundMappingProcessorActor}
+     * @throws DittoRuntimeException when mapping processor could not get started.
+     */
+    private ActorRef startInboundMappingProcessorActor(final Connection connection,
+            final ProtocolAdapter protocolAdapter,
+            final ActorRef inboundDispatchingActor) {
+
         final InboundMappingProcessor inboundMappingProcessor;
-        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             inboundMappingProcessor = InboundMappingProcessor.of(connection.getId(),
@@ -1232,9 +1254,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connection.getProcessorPoolSize());
 
         final Props inboundMappingProcessorActorProps =
-                InboundMappingProcessorActor.props(proxyActor, inboundMappingProcessor,
-                        protocolAdapter.headerTranslator(),
-                        connection, connectionActor, connection.getProcessorPoolSize(), outboundMappingProcessorActor);
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        connection, connection.getProcessorPoolSize(), inboundDispatchingActor);
 
         return getContext().actorOf(inboundMappingProcessorActorProps, InboundMappingProcessorActor.ACTOR_NAME);
     }

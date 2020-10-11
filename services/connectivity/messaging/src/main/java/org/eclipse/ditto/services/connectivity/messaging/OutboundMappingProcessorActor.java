@@ -462,11 +462,11 @@ public final class OutboundMappingProcessorActor
                             outboundMapped.forEach(monitor -> monitor.success(infoProvider));
                             return Source.single(outbound.mapped(mapped));
                         })
-                        .onDropped(() -> {
+                        .onDropped(_null -> {
                             outboundDropped.forEach(monitor -> monitor.success(infoProvider));
                             return Source.empty();
                         })
-                        .onError((exception, topicPath) -> {
+                        .onError((exception, topicPath, _null) -> {
                             if (exception instanceof DittoRuntimeException) {
                                 final DittoRuntimeException e = (DittoRuntimeException) exception;
                                 logger.withCorrelationId(e)
@@ -483,7 +483,7 @@ public final class OutboundMappingProcessorActor
                         .build();
 
         return outboundMappingProcessor.process(outbound).stream()
-                .<Source<OutboundSignalWithId, ?>>map(outcome -> outcome.accept(visitor))
+                .<Source<OutboundSignalWithId, ?>>map(visitor::eval)
                 .reduce(Source::concat)
                 .orElse(Source.empty());
     }

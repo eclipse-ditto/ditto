@@ -141,7 +141,7 @@ public final class InboundMappingProcessor
                 final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
 
                 if (isNullOrEmpty(adaptables)) {
-                    return Stream.of(MappingOutcome.dropped());
+                    return Stream.of(MappingOutcome.dropped(message));
                 } else {
                     final List<MappedInboundExternalMessage> mappedMessages = new ArrayList<>(adaptables.size());
                     for (final Adaptable adaptable : adaptables) {
@@ -159,20 +159,23 @@ public final class InboundMappingProcessor
                         } catch (final Exception e) {
                             return Stream.of(MappingOutcome.error(
                                     toDittoRuntimeException(e, mapper, message),
-                                    adaptable.getTopicPath()));
+                                    adaptable.getTopicPath(),
+                                    message
+                            ));
                         }
                     }
-                    return mappedMessages.stream().map(mapped -> MappingOutcome.mapped(mapped, mapped.getTopicPath()));
+                    return mappedMessages.stream()
+                            .map(mapped -> MappingOutcome.mapped(mapped, mapped.getTopicPath(), message));
                 }
             } else {
                 logger.withCorrelationId(message.getInternalHeaders())
                         .debug("Not mapping message with mapper <{}> as content-type <{}> was " +
                                         "blocked or MessageMapper conditions {} were not matched.",
                                 mapper.getId(), message.findContentType(), mapper.getIncomingConditions());
-                return Stream.of(MappingOutcome.dropped());
+                return Stream.of(MappingOutcome.dropped(message));
             }
         } catch (final Exception e) {
-            return Stream.of(MappingOutcome.error(toDittoRuntimeException(e, mapper, message), null));
+            return Stream.of(MappingOutcome.error(toDittoRuntimeException(e, mapper, message), null, message));
         }
     }
 

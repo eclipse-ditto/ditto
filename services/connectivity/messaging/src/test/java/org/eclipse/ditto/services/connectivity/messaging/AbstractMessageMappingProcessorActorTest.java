@@ -330,10 +330,14 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapter,
                 logger);
+        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
+                protocolAdapter.headerTranslator(), kit.getRef(), connectionActorProbe.ref(),
+                outboundMappingProcessorActor);
+        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
 
-        final Props inboundMappingProcessorProps = InboundMappingProcessorActor.props(kit.getRef(),
-                inboundMappingProcessor, protocolAdapter.headerTranslator(),
-                CONNECTION, connectionActorProbe.ref(), 99, outboundMappingProcessorActor);
+        final Props inboundMappingProcessorProps =
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, 99, inboundDispatchingActor);
         return actorSystem.actorOf(inboundMappingProcessorProps);
     }
 
@@ -356,7 +360,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final OutboundMappingProcessor outboundMappingProcessor =
                 OutboundMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
-                actorSystem,
+                        actorSystem,
                         TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
 
         final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);

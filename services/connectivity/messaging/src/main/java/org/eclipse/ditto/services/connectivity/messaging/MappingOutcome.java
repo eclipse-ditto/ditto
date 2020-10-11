@@ -14,13 +14,12 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
  * Outcome of inbound and outbound message mapping.
@@ -44,20 +43,23 @@ public interface MappingOutcome<T> {
      * @param <T> type of the mapped message.
      * @param mapped the mapped message.
      * @param topicPath TopicPath of the mapped message.
+     * @param externalMessage external message for incoming mapping, or null for outgoing mapping.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> mapped(final T mapped, final TopicPath topicPath) {
-        return new MappedOutcome<>(mapped, topicPath);
+    static <T> MappingOutcome<T> mapped(final T mapped, final TopicPath topicPath,
+            @Nullable final ExternalMessage externalMessage) {
+        return new MappedOutcome<>(mapped, topicPath, externalMessage);
     }
 
     /**
      * Create a dropped outcome.
      *
+     * @param droppedMessage the dropped message.
      * @param <T> type of any mapped message.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> dropped() {
-        return new DroppedOutcome<>();
+    static <T> MappingOutcome<T> dropped(@Nullable ExternalMessage droppedMessage) {
+        return new DroppedOutcome<>(droppedMessage);
     }
 
     /**
@@ -65,11 +67,13 @@ public interface MappingOutcome<T> {
      *
      * @param error the error.
      * @param topicPath any topic path known at the time of error.
+     * @param externalMessage external message for incoming mapping, or null for outgoing mapping.
      * @param <T> type of any mapped message.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> error(final Exception error, @Nullable final TopicPath topicPath) {
-        return new ErrorOutcome<>(error, topicPath);
+    static <T> MappingOutcome<T> error(final Exception error, @Nullable final TopicPath topicPath,
+            @Nullable final ExternalMessage externalMessage) {
+        return new ErrorOutcome<>(error, topicPath, externalMessage);
     }
 
     /**
@@ -84,12 +88,41 @@ public interface MappingOutcome<T> {
     }
 
     /**
+     * Functional interface for error callbacks.
+     *
+     * @param <R> type of evaluation results.
+     */
+    @FunctionalInterface
+    interface OnError<R> {
+
+        /**
+         * Evaluate for an error.
+         *
+         * @param error the error.
+         * @param topicPath the topic path, if known.
+         * @param externalMessage the external message for incoming mapping, or null for outgoing mapping.
+         * @return the evaluation result.
+         */
+        R apply(Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
+    }
+
+    /**
      * Visitor of a mapping outcome.
      *
      * @param <T> type of mapped messages.
      * @param <R> type of results.
      */
     interface Visitor<T, R> {
+
+        /**
+         * Evaluate a mapping outcome by this visitor.
+         *
+         * @param outcome the outcome being evaluated.
+         * @return the evaluation result.
+         */
+        default R eval(final MappingOutcome<T> outcome) {
+            return outcome.accept(this);
+        }
 
         /**
          * Evaluate a mapped result.
@@ -102,18 +135,20 @@ public interface MappingOutcome<T> {
         /**
          * Get the result for dropped messages.
          *
+         * @param droppedMessage the dropped message.
          * @return the result.
          */
-        R onDropped();
+        R onDropped(@Nullable final ExternalMessage droppedMessage);
 
         /**
          * Get a result for failed mapping.
          *
          * @param error the error causing the mapping failure.
          * @param topicPath topic path of the signal being mapped, if any is known.
+         * @param externalMessage the external message for incoming mapping, or null for outgoing mapping.
          * @return the result.
          */
-        R onError(Exception error, @Nullable TopicPath topicPath);
+        R onError(Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
     }
 
     /**
@@ -125,8 +160,8 @@ public interface MappingOutcome<T> {
     final class VisitorBuilder<T, R> {
 
         @Nullable private Function<T, R> onMapped;
-        @Nullable private Supplier<R> onDropped;
-        @Nullable private BiFunction<Exception, TopicPath, R> onError;
+        @Nullable private Function<ExternalMessage, R> onDropped;
+        @Nullable private OnError<R> onError;
 
         /**
          * Set the mapped outcome evaluator.
@@ -145,7 +180,7 @@ public interface MappingOutcome<T> {
          * @param onDropped the evaluator.
          * @return this builder.
          */
-        public VisitorBuilder<T, R> onDropped(final Supplier<R> onDropped) {
+        public VisitorBuilder<T, R> onDropped(final Function<ExternalMessage, R> onDropped) {
             this.onDropped = onDropped;
             return this;
         }
@@ -156,7 +191,7 @@ public interface MappingOutcome<T> {
          * @param onError the evaluator.
          * @return this builder.
          */
-        public VisitorBuilder<T, R> onError(final BiFunction<Exception, TopicPath, R> onError) {
+        public VisitorBuilder<T, R> onError(final OnError<R> onError) {
             this.onError = onError;
             return this;
         }
@@ -179,13 +214,14 @@ public interface MappingOutcome<T> {
                 }
 
                 @Override
-                public R onDropped() {
-                    return onDropped.get();
+                public R onDropped(@Nullable final ExternalMessage droppedMessage) {
+                    return onDropped.apply(droppedMessage);
                 }
 
                 @Override
-                public R onError(final Exception error, @Nullable final TopicPath topicPath) {
-                    return onError.apply(error, topicPath);
+                public R onError(final Exception error, @Nullable final TopicPath topicPath,
+                        @Nullable final ExternalMessage externalMessage) {
+                    return onError.apply(error, topicPath, externalMessage);
                 }
             };
         }
@@ -197,10 +233,12 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
 
     private final T mapped;
     private final TopicPath topicPath;
+    @Nullable private final ExternalMessage externalMessage;
 
-    MappedOutcome(final T mapped, final TopicPath topicPath) {
+    MappedOutcome(final T mapped, final TopicPath topicPath, @Nullable final ExternalMessage externalMessage) {
         this.mapped = mapped;
         this.topicPath = topicPath;
+        this.externalMessage = externalMessage;
     }
 
     @Override
@@ -208,7 +246,7 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
         try {
             return visitor.onMapped(mapped);
         } catch (final Exception e) {
-            return visitor.onError(e, topicPath);
+            return visitor.onError(e, topicPath, externalMessage);
         }
     }
 }
@@ -216,14 +254,18 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
 // private to MappingOutcome. Do NOT use directly.
 final class DroppedOutcome<T> implements MappingOutcome<T> {
 
-    DroppedOutcome() {}
+    private final ExternalMessage droppedMessage;
+
+    DroppedOutcome(@Nullable final ExternalMessage droppedMessage) {
+        this.droppedMessage = droppedMessage;
+    }
 
     @Override
     public <R> R accept(final Visitor<T, R> visitor) {
         try {
-            return visitor.onDropped();
+            return visitor.onDropped(droppedMessage);
         } catch (final Exception e) {
-            return visitor.onError(e, null);
+            return visitor.onError(e, null, droppedMessage);
         }
     }
 }
@@ -233,15 +275,17 @@ final class ErrorOutcome<T> implements MappingOutcome<T> {
 
     private final Exception error;
     @Nullable private final TopicPath topicPath;
+    @Nullable private final ExternalMessage externalMessage;
 
-
-    ErrorOutcome(final Exception error, @Nullable final TopicPath topicPath) {
+    ErrorOutcome(final Exception error, @Nullable final TopicPath topicPath,
+            @Nullable final ExternalMessage externalMessage) {
         this.error = error;
         this.topicPath = topicPath;
+        this.externalMessage = externalMessage;
     }
 
     @Override
     public <R> R accept(final Visitor<T, R> visitor) {
-        return visitor.onError(error, topicPath);
+        return visitor.onError(error, topicPath, externalMessage);
     }
 }
