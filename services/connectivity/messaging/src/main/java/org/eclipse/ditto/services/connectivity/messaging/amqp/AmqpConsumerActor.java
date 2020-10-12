@@ -61,7 +61,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -75,7 +74,8 @@ import akka.pattern.Patterns;
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener, MessageRateLimiterBehavior<String> {
+final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener,
+        MessageRateLimiterBehavior<String>, ConnectivityConfigModifiedBehavior {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
@@ -85,7 +85,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
-    private final MessageRateLimiter<String> messageRateLimiter;
+    private MessageRateLimiter<String> messageRateLimiter;
 
     // Access to the actor who performs JMS tasks in own thread
     private final ActorRef jmsActor;
@@ -94,6 +94,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private ConsumerData consumerData;
     @Nullable
     private MessageConsumer messageConsumer;
+    private ConnectivityConfig connectivityConfig;
+    private final ConnectivityConfigProvider connectivityConfigProvider;
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
@@ -102,10 +104,11 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 messageMappingProcessor,
                 consumerData.getSource());
-        final ConnectionConfig connectionConfig =
-                DittoConnectivityConfig.of(
-                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                        .getConnectionConfig();
+
+        connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
+        connectivityConfig = connectivityConfigProvider.getConnectivityConfig(connectionId);
+        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
+
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         this.messageConsumer = consumerData.getMessageConsumer();
         this.consumerData = consumerData;
@@ -153,12 +156,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 }).build();
         return messageHandlingBehavior
                 .orElse(rateLimiterBehavior)
+                .orElse(connectivityConfigModifiedBehavior())
                 .orElse(matchAnyBehavior);
     }
 
     @Override
     public void preStart() throws JMSException {
         initMessageConsumer();
+        registerForConfigChanges(connectionId);
     }
 
     @Override
@@ -415,6 +420,35 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     @Override
     public DittoDiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    @Override
+    public ConnectivityConfig getCurrentConnectivityConfig() {
+        return connectivityConfig;
+    }
+
+    @Override
+    public ConnectivityConfigProvider getConnectivityConfigProvider() {
+        return connectivityConfigProvider;
+    }
+
+    @Override
+    public void configModified(final ConnectivityConfig connectivityConfig) {
+        this.connectivityConfig = connectivityConfig;
+        final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
+        messageRateLimiter.getRedeliveryExpectationTimeout());
+        if (messageRateLimiter != null
+                && (messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerThrottlingLimit()
+                || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerMaxInFlight()
+                || messageRateLimiter.getRedeliveryExpectationTimeout() !=
+                amqp10Config.getConsumerRedeliveryExpectationTimeout())
+        ) {
+            // relevant config changed -> build new message rate limiter
+            this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
+            log.info("built new rate limiter from existing one with new config...");
+        } else {
+            log.info("relevant config unchanged, do nothing.");
+        }
     }
 
     /**

@@ -36,6 +36,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.actor.ActorRef;
 
+/**
+ * TODO DG
+ */
 @IndexSubclasses
 public interface ConnectivityConfigProvider {
 

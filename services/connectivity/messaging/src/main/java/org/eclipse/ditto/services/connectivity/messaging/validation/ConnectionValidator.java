@@ -50,18 +50,22 @@ public final class ConnectionValidator {
 
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+    private final ConnectivityConfigProvider connectivityConfigProvider;
+    private final LoggingAdapter loggingAdapter;
 
-    private final int mappingNumberLimitSource;
-    private final int mappingNumberLimitTarget;
+    private int mappingNumberLimitSource;
+    private int mappingNumberLimitTarget;
 
-    private final int maxNumberOfSources;
-    private final int maxNumberOfTargets;
+    private int maxNumberOfSources;
+    private int maxNumberOfTargets;
 
-    private final HostValidator hostValidator;
+    private HostValidator hostValidator;
 
     private ConnectionValidator(
-            final ConnectivityConfig connectivityConfig,
+            final ConnectivityConfigProvider connectivityConfigProvider,
             LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
+        this.connectivityConfigProvider = connectivityConfigProvider;
+        this.loggingAdapter = loggingAdapter;
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(specMap);
@@ -69,7 +73,22 @@ public final class ConnectionValidator {
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ModelBasedThingsFieldExpressionFactory();
         queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+    }
 
+    /**
+     * Create a connection validator from connection specs.
+     *
+     * @param connectivityConfigProvider the connectivity config provider
+     * @param loggingAdapter a logging adapter
+     * @param connectionSpecs specs of supported connection types.
+     * @return a connection validator.
+     */
+    public static ConnectionValidator of(final ConnectivityConfigProvider connectivityConfigProvider,
+            LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
+        return new ConnectionValidator(connectivityConfigProvider, loggingAdapter, connectionSpecs);
+    }
+
+    private void applyConfig(final ConnectivityConfig connectivityConfig) {
         final MapperLimitsConfig mapperLimitsConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
         mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
@@ -78,19 +97,6 @@ public final class ConnectionValidator {
         maxNumberOfTargets = connectivityConfig.getConnectionConfig().getMaxNumberOfTargets();
 
         hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
-    }
-
-    /**
-     * Create a connection validator from connection specs.
-     *
-     * @param connectivityConfig the connectivity config
-     * @param loggingAdapter a logging adapter
-     * @param connectionSpecs specs of supported connection types.
-     * @return a connection validator.
-     */
-    public static ConnectionValidator of(final ConnectivityConfig connectivityConfig,
-            LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
-        return new ConnectionValidator(connectivityConfig, loggingAdapter, connectionSpecs);
     }
 
     /**
@@ -103,6 +109,7 @@ public final class ConnectionValidator {
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
+        applyConfig(connectivityConfigProvider.getConnectivityConfig(dittoHeaders));
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourcesAndTargets(connection, dittoHeaders);
         validateFormatOfCertificates(connection, dittoHeaders);

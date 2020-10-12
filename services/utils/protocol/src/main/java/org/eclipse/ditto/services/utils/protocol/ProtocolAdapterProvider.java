@@ -29,7 +29,7 @@ import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
 import akka.actor.ExtendedActorSystem;
 import scala.Tuple2;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 import scala.util.Try;
@@ -65,7 +65,7 @@ public abstract class ProtocolAdapterProvider {
                 Collections.singletonList(new Tuple2<>(ProtocolConfig.class, protocolConfig));
         final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
         final Try<ProtocolAdapterProvider> providerBox = dynamicAccess.createInstanceFor(className,
-                JavaConverters.asScalaBuffer(constructorArgs).toList(), tag);
+                CollectionConverters.asScala(constructorArgs).toList(), tag);
 
         return providerBox.get();
     }

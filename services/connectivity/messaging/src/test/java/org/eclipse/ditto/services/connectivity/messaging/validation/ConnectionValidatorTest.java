@@ -27,12 +27,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -64,6 +67,7 @@ import org.junit.rules.ExpectedException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
@@ -399,7 +403,44 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST, actorSystem.log(),
-                AmqpValidator.newInstance());
+        return ConnectionValidator.of(TestConnectivityConfigProvider.of(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST),
+                actorSystem.log(), AmqpValidator.newInstance());
+    }
+
+    private static class TestConnectivityConfigProvider implements ConnectivityConfigProvider {
+
+        private final ConnectivityConfig config;
+
+        private TestConnectivityConfigProvider(
+                final ConnectivityConfig config) {this.config = config;}
+
+        static ConnectivityConfigProvider of(final ConnectivityConfig config) {
+            return new TestConnectivityConfigProvider(config);
+        }
+
+        @Override
+        public ConnectivityConfig getConnectivityConfig(final EntityId connectionId) {
+            return config;
+        }
+
+        @Override
+        public ConnectivityConfig getConnectivityConfig(final DittoHeaders dittoHeaders) {
+            return config;
+        }
+
+        @Override
+        public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final EntityId connectionId) {
+            return CompletableFuture.completedFuture(config);
+        }
+
+        @Override
+        public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final DittoHeaders dittoHeaders) {
+            return CompletableFuture.completedFuture(config);
+        }
+
+        @Override
+        public void registerForChanges(final EntityId connectionId, final ActorRef sender) {
+
+        }
     }
 }

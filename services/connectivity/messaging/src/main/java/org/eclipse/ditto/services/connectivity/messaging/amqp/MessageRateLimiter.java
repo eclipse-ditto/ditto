@@ -62,9 +62,26 @@ final class MessageRateLimiter<S> {
         this.enabled = enabled;
     }
 
+    private MessageRateLimiter(final int maxPerPeriod, final int maxInFlight,
+            final Duration redeliveryExpectationTimeout, final MessageRateLimiter<S> existingLimiter) {
+        this.maxPerPeriod = Math.max(maxPerPeriod, 1);
+        this.maxInFlight = Math.max(maxInFlight, 1);
+        this.redeliveryExpectationTimeout = maxDuration(redeliveryExpectationTimeout, Duration.ofSeconds(1L));
+        this.enabled = existingLimiter.enabled;
+        this.isConsumerOpen = existingLimiter.isConsumerOpen;
+        this.pendingRedeliveries.addAll(existingLimiter.pendingRedeliveries);
+        this.inFlight = existingLimiter.inFlight;
+        this.consumedInPeriod = existingLimiter.consumedInPeriod;
+    }
+
     static <S> MessageRateLimiter<S> of(final Amqp10Config config, final boolean enabled) {
         return new MessageRateLimiter<>(config.getConsumerThrottlingLimit(), config.getConsumerMaxInFlight(),
                 config.getConsumerRedeliveryExpectationTimeout(), enabled);
+    }
+
+    static <S> MessageRateLimiter<S> of(final Amqp10Config config, final MessageRateLimiter<S> existingLimiter) {
+        return new MessageRateLimiter<>(config.getConsumerThrottlingLimit(), config.getConsumerMaxInFlight(),
+                config.getConsumerRedeliveryExpectationTimeout(), existingLimiter);
     }
 
     /**

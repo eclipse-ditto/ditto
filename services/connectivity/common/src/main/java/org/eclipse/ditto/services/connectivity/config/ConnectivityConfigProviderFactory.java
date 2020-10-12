@@ -43,6 +43,9 @@ import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 import scala.util.Try;
 
+/**
+ * TODO DG
+ */
 public final class ConnectivityConfigProviderFactory {
 
     public static ConnectivityConfigProvider getInstance(final ActorSystem actorSystem) {

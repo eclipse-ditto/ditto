@@ -18,14 +18,12 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Implements {@link ConnectivityConfigProvider} by providing a {@link ScopedConfig} from the given
- * {@link com.typesafe.config.Config}.
+ * TODO DG
  */
 public class DittoConnectivityConfigProvider implements ConnectivityConfigProvider {
 
