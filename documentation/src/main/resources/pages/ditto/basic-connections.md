@@ -56,6 +56,7 @@ Source messages can be of the following type:
 * [commands](basic-signals-command.html)
 * [messages](basic-messages.html)
 * [live commands/responses/events](protocol-twinlive.html)
+* [acknowledgements](protocol-specification-acks.html)
 
 Sources contain:
 * several addresses (depending on the [connection type](#connection-types) those are interpreted differently, e.g. as queues, topics, etc.),
@@ -63,6 +64,7 @@ Sources contain:
 * an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source,
 * enforcement information that allows filtering the messages that are consumed in this source,
 * [acknowledgement requests](basic-acknowledgements.html#requesting-acks) this source requires in order to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
+* declared labels of [acknowledgements](protocol-specification-acks.html) the source is allowed to send,
 * [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers, and
 * a reply-target to configure publication of any responses of incoming commands.
 
@@ -159,11 +161,31 @@ acknowledgements are only requested if the "qos" header was either not present o
   "acknowledgementRequests": {
     "includes": [
       "twin-persisted",
-      "my-custom-ack"
+      "receiver-connection-id:my-custom-ack"
     ],
     "filter": "fn:filter(header:qos,'ne',0)"
   }
 }
+```
+
+#### Source declared acknowledgement labels
+
+The acknowledgements sent via a source must have their labels declared in the field `declardAcks` as a JSON array.
+If the label of an acknowledgement is not in the `declaredAcks` array, then the acknowledgement is rejected with
+an error. The declared labels must be prefixed by the connection ID followed by a column, or use the `connection:id`
+placeholder. For example:
+```json
+{%raw%}
+{
+  "addresses": [
+    "<source>"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "declaredAcks": [
+    "{{connection:id}}:my-custom-ack"
+  ]
+}
+{%endraw%}
 ```
 
 #### Source header mapping
@@ -327,16 +349,20 @@ For more details on that topic, please refer to the [acknowledgements](basic-ack
 Whether an outgoing message is treated as successfully sent or not is specific for the used 
 [connection type](#connection-types) and documented in scope of that connection type.
 
+The issued acknowledgement label must be prefixed by the connection ID followed by a column, or use the `connection:id`
+placeholder.
 The JSON for a target with issued acknowledgement labels could look like this:
 ```json
+{%raw%}
 {
   "address": "<target>",
   "topics": [
     "_/_/things/twin/events"
   ],
   "authorizationContext": ["ditto:inbound-auth-subject"],
-  "issuedAcknowledgementLabel": "my-custom-ack"
+  "issuedAcknowledgementLabel": "{{connection:id}}:my-custom-ack"
 }
+{%endraw%}
 ```
 
 #### Target header mapping

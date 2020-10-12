@@ -216,6 +216,10 @@ live commands and live messages. In order to issue a single acknowledgement, a
 back, using the same `"correlation-id"` in the [protocol headers](protocol-specification.html#headers) as contained
 in the received twin event, live command or live message.
 
+The labels of issued acknowledgements are globally unique for each subscriber. Before a subscriber is allowed to
+send acknowledgements, it must declare the labels of acknowledgements it sends. Any declared label taken by another
+subscriber causes an appropriate error for each channel that may issue acknowledgements.
+
 ### Issuing ACKs via HTTP
 It is not possible to issue acknowledgements via HTTP, because it is impossible to subscribe for twin events,
 live commands or live messages via HTTP.
@@ -225,9 +229,16 @@ Create and send the [Ditto Protocol acknowledgement](protocol-specification-acks
 established WebSocket in response to a twin event, live command or live message that contains a `"requested-acks"`
 header.
 
+Only acknowledgements with declared labels are accepted. To declare acknowledgement labels, set them as the value
+of the query parameter `declared-acks` as comma-separated list:
+```
+GET /ws/2?declared-acks=my:ack-label-1,my:ack-label-2 HTTP/1.1
+```
+The websocket is closed if any declared label is taken by another subscriber.
+
 ### Issuing ACKs via connections
 Requested acknowledgements for Ditto managed [connection targets](basic-connections.html#targets) can be issued in 2 
-ways: 
+ways:
 
 * specifically for each published twin event, live command or live message by sending a
   [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) back,
@@ -235,6 +246,15 @@ ways:
 * by configuring the managed connection target to automatically
   [issue acknowledgements](basic-connections.html#target-issued-acknowledgement-label) for all published twin events,
   live commands and live messages that request them.
+
+Acknowledgements sent via a source must
+[have their labels declared](basic-connections.html#source-declared-acknowledgement-labels)
+in the field `declaredAcks` as a JSON array.
+The labels of target-issued acknowledgements are declared automatically.
+Acknowledgement labels of a connection must be prefixed by the connection ID or use the `connection:id` placeholder,
+for example `{%raw%}{{connection-id}}:my-custom-ack{%endraw%}`.
+If some source-declared or target-issued acknowledgement labels are taken by a websocket subscriber,
+all acknowledgements sent by the connection are rejected with error until the websocket is closed.
 
 #### Issuing ACKs via Ditto Protocol acknowledgement message
 Create and send the [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message over a  
