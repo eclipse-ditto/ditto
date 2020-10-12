@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
@@ -33,6 +34,7 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.apache.qpid.jms.JmsAcknowledgeCallback;
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -280,10 +282,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {
+                final Integer ackType = Optional.ofNullable(message.getAcknowledgeCallback())
+                        .map(JmsAcknowledgeCallback::getAckType)
+                        .orElse(null);
                 log.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
                         message.toString(),
-                        message.getAllPropertyNames().toString(),
-                        message.getAcknowledgeCallback().getAckType());
+                        message.getAllPropertyNames(),
+                        ackType);
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());

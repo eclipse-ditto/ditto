@@ -173,8 +173,13 @@ public final class InboundDispatchingActor extends AbstractActor
         return ReceiveBuilder.create()
                 .match(InboundMappingOutcomes.class, InboundMappingOutcomes::hasError, this::dispatchError)
                 .match(InboundMappingOutcomes.class, this::dispatchMapped)
+                .match(DittoRuntimeException.class, this::onDittoRuntimeException)
                 .matchAny(message -> logger.warning("Received unknown message <{}>.", message))
                 .build();
+    }
+
+    private void onDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        onError(dittoRuntimeException, null, null);
     }
 
     private void dispatchError(final InboundMappingOutcomes outcomes) {
@@ -249,21 +254,26 @@ public final class InboundDispatchingActor extends AbstractActor
             @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage message) {
 
-        if (message != null && e instanceof DittoRuntimeException) {
-            final String source = getAddress(message);
-            final AuthorizationContext authorizationContext = getAuthorizationContext(message).orElse(null);
-            final ConnectionMonitor mappedMonitor = connectionMonitorRegistry.forInboundMapped(connectionId, source);
+        if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
-            mappedMonitor.getLogger()
-                    .failure("Got exception {0} when processing external message: {1}",
-                            dittoRuntimeException.getErrorCode(),
-                            e.getMessage());
             final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
-            final DittoHeaders mappedHeaders =
-                    applyInboundHeaderMapping(errorResponse, message, authorizationContext,
-                            message.getTopicPath().orElse(null), message.getInternalHeaders());
-            logger.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
-                    mappedHeaders, message.getHeaderMapping(), message.getHeaders());
+            final DittoHeaders mappedHeaders;
+            if (message != null) {
+                final AuthorizationContext authorizationContext = getAuthorizationContext(message).orElse(null);
+                final String source = getAddress(message);
+                final ConnectionMonitor mappedMonitor =
+                        connectionMonitorRegistry.forInboundMapped(connectionId, source);
+                mappedMonitor.getLogger()
+                        .failure("Got exception {0} when processing external message: {1}",
+                                dittoRuntimeException.getErrorCode(),
+                                e.getMessage());
+                mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
+                        message.getTopicPath().orElse(null), message.getInternalHeaders());
+                logger.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
+                        mappedHeaders, message.getHeaderMapping(), message.getHeaders());
+            } else {
+                mappedHeaders = dittoRuntimeException.getDittoHeaders();
+            }
             outboundMessageMappingProcessorActor.tell(errorResponse.setDittoHeaders(mappedHeaders),
                     ActorRef.noSender());
         } else if (e != null) {

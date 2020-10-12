@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -112,8 +113,6 @@ public final class InboundMappingProcessorActor
             final int processorPoolSize,
             final ActorRef inboundDispatchingActor) {
 
-        // TODO: move unused parameters to the dispatcher actor
-
         return Props.create(InboundMappingProcessorActor.class,
                 inboundMappingProcessor,
                 headerTranslator,
@@ -138,6 +137,11 @@ public final class InboundMappingProcessorActor
     }
 
     @Override
+    protected void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
+        inboundDispatchingActor.tell(dittoRuntimeException, getSender());
+    }
+
+    @Override
     protected ExternalMessageWithSender mapMessage(final ExternalMessage message) {
         return new ExternalMessageWithSender(message, getSender());
     }
@@ -150,7 +154,7 @@ public final class InboundMappingProcessorActor
                         .mapAsync(processorPoolSize, externalMessage -> CompletableFuture.supplyAsync(
                                 () -> {
                                     logger.debug("Received inbound Message to map: {}", externalMessage);
-                                    return forwardInboundMessage(externalMessage);
+                                    return mapInboundMessage(externalMessage);
                                 },
                                 getContext().getDispatcher())
                         );
@@ -169,7 +173,7 @@ public final class InboundMappingProcessorActor
                 .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
     }
 
-    private Optional<InboundMappingOutcomes> forwardInboundMessage(final ExternalMessageWithSender withSender) {
+    private Optional<InboundMappingOutcomes> mapInboundMessage(final ExternalMessageWithSender withSender) {
         final ExternalMessage externalMessage = withSender.externalMessage;
         final String correlationId =
                 externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
