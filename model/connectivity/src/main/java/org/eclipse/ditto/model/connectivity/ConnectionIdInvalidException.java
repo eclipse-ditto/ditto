@@ -45,8 +45,6 @@ public final class ConnectionIdInvalidException extends DittoRuntimeException im
     private static final String DEFAULT_DESCRIPTION =
             String.format("It must be conform to the regular expression: <%s>.", ConnectionId.ID_REGEX);
 
-    private static final long serialVersionUID = -3899791430534146626L;
-
     private ConnectionIdInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
