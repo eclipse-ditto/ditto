@@ -436,7 +436,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     public void configModified(final ConnectivityConfig connectivityConfig) {
         this.connectivityConfig = connectivityConfig;
         final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
-        messageRateLimiter.getRedeliveryExpectationTimeout());
+        messageRateLimiter.getRedeliveryExpectationTimeout();
         if (messageRateLimiter != null
                 && (messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerThrottlingLimit()
                 || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerMaxInFlight()
