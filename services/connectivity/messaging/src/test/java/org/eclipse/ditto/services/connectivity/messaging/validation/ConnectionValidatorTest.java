@@ -27,8 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -63,12 +61,14 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
@@ -107,7 +107,8 @@ public class ConnectionValidatorTest {
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class, HostValidator.class).isAlsoImmutable());
+                provided(QueryFilterCriteriaFactory.class, HostValidator.class, ConnectivityConfigProvider.class,
+                        LoggingAdapter.class).areAlsoImmutable());
     }
 
     @Test
@@ -403,44 +404,20 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(TestConnectivityConfigProvider.of(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST),
-                actorSystem.log(), AmqpValidator.newInstance());
+        final ConnectivityConfigProvider configProvider =
+                mockConnectivityConfigProvider(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST);
+        return ConnectionValidator.of(configProvider, actorSystem.log(), AmqpValidator.newInstance());
     }
 
-    private static class TestConnectivityConfigProvider implements ConnectivityConfigProvider {
+    private ConnectivityConfigProvider mockConnectivityConfigProvider(
+            final ConnectivityConfig connectivityConfigWithEnabledBlocklist) {
+        final ConnectivityConfigProvider configProvider = Mockito.mock(ConnectivityConfigProvider.class);
 
-        private final ConnectivityConfig config;
-
-        private TestConnectivityConfigProvider(
-                final ConnectivityConfig config) {this.config = config;}
-
-        static ConnectivityConfigProvider of(final ConnectivityConfig config) {
-            return new TestConnectivityConfigProvider(config);
-        }
-
-        @Override
-        public ConnectivityConfig getConnectivityConfig(final EntityId connectionId) {
-            return config;
-        }
-
-        @Override
-        public ConnectivityConfig getConnectivityConfig(final DittoHeaders dittoHeaders) {
-            return config;
-        }
-
-        @Override
-        public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final EntityId connectionId) {
-            return CompletableFuture.completedFuture(config);
-        }
-
-        @Override
-        public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final DittoHeaders dittoHeaders) {
-            return CompletableFuture.completedFuture(config);
-        }
-
-        @Override
-        public void registerForChanges(final EntityId connectionId, final ActorRef sender) {
-
-        }
+        Mockito.when(configProvider.getConnectivityConfig(ArgumentMatchers.any(EntityId.class)))
+                .thenReturn(connectivityConfigWithEnabledBlocklist);
+        Mockito.when(configProvider.getConnectivityConfig(ArgumentMatchers.any(DittoHeaders.class)))
+                .thenReturn(connectivityConfigWithEnabledBlocklist);
+        return configProvider;
     }
+
 }
