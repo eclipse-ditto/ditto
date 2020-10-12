@@ -18,7 +18,7 @@ import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 
 /**
  * Rate limiter for unacknowledged messages and total messages.

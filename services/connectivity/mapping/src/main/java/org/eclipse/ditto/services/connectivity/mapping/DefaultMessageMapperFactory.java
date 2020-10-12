@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
@@ -170,7 +171,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                     return new SimpleImmutableEntry<>(alias, messageMapper);
                 })
                 .filter(e -> null != e.getValue())
-                .collect(Collectors.toMap(SimpleImmutableEntry::getKey, SimpleImmutableEntry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static Map<String, Class<?>> tryToLoadPayloadMappers() {

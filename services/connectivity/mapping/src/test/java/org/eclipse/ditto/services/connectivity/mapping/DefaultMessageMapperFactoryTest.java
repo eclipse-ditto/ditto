@@ -22,6 +22,8 @@ import java.util.Map;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.services.connectivity.config.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.test.MappingContexts;
 import org.eclipse.ditto.services.connectivity.mapping.test.MockMapper;
 import org.junit.After;
