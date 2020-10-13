@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -47,6 +49,7 @@ final class Sending implements SendingOrDropped {
 
     private final SendingContext sendingContext;
     private final CompletionStage<CommandResponse<?>> futureResponse;
+    private final ExpressionResolver connectionIdResolver;
     private final ThreadSafeDittoLoggingAdapter logger;
 
     /**
@@ -54,14 +57,17 @@ final class Sending implements SendingOrDropped {
      *
      * @param sendingContext context information for the sent signal.
      * @param futureResponse represents a signal being sent as either future acknowledgement or another command response.
+     * @param connectionIdResolver an ExpressionResolver for looking up {@code {{connection:id}}} placeholders in target acks.
      * @param logger the logger to be used for logging.
      * @throws NullPointerException if any argument is {@code null}.
      */
     Sending(final SendingContext sendingContext, final CompletionStage<CommandResponse<?>> futureResponse,
+            final ExpressionResolver connectionIdResolver,
             final ThreadSafeDittoLoggingAdapter logger) {
 
         this.sendingContext = checkNotNull(sendingContext, "sendingContext");
         this.futureResponse = checkNotNull(futureResponse, "futureResponse");
+        this.connectionIdResolver = checkNotNull(connectionIdResolver, "connectionIdResolver");
         this.logger = checkNotNull(logger, "logger");
     }
 
@@ -172,8 +178,9 @@ final class Sending implements SendingOrDropped {
     private Acknowledgement convertExceptionToAcknowledgementOrNull(final Exception exception,
             final ExceptionToAcknowledgementConverter exceptionConverter) {
 
-        final Optional<AcknowledgementLabel> labelOptional =
-                sendingContext.getAutoAckTarget().flatMap(Target::getIssuedAcknowledgementLabel);
+        final Optional<AcknowledgementLabel> labelOptional = sendingContext.getAutoAckTarget()
+                .flatMap(Target::getIssuedAcknowledgementLabel)
+                .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
 
         final Acknowledgement result;
         if (labelOptional.isEmpty()) {

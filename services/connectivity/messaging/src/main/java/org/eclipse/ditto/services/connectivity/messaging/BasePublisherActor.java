@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -50,6 +51,7 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -103,6 +105,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
+    protected final ExpressionResolver connectionIdResolver;
 
     protected BasePublisherActor(final Connection connection) {
         this.connection = checkNotNull(connection, "connection");
@@ -123,6 +126,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
+
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+                connection.getId());
     }
 
     private ConnectivityConfig getConnectivityConfig() {
@@ -371,7 +377,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         try {
             return publishToGenericTarget(resolver, sendingContext, maxTotalMessageSize, quota, logger);
         } catch (final Exception e) {
-            return new Sending(sendingContext, CompletableFuture.failedFuture(e), logger);
+            return new Sending(sendingContext, CompletableFuture.failedFuture(e), connectionIdResolver, logger);
         }
     }
 
@@ -399,7 +405,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     publishMessage(outboundSource, autoAckTarget, publishTarget, mappedMessage, maxTotalMessageSize,
                             quota);
             // set the external message after header mapping for the result of header mapping to show up in log
-            result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture, logger);
+            result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
+                    connectionIdResolver, logger);
         } else {
             result = new Dropped(sendingContext);
         }
@@ -504,8 +511,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param target the target.
      * @return the configured auto-ack label if any exists, or an empty optional.
      */
-    protected static Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
-        return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel);
+    protected Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
+        return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel)
+                .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
     }
 
     /**
@@ -524,7 +532,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return CharsetDeterminer.getInstance().apply(contentType);
     }
 
-    private static boolean isTargetAckRequested(final OutboundSignal.Mapped mapped, final Target target) {
+    private boolean isTargetAckRequested(final OutboundSignal.Mapped mapped, final Target target) {
         final Signal<?> source = mapped.getSource();
         final DittoHeaders dittoHeaders = source.getDittoHeaders();
         final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
@@ -537,7 +545,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .isPresent()) {
             return dittoHeaders.isResponseRequired() && isLiveSignal(source);
         } else {
-            return target.getIssuedAcknowledgementLabel().filter(requestedAcks::contains).isPresent();
+            return target.getIssuedAcknowledgementLabel()
+                    .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .filter(requestedAcks::contains)
+                    .isPresent();
         }
     }
 

@@ -144,7 +144,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         } else {
             final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
             final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
-            final Callback callBack = new ProducerCallBack(signal, autoAckTarget, ackSizeQuota, resultFuture,
+            final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
+            final Callback callBack = new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, resultFuture,
                     this::escalateIfNotRetryable, connection);
             producer.send(record, callBack);
             return resultFuture;
@@ -246,7 +247,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private static final class ProducerCallBack implements Callback {
 
         private final Signal<?> signal;
-        @Nullable private final Target autoAckTarget;
+        private final AcknowledgementLabel autoAckLabel;
         private final int ackSizeQuota;
         private final CompletableFuture<CommandResponse<?>> resultFuture;
         private final Consumer<Exception> checkException;
@@ -254,14 +255,14 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private final Connection connection;
 
         private ProducerCallBack(final Signal<?> signal,
-                @Nullable final Target autoAckTarget,
+                final AcknowledgementLabel autoAckLabel,
                 final int ackSizeQuota,
                 final CompletableFuture<CommandResponse<?>> resultFuture,
                 final Consumer<Exception> checkException,
                 final Connection connection) {
 
             this.signal = signal;
-            this.autoAckTarget = autoAckTarget;
+            this.autoAckLabel = autoAckLabel;
             this.ackSizeQuota = ackSizeQuota;
             this.resultFuture = resultFuture;
             this.checkException = checkException;
@@ -280,11 +281,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
             final ThingId id = ThingId.of(signal.getEntityId());
-            final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
             if (metadata == null || !isDebugEnabled()) {
-                return Acknowledgement.of(label, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
+                return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
             } else {
-                return Acknowledgement.of(label, id, HttpStatusCode.OK, signal.getDittoHeaders(), toPayload(metadata));
+                return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.OK, signal.getDittoHeaders(), toPayload(metadata));
             }
         }
 

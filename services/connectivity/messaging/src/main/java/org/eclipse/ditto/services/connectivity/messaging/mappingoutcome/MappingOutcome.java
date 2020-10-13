@@ -59,7 +59,7 @@ public interface MappingOutcome<T> {
      * @param <T> type of any mapped message.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> dropped(@Nullable ExternalMessage droppedMessage) {
+    static <T> MappingOutcome<T> dropped(@Nullable final ExternalMessage droppedMessage) {
         return new DroppedOutcome<>(droppedMessage);
     }
 
@@ -139,7 +139,7 @@ public interface MappingOutcome<T> {
          * @param droppedMessage the dropped message.
          * @return the result.
          */
-        R onDropped(@Nullable final ExternalMessage droppedMessage);
+        R onDropped(@Nullable ExternalMessage droppedMessage);
 
         /**
          * Get a result for failed mapping.

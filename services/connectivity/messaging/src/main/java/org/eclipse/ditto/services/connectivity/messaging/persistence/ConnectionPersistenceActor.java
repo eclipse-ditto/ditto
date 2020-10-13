@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
 import java.time.Duration;
@@ -615,7 +616,7 @@ public final class ConnectionPersistenceActor
             return entity.getSources()
                     .stream()
                     .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
-                    .map(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toSet());
@@ -631,7 +632,7 @@ public final class ConnectionPersistenceActor
                     .stream()
                     .map(Target::getIssuedAcknowledgementLabel)
                     .flatMap(Optional::stream)
-                    .map(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
                     .filter(Optional::isPresent)
                     .flatMap(Optional::stream)
                     .collect(Collectors.toSet());
