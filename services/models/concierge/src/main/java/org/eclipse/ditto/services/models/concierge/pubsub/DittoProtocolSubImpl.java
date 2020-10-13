@@ -99,11 +99,9 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
             return CompletableFuture.completedFuture(null);
         }
 
-        try {
-            ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
-        } catch (final IllegalArgumentException e) {
-            return CompletableFuture.failedStage(e);
-        }
+        // don't complete the future with the exception this method emits as this is a bug in Ditto which we must escalate
+        // via the actor supervision strategy
+        ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
 
         return twinEventSub.declareAcknowledgementLabels(acknowledgementLabels, subscriber).thenApply(ack -> null);
         // no need to declare the labels for liveSignalSub because acks distributed data does not start there
@@ -111,7 +109,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
 
     private static void ensureAcknowledgementLabelsAreFullyResolved(final Collection<AcknowledgementLabel> ackLabels) {
         ackLabels.stream()
-                .filter(AcknowledgementLabel::isFullyResolved)
+                .filter(Predicate.not(AcknowledgementLabel::isFullyResolved))
                 .findFirst()
                 .ifPresent(ackLabel -> {
                     // if this happens, this is a bug in the Ditto codebase! at this point the AckLabel must be resolved
