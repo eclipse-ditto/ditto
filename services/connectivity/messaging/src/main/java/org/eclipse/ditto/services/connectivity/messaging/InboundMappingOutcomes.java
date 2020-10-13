@@ -17,6 +17,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 

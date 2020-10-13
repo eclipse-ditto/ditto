@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging;
+package org.eclipse.ditto.services.connectivity.messaging.mappingoutcome;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
  * Outcome of inbound and outbound message mapping.
+ * This is an algebraic datatype. DO NOT inherit!
  *
  * @param <T> type of mapped messages.
  */
@@ -225,67 +226,5 @@ public interface MappingOutcome<T> {
                 }
             };
         }
-    }
-}
-
-// private to MappingOutcome. Do NOT use directly.
-final class MappedOutcome<T> implements MappingOutcome<T> {
-
-    private final T mapped;
-    private final TopicPath topicPath;
-    @Nullable private final ExternalMessage externalMessage;
-
-    MappedOutcome(final T mapped, final TopicPath topicPath, @Nullable final ExternalMessage externalMessage) {
-        this.mapped = mapped;
-        this.topicPath = topicPath;
-        this.externalMessage = externalMessage;
-    }
-
-    @Override
-    public <R> R accept(final Visitor<T, R> visitor) {
-        try {
-            return visitor.onMapped(mapped);
-        } catch (final Exception e) {
-            return visitor.onError(e, topicPath, externalMessage);
-        }
-    }
-}
-
-// private to MappingOutcome. Do NOT use directly.
-final class DroppedOutcome<T> implements MappingOutcome<T> {
-
-    private final ExternalMessage droppedMessage;
-
-    DroppedOutcome(@Nullable final ExternalMessage droppedMessage) {
-        this.droppedMessage = droppedMessage;
-    }
-
-    @Override
-    public <R> R accept(final Visitor<T, R> visitor) {
-        try {
-            return visitor.onDropped(droppedMessage);
-        } catch (final Exception e) {
-            return visitor.onError(e, null, droppedMessage);
-        }
-    }
-}
-
-// private to MappingOutcome. Do NOT use directly.
-final class ErrorOutcome<T> implements MappingOutcome<T> {
-
-    private final Exception error;
-    @Nullable private final TopicPath topicPath;
-    @Nullable private final ExternalMessage externalMessage;
-
-    ErrorOutcome(final Exception error, @Nullable final TopicPath topicPath,
-            @Nullable final ExternalMessage externalMessage) {
-        this.error = error;
-        this.topicPath = topicPath;
-        this.externalMessage = externalMessage;
-    }
-
-    @Override
-    public <R> R accept(final Visitor<T, R> visitor) {
-        return visitor.onError(error, topicPath, externalMessage);
     }
 }
