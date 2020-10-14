@@ -1203,8 +1203,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link org.eclipse.ditto.services.connectivity.messaging.InboundDispatchingActor}
-     * responsible for signal de-multiplexing and acknowledgement aggregation.
+     * Starts the {@link InboundDispatchingActor} responsible for signal de-multiplexing and acknowledgement
+     * aggregation.
      *
      * @return the ref to the started {@link InboundMappingProcessorActor}
      * @throws DittoRuntimeException when mapping processor could not get started.

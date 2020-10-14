@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
+
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,7 +54,6 @@ import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingO
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -207,7 +208,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .map(Source::getDeclaredAcknowledgementLabels)
                 .orElse(Set.of())
                 .stream()
-                .map(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
     }
@@ -240,7 +241,11 @@ public final class InboundDispatchingActor extends AbstractActor
 
     @Override
     public Optional<Signal<?>> onDropped(@Nullable final ExternalMessage incomingMessage) {
-        logger.debug("Message mapping returned null, message is dropped.");
+        logger.withCorrelationId(Optional.ofNullable(incomingMessage)
+                .map(ExternalMessage::getHeaders)
+                .map(h -> h.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
+                .orElse(null)
+        ).debug("Message mapping returned null, message is dropped.");
         if (incomingMessage != null) {
             final String source = getAddress(incomingMessage);
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
@@ -270,8 +275,9 @@ public final class InboundDispatchingActor extends AbstractActor
                                 e.getMessage());
                 mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
                         message.getTopicPath().orElse(null), message.getInternalHeaders());
-                logger.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
-                        mappedHeaders, message.getHeaderMapping(), message.getHeaders());
+                logger.withCorrelationId(mappedHeaders)
+                        .info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
+                                mappedHeaders, message.getHeaderMapping(), message.getHeaders());
             } else {
                 mappedHeaders = dittoRuntimeException.getDittoHeaders();
             }
@@ -281,7 +287,7 @@ public final class InboundDispatchingActor extends AbstractActor
             responseMappedMonitor.getLogger()
                     .failure("Got unknown exception when processing external message: {1}", e.getMessage());
             if (message != null) {
-                logger.withCorrelationId(message.getInternalHeaders());
+                logger.setCorrelationId(message.getInternalHeaders());
             }
             logger.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(),
                     e.getMessage());
@@ -374,7 +380,7 @@ public final class InboundDispatchingActor extends AbstractActor
 
     private void handleErrorDuringStartingOfAckregator(final DittoRuntimeException e,
             final DittoHeaders dittoHeaders, @Nullable final ActorRef sender) {
-        logger.withCorrelationId(dittoHeaders.getCorrelationId().orElse("?"))
+        logger.withCorrelationId(dittoHeaders)
                 .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
                         " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
         responseMappedMonitor.getLogger()
@@ -631,8 +637,7 @@ public final class InboundDispatchingActor extends AbstractActor
     }
 
     private static Optional<AuthorizationContext> getAuthorizationContext(final ExternalMessage externalMessage) {
-        final Either<RuntimeException, AuthorizationContext> result =
-                getAuthorizationContextAsEither(externalMessage);
+        final Either<RuntimeException, AuthorizationContext> result = getAuthorizationContextAsEither(externalMessage);
         if (result.isRight()) {
             return Optional.of(result.right().get());
         } else {

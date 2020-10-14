@@ -118,12 +118,12 @@ public final class InboundMappingOutcomes {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName()
-                + "[outcomes=" + outcomes
-                + ",externalMessage=" + externalMessage
-                + ",error=" + error
-                + ",sender=" + sender
-                + "]";
+        return getClass().getSimpleName() + " [" +
+                "outcomes=" + outcomes +
+                ", externalMessage=" + externalMessage +
+                ", error=" + error +
+                ", sender=" + sender +
+                "]";
     }
 
     @Override

@@ -357,8 +357,7 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
         final DittoRuntimeException dittoRuntimeException =
                 DittoRuntimeException.asDittoRuntimeException(throwable,
                         cause -> {
-                            log().withCorrelationId(context.getDittoHeaders())
-                                    .error(cause, "Unexpected non-DittoRuntimeException");
+                            log().error(cause, "Unexpected non-DittoRuntimeException");
                             return GatewayInternalErrorException.newBuilder()
                                     .cause(cause)
                                     .dittoHeaders(context.getDittoHeaders())

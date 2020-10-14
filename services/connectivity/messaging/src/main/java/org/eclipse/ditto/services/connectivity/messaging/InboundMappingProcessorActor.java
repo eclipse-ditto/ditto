@@ -159,8 +159,8 @@ public final class InboundMappingProcessorActor
                                 getContext().getDispatcher())
                         );
 
-        final Sink<Optional<InboundMappingOutcomes>, ?> sink =
-                Sink.foreach(outcomesOptional -> outcomesOptional.ifPresent(outcomes ->
+        final Sink<Optional<InboundMappingOutcomes>, ?> sink = Sink.<Optional<InboundMappingOutcomes>>foreach(
+                outcomesOptional -> outcomesOptional.ifPresent(outcomes ->
                         inboundDispatchingActor.tell(outcomes, outcomes.getSender())
                 ));
 
