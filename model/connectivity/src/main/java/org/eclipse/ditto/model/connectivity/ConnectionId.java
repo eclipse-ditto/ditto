@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 @Immutable
 public final class ConnectionId implements EntityId {
 
-    static final String ID_REGEX = "[a-zA-Z0-9-_]{1,60}";
+    static final String ID_REGEX = "[a-zA-Z0-9-_]{1,80}";
     static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
     private static final ConnectionId DUMMY_ID = ConnectionId.of("_");
