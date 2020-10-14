@@ -74,7 +74,7 @@ public class ImmutableExpressionResolverTest {
                 PlaceholderFactory.newThingPlaceholder(), THING_ID);
         final ImmutablePlaceholderResolver<TopicPath> topicPathResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newTopicPathPlaceholder(), topic);
-        final ImmutablePlaceholderResolver<CharSequence> connectionIdResolver = new ImmutablePlaceholderResolver<>(
+        final ImmutablePlaceholderResolver<ConnectionId> connectionIdResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newConnectionIdPlaceholder(), CONNECTION_ID);
 
         underTest = new ImmutableExpressionResolver(
