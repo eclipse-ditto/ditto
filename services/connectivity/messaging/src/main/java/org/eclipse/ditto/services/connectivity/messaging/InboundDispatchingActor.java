@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
@@ -55,6 +57,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
@@ -67,7 +70,10 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
@@ -78,6 +84,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import scala.PartialFunction;
 import scala.util.Either;
 import scala.util.Left;
@@ -354,9 +361,38 @@ public final class InboundDispatchingActor extends AbstractActor
             }
             return 1;
         } else {
-            proxyActor.tell(signal, sender);
+            if (sender != null && isLive(signal)) {
+                final DittoHeaders originalHeaders = signal.getDittoHeaders();
+                Patterns.ask(proxyActor, signal, originalHeaders.getTimeout().orElse(Duration.ofSeconds(10)))
+                        .thenApply(response -> {
+                            if (response instanceof WithDittoHeaders<?>) {
+                                return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
+                                        (WithDittoHeaders<?>) response,
+                                        originalHeaders);
+                            } else {
+                                final String messageTemplate =
+                                        "Expected response <%s> to be of type <%s> but was of type <%s>.";
+                                final String errorMessage =
+                                        String.format(messageTemplate, response, WithDittoHeaders.class.getName(),
+                                                response.getClass().getName());
+                                final ConnectivityInternalErrorException dre =
+                                        ConnectivityInternalErrorException.newBuilder()
+                                                .cause(new ClassCastException(errorMessage))
+                                                .build();
+                                return ConnectivityErrorResponse.of(dre, originalHeaders);
+                            }
+                        })
+                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
+            } else {
+                proxyActor.tell(signal, sender);
+            }
             return 0;
         }
+    }
+
+    private static boolean isLive(final Signal<?> signal) {
+        return (signal instanceof MessageCommand ||
+                (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal)));
     }
 
     private void startAckregatorAndForwardSignal(final Signal<?> signal, @Nullable final ActorRef sender) {
