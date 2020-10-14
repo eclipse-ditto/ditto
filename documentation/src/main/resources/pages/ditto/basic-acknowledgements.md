@@ -81,7 +81,7 @@ The following sections explain the various ways of requesting acknowledgements.
 ### Requesting ACKs via HTTP
 Either specify the following HTTP header fields:
   * **requested-acks**: a comma separated list of [acknowledgement labels](#acknowledgement-labels).<br/>
-  Example: `requested-acks: twin-persisted,my-custom-ack`.
+  Example: `requested-acks: twin-persisted,some-connection-id:my-custom-ack`.
   * **timeout**: an optional time interval (in ms, s or m) to define how long the HTTP request should wait for
   acknowledgements and block.
   Default and maximum value: `60s`.<br/>
@@ -232,7 +232,7 @@ header.
 Only acknowledgements with declared labels are accepted. To declare acknowledgement labels, set them as the value
 of the query parameter `declared-acks` as comma-separated list:
 ```
-GET /ws/2?declared-acks=my:ack-label-1,my:ack-label-2 HTTP/1.1
+GET /ws/2?declared-acks=some-connection-id:ack-label-1,my:ack-label-2
 ```
 The websocket is closed if any declared label is taken by another subscriber.
 
@@ -249,10 +249,11 @@ ways:
 
 Acknowledgements sent via a source must
 [have their labels declared](basic-connections.html#source-declared-acknowledgement-labels)
-in the field `declaredAcks` as a JSON array.
-The labels of target-issued acknowledgements are declared automatically.
-Acknowledgement labels of a connection must be prefixed by the connection ID or use the `connection:id` placeholder,
-for example `{%raw%}{{connection-id}}:my-custom-ack{%endraw%}`.
+in the field `declaredAcks` as a JSON array.<br/>
+The labels of target-issued acknowledgements are declared automatically.<br/>
+Acknowledgement labels of a connection must be prefixed by the connection ID or the `{%raw%}{{connection:id}}{%endraw%}` 
+placeholder followed by a colon, for example `{%raw%}{{connection:id}}:my-custom-ack{%endraw%}`.
+
 If some source-declared or target-issued acknowledgement labels are taken by a websocket subscriber,
 all acknowledgements sent by the connection are rejected with error until the websocket is closed.
 

@@ -170,10 +170,10 @@ acknowledgements are only requested if the "qos" header was either not present o
 
 #### Source declared acknowledgement labels
 
-The acknowledgements sent via a source must have their labels declared in the field `declardAcks` as a JSON array.
+The acknowledgements sent via a source must have their labels declared in the field `declardAcks` as a JSON array.<br/>
 If the label of an acknowledgement is not in the `declaredAcks` array, then the acknowledgement is rejected with
-an error. The declared labels must be prefixed by the connection ID followed by a column, or use the `connection:id`
-placeholder. For example:
+an error. The declared labels must be prefixed by the connection ID followed by a colon or the 
+`{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon. For example:
 ```json
 {%raw%}
 {
@@ -349,8 +349,8 @@ For more details on that topic, please refer to the [acknowledgements](basic-ack
 Whether an outgoing message is treated as successfully sent or not is specific for the used 
 [connection type](#connection-types) and documented in scope of that connection type.
 
-The issued acknowledgement label must be prefixed by the connection ID followed by a column, or use the `connection:id`
-placeholder.
+The issued acknowledgement label must be prefixed by the connection ID followed by a colon or the 
+`{%raw%}{{connection:id}}{%endraw%}` placeholder followed by a colon.<br/>
 The JSON for a target with issued acknowledgement labels could look like this:
 ```json
 {%raw%}
