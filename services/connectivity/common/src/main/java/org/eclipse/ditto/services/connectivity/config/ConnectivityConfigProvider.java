@@ -24,31 +24,61 @@
  * accordance with the terms of the license agreement you
  * entered into with Bosch.IO GmbH.
  */
-
 package org.eclipse.ditto.services.connectivity.config;
-
 
 import java.util.concurrent.CompletionStage;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 
 import akka.actor.ActorRef;
 
 /**
- * TODO DG
+ * Provides methods to load {@link ConnectivityConfig} and register for changes to {@link ConnectivityConfig}.
  */
 @IndexSubclasses
 public interface ConnectivityConfigProvider {
 
-    ConnectivityConfig getConnectivityConfig(EntityId connectionId);
+    /**
+     * Loads a {@link ConnectivityConfig} by a connection ID.
+     *
+     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
+     * @return the connectivity config
+     */
+    ConnectivityConfig getConnectivityConfig(ConnectionId connectionId);
 
+    /**
+     * Asynchronously loads a {@link ConnectivityConfig} by a connection ID.
+     *
+     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
+     * @return the connectivity config
+     */
+    CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(ConnectionId connectionId);
+
+    /**
+     * Loads a {@link ConnectivityConfig} by some ditto headers.
+     *
+     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
+     * @return the connectivity config
+     */
     ConnectivityConfig getConnectivityConfig(DittoHeaders dittoHeaders);
 
-    CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(EntityId connectionId);
-
+    /**
+     * Asynchronously loads a {@link ConnectivityConfig} by some ditto headers.
+     *
+     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
+     * @return the connectivity config
+     */
     CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(DittoHeaders dittoHeaders);
 
-    void registerForChanges(final EntityId connectionId, final ActorRef sender);
+    /**
+     * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code
+     * connectionId}. The given {@link ActorRef} will receive {@link ConnectivityConfigBuildable} to build the final
+     * {@link ConnectivityConfig} given a default/fallback {@link ConnectivityConfig}.
+     *
+     * @param connectionId the connection id
+     * @param subscriber the subscriber that will receive {@link ConnectivityConfigBuildable} messages
+     */
+    void registerForConnectivityConfigChanges(final ConnectionId connectionId, final ActorRef subscriber);
 }

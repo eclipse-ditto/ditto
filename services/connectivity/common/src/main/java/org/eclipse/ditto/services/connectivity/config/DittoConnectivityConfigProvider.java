@@ -15,15 +15,16 @@ package org.eclipse.ditto.services.connectivity.config;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * TODO DG
+ * Default implementation of {@link ConnectivityConfigProvider} which simply builds and returns a
+ * {@link DittoConnectivityConfig}.
  */
 public class DittoConnectivityConfigProvider implements ConnectivityConfigProvider {
 
@@ -35,7 +36,7 @@ public class DittoConnectivityConfigProvider implements ConnectivityConfigProvid
     }
 
     @Override
-    public ConnectivityConfig getConnectivityConfig(final EntityId connectionId) {
+    public ConnectivityConfig getConnectivityConfig(final ConnectionId connectionId) {
         return connectivityConfig;
     }
 
@@ -45,7 +46,7 @@ public class DittoConnectivityConfigProvider implements ConnectivityConfigProvid
     }
 
     @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final EntityId connectionId) {
+    public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final ConnectionId connectionId) {
         return CompletableFuture.completedFuture(connectivityConfig);
     }
 
@@ -55,7 +56,7 @@ public class DittoConnectivityConfigProvider implements ConnectivityConfigProvid
     }
 
     @Override
-    public void registerForChanges(final EntityId connectionId, final ActorRef sender) {
-        // noop
+    public void registerForConnectivityConfigChanges(final ConnectionId connectionId, final ActorRef subscriber) {
+        // nothing to do, config changes are not supported by the default implementation
     }
 }

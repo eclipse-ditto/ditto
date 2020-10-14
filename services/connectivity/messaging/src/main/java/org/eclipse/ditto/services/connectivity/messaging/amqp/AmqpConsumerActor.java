@@ -49,6 +49,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;

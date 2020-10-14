@@ -10,22 +10,24 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.amqp;
+package org.eclipse.ditto.services.connectivity.config;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigBuildable;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * TODO DG
+ * Behavior to modify this actor's {@link ConnectivityConfig} and register for changes to {@link ConnectivityConfig}.
  */
-interface ConnectivityConfigModifiedBehavior extends Actor {
+public interface ConnectivityConfigModifiedBehavior extends Actor {
 
+    /**
+     * Injectable behavior to handle {@code ConnectivityConfigBuildable}.
+     *
+     * @return behavior to handle {@code ConnectivityConfigBuildable}.
+     */
     default AbstractActor.Receive connectivityConfigModifiedBehavior() {
         return ReceiveBuilder.create()
                 .match(ConnectivityConfigBuildable.class, connectivityConfigBuildable -> {
@@ -36,13 +38,30 @@ interface ConnectivityConfigModifiedBehavior extends Actor {
                 .build();
     }
 
+    /**
+     * Registers this actor for changes to connectivity config.
+     *
+     * @param connectionId the connection id
+     */
+    default void registerForConfigChanges(ConnectionId connectionId) {
+        getConnectivityConfigProvider().registerForConnectivityConfigChanges(connectionId, self());
+    }
+
+    /**
+     * @return the actor's current {@link ConnectivityConfig} required to merge with the received modifications
+     */
     ConnectivityConfig getCurrentConnectivityConfig();
 
+    /**
+     * @return a {@link ConnectivityConfigProvider} required to register this actor for config changes
+     */
     ConnectivityConfigProvider getConnectivityConfigProvider();
 
+    /**
+     * This method is called when a config modification is received.
+     *
+     * @param connectivityConfig the modified config
+     */
     void configModified(ConnectivityConfig connectivityConfig);
 
-    default void registerForConfigChanges(ConnectionId connectionId) {
-        getConnectivityConfigProvider().registerForChanges(connectionId, self());
-    }
 }

@@ -18,16 +18,23 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.signals.events.base.Event;
 
+/**
+ * Interface of an event that transports changes to {@link ConnectivityConfig}. It extends the
+ * {@link ConnectivityConfigBuildable} interface, so with this event and a given {@link ConnectivityConfig} a
+ * modified {@link ConnectivityConfig} can be built.
+ *
+ * @param <T> type of the implementing class
+ */
 public interface ConnectivityConfigEvent<T extends ConnectivityConfigEvent<T>>
         extends Event<T>, ConnectivityConfigBuildable {
 
     /**
-     * Type Prefix of Usage events.
+     * Type Prefix of connectivity config.
      */
     String TYPE_PREFIX = "connectivity.config." + TYPE_QUALIFIER + ":";
 
     /**
-     * Usage resource type.
+     * Connectivity config resource type.
      */
     String RESOURCE_TYPE = "connectivity.config";
 

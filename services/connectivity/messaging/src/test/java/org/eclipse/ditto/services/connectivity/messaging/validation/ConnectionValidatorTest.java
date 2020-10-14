@@ -18,6 +18,8 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -33,7 +35,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -61,7 +62,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
@@ -412,10 +412,9 @@ public class ConnectionValidatorTest {
     private ConnectivityConfigProvider mockConnectivityConfigProvider(
             final ConnectivityConfig connectivityConfigWithEnabledBlocklist) {
         final ConnectivityConfigProvider configProvider = Mockito.mock(ConnectivityConfigProvider.class);
-
-        Mockito.when(configProvider.getConnectivityConfig(ArgumentMatchers.any(EntityId.class)))
+        when(configProvider.getConnectivityConfig(any(ConnectionId.class)))
                 .thenReturn(connectivityConfigWithEnabledBlocklist);
-        Mockito.when(configProvider.getConnectivityConfig(ArgumentMatchers.any(DittoHeaders.class)))
+        when(configProvider.getConnectivityConfig(any(DittoHeaders.class)))
                 .thenReturn(connectivityConfigWithEnabledBlocklist);
         return configProvider;
     }

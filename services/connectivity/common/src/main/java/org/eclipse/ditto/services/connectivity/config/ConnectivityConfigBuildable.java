@@ -12,11 +12,18 @@
  */
 package org.eclipse.ditto.services.connectivity.config;
 
-import org.atteo.classindex.IndexSubclasses;
-
-@IndexSubclasses
+/**
+ * Provides a method to build a new {@link ConnectivityConfig} from a given (e.g. the fallback/default) one.
+ */
 public interface ConnectivityConfigBuildable {
 
+    /**
+     * Implementations of this method build a new instance of a {@link ConnectivityConfig} from data available to the
+     * implementation and the given (default/fallback) {@link ConnectivityConfig}.
+     *
+     * @param connectivityConfig an existing {@link ConnectivityConfig}
+     * @return new instance of {@link ConnectivityConfig}
+     */
     ConnectivityConfig buildWith(ConnectivityConfig connectivityConfig);
 
 }
