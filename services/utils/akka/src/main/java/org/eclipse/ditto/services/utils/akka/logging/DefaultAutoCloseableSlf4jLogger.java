@@ -64,8 +64,16 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final String msg) {
         if (isTraceEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(msg);
+        }
+    }
+
+    private void tryToPutLocalMdcToActualMdc() {
+        try {
+            putLocalMdcToActualMdc();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
         }
     }
 
@@ -73,10 +81,17 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
         localMdc.forEach(MDC::put);
     }
 
+    private void handleConcurrentModificationException() {
+
+        // Logging should not interfere with application's actual work.
+        actualSlf4jLogger.warn("This logger <{}> is used by multiple threads!" +
+                " Please consider to use a thread-safe logger instead.", getName());
+    }
+
     @Override
     public void trace(final String format, final Object arg) {
         if (isTraceEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(format, arg);
         }
     }
@@ -84,7 +99,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final String format, final Object arg1, final Object arg2) {
         if (isTraceEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(format, arg1, arg2);
         }
     }
@@ -92,7 +107,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final String format, final Object... arguments) {
         if (isTraceEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(format, arguments);
         }
     }
@@ -100,7 +115,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final String msg, final Throwable t) {
         if (isTraceEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(msg, t);
         }
     }
@@ -113,7 +128,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final Marker marker, final String msg) {
         if (isTraceEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(marker, msg);
         }
     }
@@ -121,7 +136,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final Marker marker, final String format, final Object arg) {
         if (isTraceEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(marker, format, arg);
         }
     }
@@ -129,7 +144,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final Marker marker, final String format, final Object arg1, final Object arg2) {
         if (isTraceEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(marker, format, arg1, arg2);
         }
     }
@@ -137,7 +152,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final Marker marker, final String format, final Object... argArray) {
         if (isTraceEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(marker, format, argArray);
         }
     }
@@ -145,7 +160,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void trace(final Marker marker, final String msg, final Throwable t) {
         if (isTraceEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.trace(marker, msg, t);
         }
     }
@@ -158,7 +173,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final String msg) {
         if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(msg);
         }
     }
@@ -166,7 +181,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final String format, final Object arg) {
         if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(format, arg);
         }
     }
@@ -174,7 +189,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final String format, final Object arg1, final Object arg2) {
         if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(format, arg1, arg2);
         }
     }
@@ -182,7 +197,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final String format, final Object... arguments) {
         if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(format, arguments);
         }
     }
@@ -190,7 +205,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final String msg, final Throwable t) {
         if (isDebugEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(msg, t);
         }
     }
@@ -203,7 +218,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final Marker marker, final String msg) {
         if (isDebugEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(marker, msg);
         }
     }
@@ -211,7 +226,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final Marker marker, final String format, final Object arg) {
         if (isDebugEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(marker, format, arg);
         }
     }
@@ -219,7 +234,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final Marker marker, final String format, final Object arg1, final Object arg2) {
         if (isDebugEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(marker, format, arg1, arg2);
         }
     }
@@ -227,7 +242,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final Marker marker, final String format, final Object... arguments) {
         if (isDebugEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(marker, format, arguments);
         }
     }
@@ -235,7 +250,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void debug(final Marker marker, final String msg, final Throwable t) {
         if (isDebugEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.debug(marker, msg, t);
         }
     }
@@ -248,7 +263,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final String msg) {
         if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(msg);
         }
     }
@@ -256,7 +271,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final String format, final Object arg) {
         if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(format, arg);
         }
     }
@@ -264,7 +279,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final String format, final Object arg1, final Object arg2) {
         if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(format, arg1, arg2);
         }
     }
@@ -272,7 +287,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final String format, final Object... arguments) {
         if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(format, arguments);
         }
     }
@@ -280,7 +295,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final String msg, final Throwable t) {
         if (isInfoEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(msg, t);
         }
     }
@@ -293,7 +308,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final Marker marker, final String msg) {
         if (isInfoEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(marker, msg);
         }
     }
@@ -301,7 +316,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final Marker marker, final String format, final Object arg) {
         if (isInfoEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(marker, format, arg);
         }
     }
@@ -309,7 +324,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final Marker marker, final String format, final Object arg1, final Object arg2) {
         if (isInfoEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(marker, format, arg1, arg2);
         }
     }
@@ -317,7 +332,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final Marker marker, final String format, final Object... arguments) {
         if (isInfoEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(marker, format, arguments);
         }
     }
@@ -325,7 +340,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void info(final Marker marker, final String msg, final Throwable t) {
         if (isInfoEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.info(marker, msg, t);
         }
     }
@@ -338,7 +353,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final String msg) {
         if (isWarnEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(msg);
         }
     }
@@ -346,7 +361,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final String format, final Object arg) {
         if (isWarnEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(format, arg);
         }
     }
@@ -354,7 +369,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final String format, final Object... arguments) {
         if (isWarnEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(format, arguments);
         }
     }
@@ -362,7 +377,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final String format, final Object arg1, final Object arg2) {
         if (isWarnEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(format, arg1, arg2);
         }
     }
@@ -370,7 +385,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final String msg, final Throwable t) {
         if (isWarnEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(msg, t);
         }
     }
@@ -383,7 +398,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final Marker marker, final String msg) {
         if (isWarnEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(marker, msg);
         }
     }
@@ -391,7 +406,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final Marker marker, final String format, final Object arg) {
         if (isWarnEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(marker, format, arg);
         }
     }
@@ -399,7 +414,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final Marker marker, final String format, final Object arg1, final Object arg2) {
         if (isWarnEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(marker, format, arg1, arg2);
         }
     }
@@ -407,7 +422,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final Marker marker, final String format, final Object... arguments) {
         if (isWarnEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(marker, format, arguments);
         }
     }
@@ -415,7 +430,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void warn(final Marker marker, final String msg, final Throwable t) {
         if (isWarnEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.warn(marker, msg, t);
         }
     }
@@ -428,7 +443,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final String msg) {
         if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(msg);
         }
     }
@@ -436,7 +451,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final String format, final Object arg) {
         if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(format, arg);
         }
     }
@@ -444,7 +459,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final String format, final Object arg1, final Object arg2) {
         if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(format, arg1, arg2);
         }
     }
@@ -452,7 +467,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final String format, final Object... arguments) {
         if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(format, arguments);
         }
     }
@@ -460,7 +475,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final String msg, final Throwable t) {
         if (isErrorEnabled()) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(msg, t);
         }
     }
@@ -473,7 +488,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final Marker marker, final String msg) {
         if (isErrorEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(marker, msg);
         }
     }
@@ -481,7 +496,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final Marker marker, final String format, final Object arg) {
         if (isErrorEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(marker, format, arg);
         }
     }
@@ -489,7 +504,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final Marker marker, final String format, final Object arg1, final Object arg2) {
         if (isErrorEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(marker, format, arg1, arg2);
         }
     }
@@ -497,7 +512,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final Marker marker, final String format, final Object... arguments) {
         if (isErrorEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(marker, format, arguments);
         }
     }
@@ -505,7 +520,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public void error(final Marker marker, final String msg, final Throwable t) {
         if (isErrorEnabled(marker)) {
-            putLocalMdcToActualMdc();
+            tryToPutLocalMdcToActualMdc();
             actualSlf4jLogger.error(marker, msg, t);
         }
     }
@@ -523,7 +538,7 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
     @Override
     public DefaultAutoCloseableSlf4jLogger putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
         if (null != value) {
-            localMdc.put(validateMdcEntryKey(key).toString(), value.toString());
+            tryToPutToLocalMdc(validateMdcEntryKey(key).toString(), value.toString());
         } else {
             removeMdcEntry(key);
         }
@@ -534,33 +549,56 @@ final class DefaultAutoCloseableSlf4jLogger implements AutoCloseableSlf4jLogger 
         return argumentNotEmpty(key, "key");
     }
 
+    private void tryToPutToLocalMdc(final String key, final String value) {
+        try {
+            localMdc.put(key, value);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
+    }
+
     @Override
     public DefaultAutoCloseableSlf4jLogger removeMdcEntry(final CharSequence key) {
         final String keyAsString = validateMdcEntryKey(key).toString();
-        localMdc.remove(keyAsString);
+        tryToRemoveFromLocalMdc(keyAsString);
         MDC.remove(keyAsString);
         return this;
+    }
+
+    @Nullable
+    private String tryToRemoveFromLocalMdc(final String key) {
+        try {
+            return localMdc.remove(key);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+            return null;
+        }
     }
 
     @Override
     public void close() {
         tryToRemoveLocalMdcFromActualMdc();
-        localMdc.clear();
+        tryToClearLocalMdc();
     }
 
     private void tryToRemoveLocalMdcFromActualMdc() {
         try {
             removeLocalMdcFromActualMdc();
         } catch (final ConcurrentModificationException e) {
-
-            // Logging should not interfere with application's actual work.
-            actualSlf4jLogger.warn("This logger <{}> is used by multiple threads!" +
-                    " Please consider to use a thread-safe logger instead.", getName());
+            handleConcurrentModificationException();
         }
     }
 
     private void removeLocalMdcFromActualMdc() {
         localMdc.forEach((key, value) -> MDC.remove(key));
+    }
+
+    private void tryToClearLocalMdc() {
+        try {
+            localMdc.clear();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
     }
 
 }
