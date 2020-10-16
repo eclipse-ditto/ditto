@@ -407,10 +407,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     mappedMessage,
                     maxTotalMessageSize,
                     quota
-            ).thenApply(response -> {
-                sendingContext.getPublishedMonitor().success(sendingContext.getExternalMessage());
-                return response;
-            });
+            );
             // set the external message after header mapping for the result of header mapping to show up in log
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
                     connectionIdResolver, logger);
