@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging.config;
 import java.time.Duration;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
@@ -35,6 +34,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
 
     private static final String CONFIG_PATH = "amqp10";
     private static final String CONSUMER_PATH = "consumer";
+    private static final String BACKOFF_PATH = "backoff";
 
     private final boolean consumerRateLimitEnabled;
     private final int consumerMaxInFlight;
@@ -42,6 +42,10 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private final int producerCacheSize;
     private final BackOffConfig backOffConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
+    private final Duration globalConnectTimeout;
+    private final Duration globalSendTimeout;
+    private final Duration globalRequestTimeout;
+    private final int globalPrefetchPolicyAllCount;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
@@ -49,10 +53,16 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         consumerRedeliveryExpectationTimeout =
                 config.getDuration(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath());
         producerCacheSize = config.getInt(Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath());
-        backOffConfig = DefaultBackOffConfig.of(config);
+        backOffConfig = DefaultBackOffConfig.of(config.hasPath(BACKOFF_PATH)
+                ? config
+                : ConfigFactory.parseString(BACKOFF_PATH + "={}"));
         consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
                 ? config.getConfig(CONSUMER_PATH)
                 : ConfigFactory.empty());
+        globalConnectTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getConfigPath());
+        globalSendTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_SEND_TIMEOUT.getConfigPath());
+        globalRequestTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_REQUEST_TIMEOUT.getConfigPath());
+        globalPrefetchPolicyAllCount = config.getInt(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT.getConfigPath());
     }
 
     /**
@@ -97,7 +107,27 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public Duration getGlobalConnectTimeout() {
+        return globalConnectTimeout;
+    }
+
+    @Override
+    public Duration getGlobalSendTimeout() {
+        return globalSendTimeout;
+    }
+
+    @Override
+    public Duration getGlobalRequestTimeout() {
+        return globalRequestTimeout;
+    }
+
+    @Override
+    public int getGlobalPrefetchPolicyAllCount() {
+        return globalPrefetchPolicyAllCount;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -107,16 +137,21 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         final DefaultAmqp10Config that = (DefaultAmqp10Config) o;
         return consumerRateLimitEnabled == that.consumerRateLimitEnabled &&
                 consumerMaxInFlight == that.consumerMaxInFlight &&
-                Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
                 producerCacheSize == that.producerCacheSize &&
+                globalPrefetchPolicyAllCount == that.globalPrefetchPolicyAllCount &&
+                Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
                 Objects.equals(backOffConfig, that.backOffConfig) &&
-                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
+                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
+                Objects.equals(globalConnectTimeout, that.globalConnectTimeout) &&
+                Objects.equals(globalSendTimeout, that.globalSendTimeout) &&
+                Objects.equals(globalRequestTimeout, that.globalRequestTimeout);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
-                producerCacheSize, backOffConfig, consumerThrottlingConfig);
+                producerCacheSize, backOffConfig, consumerThrottlingConfig, globalConnectTimeout, globalSendTimeout,
+                globalRequestTimeout, globalPrefetchPolicyAllCount);
     }
 
     @Override
@@ -128,7 +163,10 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 ", producerCacheSize=" + producerCacheSize +
                 ", backOffConfig=" + backOffConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
+                ", globalConnectTimeout=" + globalConnectTimeout +
+                ", globalSendTimeout=" + globalSendTimeout +
+                ", globalRequestTimeout=" + globalRequestTimeout +
+                ", globalPrefetchPolicyAllCount=" + globalPrefetchPolicyAllCount +
                 "]";
     }
-
 }
