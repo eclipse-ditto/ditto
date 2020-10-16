@@ -151,11 +151,15 @@ event to the console. This one tracks only changes to the thing with ID `org.ecl
 for changes on the feature `lamp`:
 ```javascript
 // the javascript must be served from the same domain as Ditto is running in order to avoid CORS problems
-let source = new EventSource('/api/2/things?ids=org.eclipse.ditto:fancy-thing&fields=thingId,features/lamp');
+let source = new EventSource('/api/2/things?ids=org.eclipse.ditto:fancy-thing&fields=thingId,features/lamp', { withCredentials: true });
 source.onmessage = function (event) {
     console.log(event.data);
 };
 ```
+
+By defining `{ withCredentials: true }` at the `new EventSource()`, the browser credentials (`Authorization` header) of 
+the already authenticated browser against that domain are sent along, this works for Basic Auth as well as for JWT based
+authentication using a `Bearer` token.
 
 This would log the changed content of each thing the authenticated subject is allowed to `READ`.
 
