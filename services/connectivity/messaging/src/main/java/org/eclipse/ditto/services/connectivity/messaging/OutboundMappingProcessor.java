@@ -12,14 +12,20 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -142,8 +148,30 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final List<OutboundSignal.Mappable> mappableSignals) {
 
         final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType);
+
+        final Set<AcknowledgementLabel> issuedAckLabels = outboundSignal.getTargets()
+                .stream()
+                .map(Target::getIssuedAcknowledgementLabel)
+                .flatMap(Optional::stream)
+                .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+        final Signal<?> signalToMap;
+        if (!issuedAckLabels.isEmpty()) {
+            final DittoHeaders dittoHeaders = outboundSignal.getSource().getDittoHeaders();
+            final Set<AcknowledgementRequest> publishedAckRequests = dittoHeaders.getAcknowledgementRequests();
+            publishedAckRequests.removeIf(ackRequest -> issuedAckLabels.contains(ackRequest.getLabel()));
+            signalToMap = outboundSignal.getSource().setDittoHeaders(dittoHeaders.toBuilder()
+                    .acknowledgementRequests(publishedAckRequests)
+                    .build());
+        } else {
+            signalToMap = outboundSignal.getSource();
+        }
+
         final Adaptable adaptableWithoutExtra =
-                timer.protocol(() -> protocolAdapter.toAdaptable(outboundSignal.getSource()));
+                timer.protocol(() -> protocolAdapter.toAdaptable(signalToMap));
         final Adaptable adaptable = outboundSignal.getExtra()
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);

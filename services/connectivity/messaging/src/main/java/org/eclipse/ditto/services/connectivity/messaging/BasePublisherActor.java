@@ -352,10 +352,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final String originalAddress = target.getOriginalAddress();
         final ConnectionMonitor publishedMonitor =
                 connectionMonitorRegistry.forOutboundPublished(connection.getId(), originalAddress);
-        @Nullable final ConnectionMonitor acknowledgedMonitor = isTargetAckRequested(outboundSignal, target)
+
+        final boolean targetAckRequested = isTargetAckRequested(outboundSignal, target);
+
+        @Nullable final ConnectionMonitor acknowledgedMonitor = targetAckRequested
                 ? connectionMonitorRegistry.forInboundAcknowledged(connection.getId(), originalAddress)
                 : null;
-        @Nullable final Target autoAckTarget = isTargetAckRequested(outboundSignal, target) ? target : null;
+        @Nullable final Target autoAckTarget = targetAckRequested ? target : null;
 
         return SendingContext.newBuilder()
                 .mappedOutboundSignal(outboundSignal)
@@ -455,7 +458,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param autoAckTarget if set, this is the Target from which {@code Acknowledgement}s should automatically be
      * produced and delivered.
      * @param publishTarget the {@link PublishTarget} to publish to.
-     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
+     * @param message the {@link ExternalMessage} to publish.
      * @param maxTotalMessageSize the total max message size in bytes of the payload of an automatically created
      * response.
      * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not

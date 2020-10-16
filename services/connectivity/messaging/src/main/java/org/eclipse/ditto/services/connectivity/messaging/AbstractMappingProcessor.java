@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
@@ -44,6 +45,7 @@ abstract class AbstractMappingProcessor<I, O> {
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected final ConnectionId connectionId;
     protected final ConnectionType connectionType;
+    protected final ExpressionResolver connectionIdResolver;
 
     private final MessageMapperRegistry registry;
 
@@ -56,6 +58,8 @@ abstract class AbstractMappingProcessor<I, O> {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.connectionType = checkNotNull(connectionType, "connectionType");
         this.registry = checkNotNull(registry, "registry");
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+                connectionId);
         logger.info("Configured for processing messages with the following MessageMapperRegistry: <{}>", registry);
     }
 
