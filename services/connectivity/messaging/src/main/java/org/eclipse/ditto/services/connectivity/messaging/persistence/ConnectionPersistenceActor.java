@@ -593,13 +593,15 @@ public final class ConnectionPersistenceActor
                     thingId,
                     signal,
                     config.getAcknowledgementConfig(),
-                    isSourceDeclaredAck.or(targetIssuedAcks::contains)
+                    isSourceDeclaredAck
             );
         } else {
             // no need to start ackregator for target-issued acks; they go to the sender directly
             return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
                     .acknowledgementRequests(ackRequests.stream()
-                            .filter(request -> targetIssuedAcks.contains(request.getLabel()))
+                            .filter(request -> !targetIssuedAcks.contains(request.getLabel()))
+                            // filter out target issued acks from the signal "requested-acks" header as those can't be
+                            // sent back by a subscriber anyhow as they are issued by Ditto faster
                             .collect(Collectors.toList()))
                     .build());
         }
