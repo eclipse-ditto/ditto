@@ -40,10 +40,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
@@ -409,21 +407,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     mappedMessage,
                     maxTotalMessageSize,
                     quota
-            ).handle((response, throwable) -> {
-                if (null == throwable) {
-                    sendingContext.getPublishedMonitor().success(sendingContext.getExternalMessage());
-                    return response;
-                } else if (throwable instanceof RuntimeException) {
-                    sendingContext.getPublishedMonitor().exception(sendingContext.getExternalMessage(),
-                            (Exception) throwable);
-                    throw (RuntimeException) throwable;
-                } else {
-                    final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(throwable,
-                            e -> ConnectivityInternalErrorException.newBuilder().build());
-                    sendingContext.getPublishedMonitor().exception(sendingContext.getExternalMessage(),
-                            dre);
-                    throw dre;
-                }
+            ).thenApply(response -> {
+                sendingContext.getPublishedMonitor().success(sendingContext.getExternalMessage());
+                return response;
             });
             // set the external message after header mapping for the result of header mapping to show up in log
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
