@@ -956,7 +956,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         getContext().getChildren().forEach(child -> {
             final String childName = child.path().name();
             if (!(InboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
-                    OutboundMappingProcessorActor.ACTOR_NAME.equals(childName))) {
+                    OutboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
+                    InboundDispatchingActor.ACTOR_NAME.equals(childName)
+            )) {
 
                 logger.withCorrelationId(command)
                         .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
