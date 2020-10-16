@@ -123,8 +123,6 @@ final class Sending implements SendingOrDropped {
             } else if (isTargetIssuesLiveResponse()) {
                 monitorLiveResponse(response);
             }
-        } else {
-            sendingContext.getPublishedMonitor().success(sendingContext.getExternalMessage());
         }
         return response;
     }
