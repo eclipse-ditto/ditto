@@ -49,6 +49,7 @@ import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -80,6 +81,7 @@ import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
@@ -192,9 +194,8 @@ public final class ConnectionPersistenceActor
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
-        final ConnectivityConfig connectivityConfig = ConnectivityConfigProviderFactory
-                .getInstance(getContext().getSystem())
-                .getConnectivityConfig(connectionId);
+        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
 
         clientActorAskTimeout = connectivityConfig.getConnectionConfig().getClientActorAskTimeout();
 
