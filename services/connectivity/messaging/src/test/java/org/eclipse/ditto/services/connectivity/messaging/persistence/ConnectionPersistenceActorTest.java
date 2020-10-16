@@ -1329,10 +1329,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     .randomCorrelationId()
                     .build();
 
-            // WHEN: connection persistence actor receives event with matching acknowledgement request
+            // WHEN: connection persistence actor receives event without acknowledgement request
+            //  (as this is issued by Ditto/the connection as "issued ack label" automatically)
+            final DittoHeaders dittoHeadersClearedRequestedAcks =
+                    dittoHeaders.toBuilder().acknowledgementRequests(Collections.emptyList()).build();
             final AttributeModified attributeModified = AttributeModified.of(
                     TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, null,
-                    dittoHeaders, null);
+                    dittoHeadersClearedRequestedAcks, null);
             underTest.tell(attributeModified, getRef());
 
             // THEN: then event is forwarded
