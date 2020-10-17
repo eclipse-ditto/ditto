@@ -78,6 +78,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
@@ -776,6 +777,24 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             final CancelSubscription received = connectionActorProbe.expectMsgClass(CancelSubscription.class);
             assertThat(received.getSubscriptionId()).isEqualTo(searchCommand.getSubscriptionId());
+        }};
+    }
+
+    @Test
+    public void inboundQueryCommandDoesNotRequestAcknowledgements() {
+        new TestKit(actorSystem) {{
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(actorSystem.deadLetters(), actorSystem.deadLetters());
+
+            // WHEN: inbound mapping processor receives a query command with acknowledgement requests
+            final RetrieveFeature retrieveFeature = RetrieveFeature.of(ThingId.of("thing:id"), "featureId",
+                    DittoHeaders.newBuilder()
+                            .acknowledgementRequest(AcknowledgementRequest.parseAcknowledgementRequest("dummy-request"))
+                            .build());
+            inboundMappingProcessorActor.tell(toExternalMessage(retrieveFeature), getRef());
+
+            // THEN: the response collector actor is asked to acknowledge right away despite the ack request.
+            expectMsg(ResponseCollectorActor.setCount(0));
         }};
     }
 

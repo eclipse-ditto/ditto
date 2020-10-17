@@ -307,6 +307,11 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     ActorRef createInboundMappingProcessorActor(final TestKit kit, final ActorRef outboundMappingProcessorActor) {
+        return createInboundMappingProcessorActor(kit.getRef(), outboundMappingProcessorActor);
+    }
+
+    ActorRef createInboundMappingProcessorActor(final ActorRef proxyActor,
+            final ActorRef outboundMappingProcessorActor) {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -331,7 +336,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger);
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), kit.getRef(), connectionActorProbe.ref(),
+                protocolAdapter.headerTranslator(), proxyActor, connectionActorProbe.ref(),
                 outboundMappingProcessorActor);
         final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
 
