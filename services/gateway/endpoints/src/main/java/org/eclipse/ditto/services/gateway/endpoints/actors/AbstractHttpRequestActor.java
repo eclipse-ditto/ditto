@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -176,16 +177,21 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommand(final Command<?> command) {
-        incomingCommandHeaders = command.getDittoHeaders();
-        ackregatorStarter.start(command,
-                this::onAggregatedResponseOrError,
-                this::handleCommandWithAckregator,
-                this::handleCommandWithoutAckregator
-        );
-        final Receive responseBehavior = ReceiveBuilder.create()
-                .match(Acknowledgements.class, this::completeAcknowledgements)
-                .build();
-        getContext().become(responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
+        try {
+            incomingCommandHeaders = command.getDittoHeaders();
+            ackregatorStarter.start(command,
+                    this::onAggregatedResponseOrError,
+                    this::handleCommandWithAckregator,
+                    this::handleCommandWithoutAckregator
+            );
+            final Receive responseBehavior = ReceiveBuilder.create()
+                    .match(Acknowledgements.class, this::completeAcknowledgements)
+                    .build();
+            getContext().become(
+                    responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
+        } catch (final DittoRuntimeException e) {
+            completeWithError(e);
+        }
     }
 
     private Void onAggregatedResponseOrError(final Object responseOrError) {
@@ -505,6 +511,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         httpResponseFuture.complete(completionResponse);
 
         stop();
+    }
+
+    private void completeWithError(final DittoRuntimeException e) {
+        completeWithResult(HttpResponse.create()
+                .withStatus(e.getStatusCode().toInt())
+                .withEntity(ContentTypes.parse(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE),
+                        ByteString.fromString(e.toJsonString()))
+        );
     }
 
     private void stop() {

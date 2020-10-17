@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -25,18 +26,22 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -404,5 +409,34 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders,
                     probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders, expectedHttpResponseEntity);
         }};
+    }
+
+    @Test
+    public void rejectCommandWithInvalidRequestedAcks() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .putHeaders(Map.of("requested-acks", "[\"<invalid-ack-label>\"]"))
+                .build();
+        final HttpRequest request = HttpRequest.PUT("/api/2/things/t:1");
+        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+        final ModifyThing modifyThing =
+                ModifyThing.of(ThingId.of("t:1"), Thing.newBuilder().build(), null, dittoHeaders);
+
+        final ActorRef underTest = createHttpRequestActor(TestProbe.apply(system).ref(), request, responseFuture);
+        underTest.tell(modifyThing, ActorRef.noSender());
+
+        final DittoRuntimeException expectedException =
+                new AcknowledgementRequestParseException("<invalid-ack-label>", null, DittoHeaders.empty());
+        final HttpResponse response = responseFuture.join();
+        assertThat(response.status().intValue()).isEqualTo(expectedException.getStatusCode().toInt());
+
+        final JsonObject actualException = JsonObject.of(response.entity()
+                .toStrict(3000, SystemMaterializer.get(system).materializer())
+                .toCompletableFuture()
+                .join()
+                .getData()
+                .utf8String()
+        );
+        assertThat(actualException.getValue(DittoRuntimeException.JsonFields.ERROR_CODE))
+                .contains(expectedException.getErrorCode());
     }
 }
