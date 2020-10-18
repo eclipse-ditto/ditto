@@ -55,7 +55,7 @@ public class StoppedKamonTimer implements StoppedTimer {
                 tags.get(SEGMENT_TAG), getDuration());
         onStopHandlers
                 .forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
-        getKamonInternalTimer().record(getDuration().getNano());
+        getKamonInternalTimer().record(endTimestamp - startTimestamp);
     }
 
     static StoppedTimer fromStartedTimer(final StartedTimer startedTimer) {
@@ -81,7 +81,7 @@ public class StoppedKamonTimer implements StoppedTimer {
     }
 
 
-    private kamon.metric.Timer getKamonInternalTimer() {
+    kamon.metric.Timer getKamonInternalTimer() {
         return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
 
