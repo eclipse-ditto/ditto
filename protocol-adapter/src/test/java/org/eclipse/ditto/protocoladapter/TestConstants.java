@@ -17,7 +17,6 @@ import static java.util.Collections.singletonList;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -107,14 +106,20 @@ public final class TestConstants {
     public static final String SUBJECT = "message:subject";
 
     public static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.of("/baz");
+    public static final JsonPointer FEATURE_DESIRED_PROPERTY_POINTER = JsonPointer.of("/bar");
 
     public static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.of(42);
+    public static final JsonValue FEATURE_DESIRED_PROPERTY_VALUE = JsonValue.of(41);
 
     public static final JsonObject FEATURE_PROPERTIES_JSON =
             JsonObject.newBuilder().set(FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE).build();
+    public static final JsonObject FEATURE_DESIRED_PROPERTIES_JSON =
+            JsonObject.newBuilder().set(FEATURE_DESIRED_PROPERTY_POINTER, FEATURE_DESIRED_PROPERTY_VALUE).build();
 
     public static final FeatureProperties FEATURE_PROPERTIES =
             ThingsModelFactory.newFeatureProperties(FEATURE_PROPERTIES_JSON);
+    public static final FeatureProperties FEATURE_DESIRED_PROPERTIES =
+            ThingsModelFactory.newFeatureProperties(FEATURE_DESIRED_PROPERTIES_JSON);
 
     public static final FeatureDefinition FEATURE_DEFINITION =
             FeatureDefinition.fromIdentifier("org.eclipse.ditto:foo:1.0.0");
@@ -122,7 +127,11 @@ public final class TestConstants {
     public static final JsonArray FEATURE_DEFINITION_JSON = FEATURE_DEFINITION.toJson();
 
     public static final Feature FEATURE =
-            Feature.newBuilder().properties(FEATURE_PROPERTIES).withId(FEATURE_ID).build();
+            Feature.newBuilder()
+                    .properties(FEATURE_PROPERTIES)
+                    .desiredProperties(FEATURE_DESIRED_PROPERTIES)
+                    .withId(FEATURE_ID)
+                    .build();
 
     public static final Features FEATURES = Features.newBuilder().set(FEATURE).build();
 
@@ -243,7 +252,6 @@ public final class TestConstants {
         public static final Subjects SUBJECTS = Subjects.newInstance(SUBJECT1, SUBJECT2);
 
         public static class TopicPaths {
-
             public static final TopicPath CREATE =
                     TopicPath.newBuilder(POLICY_ID).policies().commands().create().build();
             public static final TopicPath MODIFY =
