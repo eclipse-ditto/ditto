@@ -49,6 +49,10 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessi
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertiesNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertiesNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertyNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertyNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
@@ -498,6 +502,37 @@ public final class TestConstants {
          */
         public static final FeaturePropertyNotModifiableException FEATURE_PROPERTY_NOT_MODIFIABLE_EXCEPTION =
                 FeaturePropertyNotModifiableException
+                        .newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTY_POINTER).build();
+
+        /**
+         * A known {@code FeatureDesiredPropertiesNotAccessibleException}.
+         */
+        public static final FeatureDesiredPropertiesNotAccessibleException
+                FEATURE_DESIRED_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION =
+                FeatureDesiredPropertiesNotAccessibleException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
+
+        /**
+         * A known {@code FeatureDesiredPropertiesNotModifiableException}.
+         */
+        public static final FeatureDesiredPropertiesNotModifiableException
+                FEATURE_DESIRED_PROPERTIES_NOT_MODIFIABLE_EXCEPTION =
+                FeatureDesiredPropertiesNotModifiableException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
+
+
+        /**
+         * A known {@code FeatureDesiredPropertyNotAccessibleException}.
+         */
+        public static final FeatureDesiredPropertyNotAccessibleException
+                FEATURE_DESIRED_PROPERTY_NOT_ACCESSIBLE_EXCEPTION =
+                FeatureDesiredPropertyNotAccessibleException
+                        .newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTY_POINTER).build();
+
+        /**
+         * A known {@code FeatureDesiredPropertyNotModifiableException}.
+         */
+        public static final FeatureDesiredPropertyNotModifiableException
+                FEATURE_DESIRED_PROPERTY_NOT_MODIFIABLE_EXCEPTION =
+                FeatureDesiredPropertyNotModifiableException
                         .newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTY_POINTER).build();
 
         private Feature() {

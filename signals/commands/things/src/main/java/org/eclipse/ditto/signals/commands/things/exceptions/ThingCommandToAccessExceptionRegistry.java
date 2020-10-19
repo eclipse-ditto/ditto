@@ -26,6 +26,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredProperties;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
@@ -36,6 +38,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredProperties;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
@@ -48,6 +52,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperties;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
@@ -114,6 +120,14 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
                 ThingCommandToAccessExceptionRegistry::commandToFeaturePropertyException);
         mappingStrategies.put(DeleteFeatureProperty.TYPE,
                 ThingCommandToAccessExceptionRegistry::commandToFeaturePropertyException);
+        mappingStrategies.put(ModifyFeatureDesiredProperties.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDesiredPropertiesException);
+        mappingStrategies.put(DeleteFeatureDesiredProperties.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDesiredPropertiesException);
+        mappingStrategies.put(ModifyFeatureDesiredProperty.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDesiredPropertyException);
+        mappingStrategies.put(DeleteFeatureDesiredProperty.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDesiredPropertyException);
 
         // query
         mappingStrategies.put(RetrieveThing.TYPE, ThingCommandToAccessExceptionRegistry::commandToThingException);
@@ -143,6 +157,10 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
                 ThingCommandToAccessExceptionRegistry::commandToFeaturePropertiesException);
         mappingStrategies.put(RetrieveFeatureProperty.TYPE,
                 ThingCommandToAccessExceptionRegistry::commandToFeaturePropertyException);
+        mappingStrategies.put(RetrieveFeatureDesiredProperties.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDesiredPropertiesException);
+        mappingStrategies.put(RetrieveFeatureDesiredProperty.TYPE,
+                ThingCommandToAccessExceptionRegistry::commandToFeatureDesiredPropertyException);
 
         return new ThingCommandToAccessExceptionRegistry(mappingStrategies);
     }
@@ -202,6 +220,21 @@ public final class ThingCommandToAccessExceptionRegistry extends AbstractCommand
 
     private static FeaturePropertyNotAccessibleException commandToFeaturePropertyException(final ThingCommand command) {
         return FeaturePropertyNotAccessibleException.newBuilder(command.getThingEntityId(),
+                ((WithFeatureId) command).getFeatureId(), command.getResourcePath())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
+    }
+
+    private static FeatureDesiredPropertiesNotAccessibleException commandToFeatureDesiredPropertiesException(
+            final ThingCommand command) {
+        return FeatureDesiredPropertiesNotAccessibleException.newBuilder(command.getThingEntityId(),
+                ((WithFeatureId) command).getFeatureId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
+    }
+
+    private static FeatureDesiredPropertyNotAccessibleException commandToFeatureDesiredPropertyException(final ThingCommand command) {
+        return FeatureDesiredPropertyNotAccessibleException.newBuilder(command.getThingEntityId(),
                 ((WithFeatureId) command).getFeatureId(), command.getResourcePath())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
