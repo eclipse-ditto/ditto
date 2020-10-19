@@ -37,9 +37,8 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveN
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -98,7 +97,7 @@ public final class SearchActor extends AbstractActor {
     private static final String QUERY_TYPE_TAG = "query_type";
     private static final String API_VERSION_TAG = "api_version";
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
@@ -161,9 +160,8 @@ public final class SearchActor extends AbstractActor {
             final Function<T, Query> queryParseFunction,
             final boolean isSudo) {
         final DittoHeaders dittoHeaders = countCommand.getDittoHeaders();
-        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
-        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
-        log.info("Processing CountThings command: {}", countCommand);
+        log.withCorrelationId(dittoHeaders)
+                .info("Processing CountThings command: {}", countCommand);
         final JsonSchemaVersion version = countCommand.getImplementedSchemaVersion();
 
         final String queryType = "count";
@@ -176,7 +174,6 @@ public final class SearchActor extends AbstractActor {
 
         final Source<Object, ?> replySource = createQuerySource(queryParseFunction, countCommand)
                 .flatMapConcat(query -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
                     stopTimer(queryParsingTimer);
                     final StartedTimer databaseAccessTimer =
                             countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
@@ -200,8 +197,8 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void stream(final StreamThings streamThings) {
-        log.withCorrelationId(streamThings)
-                .info("Processing StreamThings command: {}", streamThings);
+        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(streamThings);
+        l.info("Processing StreamThings command: {}", streamThings);
         final JsonSchemaVersion version = streamThings.getImplementedSchemaVersion();
         final String queryType = "query"; // same as queryThings
         final StartedTimer searchTimer = startNewTimer(version, queryType);
@@ -211,7 +208,7 @@ public final class SearchActor extends AbstractActor {
         final Source<Optional<ThingsSearchCursor>, NotUsed> cursorSource =
                 ThingsSearchCursor.extractCursor(streamThings);
         final Source<SourceRef<String>, NotUsed> sourceRefSource = cursorSource.flatMapConcat(cursor -> {
-            cursor.ifPresent(c -> c.logCursorCorrelationId(log, streamThings));
+            cursor.ifPresent(c -> c.logCursorCorrelationId(l));
             return createQuerySource(queryParser::parse, streamThings).map(parsedQuery -> {
                 final Query query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                 stopTimer(queryParsingTimer);
@@ -231,8 +228,8 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void query(final QueryThings queryThings) {
-        log.withCorrelationId(queryThings)
-                .debug("Starting to process QueryThings command: {}", queryThings);
+        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(queryThings);
+        l.debug("Starting to process QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
         final String queryType = "query";
@@ -246,11 +243,10 @@ public final class SearchActor extends AbstractActor {
                 ThingsSearchCursor.extractCursor(queryThings, getSystem());
 
         final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
-            cursor.ifPresent(c -> c.logCursorCorrelationId(log, queryThings));
+            cursor.ifPresent(c -> c.logCursorCorrelationId(l));
             final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            LogUtil.enhanceLogWithCorrelationId(log, queryThings);
-            log.info("Processing QueryThings command: {}", queryThings);
+            l.info("Processing QueryThings command: {}", queryThings);
             return createQuerySource(queryParser::parse, command)
                     .flatMapConcat(parsedQuery -> {
                         final Query query =
@@ -306,8 +302,8 @@ public final class SearchActor extends AbstractActor {
         final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
                 Flow.fromFunction(result -> {
                     // we know that the source provides exactly one ResultList
-                    LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                    log.debug("Persistence returned: {}", result);
+                    log.withCorrelationId(dittoHeaders)
+                            .debug("Persistence returned: {}", result);
                     return result;
                 });
 
@@ -331,8 +327,6 @@ public final class SearchActor extends AbstractActor {
             final ResultList<ThingId> thingIds) {
 
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
-        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
-        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         if (thingIds.isEmpty()) {
             return QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders);
         } else {
