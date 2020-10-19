@@ -29,6 +29,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -37,6 +42,11 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -49,6 +59,8 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -188,6 +200,92 @@ public final class OutboundMappingProcessorTest {
 
             assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
                     .contains(extra));
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void testOutboundEventWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
+        new TestKit(actorSystem) {{
+            ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
+            final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
+            final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
+            signal = signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                            AcknowledgementRequest.of(customAckLabel))
+                    .build()
+            );
+            final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            when(outboundSignal.getSource()).thenReturn(signal);
+            when(outboundSignal.getTargets()).thenReturn(List.of(
+                    ConnectivityModelFactory.newTargetBuilder()
+                            .address("test")
+                            .issuedAcknowledgementLabel(targetIssuedAckLabel)
+                            .authorizationContext(AuthorizationContext.newInstance(
+                                    DittoAuthorizationContextType.UNSPECIFIED,
+                                    AuthorizationSubject.newInstance("issuer:subject")))
+                            .topics(Topic.TWIN_EVENTS)
+                            .build()
+            ));
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(captor.capture());
+            verify(mock, times(0)).onError(any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any());
+
+            assertThat(captor.getAllValues()).allSatisfy(em ->
+                    assertThat(em.getAdaptable().getDittoHeaders().getAcknowledgementRequests())
+                            .containsOnly(AcknowledgementRequest.of(customAckLabel)));
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void testOutboundLiveMessageWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
+        new TestKit(actorSystem) {{
+            final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
+            final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .channel(TopicPath.Channel.LIVE.getName())
+                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                            AcknowledgementRequest.of(customAckLabel))
+                    .build();
+            final Message<Object> message =
+                    Message.newBuilder(
+                            MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "ditto")
+                                    // adding the ack requests additionally to the message headers would break the test
+                                    // as the messageHeaders are merged into the DittoHeaders and overwrite them
+                                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                                            AcknowledgementRequest.of(customAckLabel))
+                                    .build())
+                            .build();
+            final MessageCommand signal =  SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            when(outboundSignal.getSource()).thenReturn(signal);
+            when(outboundSignal.getTargets()).thenReturn(List.of(
+                    ConnectivityModelFactory.newTargetBuilder()
+                            .address("test")
+                            .issuedAcknowledgementLabel(targetIssuedAckLabel)
+                            .authorizationContext(AuthorizationContext.newInstance(
+                                    DittoAuthorizationContextType.UNSPECIFIED,
+                                    AuthorizationSubject.newInstance("issuer:subject")))
+                            .topics(Topic.TWIN_EVENTS)
+                            .build()
+            ));
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(captor.capture());
+            verify(mock, times(0)).onError(any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any());
+
+            assertThat(captor.getAllValues()).allSatisfy(em ->
+                    assertThat(em.getAdaptable().getDittoHeaders().getAcknowledgementRequests())
+                            .containsAll(List.of(
+                                    AcknowledgementRequest.of(customAckLabel),
+                                    AcknowledgementRequest.of(targetIssuedAckLabel)))
+            );
         }};
     }
 
