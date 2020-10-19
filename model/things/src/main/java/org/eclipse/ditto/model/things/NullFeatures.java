@@ -123,6 +123,40 @@ final class NullFeatures implements Features {
     }
 
     @Override
+    public Features setDesiredProperties(final String featureId, final FeatureProperties desiredProperties) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(desiredProperties, "desired properties to be set");
+
+        return this;
+    }
+
+    @Override
+    @SuppressWarnings("squid:S4144")
+    public Features removeDesiredProperties(final String featureId) {
+        checkFeatureId(featureId);
+
+        return this;
+    }
+
+    @Override
+    public Features setDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(desiredPropertyPath, "JSON pointer to the desired property to be set");
+        ConditionChecker.checkNotNull(desiredPropertyPath, "value of the desired property to be set");
+
+        return this;
+    }
+
+    @Override
+    public Features removeDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(desiredPropertyPath, "JSON pointer to the desired property to be removed");
+
+        return this;
+    }
+
+    @Override
     public boolean isNull() {
         return true;
     }

@@ -217,6 +217,53 @@ final class ImmutableFeatures implements Features {
     }
 
     @Override
+    public Features setDesiredProperties(final String featureId, final FeatureProperties desiredProperties) {
+        checkNotNull(desiredProperties, "desired properties to be set");
+
+        Feature feature = getFeatureOrNull(featureId);
+        if (null != feature) {
+            feature = feature.setDesiredProperties(desiredProperties);
+        } else {
+            feature = ThingsModelFactory.newFeature(featureId, null, null, desiredProperties);
+        }
+        return setFeature(feature);
+    }
+
+    @Override
+    public Features removeDesiredProperties(final String featureId) {
+        final Feature feature = getFeatureOrNull(featureId);
+        if (null != feature) {
+            return setFeature(feature.removeDesiredProperties());
+        }
+
+        return this;
+    }
+
+    @Override
+    public Features setDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+        Feature feature = getFeatureOrNull(featureId);
+        if (null != feature) {
+            feature = feature.setDesiredProperty(desiredPropertyPath, desiredPropertyValue);
+        } else {
+            feature = ThingsModelFactory.newFeature(featureId, null, null,
+                    ThingsModelFactory.newFeaturePropertiesBuilder()
+                    .set(desiredPropertyPath, desiredPropertyValue)
+                    .build());
+        }
+        return setFeature(feature);
+    }
+
+    @Override
+    public Features removeDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+        final Feature feature = getFeatureOrNull(featureId);
+        if (null != feature) {
+            return setFeature(feature.removeDesiredProperty(desiredPropertyPath));
+        }
+        return this;
+    }
+
+    @Override
     public int getSize() {
         return features.size();
     }

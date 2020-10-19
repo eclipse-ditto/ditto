@@ -415,6 +415,42 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    public Thing setFeatureDesiredProperties(final String featureId, final FeatureProperties desiredProperties) {
+        if (null == features || features.isNull()) {
+            return setFeature(ThingsModelFactory.newFeature(featureId, null, null,
+                    desiredProperties));
+        }
+        return setFeatures(features.setDesiredProperties(featureId, desiredProperties));
+    }
+
+    @Override
+    public Thing removeFeatureDesiredProperties(final String featureId) {
+        return (null != features) ? setFeatures(features.removeDesiredProperties(featureId)) : this;
+    }
+
+    @Override
+    public Thing setFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        final Features newFeatures;
+        if (null == features || features.isNull()) {
+            final FeatureProperties desiredProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
+                    .set(desiredPropertyPath, desiredPropertyValue)
+                    .build();
+            newFeatures = ThingsModelFactory.newFeatures(ThingsModelFactory.newFeature(featureId, null, null, desiredProperties));
+        } else {
+            newFeatures = features.setDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        }
+
+        return setFeatures(newFeatures);
+    }
+
+    @Override
+    public Thing removeFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+        return (null != features) ? setFeatures(features.removeDesiredProperty(featureId, desiredPropertyPath)) : this;
+    }
+
+    @Override
     @Deprecated
     public Optional<AccessControlList> getAccessControlList() {
         return Optional.ofNullable(acl);

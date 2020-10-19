@@ -40,13 +40,15 @@ final class ImmutableFeature implements Feature {
     private final String featureId;
     @Nullable private final FeatureDefinition definition;
     @Nullable private final FeatureProperties properties;
+    @Nullable private final FeatureProperties desiredProperties;
 
     private ImmutableFeature(final String featureId, @Nullable final FeatureDefinition definition,
-            @Nullable final FeatureProperties properties) {
+            @Nullable final FeatureProperties properties, @Nullable final FeatureProperties desiredProperties) {
 
         this.featureId = ConditionChecker.checkNotNull(featureId, "ID of the Feature");
         this.definition = definition;
         this.properties = properties;
+        this.desiredProperties = desiredProperties;
     }
 
     /**
@@ -89,6 +91,24 @@ final class ImmutableFeature implements Feature {
      */
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
+        return of(featureId, definition, properties, null);
+    }
+
+    /**
+     * Creates a new Feature with a specified ID, Definition, properties and desired properties.
+     *
+     * @param featureId the ID.
+     * @param definition the Definition or {@code null}.
+     * @param properties the properties or {@code null}.
+     * @param desiredProperties the desired properties or {@code null}
+     * @return the new Feature.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.4.0
+     */
+    public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties, @Nullable final FeatureProperties desiredProperties) {
 
         ConditionChecker.checkNotNull(featureId, "ID of the Feature");
 
@@ -98,7 +118,7 @@ final class ImmutableFeature implements Feature {
                     .build();
         }
 
-        return new ImmutableFeature(featureId, definition, properties);
+        return new ImmutableFeature(featureId, definition, properties, desiredProperties);
     }
 
     @Override
@@ -112,7 +132,7 @@ final class ImmutableFeature implements Feature {
         if (Objects.equals(definition, featureDefinition)) {
             return this;
         }
-        return of(featureId, featureDefinition, properties);
+        return of(featureId, featureDefinition, properties, desiredProperties);
     }
 
     @Override
@@ -120,7 +140,7 @@ final class ImmutableFeature implements Feature {
         if (null == definition) {
             return this;
         }
-        return of(featureId, properties);
+        return of(featureId, null, properties, desiredProperties);
     }
 
     @Override
@@ -136,7 +156,7 @@ final class ImmutableFeature implements Feature {
             return this;
         }
 
-        return ImmutableFeature.of(featureId, definition, properties);
+        return ImmutableFeature.of(featureId, definition, properties, desiredProperties);
     }
 
     @Override
@@ -145,7 +165,7 @@ final class ImmutableFeature implements Feature {
             return this;
         }
 
-        return ImmutableFeature.of(featureId, definition, null);
+        return ImmutableFeature.of(featureId, definition, null, desiredProperties);
     }
 
     @Override
@@ -184,6 +204,68 @@ final class ImmutableFeature implements Feature {
     }
 
     @Override
+    public Optional<FeatureProperties> getDesiredProperties() {
+        return Optional.ofNullable(desiredProperties);
+    }
+
+    @Override
+    public Feature setDesiredProperties(final FeatureProperties desiredProperties) {
+        ConditionChecker.checkNotNull(desiredProperties, "desired properties to be set");
+
+        if (Objects.equals(this.desiredProperties, desiredProperties)) {
+            return this;
+        }
+
+        return ImmutableFeature.of(featureId, definition, properties, desiredProperties);
+    }
+
+    @Override
+    public Feature removeDesiredProperties() {
+        if (null == desiredProperties) {
+            return this;
+        }
+
+        return ImmutableFeature.of(featureId, definition, properties, null);
+    }
+
+    @Override
+    public Optional<JsonValue> getDesiredProperty(final JsonPointer desiredPropertyPath) {
+        ConditionChecker.checkNotNull(desiredPropertyPath,
+                "JSON path to the desired property to be retrieved");
+
+        return getDesiredProperties().flatMap(props -> props.getValue(desiredPropertyPath));
+    }
+
+    @Override
+    public Feature setDesiredProperty(final JsonPointer desiredPropertyPath, final JsonValue desiredPropertyValue) {
+        ConditionChecker.checkNotNull(desiredPropertyPath, "JSON path to the desired property to be set");
+        ConditionChecker.checkNotNull(desiredPropertyValue, "desired property value to be set");
+
+        final FeatureProperties newDesiredFeatureProperties;
+        if (null == desiredProperties || desiredProperties.isEmpty()) {
+            newDesiredFeatureProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
+                    .set(desiredPropertyPath, desiredPropertyValue)
+                    .build();
+        } else {
+            newDesiredFeatureProperties = desiredProperties.setValue(desiredPropertyPath, desiredPropertyValue);
+        }
+
+        return setDesiredProperties(newDesiredFeatureProperties);
+    }
+
+    @Override
+    public Feature removeDesiredProperty(final JsonPointer desiredPropertyPath) {
+        ConditionChecker.checkNotNull(desiredPropertyPath,
+                "JSON path to the desired property to be removed");
+
+        if (null == desiredProperties|| desiredProperties.isEmpty()) {
+            return this;
+        }
+
+        return setDesiredProperties(desiredProperties.remove(desiredPropertyPath));
+    }
+
+    @Override
     public Optional<FeatureDefinition> getDefinition() {
         return Optional.ofNullable(definition);
     }
@@ -202,12 +284,16 @@ final class ImmutableFeature implements Feature {
             jsonObjectBuilder.set(JsonFields.PROPERTIES, properties, predicate);
         }
 
+        if (null != desiredProperties) {
+            jsonObjectBuilder.set(JsonFields.DESIRED_PROPERTIES, desiredProperties, predicate);
+        }
+
         return jsonObjectBuilder.build();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(featureId, definition, properties);
+        return Objects.hash(featureId, definition, properties, desiredProperties);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -221,13 +307,14 @@ final class ImmutableFeature implements Feature {
         }
         final ImmutableFeature other = (ImmutableFeature) o;
         return Objects.equals(featureId, other.featureId) && Objects.equals(definition, other.definition) &&
-                Objects.equals(properties, other.properties);
+                Objects.equals(properties, other.properties) &&
+                Objects.equals(desiredProperties, other.desiredProperties);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [featureId=" + featureId + ", definition=" + definition + ", " +
-                "properties=" + properties + "]";
+                "properties=" + properties + ", desiredProperties=" + desiredProperties + "]";
     }
 
 }

@@ -381,6 +381,25 @@ public final class ThingsModelFactory {
 
         return ImmutableFeature.of(featureId, featureDefinition, featureProperties);
     }
+    /**
+     * Returns a new immutable {@link Feature} with the given ID, properties, desired Properties and Definition.
+     *
+     * @param featureId the ID of the new feature.
+     * @param featureDefinition the Definition of the new Feature or {@code null}.
+     * @param featureProperties the properties of the new Feature or {@code null}.
+     * @param desiredFeatureProperties the desired properties of the new Feature or {@code null}.
+     * @return the new immutable {@code Feature}.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.4.0
+     */
+    public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties, @Nullable FeatureProperties desiredFeatureProperties) {
+
+        return ImmutableFeature.of(featureId, featureDefinition, featureProperties, desiredFeatureProperties);
+    }
+
 
     /**
      * Returns a new builder for an immutable {@link Feature} from scratch with a fluent API.

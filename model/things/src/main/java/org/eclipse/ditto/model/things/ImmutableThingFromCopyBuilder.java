@@ -493,6 +493,27 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    public FromCopy setFeature(final Predicate<Features> existingFeaturesPredicate,
+            final String featureId,
+            final FeatureDefinition featureDefinition,
+            final FeatureProperties featureProperties,
+            final FeatureProperties featureDesiredProperties) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties, @Nullable final FeatureProperties featureDesiredProperties) {
+
+        fromScratchBuilder.setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
+        return this;
+    }
+
+    @Override
     public FromCopy setFeature(final String featureId, final FeatureDefinition featureDefinition,
             final FeatureProperties featureProperties) {
 
@@ -584,6 +605,62 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
             fromScratchBuilder.removeFeatureProperties(featureId);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate,
+            final String featureId,
+            final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+        fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate, final String featureId,
+            final JsonPointer desiredPropertyPath) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate, final String featureId,
+            final FeatureProperties desiredProperties) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.setFeatureDesiredProperties(featureId, desiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate,
+            final String featureId) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.removeFeatureDesiredProperties(featureId);
         }
         return this;
     }

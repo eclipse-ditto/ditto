@@ -301,13 +301,28 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test(expected = NullPointerException.class)
+    public void tryToSetFetFeatureDesiredPropertyForNullFeatureId() {
+        underTestV2.setFeatureDesiredProperty(null, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToSetFeaturePropertyWithNullPath() {
         underTestV1.setFeatureProperty(FLUX_CAPACITOR_ID, null, PROPERTY_VALUE);
     }
 
     @Test(expected = NullPointerException.class)
+    public void tryToSetFeatureDesiredPropertyWithNullPath() {
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, null, PROPERTY_VALUE);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToSetFeaturePropertyWithNullValue() {
         underTestV1.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToSetFeatureDesiredPropertyWithNullValue() {
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, null);
     }
 
     @Test
@@ -319,11 +334,27 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test
+    public void setFeatureDesiredPropertyOnEmptyBuilder() {
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
+    @Test
     public void setFeaturePropertyUsingPositivePredicateOnEmptyBuilder() {
         underTestV1.setFeatureProperty(features -> true, FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
         final Thing thing = underTestV1.build();
 
         assertThat(thing).hasFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
+    @Test
+    public void setFeatureDesiredPropertyUsingPositivePredicateOnEmptyBuilder() {
+        underTestV2.setFeatureDesiredProperty(features -> true, FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
     }
 
     @Test
@@ -335,6 +366,14 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test
+    public void setFeatureDesiredPropertyUsingNegativePredicateOnEmptyBuilder() {
+        underTestV2.setFeatureDesiredProperty(features -> false, FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeature(TestConstants.Feature.FLUX_CAPACITOR_V2);
+    }
+
+    @Test
     public void setFeaturePropertyOnBuilderWithFeatures() {
         underTestV1.setFeatures(FEATURES);
         underTestV1.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
@@ -343,15 +382,33 @@ public final class ImmutableThingFromCopyBuilderTest {
         assertThat(thing).hasFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
     }
 
+    @Test
+    public void setFeatureDesiredPropertyOnBuilderWithFeatures() {
+        underTestV2.setFeatures(FEATURES);
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToRemoveFeaturePropertyForNullFeatureId() {
         underTestV1.removeFeatureProperty(null, PROPERTY_PATH);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void tryToDesiredRemoveFeaturePropertyForNullFeatureId() {
+        underTestV2.removeFeatureDesiredProperty(null, PROPERTY_PATH);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToRemoveFeaturePropertyWithNullPath() {
         underTestV1.removeFeatureProperty(FLUX_CAPACITOR_ID, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToRemoveDesiredFeaturePropertyWithNullPath() {
+        underTestV2.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, null);
     }
 
     @Test
@@ -361,6 +418,15 @@ public final class ImmutableThingFromCopyBuilderTest {
         final Thing thing = underTestV1.build();
 
         assertThat(thing).hasNotFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
+    }
+
+    @Test
+    public void removeFeatureDesiredProperty() {
+        underTestV2.setFeature(TestConstants.Feature.FLUX_CAPACITOR_V2);
+        underTestV2.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasNotFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
     }
 
     @Test(expected = NullPointerException.class)

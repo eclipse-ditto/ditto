@@ -249,6 +249,166 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     Feature removeProperty(JsonPointer pointer);
 
     /**
+     * Returns the desired properties of this Feature.
+     *
+     * @return the desired properties of this Feature.
+     * @since 1.4.0
+     */
+    Optional<FeatureProperties> getDesiredProperties();
+
+    /**
+     * Sets the given desired properties to a copy of this Feature.
+     * The previous desired properties of the Feature are overwritten.
+     *
+     * @param desiredProperties the desired properties to be set.
+     * @return a copy of this Feature with the given properties.
+     * @throws NullPointerException if {@code desiredProperties} is {@code null}.
+     * @since 1.4.0
+     */
+    Feature setDesiredProperties(FeatureProperties desiredProperties);
+
+    /**
+     * Removes all desired properties on a copy of this Feature.
+     *
+     * @return a copy of this Feature with all of its desired properties removed.
+     * @since 1.4.0
+     */
+    Feature removeDesiredProperties();
+
+    /**
+     * Gets the desired property value which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be returned.
+     * @return the value of the desired property which is referred by {@code pointer}.
+     * @throws NullPointerException if {@code pointer} is {@code null}.
+     * @since 1.4.0
+     */
+    default Optional<JsonValue> getDesiredProperty(final CharSequence pointer) {
+        return getProperty(JsonPointer.of(pointer));
+    }
+
+    /**
+     * Gets the desired property value which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be returned.
+     * @return the value of the desired property which is referred by {@code pointer}.
+     * @throws NullPointerException if {@code pointer} is {@code null}.
+     * @since 1.4.0
+     */
+    Optional<JsonValue> getDesiredProperty(JsonPointer pointer);
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature setDesiredProperty(final CharSequence pointer, final JsonValue desiredPropertyValue) {
+        return setProperty(JsonPointer.of(pointer), desiredPropertyValue);
+    }
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature setDesiredProperty(final CharSequence pointer, final boolean desiredPropertyValue) {
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature setDesiredProperty(final CharSequence pointer, final int desiredPropertyValue) {
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature setDesiredProperty(final CharSequence pointer, final long desiredPropertyValue) {
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature setDesiredProperty(final CharSequence pointer, final double desiredPropertyValue) {
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature setDesiredProperty(final CharSequence pointer, final String desiredPropertyValue) {
+        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the value of a desired property which is referred by the given JSON Pointer.
+     *
+     * @param pointer defines the hierarchical path to the desired property value to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Feature with the given desired property value set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.4.0
+     */
+    Feature setDesiredProperty(JsonPointer pointer, JsonValue desiredPropertyValue);
+
+    /**
+     * Removes the desired property specified by a JSON Pointer from a copy of this Feature.
+     *
+     * @param pointer defines the hierarchical path to the desired property to be removed.
+     * @return a copy of this Feature with the specified desired property removed.
+     * @throws NullPointerException if {@code pointer} is {@code null}.
+     * @since 1.4.0
+     */
+    default Feature removeDesiredProperty(final CharSequence pointer) {
+        return removeProperty(JsonPointer.of(pointer));
+    }
+
+    /**
+     * Removes the desired property specified by a JSON Pointer from a copy of this Feature.
+     *
+     * @param pointer defines the hierarchical path to the desired property to be removed.
+     * @return a copy of this Feature with the specified desired property removed.
+     * @throws NullPointerException if {@code pointer} is {@code null}.
+     * @since 1.4.0
+     */
+    Feature removeDesiredProperty(JsonPointer pointer);
+
+    /**
      * Returns all non hidden marked fields of this Feature.
      *
      * @return a JSON object representation of this Feature including only non hidden marked fields.
@@ -288,6 +448,15 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
          */
         public static final JsonFieldDefinition<JsonObject> PROPERTIES =
                 JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field definition for the Feature's desired properties as {@link org.eclipse.ditto.json.JsonObject}.
+         *
+         * @since 1.4.0
+         */
+        public static final JsonFieldDefinition<JsonObject> DESIRED_PROPERTIES =
+                JsonFactory.newJsonObjectFieldDefinition("desiredProperties", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

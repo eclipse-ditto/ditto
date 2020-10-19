@@ -52,11 +52,18 @@ public final class ThingsJsonTest {
         final String featureId = "tester-2000";
         final Feature feature = Feature.newBuilder()
                 .properties(featureProperties)
+                .desiredProperties(featureProperties)
                 .withId(featureId)
                 .build();
 
         final JsonObject expectedJsonObject = JsonFactory.newObjectBuilder()
                 .set("properties", JsonFactory.newObjectBuilder()
+                        .set("someInt", KNOWN_ANSWER_INT)
+                        .set("someString", "foo")
+                        .set("someBool", false)
+                        .set("someObj", JsonFactory.newObject("{\"aKey\": \"aValue\"}"))
+                        .build())
+                .set("desiredProperties", JsonFactory.newObjectBuilder()
                         .set("someInt", KNOWN_ANSWER_INT)
                         .set("someString", "foo")
                         .set("someBool", false)
@@ -264,10 +271,10 @@ public final class ThingsJsonTest {
 
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
                 .set(Thing.JsonFields.FEATURES.getPointer(),
-                        TestConstants.Feature.FEATURES.toJson(FieldType.notHidden()))
+                        TestConstants.Feature.FEATURES_V2.toJson(FieldType.notHidden()))
                 .build();
 
-        final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
+        final JsonObject actualJson = TestConstants.Thing.THING_V2.toJson(fieldSelector);
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
@@ -293,12 +300,13 @@ public final class ThingsJsonTest {
     public void toJsonReturnsExpected() {
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
                 .set(Thing.JsonFields.ID, TestConstants.Thing.THING_ID.toString())
-                .set(Thing.JsonFields.ACL, TestConstants.Thing.ACL.toJson(JsonSchemaVersion.V_1))
+                .set(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID.toString())
+                .set(Thing.JsonFields.DEFINITION, JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
                 .set(Thing.JsonFields.ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
-                .set(Thing.JsonFields.FEATURES, TestConstants.Feature.FEATURES.toJson())
+                .set(Thing.JsonFields.FEATURES, TestConstants.Feature.FEATURES_V2.toJson())
                 .build();
 
-        final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
+        final JsonObject actualJson = TestConstants.Thing.THING_V2.toJson();
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
