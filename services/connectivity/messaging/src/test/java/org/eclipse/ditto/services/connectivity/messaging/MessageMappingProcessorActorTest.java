@@ -749,6 +749,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             assertThat(source).isInstanceOf(ErrorResponse.class);
             assertThat(((ErrorResponse<?>) source).getDittoRuntimeException())
                     .isEqualTo(AcknowledgementLabelNotDeclaredException.of(label, acknowledgement.getDittoHeaders()));
+            assertThat((CharSequence) source.getEntityId()).isEqualTo(KNOWN_THING_ID);
         }};
     }
 

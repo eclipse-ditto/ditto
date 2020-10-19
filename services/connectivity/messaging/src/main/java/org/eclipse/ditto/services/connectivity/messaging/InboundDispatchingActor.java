@@ -45,9 +45,12 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -67,6 +70,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -198,7 +202,7 @@ public final class InboundDispatchingActor extends AbstractActor
     private void dispatchMapped(final InboundMappingOutcomes outcomes) {
         final ActorRef sender = getSender();
         final PartialFunction<Signal<?>, Stream<IncomingSignal>> dispatchResponsesAndSearchCommands =
-                dispatchResponsesAndSearchCommands(sender, getDeclaredAckLabels(outcomes));
+                dispatchResponsesAndSearchCommands(sender, outcomes);
         final int ackRequestingSignalCount = outcomes.getOutcomes()
                 .stream()
                 .map(this::eval)
@@ -308,7 +312,8 @@ public final class InboundDispatchingActor extends AbstractActor
     }
 
     private PartialFunction<Signal<?>, Stream<IncomingSignal>> dispatchResponsesAndSearchCommands(final ActorRef sender,
-            final Set<AcknowledgementLabel> declaredAckLabels) {
+            final InboundMappingOutcomes outcomes) {
+        final Set<AcknowledgementLabel> declaredAckLabels = getDeclaredAckLabels(outcomes);
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
                 .match(CommandResponse.class,
@@ -318,8 +323,10 @@ public final class InboundDispatchingActor extends AbstractActor
 
         final PartialFunction<Signal<?>, Stream<IncomingSignal>> dispatchSignal =
                 new PFBuilder<Signal<?>, Stream<IncomingSignal>>()
-                        .match(Acknowledgement.class, ack -> forwardAcknowledgement(ack, declaredAckLabels))
-                        .match(Acknowledgements.class, acks -> forwardAcknowledgements(acks, declaredAckLabels))
+                        .match(Acknowledgement.class, ack ->
+                                forwardAcknowledgement(ack, declaredAckLabels, outcomes))
+                        .match(Acknowledgements.class, acks ->
+                                forwardAcknowledgements(acks, declaredAckLabels, outcomes))
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
                                 forwardToConnectionActor(liveResponse, ActorRef.noSender())
                         )
@@ -451,29 +458,48 @@ public final class InboundDispatchingActor extends AbstractActor
     }
 
     private <T> Stream<T> forwardAcknowledgement(final Acknowledgement ack,
-            final Set<AcknowledgementLabel> declaredAckLabels) {
+            final Set<AcknowledgementLabel> declaredAckLabels,
+            final InboundMappingOutcomes outcomes) {
         if (declaredAckLabels.contains(ack.getLabel())) {
             return forwardToConnectionActor(ack, outboundMessageMappingProcessorActor);
         } else {
-            outboundMessageMappingProcessorActor.tell(
-                    AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
-                    ActorRef.noSender());
+            final AcknowledgementLabelNotDeclaredException exception =
+                    AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders());
+            onError(exception, getTopicPath(ack), outcomes.getExternalMessage());
             return Stream.empty();
         }
     }
 
     private <T> Stream<T> forwardAcknowledgements(final Acknowledgements acks,
-            final Set<AcknowledgementLabel> declaredAckLabels) {
+            final Set<AcknowledgementLabel> declaredAckLabels,
+            final InboundMappingOutcomes outcomes) {
         final Optional<AcknowledgementLabelNotDeclaredException> ackLabelNotDeclaredException = acks.stream()
                 .map(Acknowledgement::getLabel)
                 .filter(label -> !declaredAckLabels.contains(label))
                 .map(label -> AcknowledgementLabelNotDeclaredException.of(label, acks.getDittoHeaders()))
                 .findAny();
         if (ackLabelNotDeclaredException.isPresent()) {
-            outboundMessageMappingProcessorActor.tell(ackLabelNotDeclaredException.get(), ActorRef.noSender());
+            onError(ackLabelNotDeclaredException.get(), getTopicPath(acks), outcomes.getExternalMessage());
             return Stream.empty();
         }
         return forwardToConnectionActor(acks, outboundMessageMappingProcessorActor);
+    }
+
+    private TopicPath getTopicPath(final Acknowledgement ack) {
+        return newTopicPathBuilder(ack, ack).acks().label(ack.getLabel()).build();
+    }
+
+    private TopicPath getTopicPath(final Acknowledgements acks) {
+        return newTopicPathBuilder(acks, acks).acks().aggregatedAcks().build();
+    }
+
+    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders<?> withDittoHeaders) {
+        final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withId.getEntityId()));
+        return withDittoHeaders.getDittoHeaders()
+                .getChannel()
+                .filter(TopicPath.Channel.LIVE.getName()::equals)
+                .map(name -> builder.live())
+                .orElseGet(builder::twin);
     }
 
     @Nullable

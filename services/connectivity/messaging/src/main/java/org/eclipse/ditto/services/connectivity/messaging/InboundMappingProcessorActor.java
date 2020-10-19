@@ -129,10 +129,8 @@ public final class InboundMappingProcessorActor
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                // Outgoing responses and signals go through the signal enrichment stream
-                .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
-                .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
+        receiveBuilder.match(Status.Failure.class, f ->
+                logger.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()));
     }
 
