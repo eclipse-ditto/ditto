@@ -72,7 +72,8 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
         if (commandResponse instanceof RetrieveThingsResponse) {
             return retrieveThingsSignalMapper.mapSignalToAdaptable((RetrieveThingsResponse) commandResponse, channel);
         } else {
-            return thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
+            final Adaptable adap = thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
+            return adap;
         }
     }
 }
