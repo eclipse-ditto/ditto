@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.DESIRED_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
@@ -28,10 +29,9 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
-
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 /**
  * Creates a Mongo Bson object for field-based exists criteria.
@@ -78,6 +78,11 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
     @Override
     public Bson visitFeatureIdProperty(final String featureId, final String property) {
         return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + PROPERTIES + property));
+    }
+
+    @Override
+    public Bson visitFeatureIdDesiredProperty(final String featureId, final String property) {
+        return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + property));
     }
 
     @Override

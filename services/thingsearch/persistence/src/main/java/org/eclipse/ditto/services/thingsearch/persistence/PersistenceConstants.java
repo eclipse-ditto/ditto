@@ -97,6 +97,16 @@ public final class PersistenceConstants {
     public static final String PROPERTIES = SLASH + FIELD_PROPERTIES + SLASH;
 
     /**
+     * Field name for feature desiredProperties.
+     */
+    public static final String FIELD_DESIRED_PROPERTIES = "desiredProperties";
+
+    /**
+     * Part of the path between feature ID and desiredProperty key.
+     */
+    public static final String DESIRED_PROPERTIES = SLASH + FIELD_DESIRED_PROPERTIES + SLASH;
+
+    /**
      * Field name for features.
      */
     public static final String FIELD_FEATURES_PATH = SLASH + FIELD_FEATURES + SLASH;

@@ -122,12 +122,16 @@ public final class FieldExpressionUtil {
         private static final Pattern FIELD_NAME_FEATURE_PATTERN1 =
                 Pattern.compile("^features/(?<featureId>[^/]++)/properties/(?<property>.+)");
 
+        private static final Pattern FIELD_NAME_DESIRED_FEATURE_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/desiredProperties/(?<desiredProperty>.+)");
+
         private static final Pattern FIELD_NAME_FEATURE_PATTERN2 =
                 Pattern.compile("^features/(?<featureId>[^/]++)");
 
         private final boolean matches;
         private final String featureId;
         private final String property;
+        private final String desiredProperty;
 
         private FeatureField(final String fieldName) {
             Matcher matcher = FIELD_NAME_FEATURE_PATTERN1.matcher(fieldName);
@@ -136,17 +140,29 @@ public final class FieldExpressionUtil {
                 this.matches = true;
                 this.featureId = matcher.group("featureId");
                 this.property = matcher.group("property");
+                this.desiredProperty = null;
             } else {
-                matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
 
+                matcher = FIELD_NAME_DESIRED_FEATURE_PATTERN.matcher(fieldName);
                 if (matcher.matches()) {
                     this.matches = true;
                     this.featureId = matcher.group("featureId");
+                    this.desiredProperty = matcher.group("desiredProperty");
                     this.property = null;
                 } else {
-                    this.matches = false;
-                    this.featureId = null;
-                    this.property = null;
+                    matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
+
+                    if (matcher.matches()) {
+                        this.matches = true;
+                        this.featureId = matcher.group("featureId");
+                        this.property = null;
+                        this.desiredProperty = null;
+                    } else {
+                        this.matches = false;
+                        this.featureId = null;
+                        this.property = null;
+                        this.desiredProperty = null;
+                    }
                 }
             }
         }
@@ -167,6 +183,13 @@ public final class FieldExpressionUtil {
          */
         public Optional<String> getProperty() {
             return Optional.ofNullable(property);
+        }
+
+        /**
+         * @return the optional feature desiredProperty path.
+         */
+        public Optional<String> getDesiredProperty() {
+            return Optional.ofNullable(desiredProperty);
         }
 
     }

@@ -58,14 +58,47 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
-     * Return a sortOptions field expression for the given feature property key.
+     * Return a sortOptions field expression for the given feature desiredProperty key.
      *
      * @param featureId the feature id
-     * @param property the property path
+     * @param desiredProperty the property path
      * @return the sortOptions field expression
      */
-    default SortFieldExpression sortByFeatureProperty(final String featureId, final String property) {
-        return sortBy(String.format("features/%s/properties/%s", featureId, property));
+    default SortFieldExpression sortByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
+        return sortBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    }
+
+    /**
+     * Return a filter field expression for the given feature id and desiredProperty key.
+     *
+     * @param featureId the feature id
+     * @param desiredProperty the property path
+     * @return the filter field expression
+     */
+    default FilterFieldExpression filterByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
+        return filterBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    }
+
+    /**
+     * Return a exist field expression for the given feature id and desiredProperty key.
+     *
+     * @param featureId the feature id
+     * @param desiredProperty the property path
+     * @return the exist field expression
+     */
+    default ExistsFieldExpression existsByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
+        return existsBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    }
+
+    /**
+     * Return a sortOptions field expression for the given feature desiredProperty key.
+     *
+     * @param featureId the feature id
+     * @param desiredProperty the property path
+     * @return the sortOptions field expression
+     */
+    default SortFieldExpression sortByFeatureProperty(final String featureId, final String desiredProperty) {
+        return sortBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
     }
 
     /**
