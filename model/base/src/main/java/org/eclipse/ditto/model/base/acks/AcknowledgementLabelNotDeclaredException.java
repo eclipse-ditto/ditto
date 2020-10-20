@@ -40,7 +40,7 @@ public final class AcknowledgementLabelNotDeclaredException extends DittoRuntime
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.not.declared";
 
     private static final String MESSAGE_TEMPLATE =
-            "Cannot send acknowledgement with label <{0}>, which is not declared!";
+            "Cannot send acknowledgement with label <{0}>, which is not declared.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Each connection may only send acknowledgements whose label matches one declared for the connection.";

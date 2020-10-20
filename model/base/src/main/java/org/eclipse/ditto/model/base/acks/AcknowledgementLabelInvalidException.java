@@ -42,7 +42,7 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Acknowledgement label <{0}> is invalid!";
+    private static final String MESSAGE_TEMPLATE = "Acknowledgement label <{0}> is invalid.";
 
     private static final String DEFAULT_DESCRIPTION =
             "An acknowledgement label must conform to the regular expression of Ditto documentation.";

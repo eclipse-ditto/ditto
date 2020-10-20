@@ -154,8 +154,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 .map(Target::getIssuedAcknowledgementLabel)
                 .flatMap(Optional::stream)
                 .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
 
         final Signal<?> signalToMap;

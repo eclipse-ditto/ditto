@@ -41,7 +41,7 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.not.unique";
 
     private static final String DEFAULT_MESSAGE =
-            "One or more declared acknowledgement labels are taken by other subscribers";
+            "One or more declared acknowledgement labels are taken by other subscribers.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Please ensure all other subscribers with the declared acknowledgement labels are offline.";
