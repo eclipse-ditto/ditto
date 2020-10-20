@@ -197,7 +197,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true, HeaderValueValidators.getJsonArrayValidator()),
+    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true,
+            HeaderValueValidators.getRequestedAcksValueValidator()),
 
     /**
      * Header definition for defining the acknowledgement labels a subscriber may send.

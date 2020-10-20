@@ -411,32 +411,4 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         }};
     }
 
-    @Test
-    public void rejectCommandWithInvalidRequestedAcks() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .putHeaders(Map.of("requested-acks", "[\"<invalid-ack-label>\"]"))
-                .build();
-        final HttpRequest request = HttpRequest.PUT("/api/2/things/t:1");
-        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
-        final ModifyThing modifyThing =
-                ModifyThing.of(ThingId.of("t:1"), Thing.newBuilder().build(), null, dittoHeaders);
-
-        final ActorRef underTest = createHttpRequestActor(TestProbe.apply(system).ref(), request, responseFuture);
-        underTest.tell(modifyThing, ActorRef.noSender());
-
-        final DittoRuntimeException expectedException =
-                new AcknowledgementRequestParseException("<invalid-ack-label>", null, DittoHeaders.empty());
-        final HttpResponse response = responseFuture.join();
-        assertThat(response.status().intValue()).isEqualTo(expectedException.getStatusCode().toInt());
-
-        final JsonObject actualException = JsonObject.of(response.entity()
-                .toStrict(3000, SystemMaterializer.get(system).materializer())
-                .toCompletableFuture()
-                .join()
-                .getData()
-                .utf8String()
-        );
-        assertThat(actualException.getValue(DittoRuntimeException.JsonFields.ERROR_CODE))
-                .contains(expectedException.getErrorCode());
-    }
 }

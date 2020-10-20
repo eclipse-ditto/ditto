@@ -132,6 +132,15 @@ public final class HeaderValueValidators {
     }
 
     /**
+     * Returns a validator that checks whether a char sequence is a valid json array of acknowledgement labels
+     *
+     * @return the validator.
+     */
+    static ValueValidator getRequestedAcksValueValidator() {
+        return RequestedAcksValueValidator.getInstance();
+    }
+
+    /**
      * Returns a validator for checking if a CharSequence represents a {@link DittoDuration}.
      *
      * @return the validator.
