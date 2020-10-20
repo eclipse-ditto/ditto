@@ -49,7 +49,6 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -198,17 +197,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         } else {
             this.resourceStatus = resourceStatus;
         }
-    }
-
-    protected void inboundFailure(final Throwable error) {
-        final DittoRuntimeException dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(
-                error,
-                e -> {
-                    log().error(e, "Inbound failure");
-                    return ConnectionUnavailableException.newBuilder(connectionId).build();
-                }
-        );
-        inboundMonitor.failure(dittoRuntimeException);
     }
 
     private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final Object message) {
