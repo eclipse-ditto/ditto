@@ -1356,10 +1356,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private SupervisorStrategy createSupervisorStrategy(final ActorRef self) {
         return new OneForOneStrategy(
-                DeciderBuilder.matchAny(error -> {
-                    self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
-                    return SupervisorStrategy.stop();
-                }).build()
+                DeciderBuilder
+                        .match(DittoRuntimeException.class, error -> {
+                            logger.warning("Received unhandled DittoRuntimeException <{}>. " +
+                                    "Telling outbound mapping processor about it.", error);
+                            outboundMappingProcessorActor.tell(error, ActorRef.noSender());
+                            return SupervisorStrategy.resume();
+                        })
+                        .matchAny(error -> {
+                            self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
+                            return SupervisorStrategy.stop();
+                        }).build()
         );
     }
 
