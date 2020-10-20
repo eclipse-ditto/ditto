@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.text.MessageFormat;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -22,14 +21,14 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertiesNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
 
@@ -81,7 +80,8 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException aclEntryNotFound(final ThingId thingId, final AuthorizationSubject authorizationSubject,
+    static DittoRuntimeException aclEntryNotFound(final ThingId thingId,
+            final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
@@ -110,7 +110,25 @@ final class ExceptionFactory {
     static DittoRuntimeException featurePropertiesNotFound(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        return FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
+        return FeatureDesiredPropertiesNotAccessibleException.newBuilder(thingId, featureId)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    static DittoRuntimeException featureDesiredPropertyNotFound(final ThingId thingId,
+            final String featureId,
+            final JsonPointer jsonPointer,
+            final DittoHeaders dittoHeaders) {
+
+        return FeatureDesiredPropertyNotAccessibleException.newBuilder(thingId, featureId, jsonPointer)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    static DittoRuntimeException featureDesiredPropertiesNotFound(final ThingId thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return FeatureDesiredPropertiesNotAccessibleException.newBuilder(thingId, featureId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }

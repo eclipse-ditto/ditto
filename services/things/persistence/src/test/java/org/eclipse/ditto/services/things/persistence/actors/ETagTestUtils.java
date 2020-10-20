@@ -36,6 +36,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
@@ -48,6 +50,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
@@ -186,6 +190,36 @@ public abstract class ETagTestUtils {
                 dittoHeadersWithETag);
     }
 
+    // FeatureDesiredProperties
+
+    public static ModifyFeatureDesiredPropertiesResponse modifyFeatureDesiredPropertiesResponse(final ThingId thingId,
+            final String featureId, final FeatureProperties properties, final DittoHeaders dittoHeaders,
+            final boolean created) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(properties, dittoHeaders);
+        if (created) {
+            return ModifyFeatureDesiredPropertiesResponse.created(thingId, featureId, properties, dittoHeadersWithETag);
+        } else {
+            return ModifyFeatureDesiredPropertiesResponse.modified(thingId, featureId, dittoHeadersWithETag);
+        }
+    }
+
+    public static RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse(final ThingId thingId,
+            final String featureId, final FeatureProperties featureProperties,
+            final DittoHeaders dittoHeaders) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        return RetrieveFeatureDesiredPropertiesResponse.of(thingId, featureId, featureProperties,
+                dittoHeadersWithETag);
+    }
+
+    public static RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse(final ThingId thingId,
+            final String featureId, final FeatureProperties featureProperties,
+            final FeatureProperties expectedFeatureProperties,
+            final DittoHeaders dittoHeaders) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
+        return RetrieveFeatureDesiredPropertiesResponse.of(thingId, featureId, expectedFeatureProperties,
+                dittoHeadersWithETag);
+    }
+
     // FeatureProperty
 
     public static ModifyFeaturePropertyResponse modifyFeaturePropertyResponse(final ThingId thingId,
@@ -205,6 +239,28 @@ public abstract class ETagTestUtils {
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
         return RetrieveFeaturePropertyResponse.of(thingId, featureId, propertyPointer, propertyValue,
+                dittoHeadersWithETag);
+    }
+
+    // FeatureDesiredProperty
+
+    public static ModifyFeatureDesiredPropertyResponse modifyFeatureDesiredPropertyResponse(final ThingId thingId,
+            final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
+            final DittoHeaders dittoHeaders, final boolean created) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
+        if (created) {
+            return ModifyFeatureDesiredPropertyResponse.created(thingId, featureId, propertyPointer, propertyValue,
+                    dittoHeadersWithETag);
+        } else {
+            return ModifyFeatureDesiredPropertyResponse.modified(thingId, featureId, propertyPointer, dittoHeadersWithETag);
+        }
+    }
+
+    public static RetrieveFeatureDesiredPropertyResponse retrieveFeatureDesiredPropertyResponse(final ThingId thingId,
+            final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
+            final DittoHeaders dittoHeaders) {
+        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
+        return RetrieveFeatureDesiredPropertyResponse.of(thingId, featureId, propertyPointer, propertyValue,
                 dittoHeadersWithETag);
     }
 
