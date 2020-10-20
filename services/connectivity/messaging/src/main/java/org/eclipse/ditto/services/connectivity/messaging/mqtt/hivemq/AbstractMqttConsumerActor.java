@@ -165,8 +165,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         final ActorRef parent = getContext().getParent();
         externalMessageOptional.ifPresent(externalMessage ->
                 forwardToMappingActor(externalMessage,
-                        () -> acknowledge(message),
-                        redeliver -> reject(message, redeliver, parent))
+                        () -> acknowledge(externalMessage, message),
+                        redeliver -> reject(externalMessage, message, redeliver, parent))
         );
     }
 
@@ -235,26 +235,28 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         return "{{ header:" + headerName + "}}";
     }
 
-    private void acknowledge(final P message) {
+    private void acknowledge(final ExternalMessage externalMessage, final P message) {
         try {
             sendPubAck(message);
+            inboundAcknowledgedMonitor.success(externalMessage, "Sending successful acknowledgement");
         } catch (final IllegalStateException e) {
             // this message was acknowledged by another consumer actor due to overlapping topic
-            inboundAcknowledgedMonitor.exception("Acknowledgement of incoming message at topic <{0}> failed " +
+            inboundAcknowledgedMonitor.exception(externalMessage, "Acknowledgement of incoming message at topic <{0}> failed " +
                             "because it was acknowledged already by another source.",
                     getTopic(message));
         }
     }
 
-    private void reject(final P publish, final boolean redeliver, final ActorRef parent) {
+    private void reject(final ExternalMessage externalMessage, final P publish, final boolean redeliver,
+            final ActorRef parent) {
         if (redeliver && reconnectForRedelivery) {
             final String message = "Restarting connection for redeliveries due to unfulfilled acknowledgements.";
-            inboundAcknowledgedMonitor.exception(message);
+            inboundAcknowledgedMonitor.exception(externalMessage, message);
             parent.tell(AbstractMqttClientActor.Control.RECONNECT_CONSUMER_CLIENT, getSelf());
         } else {
             final String message = "Unfulfilled acknowledgements are present, but redelivery is not possible.";
-            inboundAcknowledgedMonitor.exception(message);
-            acknowledge(publish);
+            inboundAcknowledgedMonitor.exception(externalMessage, message);
+            acknowledge(externalMessage, publish);
         }
     }
 

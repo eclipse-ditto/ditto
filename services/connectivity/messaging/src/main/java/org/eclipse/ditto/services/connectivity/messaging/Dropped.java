@@ -31,15 +31,18 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 final class Dropped implements SendingOrDropped {
 
     private final SendingContext sendingContext;
+    private final String messageTemplate;
 
     /**
      * Constructs a new Dropped object.
      *
      * @param sendingContext context information for the dropped signal.
+     * @param messageTemplate the message template to apply when recording the "dropped" metric / log.
      * @throws NullPointerException if {@code sendingContext} is {@code null}.
      */
-    Dropped(final SendingContext sendingContext) {
+    Dropped(final SendingContext sendingContext, final String messageTemplate) {
         this.sendingContext = checkNotNull(sendingContext, "sendingContext");
+        this.messageTemplate = checkNotNull(messageTemplate, "messageTemplate");
     }
 
     @SuppressWarnings({"rawtypes", "java:S3740"})
@@ -50,8 +53,7 @@ final class Dropped implements SendingOrDropped {
         final ConnectionMonitor droppedMonitor = sendingContext.getDroppedMonitor();
         final OutboundSignal.Mapped outboundSignal = sendingContext.getMappedOutboundSignal();
         final GenericTarget genericTarget = sendingContext.getGenericTarget();
-        droppedMonitor.success(outboundSignal.getSource(), "Signal dropped, target address unresolved: {0}",
-                genericTarget.getAddress());
+        droppedMonitor.success(outboundSignal.getSource(), messageTemplate, genericTarget.getAddress());
 
         return Optional.empty();
     }

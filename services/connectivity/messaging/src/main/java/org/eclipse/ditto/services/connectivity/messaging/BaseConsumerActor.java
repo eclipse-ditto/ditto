@@ -143,7 +143,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                             .tag(TracingTags.ACK_REDELIVER, true)
                                             .stop();
                                     reject.reject(true);
-                                    inboundFailure(rootCause);
+                                    // don't count this as "failure" in the "source consumed" metric as the consumption
+                                    // itself was successful
                                     return null;
                                 });
                         if (dittoRuntimeException != null) {
@@ -154,7 +155,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                     .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
                                     .stop();
                             reject.reject(shouldRedeliver);
-                            inboundFailure(dittoRuntimeException);
+                            // don't count this as "failure" in the "source consumed" metric as the consumption itself
+                            // was successful
                         }
                     }
                     return null;

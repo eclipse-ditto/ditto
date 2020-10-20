@@ -56,6 +56,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
@@ -370,7 +371,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             if (isSuccess) {
-                inboundAcknowledgedMonitor.getLogger().success("Sending acknowledgement {0}", ackTypeName);
+                inboundAcknowledgedMonitor.success(InfoProviderFactory.forHeaders(externalMessageHeaders),
+                        "Sending acknowledgement {0}", ackTypeName);
             } else {
                 inboundAcknowledgedMonitor.exception("Sending negative acknowledgement {0}.", ackTypeName);
             }

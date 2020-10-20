@@ -159,7 +159,7 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(acknowledgedMonitor);
+        Mockito.verify(acknowledgedMonitor).success(externalMessage);
         Mockito.verify(publishedMonitor).success(externalMessage);
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(acknowledgement));
@@ -202,7 +202,7 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(acknowledgedMonitor);
+        Mockito.verify(acknowledgedMonitor).success(externalMessage);
         Mockito.verify(publishedMonitor).success(externalMessage);
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));

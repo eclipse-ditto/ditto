@@ -153,8 +153,8 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                         try {
                             final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
                             channel.basicAck(deliveryTag, false);
-                            inboundAcknowledgedMonitor.getLogger()
-                                    .success("Sending basic.ack: deliveryTag={0}", deliveryTag);
+                            inboundAcknowledgedMonitor.success(externalMessage,
+                                    "Sending basic.ack: deliveryTag={0}", deliveryTag);
                         } catch (IOException e) {
                             log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());

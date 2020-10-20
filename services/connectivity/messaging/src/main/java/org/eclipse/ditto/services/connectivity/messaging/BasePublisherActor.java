@@ -100,8 +100,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      */
     protected final ThreadSafeDittoLoggingAdapter logger;
 
-    private final ConnectionMonitor responsePublishedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
+    private final ConnectionMonitor responsePublishedMonitor;
+    private final ConnectionMonitor responseAcknowledgedMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
@@ -122,6 +123,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig());
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection.getId());
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection.getId());
+        responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection.getId());
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
         acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
@@ -343,8 +345,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .mappedOutboundSignal(outboundSignal)
                 .externalMessage(outboundSignal.getExternalMessage())
                 .genericTarget(replyTarget)
-                .publishedMonitor(responsePublishedMonitor)
                 .droppedMonitor(responseDroppedMonitor)
+                .publishedMonitor(responsePublishedMonitor)
+                .acknowledgedMonitor(responseAcknowledgedMonitor)
                 .build();
     }
 
@@ -353,10 +356,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ConnectionMonitor publishedMonitor =
                 connectionMonitorRegistry.forOutboundPublished(connection.getId(), originalAddress);
 
+        final ConnectionMonitor droppedMonitor =
+                connectionMonitorRegistry.forOutboundDropped(connection.getId(), originalAddress);
+
         final boolean targetAckRequested = isTargetAckRequested(outboundSignal, target);
 
         @Nullable final ConnectionMonitor acknowledgedMonitor = targetAckRequested
-                ? connectionMonitorRegistry.forInboundAcknowledged(connection.getId(), originalAddress)
+                ? connectionMonitorRegistry.forOutboundAcknowledged(connection.getId(), originalAddress)
                 : null;
         @Nullable final Target autoAckTarget = targetAckRequested ? target : null;
 
@@ -365,8 +371,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .externalMessage(outboundSignal.getExternalMessage())
                 .genericTarget(target)
                 .publishedMonitor(publishedMonitor)
+                .droppedMonitor(droppedMonitor)
                 .acknowledgedMonitor(acknowledgedMonitor)
-                .droppedMonitor(publishedMonitor)
                 .autoAckTarget(autoAckTarget)
                 .build();
     }
@@ -415,7 +421,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
                     connectionIdResolver, logger);
         } else {
-            result = new Dropped(sendingContext);
+            result = new Dropped(sendingContext, "Signal dropped, target address unresolved: {0}");
         }
         return result;
     }

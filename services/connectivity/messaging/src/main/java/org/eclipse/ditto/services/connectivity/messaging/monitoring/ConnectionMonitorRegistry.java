@@ -36,16 +36,6 @@ public interface ConnectionMonitorRegistry<T> {
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
-     * org.eclipse.ditto.model.connectivity.MetricType#ACKNOWLEDGED} messages.
-     *
-     * @param connectionId connection id
-     * @param target the target address
-     * @return the counter
-     */
-    T forOutboundAcknowledged(ConnectionId connectionId, String target);
-
-    /**
-     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
      * org.eclipse.ditto.model.connectivity.MetricType#DISPATCHED} messages.
      *
      * @param connectionId connection id
@@ -75,6 +65,26 @@ public interface ConnectionMonitorRegistry<T> {
     T forOutboundPublished(ConnectionId connectionId, String target);
 
     /**
+     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
+     * org.eclipse.ditto.model.connectivity.MetricType#DROPPED} messages.
+     *
+     * @param connectionId connection id
+     * @param target the target
+     * @return the outbound dropped counter
+     */
+    T forOutboundDropped(ConnectionId connectionId, String target);
+
+    /**
+     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
+     * org.eclipse.ditto.model.connectivity.MetricType#ACKNOWLEDGED} messages.
+     *
+     * @param connectionId connection id
+     * @param target the target address
+     * @return the counter
+     */
+    T forOutboundAcknowledged(ConnectionId connectionId, String target);
+
+    /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
      * org.eclipse.ditto.model.connectivity.MetricType#CONSUMED} messages.
      *
@@ -83,16 +93,6 @@ public interface ConnectionMonitorRegistry<T> {
      * @return the inbound counter
      */
     T forInboundConsumed(ConnectionId connectionId, String source);
-
-    /**
-     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
-     * org.eclipse.ditto.model.connectivity.MetricType#ACKNOWLEDGED} messages.
-     *
-     * @param connectionId connection id
-     * @param source the source
-     * @return the inbound counter
-     */
-    T forInboundAcknowledged(ConnectionId connectionId, String source);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
@@ -106,6 +106,16 @@ public interface ConnectionMonitorRegistry<T> {
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
+     * org.eclipse.ditto.model.connectivity.MetricType#DROPPED} messages.
+     *
+     * @param connectionId connection id
+     * @param source the source
+     * @return the inbound dropped counter
+     */
+    T forInboundDropped(ConnectionId connectionId, String source);
+
+    /**
+     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
      * org.eclipse.ditto.model.connectivity.MetricType#ENFORCED} messages.
      *
      * @param connectionId connection id
@@ -116,13 +126,13 @@ public interface ConnectionMonitorRegistry<T> {
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#INBOUND}/{@link
-     * org.eclipse.ditto.model.connectivity.MetricType#DROPPED} messages.
+     * org.eclipse.ditto.model.connectivity.MetricType#ACKNOWLEDGED} messages.
      *
      * @param connectionId connection id
      * @param source the source
-     * @return the inbound dropped counter
+     * @return the inbound counter
      */
-    T forInboundDropped(ConnectionId connectionId, String source);
+    T forInboundAcknowledged(ConnectionId connectionId, String source);
 
     /**
      * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
@@ -160,4 +170,12 @@ public interface ConnectionMonitorRegistry<T> {
      */
     T forResponsePublished(ConnectionId connectionId);
 
+    /**
+     * Gets counter for {@link org.eclipse.ditto.model.connectivity.MetricDirection#OUTBOUND}/{@link
+     * org.eclipse.ditto.model.connectivity.MetricType#ACKNOWLEDGED} messages for responses.
+     *
+     * @param connectionId connection id
+     * @return the counter
+     */
+    T forResponseAcknowledged(ConnectionId connectionId);
 }

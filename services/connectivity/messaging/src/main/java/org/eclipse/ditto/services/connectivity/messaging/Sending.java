@@ -237,6 +237,8 @@ final class Sending implements SendingOrDropped {
         private void monitorSendSuccess() {
             final ConnectionMonitor publishedMonitor = sendingContext.getPublishedMonitor();
             publishedMonitor.success(sendingContext.getExternalMessage());
+            sendingContext.getAcknowledgedMonitor().ifPresent(ackMonitor ->
+                    ackMonitor.success(sendingContext.getExternalMessage()));
         }
 
         abstract DittoRuntimeException getExceptionFor(T response);
