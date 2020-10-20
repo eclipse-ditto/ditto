@@ -220,10 +220,11 @@ public final class ConnectionValidator {
                 .map(Object::toString)
                 .forEach(label -> {
                     if (!label.startsWith(idPrefix)) {
+                        final String message = String.format("Declared acknowledgement labels of a connection must " +
+                                "have the form %s<alphanumeric-suffix>", idPrefix);
                         throw AcknowledgementLabelInvalidException.of(
                                 label,
-                                "Declared acknowledgement labels of a connection must have the form " +
-                                        "<connection-id>:<alphanumeric-suffix>",
+                                message,
                                 null,
                                 DittoHeaders.empty()
                         );
