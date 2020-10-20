@@ -103,6 +103,8 @@ final class FeaturesRoute extends AbstractRoute {
                         featuresEntryDefinition(ctx, dittoHeaders, thingId),
                         featuresEntryProperties(ctx, dittoHeaders, thingId),
                         featuresEntryPropertiesEntry(ctx, dittoHeaders, thingId),
+                        featuresEntryDesiredProperties(ctx, dittoHeaders, thingId),
+                        featuresEntryDesiredPropertiesEntry(ctx, dittoHeaders, thingId),
                         featuresEntryInboxOutbox(ctx, dittoHeaders, thingId)
                 )
         );
