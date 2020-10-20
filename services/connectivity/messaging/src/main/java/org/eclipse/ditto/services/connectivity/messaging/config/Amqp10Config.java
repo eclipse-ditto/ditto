@@ -89,6 +89,16 @@ public interface Amqp10Config {
     BackOffConfig getBackOffConfig();
 
     /**
+     * @return maximum number of messages buffered at the publisher actor before dropping them.
+     */
+    int getMaxQueueSize();
+
+    /**
+     * @return the number of parallel message publishing possible per publisher actor.
+     */
+    int getMessagePublishingParallelism();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code Amqp10Config}.
      */
@@ -112,7 +122,17 @@ public interface Amqp10Config {
         /**
          * How many message producers to cache per client actor.
          */
-        PRODUCER_CACHE_SIZE("producer-cache-size", 10);
+        PRODUCER_CACHE_SIZE("producer-cache-size", 10),
+
+        /**
+         * How many messages to buffer in the publisher actor before dropping them.
+         */
+        MAX_QUEUE_SIZE("publisher.max-queue-size", 10),
+
+        /**
+         * How many messages will be published in parallel
+         */
+        MESSAGE_PUBLISHING_PARALLELISM("publisher.message-parallelism", 3);
 
         private final String path;
         private final Object defaultValue;

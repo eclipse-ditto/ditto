@@ -42,6 +42,8 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private final int producerCacheSize;
     private final BackOffConfig backOffConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
+    private final int maxQueueSize;
+    private final int messagePublishingParallelism;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
@@ -53,6 +55,8 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
                 ? config.getConfig(CONSUMER_PATH)
                 : ConfigFactory.empty());
+        maxQueueSize = config.getInt(Amqp10ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
+        messagePublishingParallelism = config.getInt(Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getConfigPath());
     }
 
     /**
@@ -97,6 +101,16 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     }
 
     @Override
+    public int getMaxQueueSize() {
+        return maxQueueSize;
+    }
+
+    @Override
+    public int getMessagePublishingParallelism() {
+        return messagePublishingParallelism;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -110,13 +124,14 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
                 producerCacheSize == that.producerCacheSize &&
                 Objects.equals(backOffConfig, that.backOffConfig) &&
-                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
+                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
+                maxQueueSize == that.maxQueueSize;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
-                producerCacheSize, backOffConfig, consumerThrottlingConfig);
+                producerCacheSize, backOffConfig, consumerThrottlingConfig, maxQueueSize);
     }
 
     @Override
@@ -128,6 +143,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 ", producerCacheSize=" + producerCacheSize +
                 ", backOffConfig=" + backOffConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
+                ", maxQueueSize=" + maxQueueSize +
                 "]";
     }
 
