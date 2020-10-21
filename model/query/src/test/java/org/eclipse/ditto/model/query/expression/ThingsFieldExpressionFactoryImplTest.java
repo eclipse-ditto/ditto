@@ -113,12 +113,29 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
+    @Test
+    public void sortByWithFeatureDesiredProperty() {
+        final FieldExpression fieldExpression = ef.sortBy(KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID);
+
+        final SortFieldExpression expected =
+                new FeatureIdDesiredPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING + "_desired");
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
 
     @Test
     public void sortByWithJsonPointer() {
         final FieldExpression fieldExpression = ef.sortBy(SLASH + KNOWN_FEATURE_PROPERTY_WITH_ID);
 
         final SortFieldExpression expected = new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void sortByWithJsonPointer_desired() {
+        final FieldExpression fieldExpression = ef.sortBy(SLASH + KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID);
+
+        final SortFieldExpression expected =
+                new FeatureIdDesiredPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING + "_desired");
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
