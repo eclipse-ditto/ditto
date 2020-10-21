@@ -66,6 +66,8 @@ public final class DefaultOAuthConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultOAuthConfig underTest = DefaultOAuthConfig.of(ConfigFactory.empty());
 
+        softly.assertThat(underTest.getProtocol()).isEqualTo("https");
+
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getConfigPath())
                 .isEqualTo(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getDefaultValue());
@@ -79,9 +81,12 @@ public final class DefaultOAuthConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultOAuthConfig underTest = DefaultOAuthConfig.of(oauthConfig);
 
+        softly.assertThat(underTest.getProtocol()).isEqualTo("http");
+
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getConfigPath())
-                .isEqualTo(Collections.singletonMap(SubjectIssuer.newInstance("google"), "https://accounts.google.com"));
+                .isEqualTo(
+                        Collections.singletonMap(SubjectIssuer.newInstance("google"), "https://accounts.google.com"));
 
         softly.assertThat(underTest.getOpenIdConnectIssuersExtension())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getConfigPath())

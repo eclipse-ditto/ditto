@@ -19,12 +19,21 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Provides configuration settings for OAuth.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public interface OAuthConfig {
+
+    /**
+     * Returns the protocol to access all OAuth endpoints.
+     *
+     * @return the protocol with which to access all OAuth endpoints.
+     */
+    String getProtocol();
 
     /**
      * Returns all supported openid connect issuers.
@@ -42,6 +51,7 @@ public interface OAuthConfig {
     Map<SubjectIssuer, String> getOpenIdConnectIssuersExtension();
 
     enum OAuthConfigValue implements KnownConfigValue {
+        PROTOCOL("protocol", "https"),
         OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap()),
         OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap());
 
