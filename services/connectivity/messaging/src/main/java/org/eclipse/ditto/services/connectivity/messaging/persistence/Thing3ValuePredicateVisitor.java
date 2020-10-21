@@ -120,6 +120,11 @@ final class Thing3ValuePredicateVisitor
         }
 
         @Override
+        public JsonPointer visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty) {
+            return visitFeature(featureId).append(JsonPointer.of(desiredProperty));
+        }
+
+        @Override
         public JsonPointer visitSimple(final String fieldName) {
             return JsonPointer.empty().addLeaf(JsonKey.of(fieldName));
         }
