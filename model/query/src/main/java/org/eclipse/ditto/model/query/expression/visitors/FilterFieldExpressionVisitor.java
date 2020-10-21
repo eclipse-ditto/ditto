@@ -27,5 +27,8 @@ public interface FilterFieldExpressionVisitor<T> extends SortFieldExpressionVisi
     T visitFeatureIdProperty(final String featureId, final String property);
 
     @Override
+    T visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty);
+
+    @Override
     T visitSimple(final String fieldName);
 }

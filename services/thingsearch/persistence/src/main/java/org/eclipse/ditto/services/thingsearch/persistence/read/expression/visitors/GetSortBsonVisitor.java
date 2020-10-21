@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visit
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction.mapSortKey;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DESIRED_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
@@ -105,6 +106,10 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     @Override
     public String visitFeatureIdProperty(final String featureId, final String property) {
         return mapSortKey(FIELD_SORTING, FIELD_FEATURES, featureId, FIELD_PROPERTIES, property);
+    }
+
+    public String visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty) {
+        return mapSortKey(FIELD_SORTING, FIELD_FEATURES, featureId, FIELD_DESIRED_PROPERTIES, desiredProperty);
     }
 
     @Override

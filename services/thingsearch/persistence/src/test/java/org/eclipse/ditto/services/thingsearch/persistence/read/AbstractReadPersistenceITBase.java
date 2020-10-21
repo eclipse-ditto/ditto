@@ -94,13 +94,17 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     void deleteThing(final Thing thing, final long policyRevision) {
-        deleteThing(thing.getEntityId().orElseThrow(() -> new IllegalArgumentException("Thing should contain an entity id.")),
-                thing.getRevision().orElseThrow(() -> new IllegalArgumentException("Thing should have a revision.")).toLong(),
+        deleteThing(thing.getEntityId()
+                        .orElseThrow(() -> new IllegalArgumentException("Thing should contain an entity id.")),
+                thing.getRevision()
+                        .orElseThrow(() -> new IllegalArgumentException("Thing should have a revision."))
+                        .toLong(),
                 thing.getPolicyEntityId().orElse(null),
                 policyRevision);
     }
 
-    void deleteThing(final ThingId thingId, final long revision, @Nullable final PolicyId policyId, final long policyRevision) {
+    void deleteThing(final ThingId thingId, final long revision, @Nullable final PolicyId policyId,
+            final long policyRevision) {
         runBlockingWithReturn(writePersistence.delete(thingId, revision, policyId, policyRevision));
     }
 

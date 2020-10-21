@@ -155,6 +155,15 @@ public final class ThingsFieldExpressionFactoryImplTest {
     }
 
     @Test
+    public void sortByFeatureDesiredProperty() {
+        final SortFieldExpression fieldExpression = ef.sortByFeatureDesiredProperty(KNOWN_FEATURE_ID, KNOWN_STRING);
+
+        final SortFieldExpression expected =
+                new FeatureIdDesiredPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
     public void filterByAttribute() {
         final FilterFieldExpression fieldExpression = ef.filterByAttribute(KNOWN_STRING);
 

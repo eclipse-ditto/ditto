@@ -171,7 +171,6 @@ final class ImmutableFeature implements Feature {
     @Override
     public Optional<JsonValue> getProperty(final JsonPointer propertyPath) {
         ConditionChecker.checkNotNull(propertyPath, "JSON path to the property to be retrieved");
-
         return getProperties().flatMap(props -> props.getValue(propertyPath));
     }
 

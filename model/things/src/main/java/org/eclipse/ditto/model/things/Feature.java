@@ -284,7 +284,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Optional<JsonValue> getDesiredProperty(final CharSequence pointer) {
-        return getProperty(JsonPointer.of(pointer));
+        return getDesiredProperty(JsonPointer.of(pointer));
     }
 
     /**
@@ -307,7 +307,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final JsonValue desiredPropertyValue) {
-        return setProperty(JsonPointer.of(pointer), desiredPropertyValue);
+        return setDesiredProperty(JsonPointer.of(pointer), desiredPropertyValue);
     }
 
     /**
@@ -320,7 +320,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final boolean desiredPropertyValue) {
-        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+        return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -333,7 +333,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final int desiredPropertyValue) {
-        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+        return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -346,7 +346,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final long desiredPropertyValue) {
-        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+        return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -359,7 +359,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final double desiredPropertyValue) {
-        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+        return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -372,7 +372,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final String desiredPropertyValue) {
-        return setProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
+        return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -395,7 +395,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 1.4.0
      */
     default Feature removeDesiredProperty(final CharSequence pointer) {
-        return removeProperty(JsonPointer.of(pointer));
+        return removeDesiredProperty(JsonPointer.of(pointer));
     }
 
     /**

@@ -61,11 +61,11 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      * Return a sortOptions field expression for the given feature desiredProperty key.
      *
      * @param featureId the feature id
-     * @param desiredProperty the property path
+     * @param property the property path
      * @return the sortOptions field expression
      */
-    default SortFieldExpression sortByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
-        return sortBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    default SortFieldExpression sortByFeatureProperty(final String featureId, final String property) {
+        return sortBy(String.format("features/%s/properties/%s", featureId, property));
     }
 
     /**
@@ -97,7 +97,7 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      * @param desiredProperty the property path
      * @return the sortOptions field expression
      */
-    default SortFieldExpression sortByFeatureProperty(final String featureId, final String desiredProperty) {
+    default SortFieldExpression sortByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
         return sortBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
     }
 

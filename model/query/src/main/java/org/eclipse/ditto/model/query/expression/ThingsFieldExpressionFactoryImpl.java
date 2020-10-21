@@ -75,11 +75,15 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .flatMap(f -> f.getFeatureId()
-                        .map(id -> f.getProperty()
-                                .<ExistsFieldExpression>map(property ->
-                                        new FeatureIdPropertyExpressionImpl(id, property))
-                                // we have a feature id but no property path
-                                .orElseGet(() -> new FeatureExpressionImpl(id))
+                        .map(id ->
+                                f.getProperty().<ExistsFieldExpression>map(
+                                        property -> new FeatureIdPropertyExpressionImpl(id, property))
+                                        // desiredProperty
+                                        .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(
+                                                desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
+                                                        desiredProperty))
+                                                // we have a feature id but no property path
+                                                .orElseGet(() -> new FeatureExpressionImpl(id)))
                         )
                 )
                 // we have no feature at all, continue with the other possibilities
@@ -95,10 +99,16 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .flatMap(f -> f.getFeatureId()
-                        .flatMap(id -> f.getProperty()
-                                .flatMap(property -> Optional
-                                        .of((SortFieldExpression) new FeatureIdPropertyExpressionImpl(id, property))
-                                )
+                        .flatMap(id ->
+                                f.getProperty().isPresent()
+                                        ? f.getProperty()
+                                        .flatMap(property -> Optional.of(
+                                                (SortFieldExpression) new FeatureIdPropertyExpressionImpl(id,
+                                                        property)))
+                                        : f.getDesiredProperty()
+                                        .flatMap(desiredProperty -> Optional.of(
+                                                (SortFieldExpression) new FeatureIdDesiredPropertyExpressionImpl(id,
+                                                        desiredProperty)))
                         )
                 )
                 .orElseGet(() -> (SortFieldExpression) common(propertyName));
@@ -129,7 +139,7 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
         if (FieldExpressionUtil.isAttributeFieldName(propertyName)) {
             return new AttributeExpressionImpl(FieldExpressionUtil.stripAttributesPrefix(propertyName));
         }
-        if (FieldExpressionUtil.isDefinitionFieldName(propertyName)){
+        if (FieldExpressionUtil.isDefinitionFieldName(propertyName)) {
             return new SimpleFieldExpressionImpl(propertyName);
         }
 
