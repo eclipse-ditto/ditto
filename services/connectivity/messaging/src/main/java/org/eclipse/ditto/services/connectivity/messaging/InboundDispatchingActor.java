@@ -248,11 +248,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
         // the above throws an exception if signal id enforcement fails
 
-        if (adjustedSignal instanceof CommandResponse) {
-            mappedMonitor.success(infoProvider, "Successfully mapped outbound response with mapper <{0}>.", mapperId);
-        } else {
-            mappedMonitor.success(infoProvider, "Successfully mapped outbound signal with mapper <{0}>.", mapperId);
-        }
+        mappedMonitor.success(infoProvider, "Successfully mapped incoming signal with mapper <{0}>.", mapperId);
         return Optional.of(adjustedSignal);
     }
 
@@ -268,7 +264,7 @@ public final class InboundDispatchingActor extends AbstractActor
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
             final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connectionId, source);
             droppedMonitor.success(infoProvider,
-                    "Payload mapping of mapper <{0}> returned null, message is dropped.", mapperId);
+                    "Payload mapping of mapper <{0}> returned null, incoming message is dropped.", mapperId);
         }
         return Optional.empty();
     }

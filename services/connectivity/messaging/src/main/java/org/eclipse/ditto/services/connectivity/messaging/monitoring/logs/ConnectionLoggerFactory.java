@@ -146,7 +146,7 @@ final class ConnectionLoggerFactory {
                 builder.withDefaultSuccessMessage("Signal successfully passed possible filters.");
                 break;
             case MAPPED:
-                builder.withDefaultSuccessMessage("Successfully mapped outbound signal.")
+                builder.withDefaultSuccessMessage("Successfully mapped outgoing signal.")
                         .withDefaultFailureMessage("Ran into a failure when mapping outgoing signal: {0}")
                         .withDefaultExceptionMessage("Unexpected failure when mapping outgoing signal: {0}");
                 break;

@@ -462,12 +462,13 @@ public final class OutboundMappingProcessorActor
                 MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>>newVisitorBuilder()
                         .onMapped((mapperId, mapped) -> {
                             outboundMapped.forEach(monitor -> monitor.success(infoProvider,
-                                    "Mapped incoming signal with mapper <{0}>.", mapperId));
+                                    "Mapped outgoing signal with mapper <{0}>.", mapperId));
                             return Source.single(outbound.mapped(mapped));
                         })
                         .onDropped((mapperId, _null) -> {
                             outboundDropped.forEach(monitor -> monitor.success(infoProvider,
-                                    "Payload mapping of mapper <{0}> returned null, message is dropped.", mapperId));
+                                    "Payload mapping of mapper <{0}> returned null, outgoing message is dropped.",
+                                    mapperId));
                             return Source.empty();
                         })
                         .onError((mapperId, exception, topicPath, _null) -> {
