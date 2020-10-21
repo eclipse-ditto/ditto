@@ -94,7 +94,6 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
         return matchKeyValue(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + desiredProperty);
     }
 
-
     @Override
     Bson visitPointer(final String pointer) {
         return matchKeyValue(pointer);

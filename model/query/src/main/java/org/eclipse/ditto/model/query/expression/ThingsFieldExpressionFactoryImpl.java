@@ -58,10 +58,15 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
         final Supplier<FilterFieldExpression> defaultSupplier = () -> (FilterFieldExpression) common(propertyName);
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .<FilterFieldExpression>flatMap(f -> f.getProperty()
-                        .flatMap(property ->
+                .<FilterFieldExpression>flatMap(f ->
+                        f.getProperty().isPresent()
+                                ? f.getProperty().flatMap(property ->
                                 // we have a feature id and a property path
                                 f.getFeatureId().map(id -> new FeatureIdPropertyExpressionImpl(id, property))
+                        )
+                                : f.getDesiredProperty().flatMap(desiredProperty ->
+                                f.getFeatureId()
+                                        .map(id -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
                         )
                 )
                 .orElseGet(defaultSupplier);
