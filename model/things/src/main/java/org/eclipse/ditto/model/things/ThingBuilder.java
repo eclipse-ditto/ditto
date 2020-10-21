@@ -1408,7 +1408,7 @@ public interface ThingBuilder {
          */
         default FromCopy setFeatureDesiredProperties(final String featureId,
                 final FeatureProperties desiredFeatureProperties) {
-            return setFeatureProperties(features -> true, featureId, desiredFeatureProperties);
+            return setFeatureDesiredProperties(features -> true, featureId, desiredFeatureProperties);
         }
 
         /**
