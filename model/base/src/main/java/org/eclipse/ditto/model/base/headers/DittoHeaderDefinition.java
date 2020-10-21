@@ -230,7 +230,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    WWW_AUTHENTICATE("www-authenticate", String.class, false, true,
+    WWW_AUTHENTICATE("www-authenticate", String.class, true, true,
             HeaderValueValidators.getNoOpValidator()),
 
     /**
@@ -241,7 +241,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    LOCATION("location", String.class, false, true,
+    LOCATION("location", String.class, true, true,
             HeaderValueValidators.getNoOpValidator()),
 
     /**
