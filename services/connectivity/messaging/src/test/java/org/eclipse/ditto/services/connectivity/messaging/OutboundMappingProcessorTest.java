@@ -194,9 +194,9 @@ public final class OutboundMappingProcessorTest {
             when(outboundSignal.getSource()).thenReturn(signal);
             underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(1)).onMapped(captor.capture());
-            verify(mock, times(0)).onError(any(Exception.class), any(), any());
-            verify(mock, times(0)).onDropped(any());
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(0)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
                     .contains(extra));
@@ -230,9 +230,9 @@ public final class OutboundMappingProcessorTest {
             ));
             underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(1)).onMapped(captor.capture());
-            verify(mock, times(0)).onError(any(Exception.class), any(), any());
-            verify(mock, times(0)).onDropped(any());
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(0)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getAdaptable().getDittoHeaders().getAcknowledgementRequests())
@@ -276,9 +276,9 @@ public final class OutboundMappingProcessorTest {
             ));
             underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(1)).onMapped(captor.capture());
-            verify(mock, times(0)).onError(any(Exception.class), any(), any());
-            verify(mock, times(0)).onDropped(any());
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(0)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getAdaptable().getDittoHeaders().getAcknowledgementRequests())
@@ -339,9 +339,9 @@ public final class OutboundMappingProcessorTest {
             final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
             underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(mapped)).onMapped(captor.capture());
-            verify(mock, times(failed)).onError(any(Exception.class), any(), any());
-            verify(mock, times(dropped)).onDropped(any());
+            verify(mock, times(mapped)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(failed)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(dropped)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getExternalMessage().getTextPayload())

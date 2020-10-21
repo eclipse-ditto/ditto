@@ -205,7 +205,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         .debug("Mapping <{}> produced <{}> messages.", mapper.getId(), messages.size());
 
                 if (messages.isEmpty()) {
-                    return Stream.of(MappingOutcome.dropped(null));
+                    return Stream.of(MappingOutcome.dropped(mapper.getId(), null));
                 } else {
                     return messages.stream()
                             .map(em -> {
@@ -217,18 +217,18 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                                 final OutboundSignal.Mapped mapped =
                                         OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable,
                                                 externalMessage);
-                                return MappingOutcome.mapped(mapped, adaptable.getTopicPath(), null);
+                                return MappingOutcome.mapped(mapper.getId(), mapped, adaptable.getTopicPath(), null);
                             });
                 }
             } else {
                 logger.withCorrelationId(adaptable)
                         .debug("Not mapping message with mapper <{}> as MessageMapper conditions {} were not matched.",
                                 mapper.getId(), mapper.getIncomingConditions());
-                return Stream.of(MappingOutcome.dropped(null));
+                return Stream.of(MappingOutcome.dropped(mapper.getId(), null));
             }
         } catch (final Exception e) {
             return Stream.of(
-                    MappingOutcome.error(toDittoRuntimeException(e, mapper, adaptable), adaptable.getTopicPath(), null)
+                    MappingOutcome.error(mapper.getId(), toDittoRuntimeException(e, mapper, adaptable), adaptable.getTopicPath(), null)
             );
         }
     }

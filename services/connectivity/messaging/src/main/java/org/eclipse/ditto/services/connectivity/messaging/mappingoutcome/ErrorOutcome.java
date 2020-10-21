@@ -20,12 +20,14 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 // private to MappingOutcome. Do NOT use directly.
 final class ErrorOutcome<T> implements MappingOutcome<T> {
 
+    private final CharSequence mapperId;
     private final Exception error;
     @Nullable private final TopicPath topicPath;
     @Nullable private final ExternalMessage externalMessage;
 
-    ErrorOutcome(final Exception error, @Nullable final TopicPath topicPath,
+    ErrorOutcome(final CharSequence mapperId, final Exception error, @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage externalMessage) {
+        this.mapperId = mapperId;
         this.error = error;
         this.topicPath = topicPath;
         this.externalMessage = externalMessage;
@@ -33,6 +35,6 @@ final class ErrorOutcome<T> implements MappingOutcome<T> {
 
     @Override
     public <R> R accept(final Visitor<T, R> visitor) {
-        return visitor.onError(error, topicPath, externalMessage);
+        return visitor.onError(mapperId.toString(), error, topicPath, externalMessage);
     }
 }

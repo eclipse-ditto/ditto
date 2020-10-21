@@ -250,9 +250,9 @@ public final class InboundMappingProcessorTest {
             underTest.process(externalMessage).forEach(x -> x.accept(mock));
             final ArgumentCaptor<MappedInboundExternalMessage> captor =
                     ArgumentCaptor.forClass(MappedInboundExternalMessage.class);
-            verify(mock, times(mapped)).onMapped(captor.capture());
-            verify(mock, times(failed)).onError(any(Exception.class), any(), any());
-            verify(mock, times(dropped)).onDropped(any());
+            verify(mock, times(mapped)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(failed)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(dropped)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(mapped -> {
                 assertThat(mapped.getSignal().getDittoHeaders()).containsEntry(

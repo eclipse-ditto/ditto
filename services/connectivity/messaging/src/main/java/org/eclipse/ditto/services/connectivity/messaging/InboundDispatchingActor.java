@@ -105,6 +105,8 @@ public final class InboundDispatchingActor extends AbstractActor
      */
     public static final String ACTOR_NAME = "inboundDispatching";
 
+    private static final String UNKNOWN_MAPPER_ID = "?";
+
     private final DittoDiagnosticLoggingAdapter logger;
 
     private final HeaderTranslator headerTranslator;
@@ -192,11 +194,11 @@ public final class InboundDispatchingActor extends AbstractActor
     }
 
     private void onDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
-        onError(dittoRuntimeException, null, null);
+        onError(UNKNOWN_MAPPER_ID, dittoRuntimeException, null, null);
     }
 
     private void dispatchError(final InboundMappingOutcomes outcomes) {
-        onError(outcomes.getError(), null, outcomes.getExternalMessage());
+        onError(UNKNOWN_MAPPER_ID, outcomes.getError(), null, outcomes.getExternalMessage());
     }
 
     private void dispatchMapped(final InboundMappingOutcomes outcomes) {
@@ -225,7 +227,7 @@ public final class InboundDispatchingActor extends AbstractActor
     }
 
     @Override
-    public Optional<Signal<?>> onMapped(final MappedInboundExternalMessage mappedInboundMessage) {
+    public Optional<Signal<?>> onMapped(final String mapperId, final MappedInboundExternalMessage mappedInboundMessage) {
         final ExternalMessage incomingMessage = mappedInboundMessage.getSource();
         final String source = getAddress(incomingMessage);
         final Signal<?> signal = mappedInboundMessage.getSignal();
@@ -246,12 +248,16 @@ public final class InboundDispatchingActor extends AbstractActor
                 .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
         // the above throws an exception if signal id enforcement fails
 
-        mappedMonitor.success(infoProvider);
+        if (adjustedSignal instanceof CommandResponse) {
+            mappedMonitor.success(infoProvider, "Successfully mapped outbound response with mapper <{0}>.", mapperId);
+        } else {
+            mappedMonitor.success(infoProvider, "Successfully mapped outbound signal with mapper <{0}>.", mapperId);
+        }
         return Optional.of(adjustedSignal);
     }
 
     @Override
-    public Optional<Signal<?>> onDropped(@Nullable final ExternalMessage incomingMessage) {
+    public Optional<Signal<?>> onDropped(final String mapperId, @Nullable final ExternalMessage incomingMessage) {
         logger.withCorrelationId(Optional.ofNullable(incomingMessage)
                 .map(ExternalMessage::getHeaders)
                 .map(h -> h.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
@@ -261,13 +267,15 @@ public final class InboundDispatchingActor extends AbstractActor
             final String source = getAddress(incomingMessage);
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
             final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connectionId, source);
-            droppedMonitor.success(infoProvider);
+            droppedMonitor.success(infoProvider,
+                    "Payload mapping of mapper <{0}> returned null, message is dropped.", mapperId);
         }
         return Optional.empty();
     }
 
     @Override
-    public Optional<Signal<?>> onError(@Nullable final Exception e,
+    public Optional<Signal<?>> onError(final String mapperId,
+            @Nullable final Exception e,
             @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage message) {
 
@@ -281,8 +289,9 @@ public final class InboundDispatchingActor extends AbstractActor
                 final ConnectionMonitor mappedMonitor =
                         connectionMonitorRegistry.forInboundMapped(connectionId, source);
                 mappedMonitor.getLogger()
-                        .failure("Got exception {0} when processing external message: {1}",
+                        .failure("Got exception {0} when processing external message with mapper <{1}>: {2}",
                                 dittoRuntimeException.getErrorCode(),
+                                mapperId,
                                 e.getMessage());
                 mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
                         message.getTopicPath().orElse(null), message.getInternalHeaders());
@@ -296,7 +305,7 @@ public final class InboundDispatchingActor extends AbstractActor
                     ActorRef.noSender());
         } else if (e != null) {
             responseMappedMonitor.getLogger()
-                    .failure("Got unknown exception when processing external message: {1}", e.getMessage());
+                    .failure("Got unknown exception when processing external message: {0}", e.getMessage());
             if (message != null) {
                 logger.setCorrelationId(message.getInternalHeaders());
             }
@@ -465,7 +474,7 @@ public final class InboundDispatchingActor extends AbstractActor
         } else {
             final AcknowledgementLabelNotDeclaredException exception =
                     AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders());
-            onError(exception, getTopicPath(ack), outcomes.getExternalMessage());
+            onError(UNKNOWN_MAPPER_ID, exception, getTopicPath(ack), outcomes.getExternalMessage());
             return Stream.empty();
         }
     }
@@ -479,7 +488,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .map(label -> AcknowledgementLabelNotDeclaredException.of(label, acks.getDittoHeaders()))
                 .findAny();
         if (ackLabelNotDeclaredException.isPresent()) {
-            onError(ackLabelNotDeclaredException.get(), getTopicPath(acks), outcomes.getExternalMessage());
+            onError(UNKNOWN_MAPPER_ID, ackLabelNotDeclaredException.get(), getTopicPath(acks), outcomes.getExternalMessage());
             return Stream.empty();
         }
         return forwardToConnectionActor(acks, outboundMessageMappingProcessorActor);

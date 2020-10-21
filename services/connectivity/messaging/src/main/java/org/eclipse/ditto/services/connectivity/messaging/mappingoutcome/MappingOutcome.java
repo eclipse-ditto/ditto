@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mappingoutcome;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
@@ -42,39 +42,42 @@ public interface MappingOutcome<T> {
      * Create a mapped outcome.
      *
      * @param <T> type of the mapped message.
+     * @param mapperId the ID of the used MessageMapper.
      * @param mapped the mapped message.
      * @param topicPath TopicPath of the mapped message.
      * @param externalMessage external message for incoming mapping, or null for outgoing mapping.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> mapped(final T mapped, final TopicPath topicPath,
+    static <T> MappingOutcome<T> mapped(final CharSequence mapperId, final T mapped, final TopicPath topicPath,
             @Nullable final ExternalMessage externalMessage) {
-        return new MappedOutcome<>(mapped, topicPath, externalMessage);
+        return new MappedOutcome<>(mapperId, mapped, topicPath, externalMessage);
     }
 
     /**
      * Create a dropped outcome.
      *
+     * @param mapperId the ID of the used MessageMapper.
      * @param droppedMessage the dropped message.
      * @param <T> type of any mapped message.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> dropped(@Nullable final ExternalMessage droppedMessage) {
-        return new DroppedOutcome<>(droppedMessage);
+    static <T> MappingOutcome<T> dropped(final CharSequence mapperId, @Nullable final ExternalMessage droppedMessage) {
+        return new DroppedOutcome<>(mapperId, droppedMessage);
     }
 
     /**
      * Create an error outcome.
      *
+     * @param mapperId the ID of the used MessageMapper.
      * @param error the error.
      * @param topicPath any topic path known at the time of error.
      * @param externalMessage external message for incoming mapping, or null for outgoing mapping.
      * @param <T> type of any mapped message.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> error(final Exception error, @Nullable final TopicPath topicPath,
+    static <T> MappingOutcome<T> error(final CharSequence mapperId, final Exception error, @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage externalMessage) {
-        return new ErrorOutcome<>(error, topicPath, externalMessage);
+        return new ErrorOutcome<>(mapperId, error, topicPath, externalMessage);
     }
 
     /**
@@ -99,12 +102,13 @@ public interface MappingOutcome<T> {
         /**
          * Evaluate for an error.
          *
+         * @param mapperId the ID of the used MessageMapper.
          * @param error the error.
          * @param topicPath the topic path, if known.
          * @param externalMessage the external message for incoming mapping, or null for outgoing mapping.
          * @return the evaluation result.
          */
-        R apply(Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
+        R apply(String mapperId, Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
     }
 
     /**
@@ -128,28 +132,31 @@ public interface MappingOutcome<T> {
         /**
          * Evaluate a mapped result.
          *
+         * @param mapperId the ID of the used MessageMapper.
          * @param mapped the mapped value.
          * @return the result.
          */
-        R onMapped(T mapped);
+        R onMapped(String mapperId, T mapped);
 
         /**
          * Get the result for dropped messages.
          *
+         * @param mapperId the ID of the used MessageMapper.
          * @param droppedMessage the dropped message.
          * @return the result.
          */
-        R onDropped(@Nullable ExternalMessage droppedMessage);
+        R onDropped(String mapperId, @Nullable ExternalMessage droppedMessage);
 
         /**
          * Get a result for failed mapping.
          *
+         * @param mapperId the ID of the used MessageMapper.
          * @param error the error causing the mapping failure.
          * @param topicPath topic path of the signal being mapped, if any is known.
          * @param externalMessage the external message for incoming mapping, or null for outgoing mapping.
          * @return the result.
          */
-        R onError(Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
+        R onError(String mapperId, Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
     }
 
     /**
@@ -160,8 +167,8 @@ public interface MappingOutcome<T> {
      */
     final class VisitorBuilder<T, R> {
 
-        @Nullable private Function<T, R> onMapped;
-        @Nullable private Function<ExternalMessage, R> onDropped;
+        @Nullable private BiFunction<String, T, R> onMapped;
+        @Nullable private BiFunction<String, ExternalMessage, R> onDropped;
         @Nullable private OnError<R> onError;
 
         /**
@@ -170,7 +177,7 @@ public interface MappingOutcome<T> {
          * @param onMapped the evaluator.
          * @return this builder.
          */
-        public VisitorBuilder<T, R> onMapped(final Function<T, R> onMapped) {
+        public VisitorBuilder<T, R> onMapped(final BiFunction<String, T, R> onMapped) {
             this.onMapped = onMapped;
             return this;
         }
@@ -181,7 +188,7 @@ public interface MappingOutcome<T> {
          * @param onDropped the evaluator.
          * @return this builder.
          */
-        public VisitorBuilder<T, R> onDropped(final Function<ExternalMessage, R> onDropped) {
+        public VisitorBuilder<T, R> onDropped(final BiFunction<String, ExternalMessage, R> onDropped) {
             this.onDropped = onDropped;
             return this;
         }
@@ -210,19 +217,19 @@ public interface MappingOutcome<T> {
             return new Visitor<>() {
 
                 @Override
-                public R onMapped(final T mapped) {
-                    return onMapped.apply(mapped);
+                public R onMapped(final String mapperId, final T mapped) {
+                    return onMapped.apply(mapperId, mapped);
                 }
 
                 @Override
-                public R onDropped(@Nullable final ExternalMessage droppedMessage) {
-                    return onDropped.apply(droppedMessage);
+                public R onDropped(final String mapperId, @Nullable final ExternalMessage droppedMessage) {
+                    return onDropped.apply(mapperId, droppedMessage);
                 }
 
                 @Override
-                public R onError(final Exception error, @Nullable final TopicPath topicPath,
+                public R onError(final String mapperId, final Exception error, @Nullable final TopicPath topicPath,
                         @Nullable final ExternalMessage externalMessage) {
-                    return onError.apply(error, topicPath, externalMessage);
+                    return onError.apply(mapperId, error, topicPath, externalMessage);
                 }
             };
         }

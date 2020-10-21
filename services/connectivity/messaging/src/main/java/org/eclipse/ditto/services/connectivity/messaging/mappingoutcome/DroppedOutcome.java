@@ -19,18 +19,20 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 // private to MappingOutcome. Do NOT use directly.
 final class DroppedOutcome<T> implements MappingOutcome<T> {
 
+    private final CharSequence mapperId;
     private final ExternalMessage droppedMessage;
 
-    DroppedOutcome(@Nullable final ExternalMessage droppedMessage) {
+    DroppedOutcome(final CharSequence mapperId, @Nullable final ExternalMessage droppedMessage) {
+        this.mapperId = mapperId;
         this.droppedMessage = droppedMessage;
     }
 
     @Override
     public <R> R accept(final Visitor<T, R> visitor) {
         try {
-            return visitor.onDropped(droppedMessage);
+            return visitor.onDropped(mapperId.toString(), droppedMessage);
         } catch (final Exception e) {
-            return visitor.onError(e, null, droppedMessage);
+            return visitor.onError(mapperId.toString(), e, null, droppedMessage);
         }
     }
 }
