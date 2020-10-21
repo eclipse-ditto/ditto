@@ -86,7 +86,7 @@ public final class RetrieveThingLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveThingResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.empty());
     }
 
@@ -102,7 +102,7 @@ public final class RetrieveThingLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(ThingNotAccessibleException.class);
     }

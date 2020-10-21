@@ -84,7 +84,7 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
             final StatusCode expectedHttpStatusCode = StatusCodes.get(getExpectedStatusCode().toInt());
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, dittoHeaders,
-                    probeResponse, expectedHttpStatusCode, false);
+                    probeResponse, expectedHttpStatusCode, null);
         }};
     }
 

@@ -53,7 +53,10 @@ public final class ImmutableAcknowledgementTest {
 
     @Before
     public void setUp() {
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testName.getMethodName())
+                .responseRequired(false)
+                .build();
     }
 
     @Test
@@ -256,8 +259,19 @@ public final class ImmutableAcknowledgementTest {
     }
 
     @Test
+    public void responseRequiredIsSetToFalse() {
+        final ImmutableAcknowledgement<ThingId> underTest =
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, DittoHeaders.empty(),
+                        KNOWN_PAYLOAD);
+
+        assertThat(underTest.getDittoHeaders().isResponseRequired()).isFalse();
+    }
+
+    @Test
     public void setDittoHeadersWorksAsExpected() {
-        final DittoHeaders newDittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final DittoHeaders newDittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().
+                responseRequired(false)
+                .build();
         final ImmutableAcknowledgement<ThingId> underTest =
                 ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, dittoHeaders,
                         KNOWN_PAYLOAD);

@@ -125,7 +125,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     } else {
                         final Optional<JsonFieldSelector> selectedFieldsWithThingId = getSelectedFieldsWithThingId();
                         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(queryThingsResponseThingIds)
-                                .dittoHeaders(qtr.getDittoHeaders())
+                                .dittoHeaders(qtr.getDittoHeaders().toBuilder().responseRequired(true).build())
                                 .selectedFields(selectedFieldsWithThingId)
                                 .build();
                         // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
@@ -215,7 +215,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
         if (!outOfSyncThingIds.isEmpty()) {
             final ThingsOutOfSync thingsOutOfSync =
-                    ThingsOutOfSync.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
+                    ThingsOutOfSync.of(outOfSyncThingIds, queryThings.getDittoHeaders());
             pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE, thingsOutOfSync),
                     ActorRef.noSender());
         }

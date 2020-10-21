@@ -46,7 +46,10 @@ public final class ThingAcknowledgementsFactoryTest {
 
     @Before
     public void setUp() {
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testName.getMethodName())
+                .responseRequired(false)
+                .build();
         final ThingId thingId = ThingId.generateRandom();
         knownAcknowledgement =
                 Acknowledgement.of(AcknowledgementLabel.of("foo"), thingId, HttpStatusCode.OK, dittoHeaders);

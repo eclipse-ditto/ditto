@@ -180,7 +180,8 @@ public final class AcknowledgementAggregatorActorTest {
 
             // THEN
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
-            assertThat(acks.getDittoHeaders()).isEqualTo(command.getDittoHeaders());
+            assertThat(acks.getDittoHeaders()).isEqualTo(
+                    command.getDittoHeaders().toBuilder().responseRequired(false).build());
             assertThat(acks.getSize()).isEqualTo(2);
         }};
     }

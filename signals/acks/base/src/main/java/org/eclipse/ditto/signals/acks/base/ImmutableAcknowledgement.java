@@ -59,7 +59,10 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
         this.label = checkNotNull(label, "label");
         this.entityId = checkNotNull(entityId, "entityId");
         this.statusCode = checkNotNull(statusCode, "statusCode");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                .toBuilder()
+                .responseRequired(false)
+                .build() : dittoHeaders;
         this.payload = payload;
     }
 

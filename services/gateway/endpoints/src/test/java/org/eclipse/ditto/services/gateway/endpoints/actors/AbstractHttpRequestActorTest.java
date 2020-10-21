@@ -100,7 +100,7 @@ public abstract class AbstractHttpRequestActorTest {
             final DittoHeaders expectedHeaders,
             @Nullable final Object probeResponse,
             final StatusCode expectedHttpStatusCode,
-            final boolean expectHttpResponseHeaders) throws InterruptedException, ExecutionException {
+            final DittoHeaders expectedResponseHeaders) throws InterruptedException, ExecutionException {
 
         final TestProbe proxyActorProbe = TestProbe.apply(system);
 
@@ -123,12 +123,13 @@ public abstract class AbstractHttpRequestActorTest {
 
         final HttpResponse response = responseFuture.get();
         assertThat(response.status()).isEqualTo(expectedHttpStatusCode);
-        if (expectHttpResponseHeaders) {
-            final List<HttpHeader> expectedHttpResponseHeaders = HEADER_TRANSLATOR.toExternalHeaders(expectedHeaders)
-                    .entrySet()
-                    .stream()
-                    .map(e -> RawHeader.create(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
+        if (expectedResponseHeaders != null) {
+            final List<HttpHeader> expectedHttpResponseHeaders =
+                    HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
+                            .entrySet()
+                            .stream()
+                            .map(e -> RawHeader.create(e.getKey(), e.getValue()))
+                            .collect(Collectors.toList());
             assertThat(response.getHeaders()).isEqualTo(expectedHttpResponseHeaders);
         }
     }
@@ -139,16 +140,17 @@ public abstract class AbstractHttpRequestActorTest {
             final DittoHeaders expectedHeaders,
             @Nullable final SendThingMessageResponse<?> probeResponse,
             final StatusCode expectedHttpStatusCode,
-            final boolean expectHttpResponseHeaders,
+            final DittoHeaders expectedResponseHeaders,
             @Nullable final ResponseEntity expectedHttpResponseEntity) throws InterruptedException, ExecutionException {
 
         HttpResponse expectedHttpResponse = HttpResponse.create().withStatus(expectedHttpStatusCode);
-        if (expectHttpResponseHeaders) {
-            final List<HttpHeader> expectedHttpResponseHeaders = HEADER_TRANSLATOR.toExternalHeaders(expectedHeaders)
-                    .entrySet()
-                    .stream()
-                    .map(e -> RawHeader.create(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
+        if (expectedResponseHeaders != null) {
+            final List<HttpHeader> expectedHttpResponseHeaders =
+                    HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
+                            .entrySet()
+                            .stream()
+                            .map(e -> RawHeader.create(e.getKey(), e.getValue()))
+                            .collect(Collectors.toList());
             expectedHttpResponse = expectedHttpResponse.withHeaders(expectedHttpResponseHeaders);
         }
         if (null != expectedHttpResponseEntity) {
@@ -235,7 +237,10 @@ public abstract class AbstractHttpRequestActorTest {
         final AuthorizationContext authContext =
                 getAuthContextWithPrefixedSubjectsFromHeaders(whoami.getDittoHeaders());
         final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(authContext);
-        final List<HttpHeader> expectedHeaders = HEADER_TRANSLATOR.toExternalHeaders(whoami.getDittoHeaders())
+        final List<HttpHeader> expectedHeaders = HEADER_TRANSLATOR.toExternalHeaders(whoami.getDittoHeaders()
+                .toBuilder()
+                .responseRequired(false)
+                .build())
                 .entrySet()
                 .stream()
                 .map(e -> RawHeader.create(e.getKey(), e.getValue()))
