@@ -234,9 +234,14 @@ of the query parameter `declared-acks` as comma-separated list:
 ```
 GET /ws/2?declared-acks=some-connection-id:ack-label-1,my:ack-label-2
 ```
-The websocket will be closed right after it has been opened if any other another subscriber already declared the same label.
-This means that it's not possible to establish a second websocket connection with the same declared acknowledgements before closing the first one.
-Therefore we do not recommend relying on the websocket API for high availability scenarios.
+
+The websocket will be closed right after it has been opened if any other another subscriber already declared the same label.<br/>
+This means that it is not possible to establish a second websocket connection with the same declared acknowledgements 
+before closing the first one.
+
+{% include warning.html content="Therefore it is not recommended relying on the websocket API for high 
+    availability scenarios." 
+%}
 
 ### Issuing ACKs via connections
 Requested acknowledgements for Ditto managed [connection targets](basic-connections.html#targets) can be issued in 2 

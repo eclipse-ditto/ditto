@@ -310,8 +310,6 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
 
 #### Target topics and enrichment
 
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
 When extra fields should be added to outgoing messages on a connection, an `extraFields` parameter can be added
 to the topic. This is supported for all topics:
 

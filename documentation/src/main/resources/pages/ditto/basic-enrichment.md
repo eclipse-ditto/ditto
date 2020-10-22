@@ -5,8 +5,6 @@ tags: [protocol]
 permalink: basic-enrichment.html
 ---
 
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
 [Signals](basic-signals.html) which are emitted to subscribers via [WebSocket API](httpapi-protocol-bindings-websocket.html), 
 [HTTP SSEs](httpapi-sse.html) or established [connections](basic-connections.html) may be enriched 
 by `extraFields` to also be included in the sent out messages.
