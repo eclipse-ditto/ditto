@@ -100,7 +100,7 @@ public final class RetrieveThingsLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveThingsResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.empty());
     }
 
