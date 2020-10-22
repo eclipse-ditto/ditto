@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
@@ -217,16 +218,24 @@ public final class InboundMappingProcessor
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final MessageMapper mapper,
-            final DittoHeaders bestTryHeaders,
+            final DittoHeaders bestEffortHeaders,
             final ExternalMessage message) {
         final DittoRuntimeException dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(error, e ->
                 buildMappingFailedException("inbound",
                         message.findContentType().orElse(""),
                         mapper.getId(),
-                        bestTryHeaders,
+                        bestEffortHeaders,
                         e)
         );
-        return dittoRuntimeException.setDittoHeaders(bestTryHeaders);
+
+        if (error instanceof WithDittoHeaders) {
+            final DittoHeaders existingHeaders = ((WithDittoHeaders<?>) error).getDittoHeaders();
+            final DittoHeaders mergedHeaders = bestEffortHeaders.toBuilder().putHeaders(existingHeaders)
+                    .build();
+            return dittoRuntimeException.setDittoHeaders(mergedHeaders);
+        } else {
+            return dittoRuntimeException.setDittoHeaders(bestEffortHeaders);
+        }
     }
 
     private static boolean shouldMapMessageByContentType(final ExternalMessage message, final MessageMapper mapper) {
