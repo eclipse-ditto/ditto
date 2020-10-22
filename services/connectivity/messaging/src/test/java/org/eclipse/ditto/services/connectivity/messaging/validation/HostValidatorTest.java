@@ -42,7 +42,7 @@ public class HostValidatorTest {
     private LoggingAdapter loggingAdapter;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         connectivityConfig = mock(ConnectivityConfig.class);
         connectionConfig = mock(ConnectionConfig.class);
         when(connectivityConfig.getConnectionConfig()).thenReturn(connectionConfig);

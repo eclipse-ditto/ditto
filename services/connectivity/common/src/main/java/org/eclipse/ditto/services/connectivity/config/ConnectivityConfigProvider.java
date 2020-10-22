@@ -16,7 +16,6 @@ package org.eclipse.ditto.services.connectivity.config;
 import java.util.concurrent.CompletionStage;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 
 import akka.actor.ActorRef;
@@ -42,22 +41,6 @@ public interface ConnectivityConfigProvider {
      * @return the connectivity config
      */
     CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(ConnectionId connectionId);
-
-    /**
-     * Loads a {@link ConnectivityConfig} by some ditto headers.
-     *
-     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
-     * @return the connectivity config
-     */
-    ConnectivityConfig getConnectivityConfig(DittoHeaders dittoHeaders);
-
-    /**
-     * Asynchronously loads a {@link ConnectivityConfig} by some ditto headers.
-     *
-     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
-     * @return the connectivity config
-     */
-    CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(DittoHeaders dittoHeaders);
 
     /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code

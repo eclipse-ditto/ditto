@@ -45,6 +45,11 @@ public final class ConnectivityConfigProviderFactory {
      */
     private static final String DEFAULT_CONFIG_PROVIDER_CONFIG = "ditto.connectivity.default-config-provider";
 
+    /**
+     * If no other implementation than #DEFAULT_CONNECTIVITY_CONFIG_PROVIDER_CLASS is found, either this
+     * implementation is used as a fallback or an exception is thrown, depending on the config value of
+     * {@value #DEFAULT_CONFIG_PROVIDER_CONFIG}.
+     */
     private static final Class<DittoConnectivityConfigProvider>
             DEFAULT_CONNECTIVITY_CONFIG_PROVIDER_CLASS = DittoConnectivityConfigProvider.class;
     private static final String CONNECTIVITY_CONFIG_PROVIDER_MISSING = "connectivity.config.provider.missing";
@@ -98,10 +103,11 @@ public final class ConnectivityConfigProviderFactory {
 
     private static boolean filterDefaultProvider(final Class<? extends ConnectivityConfigProvider> c,
             final boolean loadDefaultProvider) {
-        if (!loadDefaultProvider) {
+        if (loadDefaultProvider) {
+            return true;
+        } else {
             return !DEFAULT_CONNECTIVITY_CONFIG_PROVIDER_CLASS.equals(c);
         }
-        return true;
     }
 
     private static DittoRuntimeException configProviderNotFound(

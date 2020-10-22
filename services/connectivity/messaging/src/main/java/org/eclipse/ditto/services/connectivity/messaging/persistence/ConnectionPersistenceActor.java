@@ -49,7 +49,6 @@ import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
-import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -81,7 +80,6 @@ import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
@@ -158,6 +156,7 @@ public final class ConnectionPersistenceActor
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     private final int clientActorsPerNode;
+    private final ConnectivityCommandInterceptor commandValidator;
     private final ConnectionLogger connectionLogger;
     private Instant connectionClosedAt = Instant.now();
 
@@ -171,10 +170,9 @@ public final class ConnectionPersistenceActor
     @Nullable private SignalFilter signalFilter = null;
     @Nullable private Instant loggingEnabledUntil;
     private final Duration loggingEnabledDuration;
-    private final ConnectionConfig connectionConfig;
+    private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
 
-    private final ConnectivityCommandInterceptor commandValidator;
     private int subscriptionCounter = 0;
     private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
 
@@ -194,27 +192,14 @@ public final class ConnectionPersistenceActor
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
-        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
-
-        clientActorAskTimeout = connectivityConfig.getConnectionConfig().getClientActorAskTimeout();
-
-        monitoringConfig = connectivityConfig.getMonitoringConfig();
-        connectionMonitorRegistry =
-                DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        final ConnectionLoggerRegistry loggerRegistry =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-        connectionLogger = loggerRegistry.forConnection(entityId);
-
-        loggingEnabledDuration = monitoringConfig.logger().logDuration();
-        checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
-
-        connectionConfig = connectivityConfig.getConnectionConfig();
-
         final ActorSystem actorSystem = getContext().getSystem();
+        final ConnectivityConfig connectivityConfig =
+                ConnectivityConfigProviderFactory.getInstance(actorSystem).getConnectivityConfig(connectionId);
+        config = connectivityConfig.getConnectionConfig();
+
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
-                        ConnectivityConfigProviderFactory.getInstance(actorSystem),
+                        connectivityConfig,
                         actorSystem.log(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
@@ -233,6 +218,19 @@ public final class ConnectionPersistenceActor
         } else {
             commandValidator = dittoCommandValidator;
         }
+
+        clientActorAskTimeout = config.getClientActorAskTimeout();
+
+        monitoringConfig = connectivityConfig.getMonitoringConfig();
+        connectionMonitorRegistry =
+                DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        final ConnectionLoggerRegistry loggerRegistry =
+                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+        connectionLogger = loggerRegistry.forConnection(connectionId);
+
+
+        this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
+        this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
     }
 
     /**
@@ -297,12 +295,12 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected ActivityCheckConfig getActivityCheckConfig() {
-        return connectionConfig.getActivityCheckConfig();
+        return config.getActivityCheckConfig();
     }
 
     @Override
     protected org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig getSnapshotConfig() {
-        return connectionConfig.getSnapshotConfig();
+        return config.getSnapshotConfig();
     }
 
     @Override
@@ -525,7 +523,7 @@ public final class ConnectionPersistenceActor
             signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
                     thingEvent.getThingEntityId(),
                     signal,
-                    connectionConfig.getAcknowledgementConfig());
+                    config.getAcknowledgementConfig());
         } else {
             signalToForward = signal;
         }

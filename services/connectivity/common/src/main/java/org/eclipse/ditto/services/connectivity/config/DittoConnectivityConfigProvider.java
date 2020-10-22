@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.config;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -41,17 +40,7 @@ public class DittoConnectivityConfigProvider implements ConnectivityConfigProvid
     }
 
     @Override
-    public ConnectivityConfig getConnectivityConfig(final DittoHeaders dittoHeaders) {
-        return connectivityConfig;
-    }
-
-    @Override
     public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final ConnectionId connectionId) {
-        return CompletableFuture.completedFuture(connectivityConfig);
-    }
-
-    @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final DittoHeaders dittoHeaders) {
         return CompletableFuture.completedFuture(connectivityConfig);
     }
 

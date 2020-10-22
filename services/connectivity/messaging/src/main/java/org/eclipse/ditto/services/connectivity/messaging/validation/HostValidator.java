@@ -72,7 +72,7 @@ final class HostValidator {
      *     <li>host is resolved to a blocked ip (loopback, site-local, multicast, wildcard ip)? host is blocked</li>
      *     <li>host is contained in the blocklist? host is blocked</li>
      *  </ul>
-     * Loopback, private, multicast and wildcard addresses are allowed only if the blocklist is empty or explicitely
+     * Loopback, private, multicast and wildcard addresses are allowed only if the blocklist is empty or explicitly
      * contained in allowlist.
      *
      * @param host the host to check.

@@ -18,8 +18,6 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -51,7 +49,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -62,13 +59,11 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
-import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
@@ -107,8 +102,7 @@ public class ConnectionValidatorTest {
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class, HostValidator.class, ConnectivityConfigProvider.class,
-                        LoggingAdapter.class).areAlsoImmutable());
+                provided(QueryFilterCriteriaFactory.class, HostValidator.class).isAlsoImmutable());
     }
 
     @Test
@@ -404,19 +398,7 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        final ConnectivityConfigProvider configProvider =
-                mockConnectivityConfigProvider(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST);
-        return ConnectionValidator.of(configProvider, actorSystem.log(), AmqpValidator.newInstance());
+        return ConnectionValidator.of(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST, actorSystem.log(),
+                AmqpValidator.newInstance());
     }
-
-    private ConnectivityConfigProvider mockConnectivityConfigProvider(
-            final ConnectivityConfig connectivityConfigWithEnabledBlocklist) {
-        final ConnectivityConfigProvider configProvider = Mockito.mock(ConnectivityConfigProvider.class);
-        when(configProvider.getConnectivityConfig(any(ConnectionId.class)))
-                .thenReturn(connectivityConfigWithEnabledBlocklist);
-        when(configProvider.getConnectivityConfig(any(DittoHeaders.class)))
-                .thenReturn(connectivityConfigWithEnabledBlocklist);
-        return configProvider;
-    }
-
 }

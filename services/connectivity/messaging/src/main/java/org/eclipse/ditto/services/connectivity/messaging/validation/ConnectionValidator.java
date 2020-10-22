@@ -34,9 +34,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 
@@ -51,14 +49,18 @@ public final class ConnectionValidator {
 
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
-    private final ConnectivityConfigProvider connectivityConfigProvider;
-    private final LoggingAdapter loggingAdapter;
+
+    private final int mappingNumberLimitSource;
+    private final int mappingNumberLimitTarget;
+
+    private final int maxNumberOfSources;
+    private final int maxNumberOfTargets;
+
+    private final HostValidator hostValidator;
 
     private ConnectionValidator(
-            final ConnectivityConfigProvider connectivityConfigProvider,
+            final ConnectivityConfig connectivityConfig,
             LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
-        this.connectivityConfigProvider = connectivityConfigProvider;
-        this.loggingAdapter = loggingAdapter;
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(specMap);
@@ -66,19 +68,28 @@ public final class ConnectionValidator {
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ModelBasedThingsFieldExpressionFactory();
         queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+
+        final MapperLimitsConfig mapperLimitsConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
+        mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
+
+        maxNumberOfSources = connectivityConfig.getConnectionConfig().getMaxNumberOfSources();
+        maxNumberOfTargets = connectivityConfig.getConnectionConfig().getMaxNumberOfTargets();
+
+        hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
     }
 
     /**
      * Create a connection validator from connection specs.
      *
-     * @param connectivityConfigProvider the connectivity config provider
+     * @param connectivityConfig the connectivity config
      * @param loggingAdapter a logging adapter
      * @param connectionSpecs specs of supported connection types.
      * @return a connection validator.
      */
-    public static ConnectionValidator of(final ConnectivityConfigProvider connectivityConfigProvider,
+    public static ConnectionValidator of(final ConnectivityConfig connectivityConfig,
             LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
-        return new ConnectionValidator(connectivityConfigProvider, loggingAdapter, connectionSpecs);
+        return new ConnectionValidator(connectivityConfig, loggingAdapter, connectionSpecs);
     }
 
     /**
@@ -91,11 +102,9 @@ public final class ConnectionValidator {
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
-        final ConnectivityConfig connectivityConfig = connectivityConfigProvider.getConnectivityConfig(dittoHeaders);
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
-        validateSourcesAndTargets(connectivityConfig, connection, dittoHeaders);
+        validateSourcesAndTargets(connection, dittoHeaders);
         validateFormatOfCertificates(connection, dittoHeaders);
-        final HostValidator hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
         hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
@@ -105,30 +114,23 @@ public final class ConnectionValidator {
         }
     }
 
-    private void validateSourcesAndTargets(
-            final ConnectivityConfig connectivityConfig,
-            final Connection connection, final DittoHeaders dittoHeaders) {
-        checkNumberOfSourcesAndTargets(connectivityConfig.getConnectionConfig(), connection, dittoHeaders);
+    private void validateSourcesAndTargets(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+        checkNumberOfSourcesAndTargets(connection, dittoHeaders);
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
-        checkMappingNumberOfSourcesAndTargets(connectivityConfig.getMappingConfig().getMapperLimitsConfig(), connection,
-                dittoHeaders);
+        checkMappingNumberOfSourcesAndTargets(connection, dittoHeaders);
     }
 
     /**
      * Check if number of sources and targets within a connection is valid
      *
-     * @param connectionConfig the connection config
      * @param connection the connection to validate.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @throws ConnectionConfigurationInvalidException if number is over predefined limit
      */
-    private void checkNumberOfSourcesAndTargets(
-            final ConnectionConfig connectionConfig,
-            final Connection connection,
+    private void checkNumberOfSourcesAndTargets(final Connection connection,
             final DittoHeaders dittoHeaders) {
         final String errorMessage = "The number of configured sources or targets within a connection exceeded.";
-        final int maxNumberOfSources = connectionConfig.getMaxNumberOfSources();
-        final int maxNumberOfTargets = connectionConfig.getMaxNumberOfTargets();
         if (connection.getSources().size() > maxNumberOfSources) {
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                     .description(
@@ -150,16 +152,11 @@ public final class ConnectionValidator {
     /**
      * Check if number of mappings are valid
      *
-     * @param mapperLimitsConfig the mapper limits config
      * @param connection the connection to validate.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @throws ConnectionConfigurationInvalidException if payload number is over predefined limit
      */
-    private void checkMappingNumberOfSourcesAndTargets(
-            final MapperLimitsConfig mapperLimitsConfig,
-            final Connection connection, final DittoHeaders dittoHeaders) {
-        final int mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
-        final int mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
+    private void checkMappingNumberOfSourcesAndTargets(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getSources().forEach(source -> checkPayloadMappingLimit(source.getPayloadMapping(),
                 mappingNumberLimitSource, "source", String.join(",", source.getAddresses()), dittoHeaders));
         connection.getTargets().forEach(target -> checkPayloadMappingLimit(target.getPayloadMapping(),
