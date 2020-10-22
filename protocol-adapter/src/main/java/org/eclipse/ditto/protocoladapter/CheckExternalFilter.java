@@ -95,7 +95,7 @@ final class CheckExternalFilter extends AbstractHeaderEntryFilter {
     @Nullable
     @Override
     protected String filterValue(final String key, final String value) {
-        @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(key);
+        @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(key.toLowerCase());
         if (headerDefinitionPredicate.test(headerDefinition)) {
             return value;
         }

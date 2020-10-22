@@ -136,4 +136,25 @@ public final class CheckExternalFilterTest {
         assertThat(underTest.apply(headerDefinition.getKey(), "true")).isNull();
     }
 
+    @Test
+    public void filterShouldNotBeCaseSensitiveForDefinitionKey() {
+        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.WWW_AUTHENTICATE;
+
+        doFilterShouldNotBeCaseSensitiveForDefinitionKey(headerDefinition, headerDefinition.getKey());
+        doFilterShouldNotBeCaseSensitiveForDefinitionKey(headerDefinition, headerDefinition.getKey().toUpperCase());
+        doFilterShouldNotBeCaseSensitiveForDefinitionKey(headerDefinition, "Www-authenticate");
+    }
+
+    private void doFilterShouldNotBeCaseSensitiveForDefinitionKey(final DittoHeaderDefinition headerDefinition,
+            final String key) {
+
+        final String value = "some www authenticate";
+        final Map<String, HeaderDefinition> headerDefinitions = Maps.newHashMap(headerDefinition.getKey(),
+                headerDefinition);
+        final CheckExternalFilter underTest = CheckExternalFilter.shouldReadFromExternal(headerDefinitions);
+
+        // DittoHeaderDefinition.WWW_AUTHENTICATE may not be read from external
+        assertThat(underTest.apply(key, value)).withFailMessage(
+                "For key '" + key + "' the mapped value must be null").isNull();
+    }
 }
