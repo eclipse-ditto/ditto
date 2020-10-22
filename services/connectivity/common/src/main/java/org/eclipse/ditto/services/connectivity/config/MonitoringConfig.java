@@ -27,12 +27,5 @@ public interface MonitoringConfig {
      * @return the logger config.
      */
     MonitoringLoggerConfig logger();
-
-    /**
-     * Returns the counter config.
-     *
-     * @return the counter config.
-     */
-    MonitoringCounterConfig counter();
 }
 

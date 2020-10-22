@@ -47,7 +47,6 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
-import org.eclipse.ditto.services.connectivity.config.MonitoringCounterConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
@@ -70,8 +69,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         // intentionally empty
     }
 
-    public static ConnectivityCounterRegistry fromConfig(final MonitoringCounterConfig config) {
-        checkNotNull(config);
+    public static ConnectivityCounterRegistry newInstance() {
         return new ConnectivityCounterRegistry();
     }
 

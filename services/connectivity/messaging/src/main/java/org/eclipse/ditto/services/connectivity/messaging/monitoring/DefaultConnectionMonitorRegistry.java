@@ -53,7 +53,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
         checkNotNull(config);
 
         final ConnectionLoggerRegistry loggerRegistry = ConnectionLoggerRegistry.fromConfig(config.logger());
-        final ConnectivityCounterRegistry counterRegistry = ConnectivityCounterRegistry.fromConfig(config.counter());
+        final ConnectivityCounterRegistry counterRegistry = ConnectivityCounterRegistry.newInstance();
 
         return new DefaultConnectionMonitorRegistry(loggerRegistry, counterRegistry);
     }

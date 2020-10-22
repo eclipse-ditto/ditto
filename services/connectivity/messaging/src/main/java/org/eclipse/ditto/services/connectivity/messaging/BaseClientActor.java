@@ -179,7 +179,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .tag("type", connection.getConnectionType().getName());
 
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
+        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance();
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
 
         connectionLoggerRegistry.initForConnection(connection);

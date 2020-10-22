@@ -13,9 +13,8 @@
 package org.eclipse.ditto.services.connectivity.config;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -86,7 +85,13 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private Collection<String> fromCommaSeparatedString(final ConfigWithFallback config,
             final ConnectionConfigValue configValue) {
         final String commaSeparated = config.getString(configValue.getConfigPath());
-        return Collections.unmodifiableCollection(Arrays.asList(commaSeparated.split(",")));
+        return List.of(commaSeparated.split(","));
+    }
+
+    public static void main(String[] args) {
+        final Collection<String> c1 = List.of("abc");
+        final Collection<String> c2 = List.of("abc");
+        System.out.println(c1.equals(c2));
     }
 
     @Override

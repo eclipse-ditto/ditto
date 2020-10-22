@@ -427,7 +427,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 final Collection<LogEntry> logs) {
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
-            this.logs = Collections.unmodifiableCollection(new ArrayList<>(logs));
+            this.logs = List.copyOf(logs);
         }
 
         /**

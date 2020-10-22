@@ -32,11 +32,9 @@ public final class DefaultMonitoringConfig implements MonitoringConfig {
     private static final String CONFIG_PATH = "monitoring";
 
     private final MonitoringLoggerConfig loggerConfig;
-    private final MonitoringCounterConfig counterConfig;
 
     private DefaultMonitoringConfig(final ScopedConfig config) {
         loggerConfig = DefaultMonitoringLoggerConfig.of(config);
-        counterConfig = DefaultMonitoringCounterConfig.of(config);
     }
 
     /**
@@ -55,17 +53,9 @@ public final class DefaultMonitoringConfig implements MonitoringConfig {
      *
      * @return the config reader for the logger.
      */
+    @Override
     public MonitoringLoggerConfig logger() {
         return loggerConfig;
-    }
-
-    /**
-     * Get the config reader for the counter.
-     *
-     * @return the config reader for the counter.
-     */
-    public MonitoringCounterConfig counter() {
-        return counterConfig;
     }
 
     @Override
@@ -77,20 +67,18 @@ public final class DefaultMonitoringConfig implements MonitoringConfig {
             return false;
         }
         final DefaultMonitoringConfig that = (DefaultMonitoringConfig) o;
-        return Objects.equals(loggerConfig, that.loggerConfig) &&
-                Objects.equals(counterConfig, that.counterConfig);
+        return Objects.equals(loggerConfig, that.loggerConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(loggerConfig, counterConfig);
+        return Objects.hash(loggerConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 ", loggerConfig=" + loggerConfig +
-                ", counterConfig=" + counterConfig +
                 "]";
     }
 
