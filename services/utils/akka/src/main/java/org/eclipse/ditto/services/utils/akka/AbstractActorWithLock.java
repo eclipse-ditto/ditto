@@ -18,7 +18,8 @@ import java.time.Duration;
 
 import javax.annotation.Nullable;
 
-import akka.actor.AbstractActorWithStash;
+import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTimers;
+
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.japi.pf.ReceiveBuilder;
@@ -27,7 +28,7 @@ import scala.PartialFunction;
 /**
  * Actor that can prevent itself from handling messages for a period of time.
  */
-public abstract class AbstractActorWithLock extends AbstractActorWithStash {
+public abstract class AbstractActorWithLock extends AbstractActorWithStashWithTimers {
 
     private boolean locked;
     @Nullable private Cancellable lockTimeout;
