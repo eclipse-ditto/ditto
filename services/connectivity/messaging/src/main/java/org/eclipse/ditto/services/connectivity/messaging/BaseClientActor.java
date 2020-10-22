@@ -55,6 +55,8 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
@@ -143,6 +145,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
 
+    private final ConnectivityConfigProvider connectivityConfigProvider;
+
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
@@ -159,6 +163,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
+        connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
+
         clientConfig = connectivityConfig.getClientConfig();
         this.proxyActor =
                 Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
@@ -1167,9 +1173,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final MessageMappingProcessor processor;
         try {
+            ConnectivityConfig retrievedConnectivityConfig =
+                    connectivityConfigProvider.getConnectivityConfig(connection.getId());
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             processor = MessageMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
-                    getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
+                    getContext().getSystem(), retrievedConnectivityConfig, protocolAdapterProvider, log);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
             log.info(

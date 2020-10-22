@@ -128,7 +128,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
                         configuredIncomingConditions, configuredOutgoingConditions);
-        return mapper.flatMap(m -> configureInstance(m, options));
+        return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
     }
 
     private MergedJsonObjectMap mergeMappingOptions(final JsonObject defaultOptions,
@@ -141,7 +141,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final PayloadMappingDefinition payloadMappingDefinition) {
 
         final MessageMapper defaultMapper = mapperOf("default", defaultContext)
-                .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
 
         final Map<String, MessageMapper> mappersFromConnectionConfig =
@@ -167,7 +166,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 .map(e -> {
                     final String alias = e.getKey();
                     final MessageMapper messageMapper =
-                            mapperOf(alias, e.getValue()).map(WrappingMessageMapper::wrap).orElse(null);
+                            mapperOf(alias, e.getValue()).orElse(null);
                     return new SimpleImmutableEntry<>(alias, messageMapper);
                 })
                 .filter(e -> null != e.getValue())

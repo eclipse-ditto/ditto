@@ -112,7 +112,7 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     private <T> List<T> checkMaxMappedMessagesLimit(final List<T> mappingResult, final int maxMappedMessages) {
-        if (mappingResult.size() > maxMappedMessages && maxMappedMessages > 0) {
+        if (mappingResult.size() > maxMappedMessages) {
             final String descriptionTemplate =
                     "The payload mapping '%s' produced %d messages, which exceeds the limit of %d.";
             final Supplier<String> description =
