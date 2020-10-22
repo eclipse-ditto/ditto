@@ -36,26 +36,29 @@ import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
 @Immutable
 public final class JwtSubjectIssuersConfig {
 
-    private static final String HTTPS = "https://";
-
+    private final String protocolPrefix;
     private final Map<String, JwtSubjectIssuerConfig> subjectIssuerConfigMap;
 
     /**
      * Constructor.
      *
      * @param configItems the items (configurations for each subject issuer)
+     * @param protocol the protocol prefix of all URIs of OAuth endpoints.
      */
-    private JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems) {
+    private JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems, final String protocol) {
+        this.protocolPrefix = protocol + "://";
         requireNonNull(configItems);
         final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
 
-        configItems.forEach(configItem -> addConfigToMap(configItem, modifiableSubjectIssuerConfigMap));
+        configItems.forEach(configItem ->
+                addConfigToMap(configItem, modifiableSubjectIssuerConfigMap, protocolPrefix));
         subjectIssuerConfigMap = Collections.unmodifiableMap(modifiableSubjectIssuerConfigMap);
     }
 
     public static JwtSubjectIssuersConfig fromJwtSubjectIssuerConfigs(
             final Iterable<JwtSubjectIssuerConfig> configItems) {
-        return new JwtSubjectIssuersConfig(configItems);
+        return new JwtSubjectIssuersConfig(configItems,
+                (String) OAuthConfig.OAuthConfigValue.PROTOCOL.getDefaultValue());
     }
 
     public static JwtSubjectIssuersConfig fromOAuthConfig(final OAuthConfig config) {
@@ -65,13 +68,18 @@ public final class JwtSubjectIssuersConfig {
                         config.getOpenIdConnectIssuersExtension().entrySet().stream())
                         .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
                         .collect(Collectors.toSet());
-        return fromJwtSubjectIssuerConfigs(configItems);
+        return new JwtSubjectIssuersConfig(configItems, config.getProtocol());
     }
 
     private static void addConfigToMap(final JwtSubjectIssuerConfig config,
-            final Map<String, JwtSubjectIssuerConfig> map) {
+            final Map<String, JwtSubjectIssuerConfig> map,
+            final String protocolPrefix) {
         map.put(config.getIssuer(), config);
-        map.put(HTTPS + config.getIssuer(), config);
+        map.put(protocolPrefix + config.getIssuer(), config);
+    }
+
+    public String getProtocolPrefix() {
+        return protocolPrefix;
     }
 
     /**
@@ -118,16 +126,20 @@ public final class JwtSubjectIssuersConfig {
             return false;
         }
         final JwtSubjectIssuersConfig that = (JwtSubjectIssuersConfig) o;
-        return Objects.equals(subjectIssuerConfigMap, that.subjectIssuerConfigMap);
+        return Objects.equals(protocolPrefix, that.protocolPrefix) &&
+                Objects.equals(subjectIssuerConfigMap, that.subjectIssuerConfigMap);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(subjectIssuerConfigMap);
+        return Objects.hash(protocolPrefix, subjectIssuerConfigMap);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [subjectIssuerConfigMap=" + subjectIssuerConfigMap + ']';
+        return getClass().getSimpleName() +
+                "[protocolPrefix=" + protocolPrefix +
+                ",subjectIssuerConfigMap=" + subjectIssuerConfigMap +
+                ']';
     }
 }
