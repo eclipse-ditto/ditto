@@ -103,6 +103,17 @@ public final class AcknowledgementRequestParseException extends DittoRuntimeExce
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     @NotThreadSafe
     private static class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementRequestParseException> {
 

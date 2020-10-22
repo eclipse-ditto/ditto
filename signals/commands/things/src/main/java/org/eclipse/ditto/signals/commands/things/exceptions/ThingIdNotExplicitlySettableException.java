@@ -112,6 +112,17 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     /**
      * Constructs a new {@code ThingIdNotExplicitlySettableException} object with the given exception message.
      *

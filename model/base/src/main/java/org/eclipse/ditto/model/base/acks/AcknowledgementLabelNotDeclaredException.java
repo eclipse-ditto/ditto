@@ -17,10 +17,12 @@ import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -93,6 +95,39 @@ public final class AcknowledgementLabelNotDeclaredException extends DittoRuntime
                 readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION),
                 null,
                 readHRef(jsonObject).orElse(null));
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    /**
+     * A mutable builder with a fluent API for a {@link AcknowledgementLabelNotDeclaredException}.
+     */
+    @NotThreadSafe
+    public static final class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementLabelNotDeclaredException> {
+
+        private Builder() {
+            description(DEFAULT_DESCRIPTION);
+        }
+
+        @Override
+        protected AcknowledgementLabelNotDeclaredException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
+            return new AcknowledgementLabelNotDeclaredException(dittoHeaders, message, description, cause, href);
+        }
+
     }
 
 }
