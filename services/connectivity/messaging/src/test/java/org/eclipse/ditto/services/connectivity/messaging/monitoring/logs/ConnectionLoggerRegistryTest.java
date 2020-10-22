@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import static nl.jqno.equalsverifier.EqualsVerifier.forClass;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -423,7 +424,9 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void testImmutabilityOfCollectionLogs() {
-        assertInstancesOf(ConnectionLogs.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
+        assertInstancesOf(ConnectionLogs.class, areImmutable(),
+                assumingFields("logs").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                provided(LogEntry.class).isAlsoImmutable());
     }
 
     @Test
