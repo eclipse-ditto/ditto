@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.eq;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -96,7 +97,8 @@ public final class SendingTest {
     @Test
     public void createInstanceWithNullSendingContext() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Sending(null, CompletableFuture.completedStage(null), connectionIdResolver, logger))
+                .isThrownBy(
+                        () -> new Sending(null, CompletableFuture.completedStage(null), connectionIdResolver, logger))
                 .withMessage("The sendingContext must not be null!")
                 .withNoCause();
     }
@@ -143,7 +145,7 @@ public final class SendingTest {
 
         Mockito.verify(publishedMonitor).failure(externalMessage, expectedException);
         Mockito.verify(acknowledgedMonitor)
-                .failure(Mockito.eq(externalMessage), Mockito.any(DittoRuntimeException.class));
+                .failure(eq(externalMessage), Mockito.any(DittoRuntimeException.class));
         assertThat(result).hasValueSatisfying(
                 resultFuture -> assertThat(resultFuture).isCompletedWithValue(expectedResponse));
     }
@@ -159,8 +161,8 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verify(acknowledgedMonitor).success(externalMessage);
-        Mockito.verify(publishedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage));
+        Mockito.verify(publishedMonitor).success(eq(externalMessage));
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(acknowledgement));
     }
@@ -202,8 +204,8 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verify(acknowledgedMonitor).success(externalMessage);
-        Mockito.verify(publishedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage));
+        Mockito.verify(publishedMonitor).success(eq(externalMessage));
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
     }
@@ -264,7 +266,7 @@ public final class SendingTest {
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
         Mockito.verifyNoInteractions(acknowledgedMonitor);
-        Mockito.verify(publishedMonitor).exception(Mockito.eq(externalMessage), Mockito.eq(rootCause));
+        Mockito.verify(publishedMonitor).exception(eq(externalMessage), eq(rootCause));
         Mockito.verify(logger).withCorrelationId(testName.getMethodName());
         assertThat(result).hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(null));
     }
