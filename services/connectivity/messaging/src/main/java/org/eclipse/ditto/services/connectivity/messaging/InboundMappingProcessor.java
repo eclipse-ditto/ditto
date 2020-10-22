@@ -23,14 +23,18 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
@@ -159,7 +163,7 @@ public final class InboundMappingProcessor
                             mappedMessages.add(mappedMessage);
                         } catch (final Exception e) {
                             return Stream.of(MappingOutcome.error(mapper.getId(),
-                                    toDittoRuntimeException(e, mapper, message),
+                                    toDittoRuntimeException(e, mapper, adaptable.getDittoHeaders(), message),
                                     adaptable.getTopicPath(),
                                     message
                             ));
@@ -176,19 +180,53 @@ public final class InboundMappingProcessor
                 return Stream.of(MappingOutcome.dropped(mapper.getId(), message));
             }
         } catch (final Exception e) {
-            return Stream.of(MappingOutcome.error(mapper.getId(), toDittoRuntimeException(e, mapper, message), null, message));
+            return Stream.of(MappingOutcome.error(mapper.getId(), toDittoRuntimeException(e, mapper,
+                    resolveDittoHeadersBestEffort(message), message), null, message));
         }
     }
 
+    private DittoHeaders resolveDittoHeadersBestEffort(final ExternalMessage message) {
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
+        message.getHeaders().forEach((key, value) -> {
+            try {
+                headersBuilder.putHeader(key, value);
+            } catch (final Exception e) {
+                // ignore this single invalid header
+                logger.info("Putting a (protocol) header resulted in an exception: {} - {}",
+                        e.getClass().getSimpleName(), e.getMessage());
+            }
+        });
+        message.getTextPayload()
+                .map(JsonFactory::readFrom)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .flatMap(obj -> obj.getValue(JsonifiableAdaptable.JsonFields.HEADERS))
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .ifPresent(obj -> obj.forEach(field -> {
+                    try {
+                        final JsonValue value = field.getValue();
+                        headersBuilder.putHeader(field.getKey(), value.isString() ? value.asString() : value.toString());
+                    } catch (final Exception e) {
+                        // ignore this single invalid header
+                        logger.info("Putting a (payload) header resulted in an exception: {} - {}",
+                                e.getClass().getSimpleName(), e.getMessage());
+                    }
+                }));
+        return headersBuilder.build();
+    }
+
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final MessageMapper mapper,
+            final DittoHeaders bestTryHeaders,
             final ExternalMessage message) {
-        return DittoRuntimeException.asDittoRuntimeException(error, e ->
+        final DittoRuntimeException dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(error, e ->
                 buildMappingFailedException("inbound",
                         message.findContentType().orElse(""),
                         mapper.getId(),
-                        DittoHeaders.of(message.getHeaders()),
+                        bestTryHeaders,
                         e)
         );
+        return dittoRuntimeException.setDittoHeaders(bestTryHeaders);
     }
 
     private static boolean shouldMapMessageByContentType(final ExternalMessage message, final MessageMapper mapper) {

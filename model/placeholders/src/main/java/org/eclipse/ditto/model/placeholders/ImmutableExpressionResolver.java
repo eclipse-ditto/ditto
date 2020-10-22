@@ -180,7 +180,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", placeholderReplacementInValidation=" + placeholderReplacementInValidation +
+                "placeholderReplacementInValidation=" + placeholderReplacementInValidation +
                 ", placeholderResolvers=" + placeholderResolvers +
                 "]";
     }

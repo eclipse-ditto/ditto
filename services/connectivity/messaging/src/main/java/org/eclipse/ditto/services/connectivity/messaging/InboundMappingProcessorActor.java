@@ -165,12 +165,6 @@ public final class InboundMappingProcessorActor
         return flow.to(sink);
     }
 
-    private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
-        // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
-        logger.withCorrelationId(acknowledgement)
-                .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
-    }
-
     private Optional<InboundMappingOutcomes> mapInboundMessage(final ExternalMessageWithSender withSender) {
         final ExternalMessage externalMessage = withSender.externalMessage;
         final String correlationId =
