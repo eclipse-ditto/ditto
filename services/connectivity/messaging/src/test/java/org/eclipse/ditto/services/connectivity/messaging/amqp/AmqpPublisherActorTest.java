@@ -104,7 +104,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     /**
      * Publish as many thingEvents until the queue is full, then send one more,
-     * fetch the failed acknowledgement and verify its message for 'dropped'
+     * fetch the failed acknowledgement and verify its message for 'dropped'.
      * @throws Exception should not be thrown
      */
     @Test
@@ -140,14 +140,12 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
             publisherCreated(this, publisherActor);
 
-            final int queueSize =
-                    connectionConfig.getMaxQueueSize() + connectionConfig.getMessagePublishingParallelism();
+            final int queueSize = connectionConfig.getMaxQueueSize() + connectionConfig.getPublisherParallelism();
 
             //Act
             IntStream.range(0,queueSize + 1).forEach(n -> publisherActor.tell(multiMapped, getRef()));
 
             //Assert
-
             final Optional<String> ErrorMessage = expectMsgClass(Acknowledgements.class).getFailedAcknowledgements().stream()
                     .map(WithOptionalEntity::getEntity)
                     .filter(Optional::isPresent)

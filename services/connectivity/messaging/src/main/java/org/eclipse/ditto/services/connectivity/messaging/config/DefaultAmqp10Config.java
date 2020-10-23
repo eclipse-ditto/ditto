@@ -106,7 +106,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     }
 
     @Override
-    public int getMessagePublishingParallelism() {
+    public int getPublisherParallelism() {
         return messagePublishingParallelism;
     }
 

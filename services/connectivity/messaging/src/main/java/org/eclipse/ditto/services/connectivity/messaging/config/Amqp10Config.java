@@ -94,9 +94,9 @@ public interface Amqp10Config {
     int getMaxQueueSize();
 
     /**
-     * @return the number of parallel message publishing possible per publisher actor.
+     * @return the number of possible parallel message publications per publisher actor.
      */
-    int getMessagePublishingParallelism();
+    int getPublisherParallelism();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

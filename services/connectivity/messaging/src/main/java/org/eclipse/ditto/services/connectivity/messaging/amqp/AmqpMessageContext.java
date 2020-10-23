@@ -15,7 +15,8 @@
  import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
  /**
-  *
+  * Lambda, to enclose the context into 'onPublishMessage'.
+  * Is used in <code>AmqpPublisherActor</code> for the publishing message stream.
   */
  @FunctionalInterface
  interface AmqpMessageContext {

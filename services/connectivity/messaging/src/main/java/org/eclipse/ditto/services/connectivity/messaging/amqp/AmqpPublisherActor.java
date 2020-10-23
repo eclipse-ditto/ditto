@@ -112,23 +112,19 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         super(connection);
         this.session = checkNotNull(session, "session");
 
-        final Executor executor = context().system().dispatchers().lookup("jms-connection-handling-dispatcher");
+        final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
 
         final Amqp10Config config = connectionConfig.getAmqp10Config();
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         final Pair<SourceQueueWithComplete<Pair<ExternalMessage, AmqpMessageContext>>, UniqueKillSwitch> materialized =
                 Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .mapAsync(config.getMessagePublishingParallelism(),
-                                param -> CompletableFuture.runAsync(
-                                        () -> param.second().onPublishMessage(param.first()), executor)
-                                        .<Object>thenApply(aVoid -> Done.done()))
+                        .mapAsync(config.getPublisherParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.ignore(), Keep.left())
                         .run(materializer);
 
         sourceQueue = materialized.first();
         killSwitch = materialized.second();
-
 
         staticTargets = new HashMap<>();
         dynamicTargets = new LinkedHashMap<>(); // insertion order important for maintenance of producer cache
@@ -138,6 +134,22 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         connectionLogger = getConnectionLogger(connection);
         backOffActor = getContext().actorOf(BackOffActor.props(config.getBackOffConfig()));
         isInBackOffMode = false;
+    }
+
+    /**
+     * Wrap 'publishing the message' in a Future for async map stage in stream.
+     *
+     * @param messageToPublish The Element in the Stream, the message to publish and its context.
+     * @param jmsDispatcher Executor, which triggers the async publishing via JMS.
+     * @return A future, which is done, when the publishing was triggered.
+     */
+    private static CompletableFuture<Object> triggerPublishAsync(final Pair<ExternalMessage, AmqpMessageContext> messageToPublish,
+            final Executor jmsDispatcher){
+        final ExternalMessage message = messageToPublish.first();
+        final AmqpMessageContext context = messageToPublish.second();
+        return CompletableFuture
+                .runAsync(() -> context.onPublishMessage(message), jmsDispatcher)
+                .thenApply(aVoid -> Done.done());
     }
 
     private ConnectionLogger getConnectionLogger(final Connection connection) {
