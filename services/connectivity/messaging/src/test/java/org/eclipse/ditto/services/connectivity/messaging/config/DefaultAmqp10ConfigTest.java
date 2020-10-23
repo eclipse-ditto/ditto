@@ -75,6 +75,12 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getProducerCacheSize())
                 .as(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath())
                 .isEqualTo(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getDefaultValue());
+        softly.assertThat(underTest.getMaxQueueSize())
+                .as(Amqp10Config.Amqp10ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
+                .isEqualTo(Amqp10Config.Amqp10ConfigValue.MAX_QUEUE_SIZE.getDefaultValue());
+        softly.assertThat(underTest.getPublisherParallelism())
+                .as(Amqp10Config.Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getConfigPath())
+                .isEqualTo(Amqp10Config.Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getDefaultValue());
         softly.assertThat(underTest.getGlobalConnectTimeout())
                 .as(Amqp10Config.Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getConfigPath())
                 .isEqualTo(Amqp10Config.Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getDefaultValue());
@@ -105,6 +111,12 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getProducerCacheSize())
                 .as(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath())
                 .isEqualTo(11);
+        softly.assertThat(underTest.getMaxQueueSize())
+                .as(Amqp10Config.Amqp10ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
+                .isEqualTo(39);
+        softly.assertThat(underTest.getPublisherParallelism())
+                .as(Amqp10Config.Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getConfigPath())
+                .isEqualTo(3);
         softly.assertThat(underTest.getGlobalConnectTimeout())
                 .as(Amqp10Config.Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(11));

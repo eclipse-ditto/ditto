@@ -157,6 +157,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 Objects.equals(backOffConfig, that.backOffConfig) &&
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 maxQueueSize == that.maxQueueSize &&
+                messagePublishingParallelism == that.messagePublishingParallelism &&
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 Objects.equals(globalConnectTimeout, that.globalConnectTimeout) &&
                 Objects.equals(globalSendTimeout, that.globalSendTimeout) &&
@@ -166,8 +167,9 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     @Override
     public int hashCode() {
         return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
-                producerCacheSize, backOffConfig, consumerThrottlingConfig, maxQueueSize, globalConnectTimeout,
-                globalSendTimeout, globalRequestTimeout, globalPrefetchPolicyAllCount);
+                producerCacheSize, backOffConfig, consumerThrottlingConfig, maxQueueSize,
+                messagePublishingParallelism, globalConnectTimeout, globalSendTimeout, globalRequestTimeout,
+                globalPrefetchPolicyAllCount);
     }
 
     @Override
@@ -180,6 +182,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 ", backOffConfig=" + backOffConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
                 ", maxQueueSize=" + maxQueueSize +
+                ", messagePublishingParallelism=" + messagePublishingParallelism +
                 ", globalConnectTimeout=" + globalConnectTimeout +
                 ", globalSendTimeout=" + globalSendTimeout +
                 ", globalRequestTimeout=" + globalRequestTimeout +
