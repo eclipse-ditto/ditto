@@ -31,7 +31,7 @@ public final class SSLContextCreatorTest extends AbstractSSLContextTest {
     @Override
     SSLContext createSSLContext(@Nullable final String trustedCertificates,
             final String hostname, final Credentials credentials) {
-        final SSLContextCreator sslContextCreator = SSLContextCreator.of(trustedCertificates, null, hostname);
+        final SSLContextCreator sslContextCreator = SSLContextCreator.of(trustedCertificates, null, hostname, null);
         if (credentials == null) {
             return sslContextCreator.withoutClientCertificate();
         } else {

@@ -150,10 +150,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private ConnectionLogger getConnectionLogger(final Connection connection) {
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
-        final ConnectionLoggerRegistry connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(loggerConfig);
-        return connectionLoggerRegistry.forConnection(connection.getId());
+        final MonitoringLoggerConfig loggerConfig = connectivityConfig.getMonitoringConfig().logger();
+        return ConnectionLogger.getInstance(connection.getId(), loggerConfig);
     }
 
     @Override
@@ -322,7 +320,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
                     // Live-Response is declared as issued ack => parse live response from response
                     if (isMessageCommand) {
-                        result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, statusCode);
+                        result =
+                                toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, statusCode);
                     } else {
                         result = null;
                     }

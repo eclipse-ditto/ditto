@@ -168,7 +168,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
+        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), null)
                 .clientCertificate(credentials);
         final HttpsConnectionContext invalidHttpsContext = ConnectionContext.httpsServer(sslContext);
 
@@ -206,7 +206,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .credentials(credentials)
                 .trustedCertificates(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
+        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), null)
                 .clientCertificate(credentials);
         final HttpsConnectionContext httpsContext = ConnectionContext.httpsServer(sslContext);
 

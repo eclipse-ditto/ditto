@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -106,7 +108,8 @@ public final class HttpPushFactoryTest {
         connection = connection.toBuilder()
                 .uri("http://127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
-        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
+                mock(ConnectionLogger.class));
         final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
         assertThat(request.method()).isEqualTo(HttpMethods.PUT);
         assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage/");
@@ -118,7 +121,8 @@ public final class HttpPushFactoryTest {
         connection = connection.toBuilder()
                 .uri("http://username:password@127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
-        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
+                mock(ConnectionLogger.class));
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -154,7 +158,7 @@ public final class HttpPushFactoryTest {
             public HttpProxyConfig getHttpProxyConfig() {
                 return getEnabledProxyConfig(binding);
             }
-        });
+        }, mock(ConnectionLogger.class));
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -179,7 +183,8 @@ public final class HttpPushFactoryTest {
     public void handleFailure() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
-            final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
+            final HttpPushFactory underTest =
+                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class));
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                     newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();

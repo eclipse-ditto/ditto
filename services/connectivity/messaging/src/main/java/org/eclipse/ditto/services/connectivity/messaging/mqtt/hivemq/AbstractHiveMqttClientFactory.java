@@ -24,6 +24,7 @@ import javax.net.ssl.KeyManagerFactory;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import com.hivemq.client.mqtt.MqttClientBuilderBase;
 import com.hivemq.client.mqtt.MqttClientSslConfig;
@@ -72,7 +73,8 @@ abstract class AbstractHiveMqttClientFactory {
             final String identifier,
             final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+            @Nullable final MqttClientDisconnectedListener disconnectedListener,
+            final ConnectionLogger connectionLogger) {
         final URI uri = URI.create(connection.getUri());
         T builder = newBuilder.serverHost(uri.getHost()).serverPort(uri.getPort());
 
@@ -85,7 +87,7 @@ abstract class AbstractHiveMqttClientFactory {
             // create DittoTrustManagerFactory to apply hostname verification
             // or to disable certificate check when the connection requires it
             MqttClientSslConfigBuilder sslConfigBuilder = MqttClientSslConfig.builder()
-                    .trustManagerFactory(DittoTrustManagerFactory.from(connection));
+                    .trustManagerFactory(DittoTrustManagerFactory.from(connection, connectionLogger));
 
             final Optional<KeyManagerFactory> keyManagerFactory = connection.getCredentials()
                     .map(credentials -> credentials.accept(KeyManagerFactoryFactory.getInstance()));

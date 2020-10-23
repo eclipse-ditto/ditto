@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 /**
  * Create SSL context from connection credentials.
@@ -34,21 +35,23 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     static final String TLS12 = "TLSv1.2";
 
-    private final TrustManager trustManager;
+    @Nullable private final TrustManager trustManager;
     private final ExceptionMapper exceptionMapper;
-    private final String hostname;
+    @Nullable private final String hostname;
     private final KeyManagerFactoryFactory keyManagerFactoryFactory;
-    private final TrustManagerFactory trustManagerFactory;
-    private final TrustManagerFactoryFactory trustManagerFactoryFactory;
+    @Nullable private final TrustManagerFactory trustManagerFactory;
 
     private SSLContextCreator(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable final String hostname) {
+            @Nullable final String hostname,
+            @Nullable final ConnectionLogger connectionLogger) {
         this.exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
-        this.trustManagerFactoryFactory = new TrustManagerFactoryFactory(exceptionMapper);
-        this.trustManagerFactory = trustManagerFactoryFactory.newTrustManagerFactory(trustedCertificates);
+        final TrustManagerFactoryFactory
+                trustManagerFactoryFactory = TrustManagerFactoryFactory.getInstance(exceptionMapper);
+        this.trustManagerFactory =
+                trustManagerFactoryFactory.newTrustManagerFactory(trustedCertificates, connectionLogger);
         this.trustManager = null;
     }
 
@@ -58,7 +61,6 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         this.exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
-        this.trustManagerFactoryFactory = new TrustManagerFactoryFactory(exceptionMapper);
         this.trustManagerFactory = null;
         this.trustManager = trustManager;
     }
@@ -80,14 +82,15 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      *
      * @param connection connection for which to create SSLContext.
      * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
+     * @param connectionLogger used to log failures during certificate validation.
      * @return the SSL context creator.
      */
     public static SSLContextCreator fromConnection(final Connection connection,
-            @Nullable final DittoHeaders dittoHeaders) {
+            @Nullable final DittoHeaders dittoHeaders, @Nullable final ConnectionLogger connectionLogger) {
         final boolean isValidateCertificates = connection.isValidateCertificates();
         if (isValidateCertificates) {
             final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-            return of(trustedCertificates, dittoHeaders, connection.getHostname());
+            return of(trustedCertificates, dittoHeaders, connection.getHostname(), connectionLogger);
         } else {
             return withTrustManager(new AcceptAnyTrustManager(), dittoHeaders);
         }
@@ -99,12 +102,14 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      * @param trustedCertificates certificates to trust; {@code null} to trust the standard certificate authorities.
      * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
      * @param hostnameOrIp hostname to verify in server certificate or a nullable IP address to not verify hostname.
+     * @param connectionLogger used to log failures during certificate validation.
      * @return the SSL context creator.
      */
     public static SSLContextCreator of(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable final String hostnameOrIp) {
-        return new SSLContextCreator(trustedCertificates, dittoHeaders, hostnameOrIp);
+            @Nullable final String hostnameOrIp,
+            @Nullable final ConnectionLogger connectionLogger) {
+        return new SSLContextCreator(trustedCertificates, dittoHeaders, hostnameOrIp, connectionLogger);
     }
 
     @Override

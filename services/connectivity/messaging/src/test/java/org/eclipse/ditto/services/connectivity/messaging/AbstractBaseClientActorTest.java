@@ -158,7 +158,7 @@ public abstract class AbstractBaseClientActorTest {
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty())
+        final SSLContext sslContext = SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty(), null)
                 .clientCertificate(credentials);
         final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
 

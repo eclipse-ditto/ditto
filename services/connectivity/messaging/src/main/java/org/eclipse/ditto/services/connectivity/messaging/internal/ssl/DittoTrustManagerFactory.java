@@ -22,7 +22,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.TrustManagerFactorySpi;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 /**
  * Simple wrapper around {@link TrustManagerFactory} that wraps the returned {@link TrustManager}s in
@@ -30,15 +32,18 @@ import org.eclipse.ditto.model.connectivity.Connection;
  */
 public final class DittoTrustManagerFactory extends TrustManagerFactory {
 
-    private static final TrustManagerFactoryFactory FACTORY = TrustManagerFactoryFactory.getInstance();
+    private static final TrustManagerFactoryFactory FACTORY =
+            TrustManagerFactoryFactory.getInstance(DittoHeaders.empty());
 
-    public static DittoTrustManagerFactory from(final Connection connection) {
+    public static DittoTrustManagerFactory from(final Connection connection, final ConnectionLogger connectionLogger) {
         final String hostname = connection.getHostname();
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(connection), hostname);
+        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(connection, connectionLogger), hostname);
     }
 
-    static DittoTrustManagerFactory from(@Nullable final String trustedCertificates, final String hostname) {
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(trustedCertificates), hostname);
+    static DittoTrustManagerFactory from(@Nullable final String trustedCertificates, final String hostname,
+            final ConnectionLogger connectionLogger) {
+        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(trustedCertificates, connectionLogger),
+                hostname);
     }
 
     private DittoTrustManagerFactory(final TrustManagerFactory delegate, final String hostname) {

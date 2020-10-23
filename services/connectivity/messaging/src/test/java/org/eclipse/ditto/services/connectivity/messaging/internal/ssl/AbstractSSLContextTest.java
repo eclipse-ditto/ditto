@@ -88,7 +88,7 @@ public abstract class AbstractSSLContextTest {
         final String unsignedHostname = "unsigned.hostname";
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
-                    final Socket underTest =  createSSLContext(Certificates.CA_CRT, unsignedHostname, null)
+                    final Socket underTest = createSSLContext(Certificates.CA_CRT, unsignedHostname, null)
                             .getSocketFactory()
                             .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -108,8 +108,8 @@ public abstract class AbstractSSLContextTest {
 
                     final Socket underTestV4 =
                             createSSLContext(Certificates.CA_CRT, unsignedIPv4, null)
-                            .getSocketFactory()
-                            .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
+                                    .getSocketFactory()
+                                    .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
                 assertThatExceptionOfType(SSLHandshakeException.class)
                         .isThrownBy(() -> underTestV6.getOutputStream().write(137));
@@ -238,7 +238,7 @@ public abstract class AbstractSSLContextTest {
             throws Exception {
 
         final SSLServerSocket serverSocket =
-                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, null)
+                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, null, null)
                         .clientCertificate(credentials)
                         .getServerSocketFactory()
                         .createServerSocket(0);

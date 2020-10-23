@@ -35,6 +35,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
@@ -63,18 +64,23 @@ public final class TrustManagerFactoryFactory {
         keyStoreFactory = new KeyStoreFactory(exceptionMapper);
     }
 
-    public static TrustManagerFactoryFactory getInstance() {
-        return new TrustManagerFactoryFactory(new ExceptionMapper(DittoHeaders.empty()));
+    public static TrustManagerFactoryFactory getInstance(final DittoHeaders dittoHeaders) {
+        return new TrustManagerFactoryFactory(new ExceptionMapper(dittoHeaders));
     }
 
-    public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates) {
-        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+    public static TrustManagerFactoryFactory getInstance(final ExceptionMapper exceptionMapper) {
+        return new TrustManagerFactoryFactory(exceptionMapper);
     }
 
-    public TrustManagerFactory newTrustManagerFactory(final Connection connection) {
+    public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates,
+            @Nullable final ConnectionLogger connectionLogger) {
+        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates, connectionLogger));
+    }
+
+    public TrustManagerFactory newTrustManagerFactory(final Connection connection,
+            final ConnectionLogger connectionLogger) {
         final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-        final TrustManagerFactory factory =
-                exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+        final TrustManagerFactory factory = newTrustManagerFactory(trustedCertificates, connectionLogger);
         if (connection.isValidateCertificates()) {
             return factory;
         } else {
@@ -86,7 +92,8 @@ public final class TrustManagerFactoryFactory {
         return InsecureTrustManagerFactory.INSTANCE;
     }
 
-    private TrustManagerFactory createTrustManagerFactory(@Nullable final String trustedCertificates)
+    private TrustManagerFactory createTrustManagerFactory(@Nullable final String trustedCertificates,
+            @Nullable final ConnectionLogger connectionLogger)
             throws NoSuchAlgorithmException, CertificateException, KeyStoreException,
             InvalidAlgorithmParameterException {
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(PKIX);
@@ -104,9 +111,12 @@ public final class TrustManagerFactoryFactory {
             // standard CAs; add revocation check
             final PKIXRevocationChecker revocationChecker =
                     (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker();
+            final PKIXRevocationChecker silentlyFailingRevocationChecker =
+                    SilentlyFailingRevocationChecker.getInstance(revocationChecker, connectionLogger);
+
             final PKIXBuilderParameters parameters =
                     new PKIXBuilderParameters(DEFAULT_CA_KEYSTORE, new X509CertSelector());
-            parameters.addCertPathChecker(revocationChecker);
+            parameters.addCertPathChecker(silentlyFailingRevocationChecker);
             trustManagerFactory.init(new CertPathTrustManagerParameters(parameters));
         }
         return trustManagerFactory;

@@ -95,7 +95,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Mock private Channel mockChannelReconnected;
 
     private final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory =
-            (con, exHandler) -> mockConnectionFactory;
+            (con, exHandler, connectionLogger) -> mockConnectionFactory;
 
     @BeforeClass
     public static void setUp() {
@@ -152,7 +152,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     RabbitMQClientActor.propsForTests(connection, getRef(),
-                            getRef(), (con, exHandler) -> { throw CUSTOM_EXCEPTION; })
+                            getRef(), (con, exHandler, connectionLogger) -> { throw CUSTOM_EXCEPTION; })
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
@@ -256,7 +256,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props =
                     RabbitMQClientActor.propsForTests(connectionWithoutTargets, getRef(), getRef(),
-                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
+                            (con, exHandler, connectionLogger) -> mockConnectionFactory)
+                            .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
@@ -354,7 +355,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     private Props getClientActorProps(final ActorRef proxyActor, final Connection connection,
             final ConnectionFactory connectionFactory) {
         return RabbitMQClientActor.propsForTests(connection, proxyActor,
-                proxyActor, (con, exHandler) -> connectionFactory)
+                proxyActor, (con, exHandler, connectionLogger) -> connectionFactory)
                 .withDispatcher(CallingThreadDispatcher.Id());
     }
 

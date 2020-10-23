@@ -238,7 +238,7 @@ public final class ConnectionValidator {
         // check if there are certificates to check
         if (trustedCertificates.isPresent() || credentials.isPresent()) {
             credentials.orElseGet(ClientCertificateCredentials::empty)
-                    .accept(SSLContextCreator.fromConnection(connection, dittoHeaders));
+                    .accept(SSLContextCreator.fromConnection(connection, dittoHeaders, null));
         }
     }
 
