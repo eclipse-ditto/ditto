@@ -231,7 +231,11 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
     public static WithDittoHeaders<?> restoreCommandConnectivityHeaders(final WithDittoHeaders<?> signal,
             final DittoHeaders requestCommandHeaders) {
-        final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = signal.getDittoHeaders().toBuilder();
+        final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = signal.getDittoHeaders()
+                .toBuilder()
+                .removeHeader(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())
+                .removeHeader(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey())
+                .removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
         if (requestCommandHeaders.containsKey(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())) {
             enhancedHeadersBuilder.expectedResponseTypes(requestCommandHeaders.getExpectedResponseTypes());
         }

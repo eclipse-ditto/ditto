@@ -86,7 +86,7 @@ public final class CreateThingLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.CONFLICT)
                 .withDittoRuntimeExceptionOfType(ThingConflictException.class);
     }

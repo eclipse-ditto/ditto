@@ -141,10 +141,9 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders);
 
             final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
-            final boolean expectHttpResponseHeaders = true;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders);
+                    probeResponse, expectedHttpStatusCode, expectedHeaders.toBuilder().responseRequired(false).build());
         }};
     }
 
@@ -168,10 +167,9 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders);
 
             final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
-            final boolean expectHttpResponseHeaders = true;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders);
+                    probeResponse, expectedHttpStatusCode, expectedHeaders.toBuilder().responseRequired(false).build());
         }};
     }
 
@@ -198,10 +196,9 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     ModifyAttributeResponse.modified(thingId, attributePointer, responseRequiredFalseHeaders);
 
             final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
-            final boolean expectHttpResponseHeaders = false; // response headers are different
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders);
+                    probeResponse, expectedHttpStatusCode, null);
         }};
 
     }
@@ -225,10 +222,9 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final ModifyAttributeResponse probeResponse = null;
 
             final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
-            final boolean expectHttpResponseHeaders = false;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders);
+                    probeResponse, expectedHttpStatusCode, null);
         }};
     }
 
@@ -254,10 +250,9 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders);
 
             final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
-            final boolean expectHttpResponseHeaders = false;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders);
+                    probeResponse, expectedHttpStatusCode, null);
         }};
     }
 
@@ -286,13 +281,13 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                             responsePayload);
 
             final StatusCode expectedHttpStatusCode = StatusCodes.IMUSED;
-            final boolean expectHttpResponseHeaders = true;
             final ResponseEntity expectedHttpResponseEntity = HttpEntities.create(
                     ContentTypes.parse(contentType), ByteString.ByteStrings.fromString(responsePayload.toString(),
                             Charset.defaultCharset()));
 
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders, probeResponse,
-                    expectedHttpStatusCode, expectHttpResponseHeaders, expectedHttpResponseEntity);
+                    expectedHttpStatusCode, expectedHeaders.toBuilder().responseRequired(false).build(),
+                    expectedHttpResponseEntity);
         }};
     }
 
@@ -371,11 +366,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                             responsePayload);
 
             final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
-            final boolean expectHttpResponseHeaders = false;
             final ResponseEntity expectedHttpResponseEntity = null;
 
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders, expectedHttpResponseEntity);
+                    probeResponse, expectedHttpStatusCode, null, expectedHttpResponseEntity);
         }};
     }
 
@@ -398,11 +392,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final SendThingMessageResponse<?> probeResponse = null;
 
             final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
-            final boolean expectHttpResponseHeaders = false;
             final ResponseEntity expectedHttpResponseEntity = null;
 
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectHttpResponseHeaders, expectedHttpResponseEntity);
+                    probeResponse, expectedHttpStatusCode, null, expectedHttpResponseEntity);
         }};
     }
 

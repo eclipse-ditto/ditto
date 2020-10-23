@@ -46,7 +46,10 @@ public final class ThingAcknowledgementFactoryTest {
 
     @Before
     public void setUp() {
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testName.getMethodName())
+                .responseRequired(false)
+                .build();
     }
 
     @Test
