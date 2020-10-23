@@ -51,11 +51,11 @@ public class StoppedKamonTimer implements StoppedTimer {
             }
         });
 
+        final long durationNano = getElapsedNano();
         LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
-                tags.get(SEGMENT_TAG), getDuration());
-        onStopHandlers
-                .forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
-        getKamonInternalTimer().record(getDuration().getNano());
+                tags.get(SEGMENT_TAG), durationNano);
+        onStopHandlers.forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
+        getKamonInternalTimer().record(durationNano);
     }
 
     static StoppedTimer fromStartedTimer(final StartedTimer startedTimer) {
@@ -66,7 +66,7 @@ public class StoppedKamonTimer implements StoppedTimer {
 
     @Override
     public Duration getDuration() {
-        return Duration.ofNanos(this.endTimestamp - this.startTimestamp);
+        return Duration.ofNanos(getElapsedNano());
     }
 
     @Override
@@ -81,7 +81,7 @@ public class StoppedKamonTimer implements StoppedTimer {
     }
 
 
-    private kamon.metric.Timer getKamonInternalTimer() {
+    kamon.metric.Timer getKamonInternalTimer() {
         return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
 
@@ -99,5 +99,9 @@ public class StoppedKamonTimer implements StoppedTimer {
                 ", startTimestamp=" + startTimestamp +
                 ", endTimestamp=" + endTimestamp +
                 "]";
+    }
+
+    private long getElapsedNano() {
+        return this.endTimestamp - this.startTimestamp;
     }
 }
