@@ -533,6 +533,15 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
                 }
             } else {
+                logger.debug("Received invalid JWT for WebSocket session <{}>. Terminating the session.",
+                        connectionCorrelationId);
+                final GatewayWebsocketSessionClosedException gatewayWebsocketSessionClosedException =
+                        GatewayWebsocketSessionClosedException.newBuilder()
+                                .dittoHeaders(DittoHeaders.newBuilder()
+                                        .correlationId(connectionCorrelationId)
+                                        .build())
+                                .build();
+                eventAndResponsePublisher.fail(gatewayWebsocketSessionClosedException);
                 getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
             }
         });
