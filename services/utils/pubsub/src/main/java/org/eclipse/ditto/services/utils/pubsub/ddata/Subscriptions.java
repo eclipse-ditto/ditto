@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
 
@@ -39,6 +40,14 @@ public interface Subscriptions<T> {
      * @return whether it subscribes to any topic.
      */
     boolean contains(ActorRef subscriber);
+
+    /**
+     * Check if a topic has any subscriber.
+     *
+     * @param topic the topic.
+     * @return whether some actor subscribes for the topic.
+     */
+    Stream<ActorRef> streamSubscribers(String topic);
 
     /**
      * Subscribe for filtered messages published at any of the given topics.

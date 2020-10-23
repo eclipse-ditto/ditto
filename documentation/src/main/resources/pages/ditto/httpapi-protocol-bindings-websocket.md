@@ -21,7 +21,16 @@ The benefits of the WebSocket compared to HTTP are multiple ones:
 * as the WebSocket is a duplex connection, [change notifications](basic-changenotifications.html) can be sent via the
   WebSocket for changes to entities done in Ditto
 * additionally, [messages](basic-messages.html) and [live commands/events](protocol-twinlive.html) can be exchanged 
-  (sending and receiving) via multiple connected WebSocket sessions 
+  (sending and receiving) via multiple connected WebSocket sessions
+
+Please keep in mind that every web WebSocket connection will receive all events and messages it is allowed to receive 
+depending on the provided authentication.<br/>
+There is no round-robin dispatching for WebSockets using the same authentication.
+
+{% include warning.html content="This means that WebSockets are not meant to be used for scenarios where horizontal 
+    scaling should be applied. 
+    For those scenarios we suggest using the [Connectivity API](connectivity-overview.html)." 
+%}
 
 ### Send commands and get responses
    
@@ -156,8 +165,6 @@ The following table shows which WebSocket protocol message are supported:
 | Stop receiving live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
 
 ### Enrichment
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
 When extra fields should be added to outgoing messages on the WebSocket channel, an `extraFields` parameter can be added
 to the request message. This is supported for all request messages:

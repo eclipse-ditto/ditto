@@ -75,7 +75,7 @@ org.mongodb:mongodb-driver-reactivestreams:jar:1.13.1:compile
 org.mongodb:mongo-java-driver:jar:3.12.6:compile
 org.mongodb.scala:mongo-scala-bson_2.13:jar:2.9.0:compile
 org.mongodb.scala:mongo-scala-driver_2.13:jar:2.9.0:compile
-org.mozilla:rhino-runtime:jar:1.7.12:compile
+org.mozilla:rhino-runtime:jar:1.7.3:compile
 org.ow2.asm:asm-analysis:jar:7.2:compile
 org.ow2.asm:asm-commons:jar:7.2:compile
 org.ow2.asm:asm:jar:7.2:compile

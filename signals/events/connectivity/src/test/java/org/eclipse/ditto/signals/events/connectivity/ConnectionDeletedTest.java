@@ -54,7 +54,7 @@ public final class ConnectionDeletedTest {
     public void createInstanceWithNullConnectionIdString() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectionDeleted.of((String) null, DittoHeaders.empty()))
-                .withMessage("The entityId must not be null!")
+                .withMessage("The connectionId must not be null!")
                 .withNoCause();
     }
 

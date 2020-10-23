@@ -156,6 +156,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
          */
         QUERY_PARAMS_AS_HEADERS("query-params-as-headers", Arrays.asList(DittoHeaderDefinition.CORRELATION_ID.getKey(),
                 DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                DittoHeaderDefinition.DECLARED_ACKS.getKey(),
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
                 DittoHeaderDefinition.TIMEOUT.getKey())),
 

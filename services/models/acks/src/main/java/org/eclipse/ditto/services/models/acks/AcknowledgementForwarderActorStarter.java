@@ -14,12 +14,12 @@ package org.eclipse.ditto.services.models.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -30,8 +30,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.signals.base.Signal;
@@ -54,26 +52,29 @@ import akka.japi.Pair;
 final class AcknowledgementForwarderActorStarter implements Supplier<Optional<ActorRef>> {
 
     private static final String PREFIX_COUNTER_SEPARATOR = "#";
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AcknowledgementForwarderActorStarter.class);
 
     private final ActorContext actorContext;
     private final EntityIdWithType entityId;
     private final Signal<?> signal;
     private final DittoHeaders dittoHeaders;
-    private final Set<AcknowledgementRequest> acknowledgementRequests;
     private final AcknowledgementConfig acknowledgementConfig;
+    private final Set<AcknowledgementRequest> acknowledgementRequests;
 
     private AcknowledgementForwarderActorStarter(final ActorContext context,
             final EntityIdWithType entityId,
             final Signal<?> signal,
-            final AcknowledgementConfig acknowledgementConfig) {
+            final AcknowledgementConfig acknowledgementConfig,
+            final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
         actorContext = checkNotNull(context, "context");
         this.entityId = checkNotNull(entityId, "entityId");
         this.signal = checkNotNull(signal, "signal");
         dittoHeaders = signal.getDittoHeaders();
-        acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
         this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
+        acknowledgementRequests = dittoHeaders.getAcknowledgementRequests()
+                .stream()
+                .filter(request -> isAckLabelAllowed.test(request.getLabel()))
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -84,21 +85,36 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * @param entityId is used for the NACKs if the forwarder actor cannot be started.
      * @param signal the signal for which the forwarder actor is to start.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
+     * @param isAckLabelAllowed predicate for whether an ack label is allowed for publication at this channel.
+     * "live-response" is always allowed.
      * @return a means to start an acknowledgement forwarder actor.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static AcknowledgementForwarderActorStarter getInstance(final ActorContext context,
             final EntityIdWithType entityId,
             final Signal<?> signal,
-            final AcknowledgementConfig acknowledgementConfig) {
+            final AcknowledgementConfig acknowledgementConfig,
+            final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
-        return new AcknowledgementForwarderActorStarter(context, entityId, signal, acknowledgementConfig);
+        return new AcknowledgementForwarderActorStarter(context, entityId, signal, acknowledgementConfig,
+                // live-response is always allowed
+                isAckLabelAllowed.or(DittoAcknowledgementLabel.LIVE_RESPONSE::equals));
+    }
+
+    /**
+     * Retrieve the acknowledgement requests allowed for this actor starter.
+     * Any acknowledgement request in the original signal are discarded if this channel is not allowed to fulfill them.
+     *
+     * @return the meaningful acknowledgement requests.
+     */
+    public Set<AcknowledgementRequest> getAllowedAckRequests() {
+        return acknowledgementRequests;
     }
 
     @Override
     public Optional<ActorRef> get() {
         ActorRef actorRef = null;
-        if (hasEffectiveAckRequests(signal)) {
+        if (hasEffectiveAckRequests(signal, acknowledgementRequests)) {
             try {
                 actorRef = startAckForwarderActor(dittoHeaders);
             } catch (final InvalidActorNameException e) {
@@ -117,8 +133,9 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * start because no acknowledgement was requested.
      */
     public Optional<String> getConflictFree() {
-        if (hasEffectiveAckRequests(signal)) {
-            final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder();
+        if (hasEffectiveAckRequests(signal, acknowledgementRequests)) {
+            final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
+                    .acknowledgementRequests(acknowledgementRequests);
             final Pair<String, Integer> prefixPair = parseCorrelationId(dittoHeaders);
             final String prefix = prefixPair.first();
             int counter = prefixPair.second();
@@ -211,9 +228,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         return signal.getDittoHeaders().getChannel().stream().anyMatch(TopicPath.Channel.LIVE.getName()::equals);
     }
 
-    static boolean hasEffectiveAckRequests(final Signal<?> signal) {
+    static boolean hasEffectiveAckRequests(final Signal<?> signal, final Set<AcknowledgementRequest> ackRequests) {
         final boolean isLiveSignal = isLiveSignal(signal);
-        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof ThingEvent && !isLiveSignal) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotBuiltIn);
         } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {

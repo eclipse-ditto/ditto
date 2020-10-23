@@ -12,11 +12,13 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
  * Enforces authorization in order to establish a WebSocket connection.
- * If the authorization check is successful nothing will happen, else a
+ * If the authorization check is successful the headers are given back, possibly with new information, else a
  * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
 public interface WebSocketAuthorizationEnforcer {
@@ -27,8 +29,9 @@ public interface WebSocketAuthorizationEnforcer {
      *
      * @param dittoHeaders the DittoHeaders containing already gathered context information.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the check failed
+     * @return a successful future of headers containing new information if the check succeeded,
+     * or a failed future if the check failed.
      */
-    void checkAuthorization(DittoHeaders dittoHeaders);
+    CompletionStage<DittoHeaders> checkAuthorization(DittoHeaders dittoHeaders);
 
 }

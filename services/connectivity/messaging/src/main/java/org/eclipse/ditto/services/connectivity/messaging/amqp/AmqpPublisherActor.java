@@ -367,7 +367,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         };
     }
 
-    private static Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget) {
+    private Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());

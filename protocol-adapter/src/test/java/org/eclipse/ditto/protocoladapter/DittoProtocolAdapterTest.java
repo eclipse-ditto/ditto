@@ -422,7 +422,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void acknowledgementToAdaptable() {
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(AcknowledgementLabel.of("my-twin-persisted"), ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+                Acknowledgement.of(AcknowledgementLabel.of("my-twin-persisted"), ThingId.of("thing:id"),
+                        HttpStatusCode.CONTINUE, DittoHeaders.empty());
 
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acknowledgement);
 
@@ -451,7 +452,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void acknowledgementsToAdaptable() {
         final Acknowledgement ack1 =
-                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE, DittoHeaders.empty());
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE,
+                        DittoHeaders.empty());
         final Acknowledgement ack2 =
                 Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
                         HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty());
@@ -460,8 +462,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acks);
 
         final JsonObject expectedPayloadJson = JsonObject.of("{\n" +
-                "  \"twin-persisted\":{\"status\":100},\n" +
-                "  \"the-ack-label\":{\"status\":508}\n" +
+                "  \"twin-persisted\":{\"status\":100,\"headers\":{\"response-required\":false}},\n" +
+                "  \"the-ack-label\":{\"status\":508,\"headers\":{\"response-required\":false}}\n" +
                 "}");
 
         assertThat(adaptable.getTopicPath())
@@ -477,11 +479,11 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "  \"topic\": \"thing/id/things/twin/acks\",\n" +
                 "  \"path\": \"/\",\n" +
                 "  \"value\": {\n" +
-                "    \"twin-persisted\": { \"status\": 100 },\n" +
-                "    \"the-ack-label\": { \"status\": 508 }\n" +
+                "    \"twin-persisted\": { \"status\": 100,\"headers\":{\"response-required\":false} },\n" +
+                "    \"the-ack-label\": { \"status\": 508,\"headers\":{\"response-required\":false} }\n" +
                 "  },\n" +
                 "  \"status\": 424,\n" +
-                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\" }\n" +
+                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\",\"response-required\":false }\n" +
                 "}"));
 
         final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);

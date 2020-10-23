@@ -125,8 +125,6 @@ client.twin().registerForFeaturePropertyChanges("my-feature-changes", "temperatu
 
 ##### Subscribe to enriched change notifications
 
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
 In order to use [enrichment](basic-enrichment.html) in the Ditto Java client, the `startConsumption()` call can be
 enhanced with the additional extra fields:
 
@@ -180,8 +178,6 @@ client.live().forId("org.eclipse.ditto:new-thing")
 
 #### Manage policies
 
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
 Read a policy:
 ```java
 Policy retrievedPolicy = client.policies().retrieve(PolicyId.of("org.eclipse.ditto:new-policy"))
@@ -204,8 +200,6 @@ client.policies().create(newPolicy)
 Updating and deleting policies is also possible via the Java client API, please follow the API and the JavaDoc.
 
 #### Search for things
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
 Search for things using the Java 8 `java.util.Stream` API:
 ```java
@@ -234,8 +228,6 @@ akka.stream.javadsl.Source<Thing, NotUsed> things = akka.stream.javadsl.Source.f
 
 
 #### Request and issue acknowledgements
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
 [Requesting acknowledgements](basic-acknowledgements.html#requesting-acks) is possible in the Ditto Java 
 client in the following way:

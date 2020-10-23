@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.model.connectivity.ImmutableSourceAddressPlaceholder}.
+ * Tests {@link ImmutableSourceAddressPlaceholder}.
  */
 public class ImmutableSourceAddressPlaceholderTest {
 

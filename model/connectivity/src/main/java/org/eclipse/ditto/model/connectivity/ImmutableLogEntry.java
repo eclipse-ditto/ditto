@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
- * Immutable implementation of {@link org.eclipse.ditto.model.connectivity.LogEntry}.
+ * Immutable implementation of {@link LogEntry}.
  */
 @Immutable
 public final class ImmutableLogEntry implements LogEntry {

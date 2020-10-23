@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -242,11 +243,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final SignalEnrichmentFacade facade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
-        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
-                dittoHeadersStage.thenApply(dittoHeaders -> {
-
-                    sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
-
+        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage = dittoHeadersStage.thenCompose(
+                dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(_void -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
@@ -268,7 +266,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
                                         connectionCorrelationId, dittoHeaders);
                                 final Connect connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
-                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null);
+                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of());
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                 dittoHeaders.getAuthorizationContext())
@@ -297,7 +295,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             // sniffer shouldn't sniff heartbeats
                             .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
-                });
+                })
+        );
 
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
@@ -456,8 +455,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
-            // Does nothing.
+        public CompletionStage<Void> checkAuthorization(final RequestContext requestContext,
+                final DittoHeaders dittoHeaders) {
+            return CompletableFuture.completedStage(null);
         }
 
     }

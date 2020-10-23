@@ -54,6 +54,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -250,6 +251,21 @@ public final class TestConstants {
                     final Collection<String> topics) {
                 doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
                 return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> declareAcknowledgementLabels(
+                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
+                if (delegate != null) {
+                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber);
+                } else {
+                    return CompletableFuture.completedStage(null);
+                }
+            }
+
+            @Override
+            public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+                doDelegate(d -> d.removeAcknowledgementLabelDeclaration(subscriber));
             }
 
             private void doDelegate(final Consumer<DittoProtocolSub> c) {
@@ -888,9 +904,12 @@ public final class TestConstants {
     public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects) {
         return thingModified(readSubjects, Attributes.newBuilder().build());
     }
+
     public static ThingModifiedEvent thingModifiedWithCor(final Collection<AuthorizationSubject> readSubjects) {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).correlationId("testCor").build();
-        return ThingModified.of(Things.THING.toBuilder().setAttributes(Attributes.newBuilder().build()).build(), 1, dittoHeaders);
+        final DittoHeaders dittoHeaders =
+                DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).correlationId("testCor").build();
+        return ThingModified.of(Things.THING.toBuilder().setAttributes(Attributes.newBuilder().build()).build(), 1,
+                dittoHeaders);
     }
 
     public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects,

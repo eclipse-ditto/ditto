@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 
@@ -98,11 +99,10 @@ final class EnforcementScheduler extends AbstractActor {
     }
 
     private Void dispatchEnforcedMessage(final Contextual<?> enforcementResult) {
-        final DittoDiagnosticLoggingAdapter logger = enforcementResult.getLog();
         final Optional<? extends WithDittoHeaders> messageOpt = enforcementResult.getMessageOptional();
         if (messageOpt.isPresent()) {
             final WithDittoHeaders<?> message = messageOpt.get();
-            logger.setCorrelationId(message);
+            final ThreadSafeDittoLoggingAdapter logger = enforcementResult.getLog().withCorrelationId(message);
             final Optional<ActorRef> receiverOpt = enforcementResult.getReceiver();
             final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = enforcementResult.getAskFuture();
             if (askFutureOpt.isPresent() && receiverOpt.isPresent()) {
@@ -125,7 +125,7 @@ final class EnforcementScheduler extends AbstractActor {
             logger.discardCorrelationId();
         } else {
             // message does not exist; nothing to dispatch
-            logger.debug("Not dispatching due to lack of message: {}", enforcementResult);
+            enforcementResult.getLog().debug("Not dispatching due to lack of message: {}", enforcementResult);
         }
         return null;
     }

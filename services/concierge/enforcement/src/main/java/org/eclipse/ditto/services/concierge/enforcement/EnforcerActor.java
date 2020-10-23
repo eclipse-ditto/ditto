@@ -113,12 +113,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     }
 
     @Override
-    protected Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> processMessageFlow() {
-        return Flow.create();
-    }
-
-    @Override
-    protected Sink<Contextual<WithDittoHeaders>, ?> processedMessageSink() {
+    protected Sink<Contextual<WithDittoHeaders>, ?> createSink() {
         return sink;
     }
 

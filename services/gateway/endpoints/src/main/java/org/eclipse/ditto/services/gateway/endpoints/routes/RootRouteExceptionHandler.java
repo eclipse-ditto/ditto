@@ -26,8 +26,8 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
@@ -42,7 +42,8 @@ import akka.japi.pf.FI;
 @Immutable
 final class RootRouteExceptionHandler {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RootRouteExceptionHandler.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
+            .getThreadSafeLogger(RootRouteExceptionHandler.class);
 
     private final Function<DittoRuntimeException, HttpResponse> dreToHttpResponse;
 

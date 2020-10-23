@@ -132,7 +132,7 @@ public final class AcknowledgementForwarderActorTest {
             when(actorContext.sender()).thenReturn(getRef());
 
             final Optional<ActorRef> underTest =
-                    AcknowledgementForwarderActor.startAcknowledgementForwarder(actorContext, entityId, signal,
+                    AcknowledgementForwarderActor.startAcknowledgementForwarderForTest(actorContext, entityId, signal,
                             acknowledgementConfig);
 
             softly.assertThat(underTest).isPresent();

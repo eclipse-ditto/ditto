@@ -26,14 +26,13 @@ import akka.actor.ActorContext;
 /**
  * Pub-sub factory for live signals.
  */
-final class LiveSignalPubSubFactory<T extends Signal> extends AbstractPubSubFactory<T> {
+final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
 
     private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
 
-    private LiveSignalPubSubFactory(final ActorContext context, final Class<T> messageClass,
-            final PubSubTopicExtractor<T> topicExtractor) {
-
-        super(context, messageClass, topicExtractor, PROVIDER);
+    @SuppressWarnings("unchecked")
+    private LiveSignalPubSubFactory(final ActorContext context, final PubSubTopicExtractor<Signal<?>> topicExtractor) {
+        super(context, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER, null);
     }
 
     /**
@@ -42,19 +41,18 @@ final class LiveSignalPubSubFactory<T extends Signal> extends AbstractPubSubFact
      * @param context context of the actor under which the publisher and subscriber actors are started.
      * @return the thing
      */
-    public static LiveSignalPubSubFactory<Signal> of(final ActorContext context) {
-
-        return new LiveSignalPubSubFactory<>(context, Signal.class, topicExtractor());
+    public static LiveSignalPubSubFactory of(final ActorContext context) {
+        return new LiveSignalPubSubFactory(context, topicExtractor());
     }
 
-    private static Collection<String> getStreamingTypeTopic(final Signal signal) {
+    private static Collection<String> getStreamingTypeTopic(final Signal<?> signal) {
         return StreamingType.fromSignal(signal)
                 .map(StreamingType::getDistributedPubSubTopic)
                 .map(Collections::singleton)
                 .orElse(Collections.emptySet());
     }
 
-    private static <T extends Signal> PubSubTopicExtractor<T> topicExtractor() {
-        return ReadSubjectExtractor.<T>of().with(LiveSignalPubSubFactory::getStreamingTypeTopic);
+    private static PubSubTopicExtractor<Signal<?>> topicExtractor() {
+        return ReadSubjectExtractor.<Signal<?>>of().with(LiveSignalPubSubFactory::getStreamingTypeTopic);
     }
 }

@@ -18,7 +18,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
@@ -26,7 +27,6 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -41,7 +41,7 @@ public final class Publisher<T> extends AbstractActor {
      */
     public static final String ACTOR_NAME_PREFIX = "publisher";
 
-    private DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final DDataReader<T> ddataReader;
 

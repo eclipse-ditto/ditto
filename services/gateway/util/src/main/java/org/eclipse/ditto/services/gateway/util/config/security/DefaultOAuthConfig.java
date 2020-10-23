@@ -31,6 +31,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
@@ -39,14 +40,17 @@ import com.typesafe.config.ConfigValue;
  * This class is the default implementation of the OAuth config.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class DefaultOAuthConfig implements OAuthConfig {
 
     private static final String CONFIG_PATH = "oauth";
 
+    private final String protocol;
     private final Map<SubjectIssuer, String> openIdConnectIssuers;
     private final Map<SubjectIssuer, String> openIdConnectIssuersExtension;
 
     private DefaultOAuthConfig(final ConfigWithFallback configWithFallback) {
+        protocol = configWithFallback.getString(OAuthConfigValue.PROTOCOL.getConfigPath());
         openIdConnectIssuers = loadIssuers(configWithFallback, OAuthConfigValue.OPENID_CONNECT_ISSUERS);
         openIdConnectIssuersExtension =
                 loadIssuers(configWithFallback, OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION);
@@ -70,6 +74,11 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     @Override
+    public String getProtocol() {
+        return protocol;
+    }
+
+    @Override
     public Map<SubjectIssuer, String> getOpenIdConnectIssuers() {
         return openIdConnectIssuers;
     }
@@ -84,18 +93,20 @@ public final class DefaultOAuthConfig implements OAuthConfig {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultOAuthConfig that = (DefaultOAuthConfig) o;
-        return Objects.equals(openIdConnectIssuers, that.openIdConnectIssuers)
+        return Objects.equals(protocol, that.protocol)
+                && Objects.equals(openIdConnectIssuers, that.openIdConnectIssuers)
                 && Objects.equals(openIdConnectIssuersExtension, that.openIdConnectIssuersExtension);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(openIdConnectIssuers, openIdConnectIssuersExtension);
+        return Objects.hash(protocol, openIdConnectIssuers, openIdConnectIssuersExtension);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
+                ", protocol=" + protocol +
                 ", openIdConnectIssuers=" + openIdConnectIssuers +
                 ", openIdConnectIssuersExtension=" + openIdConnectIssuersExtension +
                 "]";

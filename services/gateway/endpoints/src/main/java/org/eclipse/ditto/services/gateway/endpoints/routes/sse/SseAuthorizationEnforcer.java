@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
@@ -29,7 +31,8 @@ public interface SseAuthorizationEnforcer {
      * @param requestContext the context of the HTTP request for opening the connection.
      * @param dittoHeaders the DittoHeaders with authentication information for opening the connection.
      * @throws NullPointerException if any argument is {@code null}.
+     * @return a successful future if validation succeeds or a failed future if validation fails.
      */
-    void checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
+    CompletionStage<Void> checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
 
 }

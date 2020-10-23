@@ -40,8 +40,8 @@ public final class Subscriber<T> extends AbstractActor {
     private final PubSubTopicExtractor<T> topicExtractor;
 
     private SubscriptionsReader localSubscriptions = SubscriptionsReader.empty();
-    private Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
-    private Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
+    private final Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
+    private final Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 
     @SuppressWarnings("unused")
     private Subscriber(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor) {

@@ -47,7 +47,10 @@ public final class WhoamiResponseTest {
 
     private static final UserInformation USER_INFORMATION =
             DefaultUserInformation.fromAuthorizationContext(AUTHORIZATION_CONTEXT);
-    private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId("any").build();
+    private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
+            .correlationId("any")
+            .responseRequired(false)
+            .build();
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(CommonCommandResponse.JsonFields.TYPE, WhoamiResponse.TYPE)
             .set(CommonCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())

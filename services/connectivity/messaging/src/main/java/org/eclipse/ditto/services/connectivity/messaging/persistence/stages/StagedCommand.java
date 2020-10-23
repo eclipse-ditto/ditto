@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
@@ -42,9 +41,6 @@ import akka.actor.ActorRef;
  * action as a staged command to self after an asynchronous action. Synchronous actions can be executed right away.
  */
 public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
-
-    private static final ConnectivityCommand DUMMY_COMMAND =
-            CloseConnection.of(ConnectionId.dummy(), DittoHeaders.empty());
 
     private static final ConnectivityEvent DUMMY_EVENT =
             ConnectionClosed.of(ConnectionId.dummy(), DittoHeaders.empty());
@@ -79,13 +75,6 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     public static StagedCommand of(final ConnectivityCommand command, final ConnectivityEvent event,
             final WithDittoHeaders response, final List<ConnectionAction> actions) {
         return new StagedCommand(command, event, response, ActorRef.noSender(), actions);
-    }
-
-    /**
-     * @return a dummy placeholder command.
-     */
-    public static ConnectivityCommand dummyCommand() {
-        return DUMMY_COMMAND;
     }
 
     /**

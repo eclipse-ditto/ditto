@@ -14,9 +14,10 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor.filterAcknowledgements;
+import static org.eclipse.ditto.services.connectivity.messaging.InboundDispatchingActor.filterAcknowledgements;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
@@ -42,12 +44,13 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
@@ -61,6 +64,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -68,11 +72,13 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
@@ -83,9 +89,11 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MessageMappingProcessorActor}.
+ * Tests {@link InboundMappingProcessorActor} and {@link OutboundMappingProcessorActor}.
  */
 public final class MessageMappingProcessorActorTest extends AbstractMessageMappingProcessorActorTest {
+
+    private static final ConnectionId connectionId = ConnectionId.generateRandom();
 
     @Test
     public void testRequestedAcknowledgementFilter() {
@@ -101,24 +109,25 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
         // WHEN/THEN
 
         final Signal<?> notFilteredSignal =
-                filterAcknowledgements(signal, "fn:filter('2+2','ne','5')");
+                filterAcknowledgements(signal, "fn:filter('2+2','ne','5')", connectionId);
         assertThat(notFilteredSignal.getDittoHeaders()).doesNotContainKey(requestedAcks);
 
         final Signal<?> filteredSignal =
-                filterAcknowledgements(signal, "fn:filter('2+2','eq','5')");
+                filterAcknowledgements(signal, "fn:filter('2+2','eq','5')", connectionId);
         assertThat(filteredSignal.getDittoHeaders()).contains(Map.entry(requestedAcks, "[]"));
 
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                filterAcknowledgements(signal, "fn:filter('2','+','2','eq','5')")
+                filterAcknowledgements(signal, "fn:filter('2','+','2','eq','5')", connectionId)
         );
 
         final Signal<?> defaultValueSetSignal =
-                filterAcknowledgements(signal, "fn:default('[\"twin-persisted\"]')");
+                filterAcknowledgements(signal, "fn:default('[\"twin-persisted\"]')", connectionId);
         assertThat(defaultValueSetSignal.getDittoHeaders().getAcknowledgementRequests())
                 .containsExactly(twinPersistedAckRequest);
 
         final Signal<?> transformedSignal =
-                filterAcknowledgements(signalWithRequestedAcks, "fn:filter('2+2','eq','5')|fn:default('[\"custom\"]')");
+                filterAcknowledgements(signalWithRequestedAcks, "fn:filter('2+2','eq','5')|fn:default('[\"custom\"]')",
+                        connectionId);
         assertThat(transformedSignal.getDittoHeaders().getAcknowledgementRequests())
                 .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("custom"));
     }
@@ -180,7 +189,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
         new TestKit(actorSystem) {{
             // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
-            final ActorRef underTest = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
 
             // WHEN: a signal is received with 2 targets, one with enrichment and one without
             final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x", "attributes/y");
@@ -201,7 +210,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final Signal<?> signal = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal,
                     Arrays.asList(targetWithEnrichment, targetWithoutEnrichment));
-            underTest.tell(outboundSignal, getRef());
+            outboundMappingProcessorActor.tell(outboundSignal, getRef());
 
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
@@ -232,7 +241,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
         new TestKit(actorSystem) {{
             // GIVEN: MessageMappingProcessor started with a test probe as the configured enrichment provider
-            final ActorRef underTest = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
 
             // WHEN: a signal is received with 6 targets:
             //  - 1 with enrichment w/o payload mapping
@@ -299,7 +308,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     targetWithEnrichmentAnd2PayloadMappers,
                     targetWithoutEnrichmentAnd2PayloadMappers)
             );
-            underTest.tell(outboundSignal, getRef());
+            outboundMappingProcessorActor.tell(outboundSignal, getRef());
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
             final JsonFieldSelector extraFieldsWithAdditionalCachingSelectedOnes = JsonFactory.newFieldSelectorBuilder()
@@ -425,7 +434,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
         new TestKit(actorSystem) {{
 
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
 
             // WHEN: message sent valid topic and invalid topic+path combination
             final String messageContent = "{  \n" +
@@ -443,7 +454,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
 
             // THEN: resulting error response retains the correlation ID
             final OutboundSignal outboundSignal =
@@ -484,7 +495,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
         new TestKit(actorSystem) {{
 
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
 
             // WHEN: message sent with valid topic and invalid topic+path combination
             final String topicPrefix = "Testspace/octopus/things/live/";
@@ -502,7 +515,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
 
             // THEN: resulting error response retains the topic including thing ID and channel
             final ExternalMessage outboundMessage =
@@ -539,14 +552,14 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testCommandResponseIsProcessed() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
 
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
                     ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
                             HEADERS_WITH_REPLY_INFORMATION.toBuilder().correlationId(correlationId).build());
 
-            messageMappingProcessorActor.tell(commandResponse, getRef());
+            outboundMappingProcessorActor.tell(commandResponse, getRef());
 
             final OutboundSignal.Mapped outboundSignal =
                     expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
@@ -559,7 +572,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testThingNotAccessibleExceptionRetainsTopic() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
 
             // WHEN: message mapping processor receives ThingNotAccessibleException with thing-id set from topic path
             final String correlationId = UUID.randomUUID().toString();
@@ -571,7 +584,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                                     .build())
                             .build();
 
-            messageMappingProcessorActor.tell(thingNotAccessibleException, getRef());
+            outboundMappingProcessorActor.tell(thingNotAccessibleException, getRef());
 
             final OutboundSignal.Mapped outboundSignal =
                     expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
@@ -590,7 +603,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testAggregationOfAcknowledgements() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final AcknowledgementRequest signalAck =
                     AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
             Set<AcknowledgementRequest> validationSet = new HashSet<>(Collections.singletonList(signalAck));
@@ -619,7 +634,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(message, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(message, collectorProbe.ref());
 
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
@@ -629,7 +644,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testFilteringOfAcknowledgements() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final AcknowledgementRequest signalAck =
                     AcknowledgementRequest.parseAcknowledgementRequest("my-custom-ack-3");
             final Map<String, String> headers = new HashMap<>();
@@ -656,7 +673,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(message, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(message, collectorProbe.ref());
 
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
@@ -666,44 +683,82 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testAppendingConnectionIdToResponses() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
 
             // Acknowledgement
             final AcknowledgementLabel label = AcknowledgementLabel.of("label");
             final Acknowledgement acknowledgement =
                     Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
                             DittoHeaders.empty(), JsonValue.of("payload"));
-            messageMappingProcessorActor.tell(toExternalMessage(acknowledgement), getRef());
+            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement), getRef());
             final Acknowledgement receivedAck = connectionActorProbe.expectMsgClass(Acknowledgement.class);
             assertThat(receivedAck.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
+            assertThat(connectionActorProbe.sender()).isEqualTo(outboundMappingProcessorActor);
 
             // Acknowledgements
             final Signal<?> acknowledgements = Acknowledgements.of(List.of(acknowledgement), DittoHeaders.empty());
-            messageMappingProcessorActor.tell(toExternalMessage(acknowledgements), getRef());
+            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgements), getRef());
             final Acknowledgements receivedAcks = connectionActorProbe.expectMsgClass(Acknowledgements.class);
             assertThat(receivedAcks.getAcknowledgement(label)
                     .orElseThrow()
                     .getDittoHeaders()
                     .get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
+            assertThat(connectionActorProbe.sender()).isEqualTo(outboundMappingProcessorActor);
 
             // Live response
             final Signal<?> liveResponse = DeleteThingResponse.of(KNOWN_THING_ID, DittoHeaders.newBuilder()
                     .channel(TopicPath.Channel.LIVE.getName())
                     .build());
-            messageMappingProcessorActor.tell(toExternalMessage(liveResponse), getRef());
+            inboundMappingProcessorActor.tell(toExternalMessage(liveResponse), getRef());
             final DeleteThingResponse receivedResponse = connectionActorProbe.expectMsgClass(DeleteThingResponse.class);
             assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
             assertThat(receivedResponse.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
+            assertThat(connectionActorProbe.sender()).isEqualTo(actorSystem.deadLetters());
+        }};
+    }
+
+    @Test
+    public void sendAckWithoutDeclaration() {
+        new TestKit(actorSystem) {{
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
+
+            // WHEN: message mapping processor actor receives an incoming acknowledgement
+            // from a source with reply-target and without declared-acks
+            final AcknowledgementLabel label = AcknowledgementLabel.of("label");
+            final Acknowledgement acknowledgement =
+                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
+                            DittoHeaders.newBuilder()
+                                    .replyTarget(0)
+                                    .expectedResponseTypes(ResponseType.ERROR)
+                                    .build(),
+                            JsonValue.of("payload"));
+            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement, builder -> {}), getRef());
+
+            // THEN: ann AcknowledgementLabelNotDeclaredException is published to the reply-target
+            final PublishMappedMessage errorResponse =
+                    (PublishMappedMessage) fishForMessage(Duration.ofSeconds(3L), "PublishMappedMessage",
+                            PublishMappedMessage.class::isInstance);
+            final Signal<?> source = errorResponse.getOutboundSignal().getSource();
+            assertThat(source).isInstanceOf(ErrorResponse.class);
+            assertThat(((ErrorResponse<?>) source).getDittoRuntimeException())
+                    .isEqualTo(AcknowledgementLabelNotDeclaredException.of(label, acknowledgement.getDittoHeaders()));
+            assertThat((CharSequence) source.getEntityId()).isEqualTo(KNOWN_THING_ID);
         }};
     }
 
     @Test
     public void forwardsSearchCommandsToConnectionActor() {
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
             final AuthorizationContext context =
@@ -719,10 +774,29 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .withHeaderMapping(SOURCE_HEADER_MAPPING)
                     .build();
 
-            messageMappingProcessorActor.tell(externalMessage, getRef());
+            inboundMappingProcessorActor.tell(externalMessage, getRef());
 
             final CancelSubscription received = connectionActorProbe.expectMsgClass(CancelSubscription.class);
             assertThat(received.getSubscriptionId()).isEqualTo(searchCommand.getSubscriptionId());
         }};
     }
+
+    @Test
+    public void inboundQueryCommandDoesNotRequestAcknowledgements() {
+        new TestKit(actorSystem) {{
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(actorSystem.deadLetters(), actorSystem.deadLetters());
+
+            // WHEN: inbound mapping processor receives a query command with acknowledgement requests
+            final RetrieveFeature retrieveFeature = RetrieveFeature.of(ThingId.of("thing:id"), "featureId",
+                    DittoHeaders.newBuilder()
+                            .acknowledgementRequest(AcknowledgementRequest.parseAcknowledgementRequest("dummy-request"))
+                            .build());
+            inboundMappingProcessorActor.tell(toExternalMessage(retrieveFeature), getRef());
+
+            // THEN: the response collector actor is asked to acknowledge right away despite the ack request.
+            expectMsg(ResponseCollectorActor.setCount(0));
+        }};
+    }
+
 }

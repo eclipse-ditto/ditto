@@ -53,6 +53,7 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -97,9 +98,9 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -143,7 +144,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
-    private final ActorRef messageMappingProcessorActor;
+    private final ActorRef inboundMappingProcessorActor;
+    private final ActorRef outboundMappingProcessorActor;
     private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
@@ -179,15 +181,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-
         connectionLoggerRegistry.initForConnection(connection);
         connectionCounterRegistry.initForConnection(connection);
 
         connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
-
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
+        outboundMappingProcessorActor = startOutboundMappingProcessorActor(connection);
 
-        messageMappingProcessorActor = startMessageMappingProcessorActor(connection);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final ActorRef inboundDispatcher =
+                startInboundDispatchingActor(connection, protocolAdapter, outboundMappingProcessorActor);
+        inboundMappingProcessorActor =
+                startInboundMappingProcessorActor(connection, protocolAdapter, inboundDispatcher);
         subscriptionManager = startSubscriptionManager(this.proxyActor);
         supervisorStrategy = createSupervisorStrategy(getSelf());
 
@@ -353,10 +358,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * @return the MessageMappingProcessorActor.
+     * @return the {@link InboundMappingProcessorActor}.
      */
-    protected final ActorRef getMessageMappingProcessorActor() {
-        return messageMappingProcessorActor;
+    protected final ActorRef getInboundMappingProcessorActor() {
+        return inboundMappingProcessorActor;
     }
 
     /**
@@ -665,7 +670,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private void reconnect(final BaseClientData data) {
+    private void reconnect() {
         logger.debug("Trying to reconnect.");
         connectionLogger.success("Trying to reconnect.");
         if (canConnectViaSocket(connection)) {
@@ -729,7 +734,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                reconnect(data);
+                reconnect();
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
@@ -949,7 +954,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
-            if (!messageMappingProcessorActor.equals(child)) {
+            final String childName = child.path().name();
+            if (!(InboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
+                    OutboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
+                    InboundDispatchingActor.ACTOR_NAME.equals(childName)
+            )) {
+
                 logger.withCorrelationId(command)
                         .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
                 child.tell(RetrieveAddressStatus.getInstance(), getSender());
@@ -1114,7 +1124,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         if (stateName() == CONNECTED) {
-            messageMappingProcessorActor.tell(signal, getSender());
+            outboundMappingProcessorActor.tell(signal, getSender());
         } else {
             logger.withCorrelationId(signal.getSource())
                     .debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), signal);
@@ -1140,54 +1150,116 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor() {
-        final AbstractActor.ActorContext context = getContext();
+        final ActorSystem actorSystem = getContext().getSystem();
 
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        MessageMappingProcessor.of(connection.getId(),
+        InboundMappingProcessor.of(connection.getId(),
                 connection.getConnectionType(),
                 connection.getPayloadMappingDefinition(),
-                context.getSystem(),
+                actorSystem,
                 connectivityConfig,
-                protocolAdapterProvider,
+                protocolAdapterProvider.getProtocolAdapter(null),
+                logger);
+        OutboundMappingProcessor.of(connectionId(),
+                connection.getConnectionType(),
+                connection.getPayloadMappingDefinition(),
+                actorSystem,
+                connectivityConfig,
+                protocolAdapterProvider.getProtocolAdapter(null),
                 logger);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
     /**
-     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     * Starts the {@link OutboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
      *
-     * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
-     * which will also cause a side-effect that stores the mapping actor in the local variable {@code
-     * messageMappingProcessorActor}.
+     * @return the ref to the started {@link OutboundMappingProcessorActor}
+     * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private ActorRef startMessageMappingProcessorActor(final Connection connection) {
+    private ActorRef startOutboundMappingProcessorActor(final Connection connection) {
 
-        final MessageMappingProcessor processor;
+        final OutboundMappingProcessor outboundMappingProcessor;
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            processor = MessageMappingProcessor.of(connection.getId(), connection.getConnectionType(),
+            outboundMappingProcessor = OutboundMappingProcessor.of(connection.getId(),
+                    connection.getConnectionType(),
                     connection.getPayloadMappingDefinition(),
-                    getContext().getSystem(), connectivityConfig, protocolAdapterProvider, logger);
+                    getContext().getSystem(),
+                    connectivityConfig,
+                    protocolAdapter,
+                    logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
-            logger.info(
-                    "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+            logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-            getSender().tell(dre, getSelf());
             throw dre;
         }
 
-        logger.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
-                processor.getRegistry());
+        logger.debug("Starting mapping processor actors with pool size of <{}>.", connection.getProcessorPoolSize());
 
-        logger.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
+        final Props outboundMappingProcessorActorProps =
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection,
+                        connection.getProcessorPoolSize());
+        return getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
+    }
+
+    /**
+     * Starts the {@link InboundDispatchingActor} responsible for signal de-multiplexing and acknowledgement
+     * aggregation.
+     *
+     * @return the ref to the started {@link InboundMappingProcessorActor}
+     * @throws DittoRuntimeException when mapping processor could not get started.
+     */
+    private ActorRef startInboundDispatchingActor(final Connection connection,
+            final ProtocolAdapter protocolAdapter,
+            final ActorRef outboundMappingProcessorActor) {
+
+        final Props inboundDispatchingActorProps =
+                InboundDispatchingActor.props(connection, protocolAdapter.headerTranslator(), proxyActor,
+                        connectionActor, outboundMappingProcessorActor);
+
+        return getContext().actorOf(inboundDispatchingActorProps, InboundDispatchingActor.ACTOR_NAME);
+    }
+
+    /**
+     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
+     *
+     * @param connection the connection.
+     * @param protocolAdapter the protocol adapter.
+     * @param inboundDispatchingActor the actor to hand mapping outcomes to.
+     * @return the ref to the started {@link InboundMappingProcessorActor}
+     * @throws DittoRuntimeException when mapping processor could not get started.
+     */
+    private ActorRef startInboundMappingProcessorActor(final Connection connection,
+            final ProtocolAdapter protocolAdapter,
+            final ActorRef inboundDispatchingActor) {
+
+        final InboundMappingProcessor inboundMappingProcessor;
+        try {
+            // this one throws DittoRuntimeExceptions when the mapper could not be configured
+            inboundMappingProcessor = InboundMappingProcessor.of(connection.getId(),
+                    connection.getConnectionType(),
+                    connection.getPayloadMappingDefinition(),
+                    getContext().getSystem(),
+                    connectivityConfig,
+                    protocolAdapter,
+                    logger);
+        } catch (final DittoRuntimeException dre) {
+            connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
+            logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+                    dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
+            throw dre;
+        }
+
+        logger.debug("Starting inbound mapping processor actors with pool size of <{}>.",
                 connection.getProcessorPoolSize());
 
-        final Props props = MessageMappingProcessorActor.props(proxyActor, getSelf(), processor,
-                connection, connectionActor, connection.getProcessorPoolSize());
+        final Props inboundMappingProcessorActorProps =
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        connection, connection.getProcessorPoolSize(), inboundDispatchingActor);
 
-        return getContext().actorOf(props, MessageMappingProcessorActor.ACTOR_NAME);
+        return getContext().actorOf(inboundMappingProcessorActorProps, InboundMappingProcessorActor.ACTOR_NAME);
     }
 
     /**
@@ -1211,7 +1283,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         //   ConnectionPersistentActor#forwardThingSearchCommandToClientActors(ThingSearchCommand)
         // for the message path of the search protocol.
         if (stateName() == CONNECTED) {
-            subscriptionManager.tell(command, messageMappingProcessorActor);
+            subscriptionManager.tell(command, outboundMappingProcessorActor);
         } else {
             logger.withCorrelationId(command)
                     .debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);
@@ -1284,10 +1356,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private SupervisorStrategy createSupervisorStrategy(final ActorRef self) {
         return new OneForOneStrategy(
-                DeciderBuilder.matchAny(error -> {
-                    self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
-                    return SupervisorStrategy.stop();
-                }).build()
+                DeciderBuilder
+                        .match(DittoRuntimeException.class, error -> {
+                            logger.warning("Received unhandled DittoRuntimeException <{}>. " +
+                                    "Telling outbound mapping processor about it.", error);
+                            outboundMappingProcessorActor.tell(error, ActorRef.noSender());
+                            return SupervisorStrategy.resume();
+                        })
+                        .matchAny(error -> {
+                            self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
+                            return SupervisorStrategy.stop();
+                        }).build()
         );
     }
 

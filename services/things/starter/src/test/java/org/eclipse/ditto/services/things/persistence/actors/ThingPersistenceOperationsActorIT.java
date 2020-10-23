@@ -102,14 +102,14 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final ThingId id) {
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator,
-                        new DistributedPub<ThingEvent>() {
+                        new DistributedPub<>() {
                             @Override
                             public ActorRef getPublisher() {
                                 return pubSubMediator;
                             }
 
                             @Override
-                            public Object wrapForPublication(final ThingEvent message) {
+                            public Object wrapForPublication(final ThingEvent<?> message) {
                                 return message;
                             }
                         },

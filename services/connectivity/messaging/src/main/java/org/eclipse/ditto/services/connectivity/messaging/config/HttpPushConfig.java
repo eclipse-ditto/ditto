@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.util.Collection;
-
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 

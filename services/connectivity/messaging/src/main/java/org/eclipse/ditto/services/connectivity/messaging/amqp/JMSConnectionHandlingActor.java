@@ -34,8 +34,12 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActor;
@@ -349,8 +353,14 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private JmsConnection createJmsConnection() {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
             if (log.isDebugEnabled()) {
+                final ConnectionConfig connectionConfig =
+                        DittoConnectivityConfig.of(
+                                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                                .getConnectionConfig();
+                final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
                 log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                        ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUriFromConnection(connection));
+                        ConnectionBasedJmsConnectionFactory
+                                .buildAmqpConnectionUriFromConnection(connection, amqp10Config));
             }
             return jmsConnectionFactory.createConnection(connection, exceptionListener);
         });

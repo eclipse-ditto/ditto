@@ -81,7 +81,7 @@ The following sections explain the various ways of requesting acknowledgements.
 ### Requesting ACKs via HTTP
 Either specify the following HTTP header fields:
   * **requested-acks**: a comma separated list of [acknowledgement labels](#acknowledgement-labels).<br/>
-  Example: `requested-acks: twin-persisted,my-custom-ack`.
+  Example: `requested-acks: twin-persisted,some-connection-id:my-custom-ack`.
   * **timeout**: an optional time interval (in ms, s or m) to define how long the HTTP request should wait for
   acknowledgements and block.
   Default and maximum value: `60s`.<br/>
@@ -216,6 +216,10 @@ live commands and live messages. In order to issue a single acknowledgement, a
 back, using the same `"correlation-id"` in the [protocol headers](protocol-specification.html#headers) as contained
 in the received twin event, live command or live message.
 
+The labels of issued acknowledgements are globally unique for each subscriber. Before a subscriber is allowed to
+send acknowledgements, it must declare the labels of acknowledgements it sends. Any declared label taken by another
+subscriber causes an appropriate error for each channel that may issue acknowledgements.
+
 ### Issuing ACKs via HTTP
 It is not possible to issue acknowledgements via HTTP, because it is impossible to subscribe for twin events,
 live commands or live messages via HTTP.
@@ -225,9 +229,23 @@ Create and send the [Ditto Protocol acknowledgement](protocol-specification-acks
 established WebSocket in response to a twin event, live command or live message that contains a `"requested-acks"`
 header.
 
+Only acknowledgements with declared labels are accepted. To declare acknowledgement labels, set them as the value
+of the query parameter `declared-acks` as comma-separated list:
+```
+GET /ws/2?declared-acks=some-connection-id:ack-label-1,my:ack-label-2
+```
+
+The websocket will be closed right after it has been opened if any other another subscriber already declared the same label.<br/>
+This means that it is not possible to establish a second websocket connection with the same declared acknowledgements 
+before closing the first one.
+
+{% include warning.html content="Therefore it is not recommended relying on the websocket API for high 
+    availability scenarios." 
+%}
+
 ### Issuing ACKs via connections
 Requested acknowledgements for Ditto managed [connection targets](basic-connections.html#targets) can be issued in 2 
-ways: 
+ways:
 
 * specifically for each published twin event, live command or live message by sending a
   [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) back,
@@ -235,6 +253,16 @@ ways:
 * by configuring the managed connection target to automatically
   [issue acknowledgements](basic-connections.html#target-issued-acknowledgement-label) for all published twin events,
   live commands and live messages that request them.
+
+Acknowledgements sent via a source must
+[have their labels declared](basic-connections.html#source-declared-acknowledgement-labels)
+in the field `declaredAcks` as a JSON array.<br/>
+The labels of target-issued acknowledgements are declared automatically.<br/>
+Acknowledgement labels of a connection must be prefixed by the connection ID or the `{%raw%}{{connection:id}}{%endraw%}` 
+placeholder followed by a colon, for example `{%raw%}{{connection:id}}:my-custom-ack{%endraw%}`.
+
+If some source-declared or target-issued acknowledgement labels are taken by a websocket subscriber,
+all acknowledgements sent by the connection are rejected with error until the websocket is closed.
 
 #### Issuing ACKs via Ditto Protocol acknowledgement message
 Create and send the [Ditto Protocol acknowledgement](protocol-specification-acks.html#acknowledgement) message over a  
@@ -311,6 +339,19 @@ Three headers control how Ditto responds to a command: `response-required`, `req
 
 It is considered a client error if `timeout` is set to `0s` while `response-required` is `true` or `requested-acks` is
 nonempty.
+
+### Default header values
+Ditto set each of the three headers `response-required`, `requested-acks`, `timeout` to a default value according to any
+values of the other two headers set by the user.
+The default values depend only on headers set by the user; they do not depend on each other.
+Setting the default header values this way never produces any combination considered a client error unless the headers
+set by the user already cause a client error.
+
+| Header            | Default value | Default value if all three headers are not set |
+| ---               | ---           | ---                                              |
+| response-required | `false` if `timeout` is zero or `requested-acks` is empty, `true` otherwise | `true` |
+| requested-acks    | `empty` if `timeout` is zero or `response-required` is `false`, the channel's default acknowledgement request otherwise |`["twin-persisted"]` for TWIN channel,<br/>`["live-response"]` for LIVE channel |
+| timeout           | `60s` | `60s` |
 
 The following sections show how each Ditto API interprets the three headers.
 

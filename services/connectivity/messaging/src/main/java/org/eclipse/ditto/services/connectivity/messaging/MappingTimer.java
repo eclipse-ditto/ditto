@@ -19,12 +19,16 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class helps to create {@link DittoMetrics#expiringTimer}s measuring the different segments of a mapping
  * operation.
  */
 final class MappingTimer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MappingTimer.class);
 
     private static final String TIMER_NAME = "connectivity_message_mapping";
     private static final String INBOUND = "inbound";
@@ -122,7 +126,10 @@ final class MappingTimer {
                 .expiringTimer(TIMER_NAME)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
-                .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
+                .expirationHandling(expiredTimer -> {
+                    LOGGER.warn("Mapping timer expired. This should not happen. Timer: <{}>", expiredTimer);
+                    expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false);
+                })
                 .build();
     }
 
