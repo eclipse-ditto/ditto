@@ -132,7 +132,7 @@ public interface Amqp10Config {
         /**
          * How many messages will be published in parallel
          */
-        MESSAGE_PUBLISHING_PARALLELISM("publisher.message-parallelism", 3);
+        MESSAGE_PUBLISHING_PARALLELISM("publisher.parallelism", 3);
 
         private final String path;
         private final Object defaultValue;
