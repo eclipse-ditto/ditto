@@ -241,7 +241,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    LOCATION("location", String.class, false, true,
+    LOCATION("location", String.class, true, true,
             HeaderValueValidators.getNoOpValidator()),
 
     /**
