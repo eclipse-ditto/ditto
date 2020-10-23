@@ -164,6 +164,16 @@ public final class DeleteFeatureDesiredPropertyResponse
         return desiredPropertyPointer;
     }
 
+    /**
+     * DeleteFeatureDesiredPropertyResponse is only available in JsonSchemaVersion V_2.
+     *
+     * @return the supported JsonSchemaVersions.
+     */
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
     @Override
     public JsonPointer getResourcePath() {
         return JsonFactory.newPointer("/features/" + featureId + "/desiredProperties" + desiredPropertyPointer);

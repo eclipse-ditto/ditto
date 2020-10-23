@@ -166,6 +166,16 @@ public final class RetrieveFeatureDesiredProperty extends AbstractCommand<Retrie
         return featureId;
     }
 
+    /**
+     * RetrieveFeatureDesiredProperty is only available in JsonSchemaVersion V_2.
+     *
+     * @return the supported JsonSchemaVersions.
+     */
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
     @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId + "/desiredProperties" + desiredPropertyPointer;
