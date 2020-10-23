@@ -27,10 +27,15 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class AcknowledgementLabels {
 
+    private static final String PLACEHOLDER_GROUP = "placeholder";
+
     /**
      * Regular expression which determines the value of a valid AcknowledgementLabel.
+     *
+     * Ack labels starting with unresolved placeholders are also valid, e.g.: {@code {{connection:id}}:my-ack}.
      */
-    public static final String ACK_LABEL_REGEX = "[a-zA-Z0-9-_:]{3,100}";
+    public static final String ACK_LABEL_REGEX =
+            "(?<" + PLACEHOLDER_GROUP + ">\\{\\{\\w*[a-z]+:[a-z]+\\w*}}:)?[a-zA-Z0-9-_:]{3,145}";
 
     private static final Pattern ACK_LABEL_PATTERN = Pattern.compile(ACK_LABEL_REGEX);
 
@@ -53,6 +58,23 @@ final class AcknowledgementLabels {
         validateLabel(checkNotNull(label, "label"));
 
         return ImmutableAcknowledgementLabel.of(label);
+    }
+
+    /**
+     * Determines whether the passed {@code label} was fully resolved (contains no unresolved placeholders).
+     *
+     * @param label the AcknowledgementLabel to check for being fully resolved.
+     * @return {@code true} if no placeholders were present in the passed {@code label}.
+     */
+    static boolean isFullyResolved(final AcknowledgementLabel label) {
+        final Matcher labelRegexMatcher = ACK_LABEL_PATTERN.matcher(label);
+        if (labelRegexMatcher.matches()) {
+            final String placeholder = labelRegexMatcher.group(PLACEHOLDER_GROUP);
+            return null == placeholder || placeholder.isEmpty();
+        } else {
+            // this can't happen for an already created AcknowledgementLel
+            throw new AcknowledgementLabelInvalidException(label);
+        }
     }
 
     private static void validateLabel(final CharSequence label) {

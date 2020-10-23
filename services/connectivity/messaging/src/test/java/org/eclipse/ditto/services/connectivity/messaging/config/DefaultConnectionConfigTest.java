@@ -128,6 +128,10 @@ public final class DefaultConnectionConfigTest {
                 .satisfies(amqp091Config -> softly.assertThat(amqp091Config.getPublisherPendingAckTTL())
                         .as(Amqp091Config.ConfigValue.PUBLISHER_PENDING_ACK_TTL.getConfigPath())
                         .isEqualTo(Duration.ofSeconds(31556736L)));
+
+        softly.assertThat(underTest.getAckLabelDeclareInterval())
+                .as(ConnectionConfig.ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(99L));
     }
 
 }

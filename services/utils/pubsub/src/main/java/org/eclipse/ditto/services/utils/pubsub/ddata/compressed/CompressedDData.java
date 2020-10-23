@@ -29,7 +29,7 @@ import akka.util.ByteString;
  */
 public final class CompressedDData implements DData<ByteString, CompressedUpdate> {
 
-    private CompressedDDataHandler handler;
+    private final CompressedDDataHandler handler;
 
     private CompressedDData(final CompressedDDataHandler handler) {
         this.handler = handler;

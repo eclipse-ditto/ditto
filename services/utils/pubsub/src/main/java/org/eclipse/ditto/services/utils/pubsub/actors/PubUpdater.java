@@ -12,60 +12,59 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 
 import akka.actor.AbstractActorWithTimers;
-import akka.actor.Address;
 import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent;
-import akka.cluster.ddata.Replicator;
-import akka.event.DiagnosticLoggingAdapter;
+import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Remove remote subscriber on cluster event {@link akka.cluster.ClusterEvent.MemberRemoved}.
  */
-public final class PubUpdater extends AbstractActorWithTimers {
+public final class PubUpdater extends AbstractActorWithTimers implements ClusterMemberRemovedAware {
 
     /**
      * Prefix of this actor's name.
      */
     public static final String ACTOR_NAME_PREFIX = "pubUpdater";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final DDataWriter<?> ddataWriter;
 
     @SuppressWarnings("unused")
     private PubUpdater(final DDataWriter<?> ddataWriter) {
         this.ddataWriter = ddataWriter;
-        Cluster.get(getContext().getSystem()).subscribe(getSelf(), ClusterEvent.MemberRemoved.class);
+        subscribeForClusterMemberRemovedAware();
     }
 
     /**
      * Create Props object for this actor.
      *
-     * @param topicBloomFiltersWriter writer of the distributed topic Bloom filters.
+     * @param topicsWriter writer of the topics distributed data.
      */
-    public static Props props(final DDataWriter topicBloomFiltersWriter) {
-        return Props.create(PubUpdater.class, topicBloomFiltersWriter);
+    public static Props props(final DDataWriter<?> topicsWriter) {
+        return Props.create(PubUpdater.class, topicsWriter);
     }
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(ClusterEvent.MemberRemoved.class, this::removeMember)
+        return receiveClusterMemberRemoved().orElse(ReceiveBuilder.create()
                 .matchAny(this::logUnhandled)
-                .build();
+                .build());
     }
 
-    private void removeMember(final ClusterEvent.MemberRemoved memberRemoved) {
-        // publisher detected unreachable remote. remove it from local ORMap.
-        final Address address = memberRemoved.member().address();
-        log.info("Removing subscribers on removed member <{}>", address);
-        ddataWriter.removeAddress(address, Replicator.writeLocal());
+    @Override
+    public LoggingAdapter log() {
+        return log;
+    }
+
+    @Override
+    public DDataWriter<?> getDDataWriter() {
+        return ddataWriter;
     }
 
     private void logUnhandled(final Object message) {

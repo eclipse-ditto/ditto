@@ -49,7 +49,6 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -69,16 +68,16 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
 
-    private final ActorRef messageMappingProcessor;
+    private final ActorRef inboundMappingProcessor;
     private final AcknowledgementConfig acknowledgementConfig;
 
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final Source source, final ConnectionType connectionType) {
+            final ActorRef inboundMappingProcessor, final Source source, final ConnectionType connectionType) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
-        this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
+        this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "inboundMappingProcessor");
         this.source = checkNotNull(source, "source");
         this.connectionType = checkNotNull(connectionType, "connectionType");
         resetResourceStatus();
@@ -143,7 +142,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                             .tag(TracingTags.ACK_REDELIVER, true)
                                             .stop();
                                     reject.reject(true);
-                                    inboundFailure(rootCause);
+                                    // don't count this as "failure" in the "source consumed" metric as the consumption
+                                    // itself was successful
                                     return null;
                                 });
                         if (dittoRuntimeException != null) {
@@ -154,7 +154,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                     .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
                                     .stop();
                             reject.reject(shouldRedeliver);
-                            inboundFailure(dittoRuntimeException);
+                            // don't count this as "failure" in the "source consumed" metric as the consumption itself
+                            // was successful
                         }
                     }
                     return null;
@@ -173,7 +174,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final void forwardToMappingActor(final DittoRuntimeException message) {
         final DittoRuntimeException messageWithReplyInformation =
                 message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders()));
-        messageMappingProcessor.tell(messageWithReplyInformation, ActorRef.noSender());
+        inboundMappingProcessor.tell(messageWithReplyInformation, ActorRef.noSender());
     }
 
     protected void resetResourceStatus() {
@@ -198,17 +199,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         }
     }
 
-    protected void inboundFailure(final Throwable error) {
-        final DittoRuntimeException dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(
-                error,
-                e -> {
-                    log().error(e, "Inbound failure");
-                    return ConnectionUnavailableException.newBuilder(connectionId).build();
-                }
-        );
-        inboundMonitor.failure(dittoRuntimeException);
-    }
-
     private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final Object message) {
         // 1. start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
         final Duration collectorLifetime = acknowledgementConfig.getCollectorFallbackLifetime();
@@ -217,7 +207,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         // 2. forward message to mapping processor actor with response collector actor as sender
         // message mapping processor actor will set the number of expected acks (can be 0)
         // and start the same amount of ack aggregator actors
-        messageMappingProcessor.tell(message, responseCollector);
+        inboundMappingProcessor.tell(message, responseCollector);
         // 3. ask response collector actor to get the collected responses in a future
 
         return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {

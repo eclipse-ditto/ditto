@@ -51,6 +51,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final KafkaConfig kafkaConfig;
     private final HttpPushConfig httpPushConfig;
     private final ActivityCheckConfig activityCheckConfig;
+    private final Duration ackLabelDeclareInterval;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
@@ -65,6 +66,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
+        ackLabelDeclareInterval = config.getDuration(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath());
     }
 
     /**
@@ -141,6 +143,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public Duration getAckLabelDeclareInterval() {
+        return ackLabelDeclareInterval;
+    }
+
+    @Override
     public ActivityCheckConfig getActivityCheckConfig() {
         return activityCheckConfig;
     }
@@ -165,14 +172,15 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(kafkaConfig, that.kafkaConfig) &&
-                Objects.equals(httpPushConfig, that.httpPushConfig);
+                Objects.equals(httpPushConfig, that.httpPushConfig) &&
+                Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
                 activityCheckConfig, acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
-                httpPushConfig);
+                httpPushConfig, ackLabelDeclareInterval);
     }
 
     @Override
@@ -190,6 +198,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", kafkaConfig=" + kafkaConfig +
                 ", httpPushConfig=" + httpPushConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
+                ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +
                 "]";
     }
 

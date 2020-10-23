@@ -11,7 +11,7 @@ toc: false
 ---
 
 By adding another connectivity type - [HTTP](connectivity-protocol-bindings-http.html) - to Ditto's 
- connectivity, it is now (to be released in the next Ditto milestone 1.0.0-M2) possible to to 
+ connectivity, it is now (to be released in the next Ditto milestone 1.0.0-M2) possible to 
  publish *twin events*, *messages*, *live commands and events* to existing HTTP servers/endpoints.
 
 That is especially useful for invoking existing APIs (which are most of the time HTTP based) whenever e.g.

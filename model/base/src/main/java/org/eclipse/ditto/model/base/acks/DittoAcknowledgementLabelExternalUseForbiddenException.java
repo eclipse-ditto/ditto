@@ -17,10 +17,12 @@ import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -96,4 +98,36 @@ public final class DittoAcknowledgementLabelExternalUseForbiddenException extend
                 null);
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new DittoAcknowledgementLabelExternalUseForbiddenException.Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    /**
+     * A mutable builder with a fluent API for a {@link DittoAcknowledgementLabelExternalUseForbiddenException}.
+     */
+    @NotThreadSafe
+    public static final class Builder extends DittoRuntimeExceptionBuilder<DittoAcknowledgementLabelExternalUseForbiddenException> {
+
+        private Builder() {
+            description(DEFAULT_DESCRIPTION);
+        }
+
+        @Override
+        protected DittoAcknowledgementLabelExternalUseForbiddenException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
+            return new DittoAcknowledgementLabelExternalUseForbiddenException(dittoHeaders, message, description, cause, href);
+        }
+
+    }
 }

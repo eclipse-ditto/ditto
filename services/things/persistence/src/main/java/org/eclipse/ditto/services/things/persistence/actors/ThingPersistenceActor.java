@@ -64,10 +64,10 @@ public final class ThingPersistenceActor
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
     private final ThingConfig thingConfig;
-    private final DistributedPub<ThingEvent> distributedPub;
+    private final DistributedPub<ThingEvent<?>> distributedPub;
 
     @SuppressWarnings("unused")
-    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
+    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         super(thingId, snapshotAdapter);
@@ -86,7 +86,7 @@ public final class ThingPersistenceActor
      * @param snapshotAdapter the snapshot adapter.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
@@ -99,7 +99,7 @@ public final class ThingPersistenceActor
      * @param distributedPub the distributed-pub access to publish thing events.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub) {
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub) {
         return props(thingId, distributedPub, new ThingMongoSnapshotAdapter());
     }
 

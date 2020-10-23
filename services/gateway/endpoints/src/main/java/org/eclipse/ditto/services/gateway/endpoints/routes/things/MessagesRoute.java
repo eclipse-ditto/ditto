@@ -259,7 +259,6 @@ final class MessagesRoute extends AbstractRoute {
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(dittoHeaders)
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
@@ -286,7 +285,6 @@ final class MessagesRoute extends AbstractRoute {
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(dittoHeaders)
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
@@ -316,7 +314,6 @@ final class MessagesRoute extends AbstractRoute {
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(dittoHeaders)
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);

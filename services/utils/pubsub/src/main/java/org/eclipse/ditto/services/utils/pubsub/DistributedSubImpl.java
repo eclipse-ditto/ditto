@@ -14,10 +14,15 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
+import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 
 import akka.actor.ActorRef;
@@ -40,7 +45,7 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> subscribeWithFilterAndAck(final Collection<String> topics,
+    public CompletionStage<AbstractUpdater.SubAck> subscribeWithFilterAndAck(final Collection<String> topics,
             final ActorRef subscriber, final Predicate<Collection<String>> filter) {
         final SubUpdater.Subscribe subscribe =
                 SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter);
@@ -48,21 +53,20 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> subscribeWithAck(final Collection<String> topics,
+    public CompletionStage<AbstractUpdater.SubAck> subscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
         return askSubSupervisor(SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
     }
 
     @Override
-    public CompletionStage<SubUpdater.Acknowledgement> unsubscribeWithAck(final Collection<String> topics,
+    public CompletionStage<AbstractUpdater.SubAck> unsubscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
         return askSubSupervisor(SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
     }
 
-    private CompletionStage<SubUpdater.Acknowledgement> askSubSupervisor(final SubUpdater.Request request) {
+    private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
         return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
-                // let any ClassCastException here produce a failed future
-                .thenApply(response -> (SubUpdater.Acknowledgement) response);
+                .thenCompose(DistributedSubImpl::processAskResponse);
     }
 
     @Override
@@ -84,5 +88,36 @@ final class DistributedSubImpl implements DistributedSub {
         final SubUpdater.Request request =
                 SubUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
+    }
+
+    @Override
+    public CompletionStage<AbstractUpdater.SubAck> declareAcknowledgementLabels(
+            final Collection<AcknowledgementLabel> acknowledgementLabels,
+            final ActorRef subscriber) {
+        final Set<String> ackLabelStrings = acknowledgementLabels.stream()
+                .map(AcknowledgementLabel::toString)
+                .collect(Collectors.toSet());
+        final AbstractUpdater.DeclareAckLabels declareAckLabels =
+                AbstractUpdater.DeclareAckLabels.of(ackLabelStrings, subscriber, writeAll, true);
+        return Patterns.ask(subSupervisor, declareAckLabels, config.getWriteTimeout())
+                .thenCompose(DistributedSubImpl::processAskResponse);
+    }
+
+    @Override
+    public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+        final AbstractUpdater.RemoveSubscriber request =
+                AbstractUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false)
+                        .forAcknowledgementLabelDeclaration();
+        subSupervisor.tell(request, ActorRef.noSender());
+    }
+
+    private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof AbstractUpdater.SubAck) {
+            return CompletableFuture.completedStage((AbstractUpdater.SubAck) askResponse);
+        } else if (askResponse instanceof Throwable) {
+            return CompletableFuture.failedStage((Throwable) askResponse);
+        } else {
+            return CompletableFuture.failedStage(new ClassCastException("Expect SubAck, got: " + askResponse));
+        }
     }
 }

@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.common.Validator;
  * This abstract implementation of {@code PatternValidator} validates that a given {@code CharSequence} is valid.
  */
 @Immutable
-abstract class AbstractPatternValidator implements Validator {
+public abstract class AbstractPatternValidator implements Validator {
 
     private static final int MAX_LENGTH = 256;
 

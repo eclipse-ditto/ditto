@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -31,11 +31,11 @@ import akka.actor.ActorRef;
 /**
  * Consistence-maintenance part of all subscriptions.
  *
- * @param <H> type of hashes of a topic.
+ * @param <S> type of representation of a topic in the distributed data.
  * @param <T> type of approximations of subscriptions for distributed update.
  */
 @NotThreadSafe
-public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
+public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> implements Subscriptions<T> {
 
     /**
      * Map from local subscribers to topics they subscribe to.
@@ -50,7 +50,7 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
     /**
      * Map from topic to subscriber count and pre-computed hashes.
      */
-    protected final Map<String, TopicData<H>> topicToData;
+    protected final Map<String, TopicData<S>> topicToData;
 
     /**
      * Construct subscriptions using the given maps.
@@ -63,7 +63,7 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
     protected AbstractSubscriptions(
             final Map<ActorRef, Set<String>> subscriberToTopic,
             final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
-            final Map<String, TopicData<H>> topicToData) {
+            final Map<String, TopicData<S>> topicToData) {
         this.subscriberToTopic = subscriberToTopic;
         this.subscriberToFilter = subscriberToFilter;
         this.topicToData = topicToData;
@@ -75,21 +75,27 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
      * @param topic the topic.
      * @return the hash codes of the topic.
      */
-    protected abstract H hashTopic(final String topic);
+    protected abstract S hashTopic(String topic);
 
     /**
      * Callback on each new topic introduced into the subscriptions.
      *
      * @param newTopic the new topic.
      */
-    protected abstract void onNewTopic(final TopicData<H> newTopic);
+    protected abstract void onNewTopic(TopicData<S> newTopic);
 
     /**
      * Callback on each topic removed from the subscriptions as a whole.
      *
      * @param removedTopic the new topic.
      */
-    protected abstract void onRemovedTopic(final TopicData<H> removedTopic);
+    protected abstract void onRemovedTopic(TopicData<S> removedTopic);
+
+    @Override
+    public Stream<ActorRef> streamSubscribers(final String topic) {
+        final TopicData<S> topicData = topicToData.get(topic);
+        return topicData != null ? topicData.streamSubscribers() : Stream.empty();
+    }
 
     @Override
     public boolean subscribe(final ActorRef subscriber,
@@ -113,7 +119,7 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
                 topicToData.compute(topic, (k, previousData) -> {
                     if (previousData == null) {
                         changed[0] = true;
-                        final TopicData<H> newTopic = TopicData.firstSubscriber(subscriber, hashTopic(topic));
+                        final TopicData<S> newTopic = TopicData.firstSubscriber(subscriber, hashTopic(topic));
                         onNewTopic(newTopic);
                         return newTopic;
                     } else {
@@ -186,11 +192,11 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
 
     @Override
     public SubscriptionsReader snapshot() {
-        return SubscriptionsReader.of(exportTopicData(), exportSubscriberToFilter());
+        return SubscriptionsReader.fromImmutableMaps(exportTopicData(), exportSubscriberToFilter());
     }
 
     private Map<ActorRef, Predicate<Collection<String>>> exportSubscriberToFilter() {
-        return Collections.unmodifiableMap(new HashMap<>(subscriberToFilter));
+        return Map.copyOf(subscriberToFilter);
     }
 
     private Map<String, Set<ActorRef>> exportTopicData() {
@@ -225,7 +231,7 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
     @Override
     public boolean equals(final Object other) {
         if (other instanceof AbstractSubscriptions) {
-            final AbstractSubscriptions that = (AbstractSubscriptions) other;
+            final AbstractSubscriptions<?, ?> that = (AbstractSubscriptions<?, ?>) other;
             return subscriberToTopic.equals(that.subscriberToTopic) &&
                     subscriberToFilter.equals(that.subscriberToFilter) &&
                     topicToData.equals(that.topicToData);
@@ -240,4 +246,3 @@ public abstract class AbstractSubscriptions<H, T> implements Subscriptions<T> {
     }
 
 }
-

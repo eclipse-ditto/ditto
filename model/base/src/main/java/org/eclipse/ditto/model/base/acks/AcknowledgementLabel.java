@@ -40,6 +40,16 @@ public interface AcknowledgementLabel extends Comparable<AcknowledgementLabel>, 
         return AcknowledgementLabels.newLabel(label);
     }
 
+    /**
+     * Determines whether this AcknowledgementLabel was fully resolved (contains no unresolved placeholders).
+     *
+     * @return {@code true} if no placeholders were present this acknowledgement label.
+     * @since 1.4.0
+     */
+    default boolean isFullyResolved() {
+        return AcknowledgementLabels.isFullyResolved(this);
+    }
+
     @Override
     default int compareTo(final AcknowledgementLabel o) {
         checkNotNull(o, "o");

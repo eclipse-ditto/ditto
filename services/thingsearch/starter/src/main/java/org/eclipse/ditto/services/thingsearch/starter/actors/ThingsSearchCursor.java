@@ -63,7 +63,7 @@ import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.JsonToBson;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
@@ -72,7 +72,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.coding.Coder;
 import akka.japi.pf.PFBuilder;
 import akka.stream.SystemMaterializer;
@@ -172,8 +171,7 @@ final class ThingsSearchCursor {
      *
      * @param log the logger.
      */
-    void logCursorCorrelationId(final DiagnosticLoggingAdapter log, final WithDittoHeaders command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+    void logCursorCorrelationId(final ThreadSafeDittoLoggingAdapter log) {
         log.info("CursorCorrelationId = {}", correlationId);
     }
 

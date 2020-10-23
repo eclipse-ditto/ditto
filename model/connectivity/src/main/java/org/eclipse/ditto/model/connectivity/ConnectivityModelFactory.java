@@ -982,11 +982,4 @@ public final class ConnectivityModelFactory {
         return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
     }
 
-    /**
-     * @return new instance of the {@link org.eclipse.ditto.model.connectivity.SourceAddressPlaceholder}
-     */
-    public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
-        return ImmutableSourceAddressPlaceholder.INSTANCE;
-    }
-
 }

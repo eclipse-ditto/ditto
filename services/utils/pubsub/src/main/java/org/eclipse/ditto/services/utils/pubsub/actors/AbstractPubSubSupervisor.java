@@ -91,7 +91,7 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
                     final Duration restartDelay = config.getRestartDelay();
                     log.error(error, "Child <{}> crashed. Restarting all children after <{}>",
                             getSender(), restartDelay);
-                    getTimers().startSingleTimer(Control.RESTART, Control.RESTART, restartDelay);
+                    scheduleRestartChildren();
                     onChildFailure();
                     return SupervisorStrategy.stop();
                 }).build());
@@ -102,6 +102,13 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
         return createPubSubBehavior().orElse(ReceiveBuilder.create()
                 .matchEquals(Control.RESTART, this::restartChildren)
                 .build());
+    }
+
+    /**
+     * Schedule restart for all children.
+     */
+    protected void scheduleRestartChildren() {
+        getTimers().startSingleTimer(Control.RESTART, Control.RESTART, config.getRestartDelay());
     }
 
     /**

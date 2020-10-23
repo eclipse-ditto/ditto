@@ -31,11 +31,6 @@ public enum LogType {
     CONSUMED("consumed", LogCategory.SOURCE),
 
     /**
-     * Log related to a 'acknowledged' metric event.
-     */
-    ACKNOWLEDGED("acknowledged", LogCategory.SOURCE),
-
-    /**
      * Log related to a 'dispatched' metric event.
      */
     DISPATCHED("dispatched", LogCategory.TARGET, LogCategory.RESPONSE),
@@ -64,6 +59,11 @@ public enum LogType {
      * Log related to a 'published' metric event.
      */
     PUBLISHED("published", LogCategory.TARGET, LogCategory.RESPONSE),
+
+    /**
+     * Log related to a 'acknowledged' metric event.
+     */
+    ACKNOWLEDGED("acknowledged", LogCategory.SOURCE, LogCategory.TARGET, LogCategory.RESPONSE),
 
     /**
      * Log that is not related to any metric event.

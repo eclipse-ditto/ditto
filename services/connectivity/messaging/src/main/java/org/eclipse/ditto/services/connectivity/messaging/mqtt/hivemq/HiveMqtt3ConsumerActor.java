@@ -38,25 +38,25 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     static final String NAME = "HiveMqtt3ConsumerActor";
 
     @SuppressWarnings("unused")
-    private HiveMqtt3ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
+    private HiveMqtt3ConsumerActor(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT);
+        super(connectionId, inboundMessageProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId ID of the connection this consumer is belongs to
-     * @param messageMappingProcessor the ActorRef to the {@code MessageMappingProcessor}
+     * @param inboundMessageProcessor the ActorRef to the {@code MessageMappingProcessor}
      * @param source the source from which this consumer is built
      * @param dryRun whether this is a dry-run/connection test or not
      * @param specificConfig the MQTT specific config.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
+    static Props props(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun,
             final MqttSpecificConfig specificConfig) {
-        return Props.create(HiveMqtt3ConsumerActor.class, connectionId, messageMappingProcessor,
+        return Props.create(HiveMqtt3ConsumerActor.class, connectionId, inboundMessageProcessor,
                 source, dryRun, specificConfig.reconnectForRedelivery());
     }
 

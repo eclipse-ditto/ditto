@@ -36,7 +36,7 @@ public final class DroppedTest {
     @Test
     public void createInstanceWithNullSendingContext() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Dropped(null))
+                .isThrownBy(() -> new Dropped(null, "Signal dropped, target address unresolved: {0}"))
                 .withMessage("The sendingContext must not be null!")
                 .withNoCause();
     }
@@ -60,7 +60,7 @@ public final class DroppedTest {
                 .autoAckTarget(Mockito.mock(Target.class))
                 .build();
 
-        final Dropped underTest = new Dropped(sendingContext);
+        final Dropped underTest = new Dropped(sendingContext, "Signal dropped, target address unresolved: {0}");
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(null);
 

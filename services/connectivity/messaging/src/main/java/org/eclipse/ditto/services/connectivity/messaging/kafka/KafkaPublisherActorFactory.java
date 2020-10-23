@@ -13,11 +13,8 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.io.Serializable;
-import java.util.List;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.Target;
 
 import akka.actor.Props;
 

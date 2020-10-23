@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -46,7 +48,7 @@ final class DittoRuntimeExceptionToErrorResponseFunction
     }
 
     @Override
-    public ErrorResponse<?> apply(final DittoRuntimeException exception, final TopicPath topicPath) {
+    public ErrorResponse<?> apply(final DittoRuntimeException exception, @Nullable final TopicPath topicPath) {
         /*
          * Truncate headers to send in an error response.
          * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
@@ -54,38 +56,55 @@ final class DittoRuntimeExceptionToErrorResponseFunction
          */
         final DittoHeaders truncatedHeaders = exception.getDittoHeaders().truncate(headersMaxSize);
         if (exception instanceof PolicyException) {
-            return toPolicyErrorResponse(exception, truncatedHeaders);
+            return toPolicyErrorResponse(exception, truncatedHeaders, topicPath);
         } else if (exception instanceof ThingException) {
-            return toThingErrorResponse(exception, truncatedHeaders);
+            return toThingErrorResponse(exception, truncatedHeaders, topicPath);
         } else if (topicPath != null && topicPath.getGroup().equals(TopicPath.Group.POLICIES)) {
-            return toPolicyErrorResponse(exception, truncatedHeaders);
+            return toPolicyErrorResponse(exception, truncatedHeaders, topicPath);
         } else if (topicPath != null && topicPath.getGroup().equals(TopicPath.Group.THINGS)) {
-            return toThingErrorResponse(exception, truncatedHeaders);
+            return toThingErrorResponse(exception, truncatedHeaders, topicPath);
         } else {
-            return toThingErrorResponse(exception, truncatedHeaders);
+            return toThingErrorResponse(exception, truncatedHeaders, topicPath);
         }
     }
 
     private ThingErrorResponse toThingErrorResponse(final DittoRuntimeException exception,
-            final DittoHeaders truncatedHeaders) {
-        final Optional<EntityId> entityId = getEntityId(exception);
+            final DittoHeaders truncatedHeaders,
+            @Nullable final TopicPath topicPath) {
+        final Optional<EntityId> entityId = getEntityId(exception, topicPath);
         return entityId
                 .map(ThingId::of)
-                .map(policyId -> ThingErrorResponse.of(policyId, exception, truncatedHeaders))
+                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
     }
 
     private PolicyErrorResponse toPolicyErrorResponse(final DittoRuntimeException exception,
-            final DittoHeaders truncatedHeaders) {
-        final Optional<EntityId> entityId = getEntityId(exception);
+            final DittoHeaders truncatedHeaders,
+            @Nullable final TopicPath topicPath) {
+        final Optional<EntityId> entityId = getEntityId(exception, topicPath);
         return entityId
                 .map(PolicyId::of)
                 .map(policyId -> PolicyErrorResponse.of(policyId, exception, truncatedHeaders))
                 .orElseGet(() -> PolicyErrorResponse.of(exception, truncatedHeaders));
     }
 
-    private static Optional<EntityId> getEntityId(final DittoRuntimeException e) {
-        return Optional.ofNullable(e.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                .map(DefaultNamespacedEntityId::of);
+    private static Optional<EntityId> getEntityId(final DittoRuntimeException e,
+            @Nullable final TopicPath topicPath) {
+        return Optional.ofNullable(topicPath)
+                .flatMap(DittoRuntimeExceptionToErrorResponseFunction::getEntityIdFromTopicPath)
+                .or(() -> Optional.ofNullable(e.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                        .map(DefaultNamespacedEntityId::of)
+                );
+    }
+
+    private static Optional<EntityId> getEntityIdFromTopicPath(final TopicPath topicPath) {
+        switch (topicPath.getGroup()) {
+            case THINGS:
+                return Optional.of(ThingId.of(topicPath.getNamespace(), topicPath.getId()));
+            case POLICIES:
+                return Optional.of(PolicyId.of(topicPath.getNamespace(), topicPath.getId()));
+            default:
+                return Optional.empty();
+        }
     }
 }

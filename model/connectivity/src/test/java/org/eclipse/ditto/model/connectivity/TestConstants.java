@@ -36,11 +36,6 @@ public class TestConstants {
             .set(Measurement.JsonFields.LAST_MESSAGE_AT, INSTANT.toString())
             .build();
 
-    public static final JsonObject INBOUND_SUCCESS_JSON = getMeasurementJson(MetricType.CONSUMED, true);
-    public static final JsonObject INBOUND_FAILURE_JSON = getMeasurementJson(MetricType.CONSUMED, false);
-    public static final JsonObject MAPPED_SUCCESS_JSON = getMeasurementJson(MetricType.MAPPED, true);
-    public static final JsonObject MAPPED_FAILURE_JSON = getMeasurementJson(MetricType.MAPPED, false);
-
     static JsonObject getMeasurementJson(final MetricType type, final boolean success) {
         return JsonObject
                 .newBuilder().set(type.getName(),

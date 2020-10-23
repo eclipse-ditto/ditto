@@ -18,9 +18,12 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Predicate;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -124,29 +127,14 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         return ACTOR_NAME_PREFIX + URLEncoder.encode(correlationId, Charset.defaultCharset());
     }
 
-    /**
-     * Creates and starts an {@code AcknowledgementForwarderActor} actor in the passed {@code context} using the passed
-     * arguments.
-     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code dittoHeaders} and
-     * in case that an Actor with this name already exists, a negative {@code Acknowledgement} (NACK) will be sent back
-     * to the {@code context.getSender()} containing the payload of a
-     * {@code AcknowledgementRequestDuplicateCorrelationIdException}.
-     *
-     * @param context the context ({@code getContext()} of the Actor to start the AcknowledgementForwarderActor in.
-     * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
-     * @param signal the dittoHeaders of the {@code Signal} which requested the Acknowledgements.
-     * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
-     * @return the optionally created ActorRef - empty when either no AcknowledgementRequests were contained in the
-     * {@code dittoHeaders} or when a conflict caused by a re-used {@code correlation-id} was detected.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static Optional<ActorRef> startAcknowledgementForwarder(final akka.actor.ActorContext context,
+    static Optional<ActorRef> startAcknowledgementForwarderForTest(final akka.actor.ActorContext context,
             final EntityIdWithType entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
         final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig);
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig,
+                        label -> true);
         return starter.get();
     }
 
@@ -161,27 +149,24 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
      * @param signal the signal for which acknowledgements are expected.
      * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
+     * @param isAckLabelAllowed predicate for whether an ack label is allowed for publication at this channel.
      * @return the signal for which a suitable ack forwarder has started whenever required.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Signal<?> startAcknowledgementForwarderConflictFree(final akka.actor.ActorContext context,
+    public static Signal<?> startAcknowledgementForwarder(final akka.actor.ActorContext context,
             final EntityIdWithType entityId,
             final Signal<?> signal,
-            final AcknowledgementConfig acknowledgementConfig) {
-
+            final AcknowledgementConfig acknowledgementConfig,
+            final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
         final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig);
-        final Optional<String> newCorrelationId = starter.getConflictFree();
-        if (newCorrelationId.isPresent()) {
-            // signal requires acks. set new correlation ID and return.
-            return signal.setDittoHeaders(signal.getDittoHeaders()
-                    .toBuilder()
-                    .correlationId(newCorrelationId.get())
-                    .build());
-        } else {
-            // signal does not require acks.
-            return signal;
+                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig,
+                        isAckLabelAllowed);
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
+        starter.getConflictFree().ifPresent(dittoHeadersBuilder::correlationId);
+        if (!signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
+            dittoHeadersBuilder.acknowledgementRequests(starter.getAllowedAckRequests());
         }
+        return signal.setDittoHeaders(dittoHeadersBuilder.build());
     }
 
 }

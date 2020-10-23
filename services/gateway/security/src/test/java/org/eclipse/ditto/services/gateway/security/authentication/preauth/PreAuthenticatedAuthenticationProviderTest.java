@@ -95,7 +95,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(null, null);
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, knownDittoHeaders);
+                underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
@@ -105,7 +105,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(HttpHeader.parse(DUMMY_AUTH_HEADER_NAME, ""), null);
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, knownDittoHeaders);
+                underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
@@ -116,7 +116,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
                 mockRequestContext(null, Query.create(Pair.create(DUMMY_AUTH_HEADER_NAME, "")));
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, knownDittoHeaders);
+                underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
@@ -126,7 +126,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, null);
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, knownDittoHeaders);
+                underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -136,7 +136,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(null, DUMMY_AUTH_QUERY);
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, knownDittoHeaders);
+                underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -146,7 +146,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, DUMMY_AUTH_QUERY);
 
         final AuthenticationResult authenticationResult =
-                underTest.tryToAuthenticate(requestContext, knownDittoHeaders);
+                underTest.tryToAuthenticate(requestContext, knownDittoHeaders).join();
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -176,7 +176,8 @@ public final class PreAuthenticatedAuthenticationProviderTest {
 
     @Test
     public void getType() {
-        final AuthorizationContextType type = underTest.getType(mockRequestContext(DUMMY_AUTH_HEADER, DUMMY_AUTH_QUERY));
+        final AuthorizationContextType type =
+                underTest.getType(mockRequestContext(DUMMY_AUTH_HEADER, DUMMY_AUTH_QUERY));
 
         AssertionsForClassTypes.assertThat(type).isEqualTo(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP);
     }

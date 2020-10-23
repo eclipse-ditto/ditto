@@ -176,16 +176,21 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommand(final Command<?> command) {
-        incomingCommandHeaders = command.getDittoHeaders();
-        ackregatorStarter.start(command,
-                this::onAggregatedResponseOrError,
-                this::handleCommandWithAckregator,
-                this::handleCommandWithoutAckregator
-        );
-        final Receive responseBehavior = ReceiveBuilder.create()
-                .match(Acknowledgements.class, this::completeAcknowledgements)
-                .build();
-        getContext().become(responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
+        try {
+            incomingCommandHeaders = command.getDittoHeaders();
+            ackregatorStarter.start(command,
+                    this::onAggregatedResponseOrError,
+                    this::handleCommandWithAckregator,
+                    this::handleCommandWithoutAckregator
+            );
+            final Receive responseBehavior = ReceiveBuilder.create()
+                    .match(Acknowledgements.class, this::completeAcknowledgements)
+                    .build();
+            getContext().become(
+                    responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
+        } catch (final DittoRuntimeException e) {
+            handleDittoRuntimeException(e);
+        }
     }
 
     private Void onAggregatedResponseOrError(final Object responseOrError) {
