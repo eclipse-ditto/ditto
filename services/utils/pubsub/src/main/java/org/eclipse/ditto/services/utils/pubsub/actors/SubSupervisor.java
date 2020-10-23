@@ -27,8 +27,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Supervisor of actors dealing with subscriptions.
  * <pre>
- * {@code
- *     SubSupervisor
+ * SubSupervisor
  *          +
  *          |
  *          |supervises one-for-many
