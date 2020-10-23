@@ -74,7 +74,7 @@ final class DittoRuntimeExceptionToErrorResponseFunction
         final Optional<EntityId> entityId = getEntityId(exception, topicPath);
         return entityId
                 .map(ThingId::of)
-                .map(policyId -> ThingErrorResponse.of(policyId, exception, truncatedHeaders))
+                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
     }
 

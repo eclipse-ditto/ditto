@@ -191,6 +191,11 @@ public final class InboundMappingProcessor
         message.getHeaders().forEach((key, value) -> {
             try {
                 headersBuilder.putHeader(key, value);
+                if (key.equals("device_id")) {
+                    // this is kind of a workaround to preserve "best effort" an entityId by a special header value
+                    // whenever the device connectivity layer sends the "entity id" in this header
+                    headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), value);
+                }
             } catch (final Exception e) {
                 // ignore this single invalid header
                 logger.info("Putting a (protocol) header resulted in an exception: {} - {}",
@@ -217,9 +222,11 @@ public final class InboundMappingProcessor
         return headersBuilder.build();
     }
 
-    private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final MessageMapper mapper,
+    private static DittoRuntimeException toDittoRuntimeException(final Throwable error,
+            final MessageMapper mapper,
             final DittoHeaders bestEffortHeaders,
             final ExternalMessage message) {
+
         final DittoRuntimeException dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(error, e ->
                 buildMappingFailedException("inbound",
                         message.findContentType().orElse(""),
