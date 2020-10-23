@@ -27,6 +27,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Supervisor of actors dealing with subscriptions.
  * <pre>
+ * {@code
  * SubSupervisor
  *          +
  *          |
@@ -52,6 +53,7 @@ import akka.japi.pf.ReceiveBuilder;
  *          |write with highest requested consistency                 |
  *          |                                                         |
  *          +----------------->DDataReplicator<-----------------------+
+ * }
  * </pre>
  *
  * @param <T> type of messages subscribed for.
