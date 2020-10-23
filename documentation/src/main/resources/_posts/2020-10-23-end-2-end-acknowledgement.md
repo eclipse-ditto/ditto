@@ -1,7 +1,7 @@
 ---
 title: "E2E acknowledgment"
 published: true
-permalink: 2020-10-06-end-2-end-acknowledgment.html
+permalink: 2020-10-23-end-2-end-acknowledgment.html
 layout: post
 author: yannic_klem
 tags: [blog]
