@@ -22,6 +22,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +106,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     /**
      * Publish as many thingEvents until the queue is full, then send one more,
      * fetch the failed acknowledgement and verify its message for 'dropped'.
+     *
      * @throws Exception should not be thrown
      */
     @Test
@@ -118,22 +120,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final String ack = "just-an-ack";
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(TestConstants.CORRELATION_ID)
                     .putHeader("device_id", "ditto:thing")
+                    .build();
+            final DittoHeaders withAckRequest = dittoHeaders.toBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of(ack)))
                     .build();
-            final Signal<ThingDeleted> thingEvent = ThingDeleted.of(TestConstants.Things.THING_ID, 25L, dittoHeaders);
-            final Target target = decorateTarget(createTestTarget(ack));
-            final OutboundSignal outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(thingEvent, Collections.singletonList(target));
-            final ExternalMessage externalMessage =
-                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
-                            .withText("payload")
-                            .build();
-            final Adaptable adaptable =
-                    DittoProtocolAdapter.newInstance().toAdaptable(thingEvent);
-            final OutboundSignal.Mapped mapped =
-                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
-            final OutboundSignal.MultiMapped multiMapped =
-                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
@@ -143,13 +133,18 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final int queueSize = connectionConfig.getMaxQueueSize() + connectionConfig.getPublisherParallelism();
 
             //Act
-            IntStream.range(0,queueSize + 1).forEach(n -> publisherActor.tell(multiMapped, getRef()));
+            final OutboundSignal.MultiMapped multiMapped = newMultiMappedThingDeleted(dittoHeaders, ack, getRef());
+            IntStream.range(0, queueSize).forEach(n -> publisherActor.tell(multiMapped, getRef()));
+            publisherActor.tell(newMultiMappedThingDeleted(withAckRequest, ack, getRef()), getRef());
 
             //Assert
-            final Optional<String> ErrorMessage = expectMsgClass(Acknowledgements.class).getFailedAcknowledgements().stream()
+            final Optional<String> ErrorMessage = expectMsgClass(Acknowledgements.class)
+                    .getFailedAcknowledgements()
+                    .stream()
                     .map(WithOptionalEntity::getEntity)
                     .filter(Optional::isPresent)
-                    .map(entity -> MessageSendingFailedException.fromJson(entity.get().asObject(), DittoHeaders.empty()))
+                    .map(entity ->
+                            MessageSendingFailedException.fromJson(entity.get().asObject(), DittoHeaders.empty()))
                     .map(MessageSendingFailedException::getMessage)
                     .findFirst();
             assertThat(ErrorMessage).hasValueSatisfying(msg ->
@@ -159,6 +154,24 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             verify(messageProducer, times(queueSize)).send(any(JmsMessage.class), any(CompletionListener.class));
         }};
 
+    }
+
+    private OutboundSignal.MultiMapped newMultiMappedThingDeleted(final DittoHeaders dittoHeaders,
+            final String issuedAck, final ActorRef sender) {
+        final Signal<ThingDeleted> thingEvent =
+                ThingDeleted.of(TestConstants.Things.THING_ID, 25L, Instant.now(), dittoHeaders);
+        final Target target = decorateTarget(createTestTarget(issuedAck));
+        final OutboundSignal outboundSignal =
+                OutboundSignalFactory.newOutboundSignal(thingEvent, Collections.singletonList(target));
+        final ExternalMessage externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                        .withText("payload")
+                        .build();
+        final Adaptable adaptable =
+                DittoProtocolAdapter.newInstance().toAdaptable(thingEvent);
+        final OutboundSignal.Mapped mapped =
+                OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+        return OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), sender);
     }
 
     @Test
