@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredProp
 /**
  * An immutable implementation of {@link ModifyFeatureDesiredPropertiesLiveCommand}.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @ParametersAreNonnullByDefault
 @Immutable

@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 /**
  * This command deletes a single desired property of a {@link org.eclipse.ditto.model.things.Feature}'s desired properties.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = DeleteFeatureDesiredProperty.TYPE_PREFIX, name = DeleteFeatureDesiredProperty.NAME)

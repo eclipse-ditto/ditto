@@ -90,7 +90,7 @@ public interface FeatureBuilder {
          *
          * @param desiredProperties the desired properties of the Feature to be created or {@code null}
          * @return this builder to allow method chaining.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratchBuildable desiredProperties(@Nullable FeatureProperties desiredProperties);
 
@@ -99,7 +99,7 @@ public interface FeatureBuilder {
          *
          * @param desiredProperties the desired properties of the Feature to be created or {@code null}.
          * @return this builder to allow method chaining.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratchBuildable desiredProperties(@Nullable JsonObject desiredProperties);
 
@@ -161,7 +161,7 @@ public interface FeatureBuilder {
          *
          * @param desiredProperties the desired properties of the Feature to be created or {@code null}.
          * @return this builder to allow method chaining.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopyBuildable desiredProperties(@Nullable FeatureProperties desiredProperties);
 
@@ -170,7 +170,7 @@ public interface FeatureBuilder {
          *
          * @param desiredProperties the desired properties of the Feature to be created or {@code null}.
          * @return this builder to allow method chaining.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopyBuildable desiredProperties(@Nullable JsonObject desiredProperties);
 
@@ -182,7 +182,7 @@ public interface FeatureBuilder {
          * If there are no desired properties set yet, the function is called with empty desired properties.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code transform} is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopyBuildable desiredProperties(UnaryOperator<FeatureProperties> transform);
 

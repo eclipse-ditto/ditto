@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.things.ThingId;
 /**
  * This exception indicates, that the requested desired properties do not exist or the request has insufficient rights.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableException(errorCode = FeatureDesiredPropertiesNotAccessibleException.ERROR_CODE)

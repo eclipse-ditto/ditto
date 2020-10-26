@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 /**
  * This event is emitted after a desired property of a Feature's desired properties was deleted.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableEvent(name = FeatureDesiredPropertyDeleted.NAME, typePrefix = FeatureDesiredPropertyDeleted.TYPE_PREFIX)

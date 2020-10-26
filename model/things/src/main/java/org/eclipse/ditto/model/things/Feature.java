@@ -252,7 +252,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * Returns the desired properties of this Feature.
      *
      * @return the desired properties of this Feature.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Optional<FeatureProperties> getDesiredProperties();
 
@@ -263,7 +263,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredProperties the desired properties to be set.
      * @return a copy of this Feature with the given properties.
      * @throws NullPointerException if {@code desiredProperties} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Feature setDesiredProperties(FeatureProperties desiredProperties);
 
@@ -271,7 +271,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * Removes all desired properties on a copy of this Feature.
      *
      * @return a copy of this Feature with all of its desired properties removed.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Feature removeDesiredProperties();
 
@@ -281,7 +281,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param pointer defines the hierarchical path to the desired property value to be returned.
      * @return the value of the desired property which is referred by {@code pointer}.
      * @throws NullPointerException if {@code pointer} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Optional<JsonValue> getDesiredProperty(final CharSequence pointer) {
         return getDesiredProperty(JsonPointer.of(pointer));
@@ -293,7 +293,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param pointer defines the hierarchical path to the desired property value to be returned.
      * @return the value of the desired property which is referred by {@code pointer}.
      * @throws NullPointerException if {@code pointer} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Optional<JsonValue> getDesiredProperty(JsonPointer pointer);
 
@@ -304,7 +304,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final JsonValue desiredPropertyValue) {
         return setDesiredProperty(JsonPointer.of(pointer), desiredPropertyValue);
@@ -317,7 +317,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final boolean desiredPropertyValue) {
         return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
@@ -330,7 +330,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final int desiredPropertyValue) {
         return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
@@ -343,7 +343,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final long desiredPropertyValue) {
         return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
@@ -356,7 +356,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final double desiredPropertyValue) {
         return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
@@ -369,7 +369,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature setDesiredProperty(final CharSequence pointer, final String desiredPropertyValue) {
         return setDesiredProperty(JsonPointer.of(pointer), JsonValue.of(desiredPropertyValue));
@@ -382,7 +382,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Feature with the given desired property value set.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Feature setDesiredProperty(JsonPointer pointer, JsonValue desiredPropertyValue);
 
@@ -392,7 +392,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param pointer defines the hierarchical path to the desired property to be removed.
      * @return a copy of this Feature with the specified desired property removed.
      * @throws NullPointerException if {@code pointer} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Feature removeDesiredProperty(final CharSequence pointer) {
         return removeDesiredProperty(JsonPointer.of(pointer));
@@ -404,7 +404,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param pointer defines the hierarchical path to the desired property to be removed.
      * @return a copy of this Feature with the specified desired property removed.
      * @throws NullPointerException if {@code pointer} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Feature removeDesiredProperty(JsonPointer pointer);
 
@@ -453,7 +453,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
         /**
          * JSON field definition for the Feature's desired properties as {@link org.eclipse.ditto.json.JsonObject}.
          *
-         * @since 1.4.0
+         * @since 1.5.0
          */
         public static final JsonFieldDefinition<JsonObject> DESIRED_PROPERTIES =
                 JsonFactory.newJsonObjectFieldDefinition("desiredProperties", FieldType.REGULAR,

@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPro
 /**
  * An immutable implementation of {@link RetrieveFeatureDesiredPropertyLiveCommand}.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @ParametersAreNonnullByDefault
 @Immutable

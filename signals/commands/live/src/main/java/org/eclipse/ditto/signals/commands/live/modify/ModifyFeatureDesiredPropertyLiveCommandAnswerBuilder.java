@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyModified;
  * LiveCommandAnswer builder for producing {@code CommandResponse}s and {@code Event}s for {@link ModifyFeatureDesiredProperty}
  * commands.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface ModifyFeatureDesiredPropertyLiveCommandAnswerBuilder
         extends LiveCommandAnswerBuilder.ModifyCommandResponseStep<

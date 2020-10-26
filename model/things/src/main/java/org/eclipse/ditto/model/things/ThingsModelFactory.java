@@ -392,7 +392,7 @@ public final class ThingsModelFactory {
      * @throws NullPointerException if {@code featureId} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
      * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     public static Feature newFeature(final CharSequence featureId,
             @Nullable final FeatureDefinition featureDefinition,

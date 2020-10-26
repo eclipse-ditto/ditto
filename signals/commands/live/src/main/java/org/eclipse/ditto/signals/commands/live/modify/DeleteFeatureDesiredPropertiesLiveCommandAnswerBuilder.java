@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesDeleted;
  * LiveCommandAnswer builder for producing {@code CommandResponse}s and {@code Event}s for {@link
  * DeleteFeatureDesiredProperties} commands.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface DeleteFeatureDesiredPropertiesLiveCommandAnswerBuilder
         extends

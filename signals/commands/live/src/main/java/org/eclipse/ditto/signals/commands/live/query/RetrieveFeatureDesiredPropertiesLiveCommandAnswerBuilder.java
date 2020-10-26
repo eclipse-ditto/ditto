@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPro
 /**
  * LiveCommandAnswer builder for producing {@code CommandResponse}s for {@link RetrieveFeatureDesiredProperties} commands.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface RetrieveFeatureDesiredPropertiesLiveCommandAnswerBuilder extends
         LiveCommandAnswerBuilder.QueryCommandResponseStep<RetrieveFeatureDesiredPropertiesLiveCommandAnswerBuilder.ResponseFactory> {

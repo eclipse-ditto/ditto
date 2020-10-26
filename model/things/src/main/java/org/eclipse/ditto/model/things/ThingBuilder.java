@@ -320,7 +320,7 @@ public interface ThingBuilder {
          * @param featureDesiredProperties the desired properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratch setFeature(CharSequence featureId,
                 @Nullable FeatureDefinition featureDefinition,
@@ -416,7 +416,7 @@ public interface ThingBuilder {
          * @param desiredPropertyValue the desired property value to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratch setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath,
                 JsonValue desiredPropertyValue);
@@ -428,7 +428,7 @@ public interface ThingBuilder {
          * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratch removeFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath);
 
@@ -439,7 +439,7 @@ public interface ThingBuilder {
          * @param desiredFeatureProperties the desired properties to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratch setFeatureDesiredProperties(CharSequence featureId, FeatureProperties desiredFeatureProperties);
 
@@ -449,7 +449,7 @@ public interface ThingBuilder {
          * @param featureId the ID of the Feature.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromScratch removeFeatureDesiredProperties(CharSequence featureId);
 
@@ -1159,7 +1159,7 @@ public interface ThingBuilder {
          * @param featureDesiredProperties the desired properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         default FromCopy setFeature(final CharSequence featureId,
                 final FeatureDefinition featureDefinition,
@@ -1199,7 +1199,7 @@ public interface ThingBuilder {
          * @param featureDesiredProperties the desired properties of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopy setFeature(Predicate<Features> existingFeaturesPredicate,
                 CharSequence featureId,
@@ -1350,7 +1350,7 @@ public interface ThingBuilder {
          * @param desiredPropertyValue the desired property value to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         default FromCopy setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
                 final JsonValue desiredPropertyValue) {
@@ -1369,7 +1369,7 @@ public interface ThingBuilder {
          * @param desiredPropertyValue the desired property value to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopy setFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
                 JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
@@ -1381,7 +1381,7 @@ public interface ThingBuilder {
          * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         default FromCopy removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
             return removeFeatureDesiredProperty(existingFeatures -> true, featureId, desiredPropertyPath);
@@ -1396,7 +1396,7 @@ public interface ThingBuilder {
          * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopy removeFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
                 JsonPointer desiredPropertyPath);
@@ -1408,7 +1408,7 @@ public interface ThingBuilder {
          * @param desiredFeatureProperties the desired properties to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         default FromCopy setFeatureDesiredProperties(final CharSequence featureId,
                 final FeatureProperties desiredFeatureProperties) {
@@ -1425,7 +1425,7 @@ public interface ThingBuilder {
          * @param desiredFeatureProperties the desired properties to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopy setFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
                 FeatureProperties desiredFeatureProperties);
@@ -1436,7 +1436,7 @@ public interface ThingBuilder {
          * @param featureId the ID of the Feature.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featureId} is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         default FromCopy removeFeatureDesiredProperties(final CharSequence featureId) {
             return removeFeatureDesiredProperties(existingFeatures -> true, featureId);
@@ -1450,7 +1450,7 @@ public interface ThingBuilder {
          * @param featureId the ID of the Feature.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 1.4.0
+         * @since 1.5.0
          */
         FromCopy removeFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, CharSequence featureId);
 

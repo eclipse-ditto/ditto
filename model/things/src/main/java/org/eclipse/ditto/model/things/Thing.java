@@ -424,7 +424,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredProperties the desired properties to be set.
      * @return a copy of this Thing with the Feature containing the given desired properties.
      * @throws NullPointerException if {@code featureId} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Thing setFeatureDesiredProperties(CharSequence featureId, FeatureProperties desiredProperties);
 
@@ -436,7 +436,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
@@ -452,7 +452,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final boolean desiredPropertyValue) {
@@ -468,7 +468,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath, final int desiredPropertyValue) {
         return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
@@ -482,7 +482,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final long desiredPropertyValue) {
@@ -498,7 +498,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final double desiredPropertyValue) {
@@ -514,7 +514,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final String desiredPropertyValue) {
@@ -530,7 +530,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param desiredPropertyValue the desired property value to be set.
      * @return a copy of this Thing with the Feature containing the given desired property.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Thing setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
 
@@ -540,7 +540,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param featureId the ID of the Feature of which all desired properties are to be removed.
      * @return a copy of this Thing with all of the Feature's desired properties removed.
      * @throws NullPointerException if {@code featureId} is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Thing removeFeatureDesiredProperties(CharSequence featureId);
 
@@ -551,7 +551,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param propertyPath the hierarchical path within the Feature to the desired property to be removed.
      * @return a copy of this Thing with the given Features desired property removed.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     default Thing removeFeatureDesiredProperty(final CharSequence featureId, final CharSequence propertyPath) {
         return removeFeatureDesiredProperty(featureId, JsonPointer.of(propertyPath));
@@ -564,7 +564,7 @@ public interface Thing extends Entity<ThingRevision> {
      * @param propertyPath the hierarchical path within the Feature to the desired property to be removed.
      * @return a copy of this Thing with the given Feature desired property removed.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.4.0
+     * @since 1.5.0
      */
     Thing removeFeatureDesiredProperty(CharSequence featureId, JsonPointer propertyPath);
 

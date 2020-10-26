@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredProp
 /**
  * An immutable implementation of {@link DeleteFeatureDesiredPropertiesLiveCommand}.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @ParametersAreNonnullByDefault
 @Immutable

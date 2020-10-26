@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisi
 /**
  * Field expression for feature desiredProperties with a given feature id.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public class FeatureIdDesiredPropertyExpressionImpl
         implements SortFieldExpression, FilterFieldExpression, ExistsFieldExpression {

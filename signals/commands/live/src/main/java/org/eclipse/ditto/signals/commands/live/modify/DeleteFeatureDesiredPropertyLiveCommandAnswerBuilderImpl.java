@@ -33,7 +33,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyDeleted;
  * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a {@link
  * DeleteFeatureDesiredPropertyLiveCommand}.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @ParametersAreNonnullByDefault
 @NotThreadSafe

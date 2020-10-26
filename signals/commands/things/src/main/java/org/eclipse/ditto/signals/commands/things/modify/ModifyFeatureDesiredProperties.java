@@ -43,7 +43,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 /**
  * This command modifies a {@link org.eclipse.ditto.model.things.Feature}'s properties.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ModifyFeatureDesiredProperties.TYPE_PREFIX,

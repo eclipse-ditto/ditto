@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 /**
  * This command retrieves a {@link org.eclipse.ditto.model.things.Feature}'s desired property.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = RetrieveFeatureDesiredProperty.TYPE_PREFIX, name = RetrieveFeatureDesiredProperty.NAME)

@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 /**
  * Response to a {@link RetrieveFeatureDesiredProperties} command.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveFeatureDesiredPropertiesResponse.TYPE)

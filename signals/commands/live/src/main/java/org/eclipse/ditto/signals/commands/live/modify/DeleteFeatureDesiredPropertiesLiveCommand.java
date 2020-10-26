@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  * entry point for creating a {@link DeleteFeatureDesiredPropertiesLiveCommandAnswerBuilder} as answer for an incoming
  * command.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface DeleteFeatureDesiredPropertiesLiveCommand extends
         LiveCommand<DeleteFeatureDesiredPropertiesLiveCommand, DeleteFeatureDesiredPropertiesLiveCommandAnswerBuilder>,

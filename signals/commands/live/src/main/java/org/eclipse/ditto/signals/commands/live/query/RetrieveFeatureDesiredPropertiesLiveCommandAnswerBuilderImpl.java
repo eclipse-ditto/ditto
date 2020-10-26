@@ -31,7 +31,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPro
  * A mutable builder with a fluent API for creating a {@link LiveCommandAnswer} for a {@link
  * RetrieveFeatureDesiredPropertiesLiveCommand}.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @ParametersAreNonnullByDefault
 @NotThreadSafe

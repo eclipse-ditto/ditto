@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  * {@link ModifyFeatureDesiredProperty} live command giving access to the command and all of its special accessors. Also the
  * entry point for creating a {@link ModifyFeatureDesiredPropertyLiveCommandAnswerBuilder} as answer for an incoming command.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface ModifyFeatureDesiredPropertyLiveCommand
         extends

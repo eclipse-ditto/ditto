@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.things.ThingId;
 /**
  * Indicates that the desired properties cannot be modified.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @JsonParsableException(errorCode = FeatureDesiredPropertiesNotModifiableException.ERROR_CODE)
 public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntimeException implements ThingException {

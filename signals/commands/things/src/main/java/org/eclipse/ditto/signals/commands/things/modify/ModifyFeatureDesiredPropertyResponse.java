@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 /**
  * Response to a {@link ModifyFeatureDesiredProperty} command.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifyFeatureDesiredPropertyResponse.TYPE)

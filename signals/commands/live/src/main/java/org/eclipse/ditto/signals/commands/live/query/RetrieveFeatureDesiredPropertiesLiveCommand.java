@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
  * the entry  point for creating a {@link RetrieveFeatureDesiredPropertiesLiveCommandAnswerBuilder} capable of answering
  * incoming commands.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface RetrieveFeatureDesiredPropertiesLiveCommand
         extends LiveCommand<RetrieveFeatureDesiredPropertiesLiveCommand, RetrieveFeatureDesiredPropertiesLiveCommandAnswerBuilder>,

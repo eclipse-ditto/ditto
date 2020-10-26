@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  * entry point for creating a {@link ModifyFeatureDesiredPropertiesLiveCommandAnswerBuilder} as answer for an incoming
  * command.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 public interface ModifyFeatureDesiredPropertiesLiveCommand extends LiveCommand<ModifyFeatureDesiredPropertiesLiveCommand,
         ModifyFeatureDesiredPropertiesLiveCommandAnswerBuilder>, ThingModifyCommand<ModifyFeatureDesiredPropertiesLiveCommand>,
