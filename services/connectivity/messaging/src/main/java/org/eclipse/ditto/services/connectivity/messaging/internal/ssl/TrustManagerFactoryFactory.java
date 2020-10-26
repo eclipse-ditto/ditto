@@ -35,7 +35,6 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
@@ -73,14 +72,13 @@ public final class TrustManagerFactoryFactory {
     }
 
     public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates,
-            @Nullable final ConnectionLogger connectionLogger) {
-        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates, connectionLogger));
+            final boolean checkRevocation) {
+        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates, checkRevocation));
     }
 
-    public TrustManagerFactory newTrustManagerFactory(final Connection connection,
-            final ConnectionLogger connectionLogger) {
+    public TrustManagerFactory newTrustManagerFactory(final Connection connection, final boolean checkRevocation) {
         final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-        final TrustManagerFactory factory = newTrustManagerFactory(trustedCertificates, connectionLogger);
+        final TrustManagerFactory factory = newTrustManagerFactory(trustedCertificates, checkRevocation);
         if (connection.isValidateCertificates()) {
             return factory;
         } else {
@@ -92,8 +90,9 @@ public final class TrustManagerFactoryFactory {
         return InsecureTrustManagerFactory.INSTANCE;
     }
 
-    private TrustManagerFactory createTrustManagerFactory(@Nullable final String trustedCertificates,
-            @Nullable final ConnectionLogger connectionLogger)
+    private TrustManagerFactory createTrustManagerFactory(
+            @Nullable final String trustedCertificates,
+            final boolean checkForRevocation)
             throws NoSuchAlgorithmException, CertificateException, KeyStoreException,
             InvalidAlgorithmParameterException {
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(PKIX);
@@ -109,19 +108,19 @@ public final class TrustManagerFactoryFactory {
             trustManagerFactory.init(keystore);
         } else {
             // standard CAs; add revocation check
-            final PKIXRevocationChecker revocationChecker =
-                    (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker();
-            final PKIXRevocationChecker silentlyFailingRevocationChecker =
-                    SilentlyFailingRevocationChecker.getInstance(revocationChecker, connectionLogger);
-
             final PKIXBuilderParameters parameters =
                     new PKIXBuilderParameters(DEFAULT_CA_KEYSTORE, new X509CertSelector());
-            parameters.addCertPathChecker(silentlyFailingRevocationChecker);
+            if (checkForRevocation) {
+                parameters.addCertPathChecker(
+                        (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker()
+                );
+            } else {
+                parameters.addCertPathChecker(NoRevocationChecker.getInstance());
+            }
             trustManagerFactory.init(new CertPathTrustManagerParameters(parameters));
         }
         return trustManagerFactory;
     }
-
 
     private static KeyStore loadDefaultCAKeystore() {
         try {

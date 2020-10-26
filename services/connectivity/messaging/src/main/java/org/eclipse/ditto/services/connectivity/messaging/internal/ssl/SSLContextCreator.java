@@ -39,29 +39,32 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     private final ExceptionMapper exceptionMapper;
     @Nullable private final String hostname;
     private final KeyManagerFactoryFactory keyManagerFactoryFactory;
-    @Nullable private final TrustManagerFactory trustManagerFactory;
+    @Nullable private final TrustManagerFactoryFactory trustManagerFactoryFactory;
+    @Nullable private final String trustedCertificates;
+    @Nullable private final ConnectionLogger connectionLogger;
 
     private SSLContextCreator(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
             @Nullable final String hostname,
             @Nullable final ConnectionLogger connectionLogger) {
-        this.exceptionMapper = new ExceptionMapper(dittoHeaders);
+        exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
-        this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
-        final TrustManagerFactoryFactory
-                trustManagerFactoryFactory = TrustManagerFactoryFactory.getInstance(exceptionMapper);
-        this.trustManagerFactory =
-                trustManagerFactoryFactory.newTrustManagerFactory(trustedCertificates, connectionLogger);
-        this.trustManager = null;
+        keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
+        trustManagerFactoryFactory = TrustManagerFactoryFactory.getInstance(exceptionMapper);
+        this.trustedCertificates = trustedCertificates;
+        this.connectionLogger = connectionLogger;
+        trustManager = null;
     }
 
     private SSLContextCreator(final TrustManager trustManager,
             @Nullable final DittoHeaders dittoHeaders,
             @Nullable final String hostname) {
-        this.exceptionMapper = new ExceptionMapper(dittoHeaders);
+        exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
-        this.keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
-        this.trustManagerFactory = null;
+        keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
+        trustManagerFactoryFactory = null;
+        trustedCertificates = null;
+        connectionLogger = null;
         this.trustManager = trustManager;
     }
 
@@ -127,8 +130,17 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         }
 
         final TrustManager[] trustManagers;
-        if (trustManagerFactory != null) {
-            trustManagers = DittoTrustManager.wrapTrustManagers(trustManagerFactory.getTrustManagers(), hostname);
+        if (trustManagerFactoryFactory != null) {
+            final TrustManagerFactory withRevocationCheck =
+                    trustManagerFactoryFactory.newTrustManagerFactory(trustedCertificates, true);
+            final TrustManagerFactory withoutRevocationCheck =
+                    trustManagerFactoryFactory.newTrustManagerFactory(trustedCertificates, false);
+            trustManagers = DittoTrustManager.wrapTrustManagers(
+                    withRevocationCheck.getTrustManagers(),
+                    withoutRevocationCheck.getTrustManagers(),
+                    hostname,
+                    connectionLogger
+            );
         } else if (trustManager != null) {
             trustManagers = new TrustManager[]{trustManager};
         } else {

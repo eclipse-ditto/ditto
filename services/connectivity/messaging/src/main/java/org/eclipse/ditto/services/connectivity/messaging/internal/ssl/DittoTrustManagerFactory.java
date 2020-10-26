@@ -37,32 +37,46 @@ public final class DittoTrustManagerFactory extends TrustManagerFactory {
 
     public static DittoTrustManagerFactory from(final Connection connection, final ConnectionLogger connectionLogger) {
         final String hostname = connection.getHostname();
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(connection, connectionLogger), hostname);
+        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(connection, true),
+                FACTORY.newTrustManagerFactory(connection, false),
+                hostname,
+                connectionLogger);
     }
 
     static DittoTrustManagerFactory from(@Nullable final String trustedCertificates, final String hostname,
             final ConnectionLogger connectionLogger) {
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(trustedCertificates, connectionLogger),
-                hostname);
+        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(trustedCertificates, true),
+                FACTORY.newTrustManagerFactory(trustedCertificates, false),
+                hostname,
+                connectionLogger);
     }
 
-    private DittoTrustManagerFactory(final TrustManagerFactory delegate, final String hostname) {
+    private DittoTrustManagerFactory(final TrustManagerFactory delegateWithRevocationCheck,
+            final TrustManagerFactory delegateWithoutRevocationCheck,
+            final String hostname,
+            final ConnectionLogger connectionLogger) {
         super(new TrustManagerFactorySpi() {
             @Override
             protected void engineInit(KeyStore keyStore) throws KeyStoreException {
-                delegate.init(keyStore);
+                delegateWithRevocationCheck.init(keyStore);
+                delegateWithoutRevocationCheck.init(keyStore);
             }
 
             @Override
             protected void engineInit(ManagerFactoryParameters managerFactoryParameters) throws
                     InvalidAlgorithmParameterException {
-                delegate.init(managerFactoryParameters);
+                delegateWithRevocationCheck.init(managerFactoryParameters);
+                delegateWithoutRevocationCheck.init(managerFactoryParameters);
             }
 
             @Override
             protected TrustManager[] engineGetTrustManagers() {
-                return DittoTrustManager.wrapTrustManagers(delegate.getTrustManagers(), hostname);
+                return DittoTrustManager.wrapTrustManagers(
+                        delegateWithRevocationCheck.getTrustManagers(),
+                        delegateWithoutRevocationCheck.getTrustManagers(),
+                        hostname,
+                        connectionLogger);
             }
-        }, delegate.getProvider(), delegate.getAlgorithm());
+        }, delegateWithRevocationCheck.getProvider(), delegateWithRevocationCheck.getAlgorithm());
     }
 }
