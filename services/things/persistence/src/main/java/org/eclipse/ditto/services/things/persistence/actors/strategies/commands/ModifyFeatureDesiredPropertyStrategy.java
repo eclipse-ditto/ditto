@@ -93,8 +93,11 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final ModifyFeatureDesiredProperty command, @Nullable final Thing thing,
+    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature,
+            final Context<ThingId> context,
+            final long nextRevision,
+            final ModifyFeatureDesiredProperty command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
         return feature.getDesiredProperties()
@@ -103,8 +106,10 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeatureDesiredProperty command, @Nullable final Thing thing,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context,
+            final long nextRevision,
+            final ModifyFeatureDesiredProperty command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
         final String featureId = command.getFeatureId();
@@ -122,8 +127,10 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeatureDesiredProperty command, @Nullable final Thing thing,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context,
+            final long nextRevision,
+            final ModifyFeatureDesiredProperty command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
         final String featureId = command.getFeatureId();
@@ -142,10 +149,10 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyFeatureDesiredProperty command,
             @Nullable final Thing previousEntity) {
+
         return extractFeature(command, previousEntity).flatMap(Feature::getDesiredProperties)
                 .flatMap(props -> props.getValue(command.getDesiredPropertyPointer()).flatMap(EntityTag::fromEntity));
     }

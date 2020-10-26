@@ -29,6 +29,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNot
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDesiredPropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
 
@@ -110,7 +111,7 @@ final class ExceptionFactory {
     static DittoRuntimeException featurePropertiesNotFound(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        return FeatureDesiredPropertiesNotAccessibleException.newBuilder(thingId, featureId)
+        return FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }

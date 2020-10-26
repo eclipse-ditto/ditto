@@ -60,18 +60,19 @@ final class ModifyFeatureDesiredPropertiesStrategy
 
         final Thing nonNullThing = getEntityOrThrow(thing);
 
-        final JsonObject thingWithoutProperties = nonNullThing.removeFeatureDesiredProperties(featureId).toJson();
+        final JsonObject thingWithoutDesiredProperties =
+                nonNullThing.removeFeatureDesiredProperties(featureId).toJson();
         final JsonObject propertiesJsonObject = command.getDesiredProperties().toJson();
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 () -> {
-                    final long lengthWithOutProperties = thingWithoutProperties.getUpperBoundForStringSize();
+                    final long lengthWithOutProperties = thingWithoutDesiredProperties.getUpperBoundForStringSize();
                     final long propertiesLength = propertiesJsonObject.getUpperBoundForStringSize()
                             + "properties".length() + featureId.length() + 5L;
                     return lengthWithOutProperties + propertiesLength;
                 },
                 () -> {
-                    final long lengthWithOutProperties = thingWithoutProperties.toString().length();
+                    final long lengthWithOutProperties = thingWithoutDesiredProperties.toString().length();
                     final long propertiesLength = propertiesJsonObject.toString().length()
                             + "properties".length() + featureId.length() + 5L;
                     return lengthWithOutProperties + propertiesLength;
@@ -87,13 +88,17 @@ final class ModifyFeatureDesiredPropertiesStrategy
 
     private Optional<Feature> extractFeature(final ModifyFeatureDesiredProperties command,
             @Nullable final Thing thing) {
+
         return Optional.ofNullable(thing)
                 .flatMap(Thing::getFeatures)
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final ModifyFeatureDesiredProperties command, @Nullable final Thing thing,
+    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature,
+            final Context<ThingId> context,
+            final long nextRevision,
+            final ModifyFeatureDesiredProperties command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
         return feature.getDesiredProperties()
@@ -101,8 +106,10 @@ final class ModifyFeatureDesiredPropertiesStrategy
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeatureDesiredProperties command, @Nullable final Thing thing,
+    private Result<ThingEvent> getModifyResult(final Context<ThingId> context,
+            final long nextRevision,
+            final ModifyFeatureDesiredProperties command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
@@ -118,8 +125,10 @@ final class ModifyFeatureDesiredPropertiesStrategy
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeatureDesiredProperties command, @Nullable final Thing thing,
+    private Result<ThingEvent> getCreateResult(final Context<ThingId> context,
+            final long nextRevision,
+            final ModifyFeatureDesiredProperties command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
@@ -137,10 +146,10 @@ final class ModifyFeatureDesiredPropertiesStrategy
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyFeatureDesiredProperties command,
             @Nullable final Thing previousEntity) {
+
         return extractFeature(command, previousEntity).flatMap(Feature::getDesiredProperties)
                 .flatMap(EntityTag::fromEntity);
     }
@@ -148,6 +157,7 @@ final class ModifyFeatureDesiredPropertiesStrategy
     @Override
     public Optional<EntityTag> nextEntityTag(final ModifyFeatureDesiredProperties command,
             @Nullable final Thing newEntity) {
+
         return Optional.of(command.getDesiredProperties()).flatMap(EntityTag::fromEntity);
     }
 }

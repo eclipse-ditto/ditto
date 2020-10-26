@@ -35,7 +35,8 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperty} command.
  */
 @Immutable
-final class RetrieveFeatureDesiredPropertyStrategy extends AbstractThingCommandStrategy<RetrieveFeatureDesiredProperty> {
+final class RetrieveFeatureDesiredPropertyStrategy
+        extends AbstractThingCommandStrategy<RetrieveFeatureDesiredProperty> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDesiredPropertyStrategy} object.
@@ -60,16 +61,21 @@ final class RetrieveFeatureDesiredPropertyStrategy extends AbstractThingCommandS
                                 featureId, command.getDittoHeaders()), command));
     }
 
-    private Optional<Feature> extractFeature(final RetrieveFeatureDesiredProperty command, final @Nullable Thing thing) {
+    private Optional<Feature> extractFeature(final RetrieveFeatureDesiredProperty command,
+            final @Nullable Thing thing) {
+
         return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getRetrieveFeatureDesiredPropertyResult(final Feature feature, final Context<ThingId> context,
-            final RetrieveFeatureDesiredProperty command, @Nullable final Thing thing) {
+    private Result<ThingEvent> getRetrieveFeatureDesiredPropertyResult(final Feature feature,
+            final Context<ThingId> context,
+            final RetrieveFeatureDesiredProperty command,
+            @Nullable final Thing thing) {
 
         return feature.getDesiredProperties()
-                .map(desiredProperties -> getRetrieveFeatureDesiredPropertyResult(desiredProperties, context, command, thing))
+                .map(desiredProperties -> getRetrieveFeatureDesiredPropertyResult(desiredProperties, context, command,
+                        thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDesiredPropertiesNotFound(context.getState(), feature.getId(),
                                 command.getDittoHeaders()), command));
@@ -77,7 +83,8 @@ final class RetrieveFeatureDesiredPropertyStrategy extends AbstractThingCommandS
 
     private Result<ThingEvent> getRetrieveFeatureDesiredPropertyResult(final JsonObject featureProperties,
             final Context<ThingId> context,
-            final RetrieveFeatureDesiredProperty command, @Nullable final Thing thing) {
+            final RetrieveFeatureDesiredProperty command,
+            @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
         final JsonPointer propertyPointer = command.getDesiredPropertyPointer();
@@ -96,11 +103,14 @@ final class RetrieveFeatureDesiredPropertyStrategy extends AbstractThingCommandS
     @Override
     public Optional<EntityTag> previousEntityTag(final RetrieveFeatureDesiredProperty command,
             @Nullable final Thing previousEntity) {
+
         return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureDesiredProperty command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureDesiredProperty command,
+            @Nullable final Thing newEntity) {
+
         return extractFeature(command, newEntity)
                 .flatMap(Feature::getDesiredProperties)
                 .flatMap(featureProperties -> featureProperties.getValue(command.getDesiredPropertyPointer()))

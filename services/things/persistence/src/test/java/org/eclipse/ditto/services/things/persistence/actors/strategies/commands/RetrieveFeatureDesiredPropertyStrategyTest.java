@@ -81,7 +81,7 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
                 RetrieveFeatureDesiredProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                         JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featurePropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureDesiredPropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDesiredProperties()), command,

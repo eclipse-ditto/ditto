@@ -35,7 +35,8 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link RetrieveFeatureDesiredProperties} command.
  */
 @Immutable
-final class RetrieveFeatureDesiredPropertiesStrategy extends AbstractThingCommandStrategy<RetrieveFeatureDesiredProperties> {
+final class RetrieveFeatureDesiredPropertiesStrategy
+        extends AbstractThingCommandStrategy<RetrieveFeatureDesiredProperties> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDesiredPropertiesStrategy} object.
@@ -60,13 +61,17 @@ final class RetrieveFeatureDesiredPropertiesStrategy extends AbstractThingComman
                         ExceptionFactory.featureNotFound(thingId, featureId, command.getDittoHeaders()), command));
     }
 
-    private Optional<Feature> extractFeature(final RetrieveFeatureDesiredProperties command, final @Nullable Thing thing) {
+    private Optional<Feature> extractFeature(final RetrieveFeatureDesiredProperties command,
+            final @Nullable Thing thing) {
+
         return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getFeatureDesiredProperties(final Feature feature, final ThingId thingId,
-            final RetrieveFeatureDesiredProperties command, @Nullable final Thing thing) {
+    private Result<ThingEvent> getFeatureDesiredProperties(final Feature feature,
+            final ThingId thingId,
+            final RetrieveFeatureDesiredProperties command,
+            @Nullable final Thing thing) {
 
         final String featureId = feature.getId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -83,6 +88,7 @@ final class RetrieveFeatureDesiredPropertiesStrategy extends AbstractThingComman
 
     private static JsonObject getFeatureDesiredPropertiesJson(final FeatureProperties desiredProperties,
             final RetrieveFeatureDesiredProperties command) {
+
         return command.getSelectedFields()
                 .map(selectedFields -> desiredProperties.toJson(command.getImplementedSchemaVersion(), selectedFields))
                 .orElseGet(() -> desiredProperties.toJson(command.getImplementedSchemaVersion()));
@@ -91,11 +97,13 @@ final class RetrieveFeatureDesiredPropertiesStrategy extends AbstractThingComman
     @Override
     public Optional<EntityTag> previousEntityTag(final RetrieveFeatureDesiredProperties command,
             @Nullable final Thing previousEntity) {
+
         return nextEntityTag(command, previousEntity);
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureDesiredProperties command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureDesiredProperties command,
+            @Nullable final Thing newEntity) {
 
         return extractFeature(command, newEntity).flatMap(Feature::getDesiredProperties).flatMap(EntityTag::fromEntity);
     }

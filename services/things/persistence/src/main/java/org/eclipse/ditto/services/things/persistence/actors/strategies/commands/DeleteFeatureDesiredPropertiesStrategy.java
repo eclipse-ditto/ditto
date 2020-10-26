@@ -35,7 +35,8 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredProperties} command.
  */
 @Immutable
-final class DeleteFeatureDesiredPropertiesStrategy extends AbstractThingCommandStrategy<DeleteFeatureDesiredProperties> {
+final class DeleteFeatureDesiredPropertiesStrategy
+        extends AbstractThingCommandStrategy<DeleteFeatureDesiredProperties> {
 
     /**
      * Constructs a new {@code DeleteFeatureDesiredPropertiesStrategy} object.
@@ -66,11 +67,14 @@ final class DeleteFeatureDesiredPropertiesStrategy extends AbstractThingCommandS
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getDeleteFeatureDesiredPropertiesResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final DeleteFeatureDesiredProperties command, @Nullable final Thing thing,
+    private Result<ThingEvent> getDeleteFeatureDesiredPropertiesResult(final Feature feature,
+            final Context<ThingId> context,
+            final long nextRevision,
+            final DeleteFeatureDesiredProperties command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingId thingId = context.getState();
         final String featureId = feature.getId();
 
@@ -90,11 +94,15 @@ final class DeleteFeatureDesiredPropertiesStrategy extends AbstractThingCommandS
     @Override
     public Optional<EntityTag> previousEntityTag(final DeleteFeatureDesiredProperties command,
             @Nullable final Thing previousEntity) {
-        return extractFeature(command, previousEntity).flatMap(Feature::getDesiredProperties).flatMap(EntityTag::fromEntity);
+
+        return extractFeature(command, previousEntity).flatMap(Feature::getDesiredProperties)
+                .flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final DeleteFeatureDesiredProperties command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteFeatureDesiredProperties command,
+            @Nullable final Thing newEntity) {
+
         return Optional.empty();
     }
 

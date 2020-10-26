@@ -65,40 +65,48 @@ final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getDeleteFeatureDesiredPropertyResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final DeleteFeatureDesiredProperty command, @Nullable final Thing thing,
+    private Result<ThingEvent> getDeleteFeatureDesiredPropertyResult(final Feature feature,
+            final Context<ThingId> context,
+            final long nextRevision,
+            final DeleteFeatureDesiredProperty command,
+            @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
-        final JsonPointer propertyPointer = command.getDesiredPropertyPointer();
+        final JsonPointer desiredPropertyPointer = command.getDesiredPropertyPointer();
         final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return feature.getDesiredProperties()
-                .flatMap(desiredProperties -> desiredProperties.getValue(propertyPointer))
+                .flatMap(desiredProperties -> desiredProperties.getValue(desiredPropertyPointer))
                 .map(FeatureDesiredProperty -> {
                     final ThingEvent event =
-                            FeatureDesiredPropertyDeleted.of(thingId, featureId, propertyPointer, nextRevision,
+                            FeatureDesiredPropertyDeleted.of(thingId, featureId, desiredPropertyPointer, nextRevision,
                                     getEventTimestamp(), dittoHeaders, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                            DeleteFeatureDesiredPropertyResponse.of(thingId, featureId, propertyPointer, dittoHeaders), thing);
+                            DeleteFeatureDesiredPropertyResponse.of(thingId, featureId, desiredPropertyPointer,
+                                    dittoHeaders), thing);
                     return ResultFactory.newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureDesiredPropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders),
+                        ExceptionFactory.featureDesiredPropertyNotFound(thingId, featureId, desiredPropertyPointer,
+                                dittoHeaders),
                         command));
     }
 
     @Override
     public Optional<EntityTag> previousEntityTag(final DeleteFeatureDesiredProperty command,
             @Nullable final Thing previousEntity) {
+
         return extractFeature(command, previousEntity).flatMap(Feature::getDesiredProperties)
                 .flatMap(properties -> properties.getValue(command.getDesiredPropertyPointer()))
                 .flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final DeleteFeatureDesiredProperty command, @Nullable final Thing newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeleteFeatureDesiredProperty command,
+            @Nullable final Thing newEntity) {
+
         return Optional.empty();
     }
 }
