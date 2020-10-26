@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -69,7 +69,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
     private final FeatureProperties desiredProperties;
 
     private FeatureDesiredPropertiesCreated(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final FeatureProperties desiredProperties,
             final long revision,
             @Nullable final Instant timestamp,
@@ -77,8 +77,8 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
-        this.desiredProperties = requireNonNull(desiredProperties, "The desired properties must not be null!");
+        this.featureId = checkNotNull(featureId.toString(), "featureId");
+        this.desiredProperties = checkNotNull(desiredProperties, "desiredProperties");
     }
 
     /**
@@ -95,7 +95,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
      * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
      */
     public static FeatureDesiredPropertiesCreated of(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final FeatureProperties desiredProperties,
             final long revision,
             @Nullable final Instant timestamp,
@@ -103,8 +103,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
             @Nullable final Metadata metadata) {
 
         return new FeatureDesiredPropertiesCreated(thingId, featureId, desiredProperties, revision, timestamp,
-                dittoHeaders,
-                metadata);
+                dittoHeaders, metadata);
     }
 
     /**
@@ -118,7 +117,8 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * 'FeatureDesiredPropertiesCreated' format.
      */
-    public static FeatureDesiredPropertiesCreated fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static FeatureDesiredPropertiesCreated fromJson(final String jsonString,
+            final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -134,6 +134,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
      */
     public static FeatureDesiredPropertiesCreated fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new EventJsonDeserializer<FeatureDesiredPropertiesCreated>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
@@ -195,6 +196,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTIES, desiredProperties.toJson(schemaVersion, thePredicate),
@@ -233,8 +235,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", featureId=" + featureId +
-                ", desiredProperties="
-                + desiredProperties + "]";
+                ", desiredProperties=" + desiredProperties + "]";
     }
 
 }

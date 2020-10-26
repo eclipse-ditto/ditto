@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -59,14 +59,14 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
     private final String featureId;
 
     private FeatureDesiredPropertiesDeleted(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
+        this.featureId = checkNotNull(featureId.toString(), "featureId");
     }
 
     /**
@@ -82,7 +82,7 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
      * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
      */
     public static FeatureDesiredPropertiesDeleted of(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders,
@@ -118,6 +118,7 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
      */
     public static FeatureDesiredPropertiesDeleted fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new EventJsonDeserializer<FeatureDesiredPropertiesDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
@@ -154,6 +155,7 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
     }

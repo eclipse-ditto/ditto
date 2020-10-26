@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class FeatureDesiredPropertyCreatedTest {
 
-    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/target_year_1");
+    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/target_year_1");
 
     private static final JsonValue NEW_PROPERTY_VALUE = JsonFactory.newValue(1953);
 

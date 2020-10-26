@@ -35,7 +35,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class FeatureDesiredPropertyDeletedTest {
 
-    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/foo");
+    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/foo");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())

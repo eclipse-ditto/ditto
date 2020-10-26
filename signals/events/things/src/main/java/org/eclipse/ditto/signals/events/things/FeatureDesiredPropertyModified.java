@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -78,9 +78,9 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
-        this.desiredPropertyPointer = Objects.requireNonNull(desiredPropertyPointer, "The desired property JSON pointer must not be null!");
-        this.desiredPropertyValue = Objects.requireNonNull(desiredPropertyValue, "The desired property value must not be null!");
+        this.featureId = checkNotNull(featureId, "featureId");
+        this.desiredPropertyPointer = checkNotNull(desiredPropertyPointer, "desiredPropertyPointer");
+        this.desiredPropertyValue = checkNotNull(desiredPropertyValue, "desiredPropertyValue");
     }
 
     /**
@@ -106,8 +106,8 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
 
-        return new FeatureDesiredPropertyModified(thingId, featureId, desiredPropertyJsonPointer, desiredPropertyValue, revision, timestamp,
-                dittoHeaders, metadata);
+        return new FeatureDesiredPropertyModified(thingId, featureId, desiredPropertyJsonPointer, desiredPropertyValue,
+                revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -135,7 +135,8 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * 'FeatureDesiredPropertyModified' format.
      */
-    public static FeatureDesiredPropertyModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static FeatureDesiredPropertyModified fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeatureDesiredPropertyModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
@@ -186,7 +187,8 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
 
     @Override
     public FeatureDesiredPropertyModified setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, revision, getTimestamp().orElse(null),
+        return of(getThingEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, revision,
+                getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
@@ -199,6 +201,7 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTY, desiredPropertyPointer.toString(), predicate);
@@ -227,7 +230,8 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
         }
         final FeatureDesiredPropertyModified that = (FeatureDesiredPropertyModified) o;
         return that.canEqual(this) && Objects.equals(featureId, that.featureId) && Objects
-                .equals(desiredPropertyPointer, that.desiredPropertyPointer) && Objects.equals(desiredPropertyValue, that.desiredPropertyValue)
+                .equals(desiredPropertyPointer, that.desiredPropertyPointer) &&
+                Objects.equals(desiredPropertyValue, that.desiredPropertyValue)
                 && super.equals(that);
     }
 
@@ -239,7 +243,8 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", featureId=" + featureId
-                + ", desiredPropertyPointer=" + desiredPropertyPointer + ", desiredPropertyValue" + desiredPropertyValue + "]";
+                + ", desiredPropertyPointer=" + desiredPropertyPointer + ", desiredPropertyValue" +
+                desiredPropertyValue + "]";
     }
 
 }

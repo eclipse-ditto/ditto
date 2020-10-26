@@ -69,7 +69,7 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
     private final FeatureProperties desiredProperties;
 
     private FeatureDesiredPropertiesModified(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final FeatureProperties desiredProperties,
             final long revision,
             @Nullable final Instant timestamp,
@@ -77,8 +77,8 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-        this.featureId = checkNotNull(featureId, "Feature ID");
-        this.desiredProperties = checkNotNull(desiredProperties, "Feature's desired properties");
+        this.featureId = checkNotNull(featureId.toString(), "featureId");
+        this.desiredProperties = checkNotNull(desiredProperties, "desiredProperties");
     }
 
     /**
@@ -95,7 +95,7 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
      * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
      */
     public static FeatureDesiredPropertiesModified of(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final FeatureProperties desiredProperties,
             final long revision,
             @Nullable final Instant timestamp,
@@ -134,6 +134,7 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
      */
     public static FeatureDesiredPropertiesModified fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new EventJsonDeserializer<FeatureDesiredPropertiesModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
@@ -141,9 +142,8 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
                     final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTIES);
 
-                    final FeatureProperties extractedProperties = (null != propertiesJsonObject)
-                            ? ThingsModelFactory.newFeatureProperties(propertiesJsonObject)
-                            : ThingsModelFactory.nullFeatureProperties();
+                    final FeatureProperties extractedProperties =
+                            ThingsModelFactory.newFeatureProperties(propertiesJsonObject);
 
                     return of(thingId, extractedFeatureId, extractedProperties, revision, timestamp, dittoHeaders,
                             metadata);
