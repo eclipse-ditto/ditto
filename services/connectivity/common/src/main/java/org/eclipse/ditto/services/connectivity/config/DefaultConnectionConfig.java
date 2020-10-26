@@ -88,12 +88,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         return List.of(commaSeparated.split(","));
     }
 
-    public static void main(String[] args) {
-        final Collection<String> c1 = List.of("abc");
-        final Collection<String> c2 = List.of("abc");
-        System.out.println(c1.equals(c2));
-    }
-
     @Override
     public Duration getClientActorAskTimeout() {
         return clientActorAskTimeout;
