@@ -55,6 +55,8 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigBuildable;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
@@ -120,7 +122,8 @@ import akka.stream.Materializer;
  * the required information from ConnectionActor.
  * </p>
  */
-public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> {
+public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> implements
+        ConnectivityConfigModifiedBehavior {
 
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
@@ -229,6 +232,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
+        connectivityConfigProvider.registerForConnectivityConfigChanges(connectionId(), getSelf());
+
         initialize();
     }
 
@@ -240,6 +245,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             super.postStop();
         } catch (final Exception e) {
             log.error(e, "An error occurred post stop.");
+        }
+    }
+
+    @Override
+    public ConnectivityConfig getCurrentConnectivityConfig() {
+        return connectivityConfig;
+    }
+
+    @Override
+    public ConnectivityConfigProvider getConnectivityConfigProvider() {
+        return connectivityConfigProvider;
+    }
+
+    @Override
+    public void configModified(final ConnectivityConfig connectivityConfig) {
+        // recreate MessageMappingProcessor if mapper limits changed
+        if (!connectivityConfig.getMappingConfig().getMapperLimitsConfig()
+                .equals(this.connectivityConfig.getMappingConfig().getMapperLimitsConfig())) {
+            log.debug("MapperLimitsConfig changed, creating a new MessageMappingProcessor with modified config.,");
+            final MessageMappingProcessor messageMappingProcessor =
+                    MessageMappingProcessor.of(connection.getId(), connection.getPayloadMappingDefinition(),
+                            getContext().getSystem(), connectivityConfig, protocolAdapterProvider, log);
+            messageMappingProcessorActor.tell(new ReplaceMessageMappingProcessor(messageMappingProcessor), getSelf());
         }
     }
 
@@ -351,7 +379,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CheckConnectionLogsActive.class, BaseClientData.class,
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
-                .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage);
+                .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage)
+                .event(ConnectivityConfigBuildable.class, BaseClientData.class, (ccb, data) -> {
+                    handleConnectivityConfigBuildable(ccb);
+                    return stay();
+                });
     }
 
     /**
@@ -1505,5 +1537,23 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     protected enum Init {
         INSTANCE
+    }
+
+    /**
+     * Message sent to {@link MessageMappingProcessorActor} instructing it to replace the current
+     * {@link MessageMappingProcessor}.
+     */
+    static class ReplaceMessageMappingProcessor {
+
+        private final MessageMappingProcessor messageMappingProcessor;
+
+        private ReplaceMessageMappingProcessor(
+                final MessageMappingProcessor messageMappingProcessor) {
+            this.messageMappingProcessor = messageMappingProcessor;
+        }
+
+        MessageMappingProcessor getMessageMappingProcessor() {
+            return messageMappingProcessor;
+        }
     }
 }

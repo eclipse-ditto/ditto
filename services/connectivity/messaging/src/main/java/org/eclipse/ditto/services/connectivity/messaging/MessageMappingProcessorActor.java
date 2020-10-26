@@ -70,13 +70,13 @@ import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.ReplaceMessageMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -142,7 +142,6 @@ public final class MessageMappingProcessorActor
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
     private final ActorRef clientActor;
-    private final MessageMappingProcessor messageMappingProcessor;
     private final ConnectionId connectionId;
     private final ActorRef proxyActor;
     private final ActorRef connectionActor;
@@ -156,6 +155,9 @@ public final class MessageMappingProcessorActor
     private final SourceQueue<ExternalMessageWithSender> inboundSourceQueue;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
+
+    // not final because it may change when the underlying config changed
+    private MessageMappingProcessor messageMappingProcessor;
 
     @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef proxyActor,
@@ -179,7 +181,7 @@ public final class MessageMappingProcessorActor
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
@@ -248,7 +250,11 @@ public final class MessageMappingProcessorActor
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
                 .match(IncomingSignal.class, this::dispatchIncomingSignal)
                 .match(Status.Failure.class, f -> logger.warning("Got failure with cause {}: {}",
-                        f.cause().getClass().getSimpleName(), f.cause().getMessage()));
+                        f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(ReplaceMessageMappingProcessor.class, replaceProcessor -> {
+                    logger.info("Replacing the MessageMappingProcessor with a modified one.");
+                    this.messageMappingProcessor = replaceProcessor.getMessageMappingProcessor();
+                });
     }
 
     private void handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {

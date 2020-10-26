@@ -30,12 +30,14 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
      */
     default AbstractActor.Receive connectivityConfigModifiedBehavior() {
         return ReceiveBuilder.create()
-                .match(ConnectivityConfigBuildable.class, connectivityConfigBuildable -> {
-                    final ConnectivityConfig modifiedConnectivityConfig =
-                            connectivityConfigBuildable.buildWith(getCurrentConnectivityConfig());
-                    configModified(modifiedConnectivityConfig);
-                })
+                .match(ConnectivityConfigBuildable.class, this::handleConnectivityConfigBuildable)
                 .build();
+    }
+
+    default void handleConnectivityConfigBuildable(final ConnectivityConfigBuildable connectivityConfigBuildable) {
+        final ConnectivityConfig modifiedConnectivityConfig =
+                connectivityConfigBuildable.buildWith(getCurrentConnectivityConfig());
+        configModified(modifiedConnectivityConfig);
     }
 
     /**
