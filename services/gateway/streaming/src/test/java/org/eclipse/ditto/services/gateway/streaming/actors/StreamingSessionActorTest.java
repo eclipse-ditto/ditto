@@ -27,7 +27,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
@@ -60,7 +59,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -73,7 +71,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.japi.Pair;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -234,7 +231,9 @@ public final class StreamingSessionActorTest {
             final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
 
             underTest.tell(jwt, getRef());
-            Assertions.assertThat(sinkProbe.requestNext().getJsonifiable()).isInstanceOf(GatewayWebsocketSessionClosedException.class);
+
+            assertThat(sinkProbe.expectSubscriptionAndError())
+                    .isInstanceOf(GatewayWebsocketSessionClosedException.class);
         }};
     }
 
